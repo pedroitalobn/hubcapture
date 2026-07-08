@@ -1,6 +1,162 @@
 {
   "components": {
     "schemas": {
+      "AceitarConvite": {
+        "properties": {
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "senha": {
+            "minLength": 8,
+            "title": "Senha",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "senha"
+        ],
+        "title": "AceitarConvite",
+        "type": "object"
+      },
+      "AdminUsuarioCreate": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "papel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Papel"
+          },
+          "plano_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plano Id"
+          },
+          "senha": {
+            "minLength": 8,
+            "title": "Senha",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "senha"
+        ],
+        "title": "AdminUsuarioCreate",
+        "type": "object"
+      },
+      "AlertaRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lido": {
+            "title": "Lido",
+            "type": "boolean"
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload"
+          },
+          "proposta_id": {
+            "format": "uuid",
+            "title": "Proposta Id",
+            "type": "string"
+          },
+          "tipo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo"
+          }
+        },
+        "required": [
+          "id",
+          "proposta_id",
+          "lido",
+          "created_at"
+        ],
+        "title": "AlertaRead",
+        "type": "object"
+      },
+      "AtribuirPlano": {
+        "properties": {
+          "plano_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plano Id"
+          }
+        },
+        "title": "AtribuirPlano",
+        "type": "object"
+      },
       "Body_login_api_v1_auth_login_post": {
         "properties": {
           "client_id": {
@@ -81,6 +237,118 @@
         "title": "ConsultaAvulsaRequest",
         "type": "object"
       },
+      "ConviteCreate": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "expires_em_dias": {
+            "default": 7,
+            "title": "Expires Em Dias",
+            "type": "integer"
+          },
+          "papel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Papel"
+          },
+          "plano_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plano Id"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "ConviteCreate",
+        "type": "object"
+      },
+      "ConviteRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "papel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Papel"
+          },
+          "plano_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plano Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "token",
+          "status",
+          "created_at"
+        ],
+        "title": "ConviteRead",
+        "type": "object"
+      },
       "ErrorModel": {
         "properties": {
           "detail": {
@@ -102,6 +370,40 @@
           "detail"
         ],
         "title": "ErrorModel",
+        "type": "object"
+      },
+      "FavoritoCreate": {
+        "properties": {
+          "proposta_id": {
+            "format": "uuid",
+            "title": "Proposta Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "proposta_id"
+        ],
+        "title": "FavoritoCreate",
+        "type": "object"
+      },
+      "FavoritoRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "proposta_id": {
+            "format": "uuid",
+            "title": "Proposta Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "proposta_id",
+          "created_at"
+        ],
+        "title": "FavoritoRead",
         "type": "object"
       },
       "FonteResumo": {
@@ -140,6 +442,484 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "MonitoramentoCreate": {
+        "properties": {
+          "canais": {
+            "default": [
+              "painel"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "title": "Canais",
+            "type": "array"
+          },
+          "proposta_id": {
+            "format": "uuid",
+            "title": "Proposta Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "proposta_id"
+        ],
+        "title": "MonitoramentoCreate",
+        "type": "object"
+      },
+      "MonitoramentoRead": {
+        "properties": {
+          "ativo": {
+            "title": "Ativo",
+            "type": "boolean"
+          },
+          "canais": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canais"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "proposta_id": {
+            "format": "uuid",
+            "title": "Proposta Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "proposta_id",
+          "ativo",
+          "created_at"
+        ],
+        "title": "MonitoramentoRead",
+        "type": "object"
+      },
+      "MunicipioIn": {
+        "properties": {
+          "ibge": {
+            "maxLength": 7,
+            "minLength": 7,
+            "title": "Ibge",
+            "type": "string"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          }
+        },
+        "required": [
+          "ibge"
+        ],
+        "title": "MunicipioIn",
+        "type": "object"
+      },
+      "OnboardingRequest": {
+        "properties": {
+          "areas": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Areas",
+            "type": "array"
+          },
+          "disparar_sync": {
+            "default": false,
+            "title": "Disparar Sync",
+            "type": "boolean"
+          },
+          "fontes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Fontes",
+            "type": "array"
+          },
+          "monitorar_ativo": {
+            "default": true,
+            "title": "Monitorar Ativo",
+            "type": "boolean"
+          },
+          "municipios": {
+            "items": {
+              "$ref": "#/components/schemas/MunicipioIn"
+            },
+            "title": "Municipios",
+            "type": "array"
+          },
+          "papel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Papel"
+          }
+        },
+        "required": [
+          "municipios"
+        ],
+        "title": "OnboardingRequest",
+        "type": "object"
+      },
+      "OnboardingResponse": {
+        "properties": {
+          "municipios": {
+            "title": "Municipios",
+            "type": "integer"
+          },
+          "sync_disparado": {
+            "title": "Sync Disparado",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "municipios",
+          "sync_disparado"
+        ],
+        "title": "OnboardingResponse",
+        "type": "object"
+      },
+      "PastaCreate": {
+        "properties": {
+          "cor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor"
+          },
+          "nome": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Nome",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nome"
+        ],
+        "title": "PastaCreate",
+        "type": "object"
+      },
+      "PastaPropostaCreate": {
+        "properties": {
+          "proposta_id": {
+            "format": "uuid",
+            "title": "Proposta Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "proposta_id"
+        ],
+        "title": "PastaPropostaCreate",
+        "type": "object"
+      },
+      "PastaRead": {
+        "properties": {
+          "cor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "created_at"
+        ],
+        "title": "PastaRead",
+        "type": "object"
+      },
+      "PastaUpdate": {
+        "properties": {
+          "cor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          }
+        },
+        "title": "PastaUpdate",
+        "type": "object"
+      },
+      "PlanoCreate": {
+        "properties": {
+          "ativo": {
+            "default": true,
+            "title": "Ativo",
+            "type": "boolean"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "limites": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limites"
+          },
+          "nome": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Nome",
+            "type": "string"
+          },
+          "preco_mensal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preco Mensal"
+          },
+          "slug": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nome",
+          "slug"
+        ],
+        "title": "PlanoCreate",
+        "type": "object"
+      },
+      "PlanoRead": {
+        "properties": {
+          "ativo": {
+            "title": "Ativo",
+            "type": "boolean"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "limites": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limites"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "preco_mensal": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preco Mensal"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "slug",
+          "ativo"
+        ],
+        "title": "PlanoRead",
+        "type": "object"
+      },
+      "PlanoUpdate": {
+        "properties": {
+          "ativo": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ativo"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "limites": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limites"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "preco_mensal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preco Mensal"
+          }
+        },
+        "title": "PlanoUpdate",
         "type": "object"
       },
       "PropostaRead": {
@@ -827,6 +1607,18 @@
             ],
             "title": "Plano"
           },
+          "plano_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plano Id"
+          },
           "telefone_wpp": {
             "anyOf": [
               {
@@ -966,6 +1758,311 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/convites": {
+      "get": {
+        "operationId": "admin_listar_convites_api_v1_admin_convites_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ConviteRead"
+                  },
+                  "title": "Response Admin Listar Convites Api V1 Admin Convites Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Admin Listar Convites",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "admin_criar_convite_api_v1_admin_convites_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConviteCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConviteRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Admin Criar Convite",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/usuarios": {
+      "post": {
+        "operationId": "admin_criar_usuario_api_v1_admin_usuarios_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminUsuarioCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Admin Criar Usuario",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/usuarios/{usuario_id}/plano": {
+      "patch": {
+        "operationId": "admin_atribuir_plano_api_v1_admin_usuarios__usuario_id__plano_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "usuario_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Usuario Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtribuirPlano"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Admin Atribuir Plano",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/alertas": {
+      "get": {
+        "operationId": "listar_alertas_api_v1_alertas_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "nao_lidos",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Nao Lidos",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AlertaRead"
+                  },
+                  "title": "Response Listar Alertas Api V1 Alertas Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Alertas",
+        "tags": [
+          "alertas"
+        ]
+      }
+    },
+    "/api/v1/alertas/{alerta_id}/lido": {
+      "post": {
+        "operationId": "marcar_lido_api_v1_alertas__alerta_id__lido_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alerta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Alerta Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Marcar Lido",
+        "tags": [
+          "alertas"
+        ]
+      }
+    },
+    "/api/v1/auth/aceitar-convite": {
+      "post": {
+        "operationId": "aceitar_convite_api_v1_auth_aceitar_convite_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AceitarConvite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Aceitar Convite",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "operationId": "login_api_v1_auth_login_post",
@@ -1166,6 +2263,123 @@
         ]
       }
     },
+    "/api/v1/favoritos": {
+      "get": {
+        "operationId": "listar_favoritos_api_v1_favoritos_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FavoritoRead"
+                  },
+                  "title": "Response Listar Favoritos Api V1 Favoritos Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Favoritos",
+        "tags": [
+          "favoritos"
+        ]
+      },
+      "post": {
+        "operationId": "adicionar_favorito_api_v1_favoritos_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FavoritoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Adicionar Favorito Api V1 Favoritos Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Adicionar Favorito",
+        "tags": [
+          "favoritos"
+        ]
+      }
+    },
+    "/api/v1/favoritos/{proposta_id}": {
+      "delete": {
+        "operationId": "remover_favorito_api_v1_favoritos__proposta_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposta Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Remover Favorito",
+        "tags": [
+          "favoritos"
+        ]
+      }
+    },
     "/api/v1/me": {
       "get": {
         "operationId": "me_api_v1_me_get",
@@ -1190,6 +2404,496 @@
         "tags": [
           "auth",
           "me"
+        ]
+      }
+    },
+    "/api/v1/monitoramentos": {
+      "get": {
+        "operationId": "listar_monitoramentos_api_v1_monitoramentos_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MonitoramentoRead"
+                  },
+                  "title": "Response Listar Monitoramentos Api V1 Monitoramentos Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Monitoramentos",
+        "tags": [
+          "monitoramentos"
+        ]
+      },
+      "post": {
+        "operationId": "criar_monitoramento_api_v1_monitoramentos_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitoramentoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitoramentoRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Criar Monitoramento",
+        "tags": [
+          "monitoramentos"
+        ]
+      }
+    },
+    "/api/v1/onboarding": {
+      "post": {
+        "operationId": "onboarding_api_v1_onboarding_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Onboarding",
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/pastas": {
+      "get": {
+        "operationId": "listar_pastas_api_v1_pastas_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PastaRead"
+                  },
+                  "title": "Response Listar Pastas Api V1 Pastas Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Pastas",
+        "tags": [
+          "pastas"
+        ]
+      },
+      "post": {
+        "operationId": "criar_pasta_api_v1_pastas_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PastaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PastaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Criar Pasta",
+        "tags": [
+          "pastas"
+        ]
+      }
+    },
+    "/api/v1/pastas/{pasta_id}": {
+      "patch": {
+        "operationId": "atualizar_pasta_api_v1_pastas__pasta_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pasta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pasta Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PastaUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PastaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Atualizar Pasta",
+        "tags": [
+          "pastas"
+        ]
+      }
+    },
+    "/api/v1/pastas/{pasta_id}/propostas": {
+      "post": {
+        "operationId": "adicionar_proposta_api_v1_pastas__pasta_id__propostas_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pasta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pasta Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PastaPropostaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Adicionar Proposta Api V1 Pastas  Pasta Id  Propostas Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Adicionar Proposta",
+        "tags": [
+          "pastas"
+        ]
+      }
+    },
+    "/api/v1/pastas/{pasta_id}/propostas/{proposta_id}": {
+      "delete": {
+        "operationId": "remover_proposta_api_v1_pastas__pasta_id__propostas__proposta_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pasta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pasta Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "proposta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposta Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Remover Proposta",
+        "tags": [
+          "pastas"
+        ]
+      }
+    },
+    "/api/v1/planos": {
+      "get": {
+        "operationId": "listar_planos_api_v1_planos_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PlanoRead"
+                  },
+                  "title": "Response Listar Planos Api V1 Planos Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Listar Planos",
+        "tags": [
+          "planos"
+        ]
+      },
+      "post": {
+        "operationId": "criar_plano_api_v1_planos_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanoRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Criar Plano",
+        "tags": [
+          "planos"
+        ]
+      }
+    },
+    "/api/v1/planos/{plano_id}": {
+      "patch": {
+        "operationId": "atualizar_plano_api_v1_planos__plano_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plano_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Plano Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanoUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanoRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Atualizar Plano",
+        "tags": [
+          "planos"
         ]
       }
     },
