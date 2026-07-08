@@ -44,6 +44,26 @@ class Settings(BaseSettings):
     # Recebidos (P1). URLs a calibrar contra as APIs/CSVs oficiais.
     fpm_base_url: str = "https://apidatalake.tesouro.gov.br/ords/transferencias/"
     emendas_base_url: str = "https://api.portaldatransparencia.gov.br/api-de-dados/"
+    # Demais fontes (prontas para receber as APIs — calibrar rota/campos).
+    transferegov_esp_base_url: str = (
+        "https://api.transferegov.gestao.gov.br/transferenciasespeciais/"
+    )
+    transferegov_disc_csv_url: str = "http://repositorio.dados.gov.br/seges/detru/"
+    fns_consulta_url: str = "https://consultafns.saude.gov.br/"
+    fnde_base_url: str = "https://www.fnde.gov.br/sigefweb/"
+    serpro_base_url: str = "https://gateway.apiserpro.serpro.gov.br/"
+
+    # ── Scraping (Firecrawl) — coleta combinada / fallback ──────────────────
+    firecrawl_api_key: str = ""  # vazio = scraping desabilitado
+    firecrawl_base_url: str = "https://api.firecrawl.dev"
+
+    @property
+    def scraping_enabled(self) -> bool:
+        return bool(self.firecrawl_api_key)
+
+    # ── IA (LiteLLM) — resumo no pipeline (opcional) ────────────────────────
+    llm_api_key: str = ""  # vazio = resumo IA desabilitado
+    llm_model_resumo: str = "claude-haiku-4-5-20251001"
 
     # ── CORS ─────────────────────────────────────────────────────────────────
     cors_origins: str = "http://localhost:3000"
