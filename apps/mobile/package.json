@@ -1,0 +1,9 @@
+{
+  "name": "@hub/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Hub Capture mobile (Expo) — FASE 2. Scaffold apenas; consome a MESMA API v1.",
+  "scripts": {
+    "start": "echo 'Mobile (Expo) é fase 2 — scaffold apenas.' && exit 0"
+  }
+}

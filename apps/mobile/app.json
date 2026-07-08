@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "Hub Capture",
+    "slug": "hub-capture",
+    "scheme": "hubcapture",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "platforms": ["ios", "android"]
+  }
+}

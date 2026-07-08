@@ -1,0 +1,44 @@
+# Infra local de desenvolvimento — Hub Capture
+# Postgres (com pgvector) é o único serviço realmente usado no Sprint 0/1.
+# redis e n8n ficam declarados para as fases seguintes (fila ARQ / orquestração).
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: hubcapture-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hubcapture}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-hubcapture}
+      # senha da role de app não-superuser criada no init (RLS vale para ela)
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-app_secret}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hubcapture} -d ${POSTGRES_DB:-hubcapture}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Fila para ARQ (sync pesado, retries, alertas) — FASE seguinte. Declarado, não usado ainda.
+  redis:
+    image: redis:7-alpine
+    container_name: hubcapture-redis
+    ports:
+      - "6379:6379"
+
+  # Orquestração de sync/alertas — FASE seguinte. Declarado, não usado ainda.
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: hubcapture-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_SECURE_COOKIE: "false"
+    profiles:
+      - orchestration
+
+volumes:
+  pgdata:
