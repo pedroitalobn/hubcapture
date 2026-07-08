@@ -216,6 +216,24 @@
         "title": "Body_login_api_v1_auth_login_post",
         "type": "object"
       },
+      "ChatRequest": {
+        "properties": {
+          "modo": {
+            "default": "propostas",
+            "title": "Modo",
+            "type": "string"
+          },
+          "pergunta": {
+            "title": "Pergunta",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pergunta"
+        ],
+        "title": "ChatRequest",
+        "type": "object"
+      },
       "ConfigItem": {
         "properties": {
           "categoria": {
@@ -287,6 +305,49 @@
           "chave"
         ],
         "title": "ConfigSet",
+        "type": "object"
+      },
+      "ConhecimentoCreate": {
+        "properties": {
+          "categoria": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Categoria"
+          },
+          "conteudo": {
+            "title": "Conteudo",
+            "type": "string"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "titulo",
+          "conteudo"
+        ],
+        "title": "ConhecimentoCreate",
         "type": "object"
       },
       "ConsultaAvulsaRequest": {
@@ -1909,6 +1970,55 @@
         ]
       }
     },
+    "/api/v1/admin/conhecimento": {
+      "post": {
+        "description": "Adiciona material à base de conhecimento do Copiloto.",
+        "operationId": "admin_add_conhecimento_api_v1_admin_conhecimento_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConhecimentoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Admin Add Conhecimento Api V1 Admin Conhecimento Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Admin Add Conhecimento",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/convites": {
       "get": {
         "operationId": "admin_listar_convites_api_v1_admin_convites_get",
@@ -2411,6 +2521,50 @@
         "summary": "Consulta Avulsa Endpoint",
         "tags": [
           "consulta-avulsa"
+        ]
+      }
+    },
+    "/api/v1/copiloto/chat": {
+      "post": {
+        "operationId": "copiloto_chat_api_v1_copiloto_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Copiloto Chat",
+        "tags": [
+          "copiloto"
         ]
       }
     },

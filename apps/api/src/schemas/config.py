@@ -18,3 +18,10 @@ class ConfigItem(BaseModel):
 class ConfigSet(BaseModel):
     chave: str
     valor: str | None = None
+
+
+class ConhecimentoCreate(BaseModel):
+    titulo: str
+    conteudo: str
+    categoria: str | None = None
+    tags: list[str] | None = None

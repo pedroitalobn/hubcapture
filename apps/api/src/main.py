@@ -41,6 +41,7 @@ def register_routers() -> None:
         alertas,
         auth,
         consulta_avulsa,
+        copiloto,
         favoritos,
         monitoramentos,
         onboarding,
@@ -63,6 +64,7 @@ def register_routers() -> None:
         planos,
         admin,
         admin_config,
+        copiloto,
     ):
         app.include_router(mod.router, prefix="/api/v1")
 

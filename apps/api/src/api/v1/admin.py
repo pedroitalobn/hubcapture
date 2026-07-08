@@ -12,7 +12,9 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.users import UserManager, current_superuser, get_user_manager
+from ...models.base_conhecimento import BaseConhecimento
 from ...models.usuario import Usuario
+from ...schemas.config import ConhecimentoCreate
 from ...schemas.planos import (
     AceitarConvite,
     AdminUsuarioCreate,
@@ -73,3 +75,21 @@ async def aceitar_convite(
     session: AsyncSession = Depends(get_platform_db),
 ) -> Usuario:
     return await service.aceitar_convite(session, user_manager, body)
+
+
+@router.post("/admin/conhecimento", status_code=status.HTTP_201_CREATED)
+async def admin_add_conhecimento(
+    body: ConhecimentoCreate,
+    _admin: Usuario = Depends(current_superuser),
+    session: AsyncSession = Depends(get_platform_db),
+) -> dict:
+    """Adiciona material à base de conhecimento do Copiloto."""
+    session.add(
+        BaseConhecimento(
+            titulo=body.titulo,
+            conteudo=body.conteudo,
+            categoria=body.categoria,
+            tags=body.tags,
+        )
+    )
+    return {"ok": True}

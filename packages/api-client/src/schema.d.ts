@@ -22,6 +22,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/conhecimento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin Add Conhecimento
+         * @description Adiciona material à base de conhecimento do Copiloto.
+         */
+        post: operations["admin_add_conhecimento_api_v1_admin_conhecimento_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/convites": {
         parameters: {
             query?: never;
@@ -187,6 +207,23 @@ export interface paths {
         put?: never;
         /** Consulta Avulsa Endpoint */
         post: operations["consulta_avulsa_endpoint_api_v1_consulta_avulsa_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/copiloto/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copiloto Chat */
+        post: operations["copiloto_chat_api_v1_copiloto_chat_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -570,6 +607,16 @@ export interface components {
             /** Username */
             username: string;
         };
+        /** ChatRequest */
+        ChatRequest: {
+            /**
+             * Modo
+             * @default propostas
+             */
+            modo: string;
+            /** Pergunta */
+            pergunta: string;
+        };
         /** ConfigItem */
         ConfigItem: {
             /** Categoria */
@@ -593,6 +640,17 @@ export interface components {
             chave: string;
             /** Valor */
             valor?: string | null;
+        };
+        /** ConhecimentoCreate */
+        ConhecimentoCreate: {
+            /** Categoria */
+            categoria?: string | null;
+            /** Conteudo */
+            conteudo: string;
+            /** Tags */
+            tags?: string[] | null;
+            /** Titulo */
+            titulo: string;
         };
         /** ConsultaAvulsaRequest */
         ConsultaAvulsaRequest: {
@@ -1182,6 +1240,41 @@ export interface operations {
             };
         };
     };
+    admin_add_conhecimento_api_v1_admin_conhecimento_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConhecimentoCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     admin_listar_convites_api_v1_admin_convites_get: {
         parameters: {
             query?: never;
@@ -1522,6 +1615,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PropostaRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    copiloto_chat_api_v1_copiloto_chat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
