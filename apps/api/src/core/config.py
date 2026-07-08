@@ -61,9 +61,12 @@ class Settings(BaseSettings):
     def scraping_enabled(self) -> bool:
         return bool(self.firecrawl_api_key)
 
-    # ── IA (LiteLLM) — resumo no pipeline (opcional) ────────────────────────
-    llm_api_key: str = ""  # vazio = resumo IA desabilitado
+    # ── IA (LiteLLM) — resumo/chat/embeddings (opcionais) ───────────────────
+    llm_api_key: str = ""  # vazio = resumo/chat IA desabilitado
     llm_model_resumo: str = "claude-haiku-4-5-20251001"
+    llm_model_chat: str = "claude-sonnet-5"
+    embedding_api_key: str = ""  # vazio = embeddings/RAG desabilitado
+    embedding_model: str = "text-embedding-3-small"  # dim 1536 (casa com o schema)
 
     # ── Config runtime (painel admin) ───────────────────────────────────────
     # Chave para cifrar segredos em repouso na tabela `configuracoes` (Fernet).
