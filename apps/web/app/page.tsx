@@ -30,6 +30,12 @@ export default function Home() {
           Propostas
         </Link>
         <Link
+          href="/painel/chat"
+          className="rounded-md border border-gray-300 px-4 py-2 dark:border-gray-700"
+        >
+          Copiloto
+        </Link>
+        <Link
           href="/admin/planos"
           className="rounded-md border border-gray-300 px-4 py-2 dark:border-gray-700"
         >

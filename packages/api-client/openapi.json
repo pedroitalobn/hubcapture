@@ -1572,6 +1572,35 @@
         "title": "TokenPair",
         "type": "object"
       },
+      "UniqInbound": {
+        "properties": {
+          "mensagem": {
+            "title": "Mensagem",
+            "type": "string"
+          },
+          "telefone": {
+            "title": "Telefone",
+            "type": "string"
+          },
+          "token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Token"
+          }
+        },
+        "required": [
+          "telefone",
+          "mensagem"
+        ],
+        "title": "UniqInbound",
+        "type": "object"
+      },
       "UserCreate": {
         "properties": {
           "email": {
@@ -3360,6 +3389,52 @@
         ]
       }
     },
+    "/api/v1/propostas/{proposta_id}/pdf": {
+      "get": {
+        "operationId": "exportar_pdf_api_v1_propostas__proposta_id__pdf_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposta Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Exportar Pdf",
+        "tags": [
+          "propostas"
+        ]
+      }
+    },
     "/api/v1/repasses": {
       "get": {
         "operationId": "listar_repasses_api_v1_repasses_get",
@@ -3603,6 +3678,49 @@
         "summary": "Visao Geral",
         "tags": [
           "repasses"
+        ]
+      }
+    },
+    "/api/v1/webhooks/uniq": {
+      "post": {
+        "operationId": "uniq_inbound_api_v1_webhooks_uniq_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UniqInbound"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Uniq Inbound Api V1 Webhooks Uniq Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Uniq Inbound",
+        "tags": [
+          "webhooks"
         ]
       }
     },

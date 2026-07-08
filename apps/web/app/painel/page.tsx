@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { api, clearTokens, getToken } from "@/lib/api/client";
+import { api, baixarPdfProposta, clearTokens, getToken } from "@/lib/api/client";
+import Link from "next/link";
 
 type Proposta = {
   id: string;
@@ -76,9 +77,14 @@ export default function PainelPage() {
     <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-6 px-6 py-8">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Painel de propostas</h1>
-        <button onClick={sair} className="text-sm text-gray-500 underline">
-          Sair
-        </button>
+        <div className="flex items-center gap-4 text-sm">
+          <Link href="/painel/chat" className="text-brand underline">
+            Copiloto
+          </Link>
+          <button onClick={sair} className="text-gray-500 underline">
+            Sair
+          </button>
+        </div>
       </header>
 
       <form onSubmit={consultarAvulsa} className="flex flex-wrap items-end gap-3">
@@ -117,6 +123,7 @@ export default function PainelPage() {
                 <th className="py-2 pr-4">Município</th>
                 <th className="py-2 pr-4">Valor</th>
                 <th className="py-2 pr-4">Situação</th>
+                <th className="py-2 pr-4"></th>
               </tr>
             </thead>
             <tbody>
@@ -133,6 +140,14 @@ export default function PainelPage() {
                   </td>
                   <td className="py-2 pr-4">{formatBRL(p.valor_total)}</td>
                   <td className="py-2 pr-4">{p.situacao ?? "—"}</td>
+                  <td className="py-2 pr-4">
+                    <button
+                      onClick={() => baixarPdfProposta(p.id)}
+                      className="text-xs text-brand underline"
+                    >
+                      PDF
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

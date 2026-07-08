@@ -455,6 +455,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/propostas/{proposta_id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Exportar Pdf */
+        get: operations["exportar_pdf_api_v1_propostas__proposta_id__pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/repasses": {
         parameters: {
             query?: never;
@@ -500,6 +517,23 @@ export interface paths {
         get: operations["visao_geral_api_v1_repasses_visao_geral_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/webhooks/uniq": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Uniq Inbound */
+        post: operations["uniq_inbound_api_v1_webhooks_uniq_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1065,6 +1099,15 @@ export interface components {
              * @default bearer
              */
             token_type: string;
+        };
+        /** UniqInbound */
+        UniqInbound: {
+            /** Mensagem */
+            mensagem: string;
+            /** Telefone */
+            telefone: string;
+            /** Token */
+            token?: string | null;
         };
         /** UserCreate */
         UserCreate: {
@@ -2161,6 +2204,37 @@ export interface operations {
             };
         };
     };
+    exportar_pdf_api_v1_propostas__proposta_id__pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listar_repasses_api_v1_repasses_get: {
         parameters: {
             query?: {
@@ -2251,6 +2325,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VisaoGeral"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    uniq_inbound_api_v1_webhooks_uniq_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UniqInbound"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

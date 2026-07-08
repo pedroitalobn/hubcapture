@@ -474,3 +474,16 @@ chave de `CONFIG_SECRET_KEY`) e **mascarados** na leitura. Catálogo de chaves e
   (base URL no `collect`) consultam o resolver. Plugar uma credencial no painel ativa o provider
   sem redeploy.
 - Web: `app/admin/config` (agrupado por categoria; segredos em campo password, mascarados).
+
+## 17. Camada de IA + WhatsApp + PDF (v1)
+
+- **Embeddings/RAG**: `ai/embeddings.py` (LiteLLM), `services/rag.py` (similaridade pgvector
+  sob RLS + fallback textual), `jobs/embed.py` (embed_new). Dim 1536.
+- **Chat/Copiloto**: `ai/chat.py` (LiteLLM streaming, fallback sem chave). `POST /copiloto/chat`
+  (SSE) — modo `propostas` (RAG sobre as propostas do usuário) ou `copiloto` (base_conhecimento).
+  Web: `app/painel/chat`.
+- **WhatsApp (Uniq)**: `notifications/uniq.py`, `POST /webhooks/uniq` (telefone→usuário→chat→resposta),
+  `services/dispatch_alerts.py`. Credenciais no painel (categoria whatsapp).
+- **Exportar PDF**: `services/pdf.py` (reportlab), `GET /propostas/{id}/pdf`. Web: botão PDF no painel.
+- Todos os providers de IA/WhatsApp são **opcionais** e ligados pelo painel admin (`/admin/config`);
+  sem credencial, degradam com elegância (o Hub continua entregando dados).
