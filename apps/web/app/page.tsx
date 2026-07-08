@@ -24,6 +24,12 @@ export default function Home() {
           Recursos recebidos
         </Link>
         <Link
+          href="/painel/conformidade"
+          className="rounded-md border border-gray-300 px-4 py-2 dark:border-gray-700"
+        >
+          Conformidade fiscal
+        </Link>
+        <Link
           href="/painel"
           className="rounded-md border border-gray-300 px-4 py-2 dark:border-gray-700"
         >

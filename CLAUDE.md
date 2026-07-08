@@ -487,3 +487,11 @@ chave de `CONFIG_SECRET_KEY`) e **mascarados** na leitura. Catálogo de chaves e
 - **Exportar PDF**: `services/pdf.py` (reportlab), `GET /propostas/{id}/pdf`. Web: botão PDF no painel.
 - Todos os providers de IA/WhatsApp são **opcionais** e ligados pelo painel admin (`/admin/config`);
   sem credencial, degradam com elegância (o Hub continua entregando dados).
+
+## 18. Conformidade fiscal (CAUC/CAPAG) — P2
+
+Terceiro eixo do ciclo (fiscal). Entidade `conformidades` (cache global, RLS só-SELECT por
+município, migration 0007). Connector `siconfi` (CSV do Tesouro Transparente; base URL no painel
+`siconfi_csv_url`), normalizador `ingestion/normalizer_conformidade.py`, serviço
+`services/conformidade.py` (listar/upsert/resumo/sync). Endpoints `GET /conformidade` (KPIs por
+status/seção + CAPAG) e `POST /conformidade/sync`. Web `app/painel/conformidade`.

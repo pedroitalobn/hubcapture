@@ -307,6 +307,182 @@
         "title": "ConfigSet",
         "type": "object"
       },
+      "ConformidadeRead": {
+        "properties": {
+          "cache_atualizado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Atualizado Em"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "detalhe": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detalhe"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "title": "Municipio Ibge",
+            "type": "string"
+          },
+          "numero": {
+            "title": "Numero",
+            "type": "string"
+          },
+          "orgao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgao"
+          },
+          "secao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secao"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          },
+          "validade": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validade"
+          },
+          "valor": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor"
+          }
+        },
+        "required": [
+          "id",
+          "municipio_ibge",
+          "tipo",
+          "numero"
+        ],
+        "title": "ConformidadeRead",
+        "type": "object"
+      },
+      "ConformidadeResumo": {
+        "description": "CAUC: KPIs por status + por seção. CAPAG: rating separado.",
+        "properties": {
+          "a_comprovar": {
+            "title": "A Comprovar",
+            "type": "integer"
+          },
+          "capag": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConformidadeRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "comprovados": {
+            "title": "Comprovados",
+            "type": "integer"
+          },
+          "desativados": {
+            "title": "Desativados",
+            "type": "integer"
+          },
+          "requisitos": {
+            "items": {
+              "$ref": "#/components/schemas/ConformidadeRead"
+            },
+            "title": "Requisitos",
+            "type": "array"
+          },
+          "secoes": {
+            "items": {
+              "$ref": "#/components/schemas/SecaoResumo"
+            },
+            "title": "Secoes",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "comprovados",
+          "a_comprovar",
+          "desativados",
+          "secoes",
+          "requisitos"
+        ],
+        "title": "ConformidadeResumo",
+        "type": "object"
+      },
       "ConhecimentoCreate": {
         "properties": {
           "categoria": {
@@ -1520,6 +1696,54 @@
         "title": "RepassesPorDia",
         "type": "object"
       },
+      "SecaoResumo": {
+        "properties": {
+          "a_comprovar": {
+            "title": "A Comprovar",
+            "type": "integer"
+          },
+          "comprovados": {
+            "title": "Comprovados",
+            "type": "integer"
+          },
+          "desativados": {
+            "title": "Desativados",
+            "type": "integer"
+          },
+          "secao": {
+            "title": "Secao",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "secao",
+          "total",
+          "comprovados",
+          "a_comprovar",
+          "desativados"
+        ],
+        "title": "SecaoResumo",
+        "type": "object"
+      },
+      "SyncConformidadeRequest": {
+        "properties": {
+          "municipio_ibge": {
+            "maxLength": 7,
+            "minLength": 7,
+            "title": "Municipio Ibge",
+            "type": "string"
+          }
+        },
+        "required": [
+          "municipio_ibge"
+        ],
+        "title": "SyncConformidadeRequest",
+        "type": "object"
+      },
       "SyncRepassesRequest": {
         "properties": {
           "fontes": {
@@ -2500,6 +2724,110 @@
         "summary": "Register:Register",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/conformidade": {
+      "get": {
+        "operationId": "conformidade_resumo_api_v1_conformidade_get",
+        "parameters": [
+          {
+            "description": "código IBGE (7 dígitos)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "código IBGE (7 dígitos)",
+              "title": "Municipio"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConformidadeResumo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Conformidade Resumo",
+        "tags": [
+          "conformidade"
+        ]
+      }
+    },
+    "/api/v1/conformidade/sync": {
+      "post": {
+        "operationId": "conformidade_sync_api_v1_conformidade_sync_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncConformidadeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Conformidade Sync Api V1 Conformidade Sync Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Conformidade Sync",
+        "tags": [
+          "conformidade"
         ]
       }
     },

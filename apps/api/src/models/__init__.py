@@ -5,6 +5,7 @@ from .alerta import Alerta
 from .audit_log import AuditLog
 from .base_conhecimento import BaseConhecimento
 from .configuracao import Configuracao
+from .conformidade import Conformidade
 from .convite import Convite
 from .favorito import Favorito
 from .monitoramento import Monitoramento
@@ -37,4 +38,5 @@ __all__ = [
     "Convite",
     "Configuracao",
     "BaseConhecimento",
+    "Conformidade",
 ]

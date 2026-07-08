@@ -6,6 +6,7 @@ from . import (
     fns,  # noqa: F401  (saúde — scraping)
     fpm,  # noqa: F401  (recebidos — FPM)
     serpro,  # noqa: F401  (enrichment)
+    siconfi,  # noqa: F401  (conformidade — CAUC/CAPAG CSV)
     transferegov_disc,  # noqa: F401  (discricionárias — CSV)
     transferegov_esp,  # noqa: F401  (especiais — API + fallback)
     transferegov_ff,  # noqa: F401  (fundo a fundo — API)

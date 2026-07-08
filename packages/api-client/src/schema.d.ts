@@ -196,6 +196,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/conformidade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Conformidade Resumo */
+        get: operations["conformidade_resumo_api_v1_conformidade_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conformidade/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Conformidade Sync */
+        post: operations["conformidade_sync_api_v1_conformidade_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/consulta-avulsa": {
         parameters: {
             query?: never;
@@ -675,6 +709,57 @@ export interface components {
             /** Valor */
             valor?: string | null;
         };
+        /** ConformidadeRead */
+        ConformidadeRead: {
+            /** Cache Atualizado Em */
+            cache_atualizado_em?: string | null;
+            /** Descricao */
+            descricao?: string | null;
+            /** Detalhe */
+            detalhe?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Municipio Ibge */
+            municipio_ibge: string;
+            /** Numero */
+            numero: string;
+            /** Orgao */
+            orgao?: string | null;
+            /** Secao */
+            secao?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Tipo */
+            tipo: string;
+            /** Validade */
+            validade?: string | null;
+            /** Valor */
+            valor?: string | null;
+        };
+        /**
+         * ConformidadeResumo
+         * @description CAUC: KPIs por status + por seção. CAPAG: rating separado.
+         */
+        ConformidadeResumo: {
+            /** A Comprovar */
+            a_comprovar: number;
+            capag?: components["schemas"]["ConformidadeRead"] | null;
+            /** Comprovados */
+            comprovados: number;
+            /** Desativados */
+            desativados: number;
+            /** Requisitos */
+            requisitos: components["schemas"]["ConformidadeRead"][];
+            /** Secoes */
+            secoes: components["schemas"]["SecaoResumo"][];
+            /** Total */
+            total: number;
+        };
         /** ConhecimentoCreate */
         ConhecimentoCreate: {
             /** Categoria */
@@ -1080,6 +1165,24 @@ export interface components {
             itens: components["schemas"]["RepasseRead"][];
             /** Subtotal */
             subtotal: string;
+        };
+        /** SecaoResumo */
+        SecaoResumo: {
+            /** A Comprovar */
+            a_comprovar: number;
+            /** Comprovados */
+            comprovados: number;
+            /** Desativados */
+            desativados: number;
+            /** Secao */
+            secao: string;
+            /** Total */
+            total: number;
+        };
+        /** SyncConformidadeRequest */
+        SyncConformidadeRequest: {
+            /** Municipio Ibge */
+            municipio_ibge: string;
         };
         /** SyncRepassesRequest */
         SyncRepassesRequest: {
@@ -1625,6 +1728,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    conformidade_resumo_api_v1_conformidade_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConformidadeResumo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    conformidade_sync_api_v1_conformidade_sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncConformidadeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

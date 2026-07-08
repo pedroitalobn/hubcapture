@@ -52,6 +52,8 @@ class Settings(BaseSettings):
     fns_consulta_url: str = "https://consultafns.saude.gov.br/"
     fnde_base_url: str = "https://www.fnde.gov.br/sigefweb/"
     serpro_base_url: str = "https://gateway.apiserpro.serpro.gov.br/"
+    # Conformidade fiscal (CAUC/CAPAG) — CSV do Tesouro Transparente
+    siconfi_csv_url: str = "https://www.tesourotransparente.gov.br/ckan/dataset/cauc/"
 
     # ── Scraping (Firecrawl) — coleta combinada / fallback ──────────────────
     firecrawl_api_key: str = ""  # vazio = scraping desabilitado
