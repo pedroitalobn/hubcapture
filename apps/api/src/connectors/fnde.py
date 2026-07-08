@@ -10,6 +10,7 @@ from datetime import date
 
 from ..core.config import settings
 from ..scraping.firecrawl import get_firecrawl
+from ..services import config as config_service
 from ._http import get_json
 from .base import RawRecord, register
 
@@ -24,8 +25,9 @@ class FndeConnector:
         self.base_url = base_url or settings.fnde_base_url
 
     async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
+        base = await config_service.resolver("fnde_base_url") or self.base_url
         data = await get_json(
-            self.base_url, ENDPOINT, {IBGE_FIELD: municipio_ibge, "ano": str(since.year)}
+            base, ENDPOINT, {IBGE_FIELD: municipio_ibge, "ano": str(since.year)}
         )
         linhas = data if isinstance(data, list) else data.get("items", [])
         records: list[RawRecord] = []
@@ -57,7 +59,7 @@ class FndeConnector:
             await get_json(self.base_url, ENDPOINT, {"limit": "1"})
             return True
         except Exception:
-            return get_firecrawl().enabled
+            return await get_firecrawl().is_enabled()
 
 
 register(FndeConnector())

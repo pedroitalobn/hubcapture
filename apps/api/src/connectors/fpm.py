@@ -14,6 +14,7 @@ from __future__ import annotations
 from datetime import date
 
 from ..core.config import settings
+from ..services import config as config_service
 from ._http import get_json
 from .base import RawRecord, register
 
@@ -29,8 +30,9 @@ class FpmConnector:
         self.base_url = base_url or settings.fpm_base_url
 
     async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
+        base = await config_service.resolver("fpm_base_url") or self.base_url
         data = await get_json(
-            self.base_url,
+            base,
             ENDPOINT,
             {"cod_ibge": municipio_ibge, "data_inicio": since.isoformat()},
         )

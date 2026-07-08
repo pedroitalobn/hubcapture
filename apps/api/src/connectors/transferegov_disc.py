@@ -13,6 +13,7 @@ from datetime import date
 import httpx
 
 from ..core.config import settings
+from ..services import config as config_service
 from ._http import TIMEOUT
 from .base import RawRecord, register
 
@@ -30,7 +31,8 @@ class TransferegovDiscConnector:
         self.base_url = base_url or settings.transferegov_disc_csv_url
 
     async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
-        url = f"{self.base_url.rstrip('/')}/{CSV_FILENAME}"
+        base = await config_service.resolver("transferegov_disc_csv_url") or self.base_url
+        url = f"{base.rstrip('/')}/{CSV_FILENAME}"
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             resp = await client.get(url)
             resp.raise_for_status()

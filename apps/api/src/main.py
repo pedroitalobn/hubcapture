@@ -37,6 +37,7 @@ def register_routers() -> None:
     """Inclui os routers da v1. Chamado no import; separado para facilitar testes."""
     from .api.v1 import (
         admin,
+        admin_config,
         alertas,
         auth,
         consulta_avulsa,
@@ -61,6 +62,7 @@ def register_routers() -> None:
         alertas,
         planos,
         admin,
+        admin_config,
     ):
         app.include_router(mod.router, prefix="/api/v1")
 

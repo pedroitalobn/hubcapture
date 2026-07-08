@@ -11,6 +11,7 @@ from datetime import date
 
 from ..core.config import settings
 from ..scraping.firecrawl import get_firecrawl
+from ..services import config as config_service
 from .base import RawRecord, register
 
 # schema de extração (o que queremos que o Firecrawl estruture) — calibrar
@@ -43,7 +44,8 @@ class FnsConnector:
 
     async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
         fc = get_firecrawl()
-        url = f"{self.base_url}?ibge={municipio_ibge}"
+        base = await config_service.resolver("fns_consulta_url") or self.base_url
+        url = f"{base}?ibge={municipio_ibge}"
         dados = await fc.extract(url, EXTRACT_SCHEMA)  # levanta se não configurado
         itens = dados.get("repasses", []) if isinstance(dados, dict) else []
         return [
@@ -67,7 +69,7 @@ class FnsConnector:
         ]
 
     async def health_check(self) -> bool:
-        return get_firecrawl().enabled
+        return await get_firecrawl().is_enabled()
 
 
 register(FnsConnector())

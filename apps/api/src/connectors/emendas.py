@@ -12,6 +12,7 @@ from __future__ import annotations
 from datetime import date
 
 from ..core.config import settings
+from ..services import config as config_service
 from ._http import get_json
 from .base import RawRecord, register
 
@@ -25,8 +26,9 @@ class EmendasConnector:
         self.base_url = base_url or settings.emendas_base_url
 
     async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
+        base = await config_service.resolver("emendas_base_url") or self.base_url
         data = await get_json(
-            self.base_url,
+            base,
             ENDPOINT,
             {"codigoIbge": municipio_ibge, "ano": str(since.year)},
         )

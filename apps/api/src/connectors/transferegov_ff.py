@@ -30,6 +30,7 @@ from tenacity import (
 )
 
 from ..core.config import settings
+from ..services import config as config_service
 from .base import RawRecord, register
 
 # ── Campos a calibrar contra a API viva ─────────────────────────────────────
@@ -74,6 +75,10 @@ class TransferegovFFConnector:
             return resp.json()
 
     async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
+        # base URL pode vir do painel admin (config runtime); fallback = .env
+        self.base_url = (
+            await config_service.resolver("transferegov_ff_base_url") or self.base_url
+        )
         # 1) beneficiários (municípios) → programas que atendem este IBGE
         beneficiarios = await self._get(
             "programa_beneficiario",

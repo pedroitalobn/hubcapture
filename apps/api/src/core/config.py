@@ -65,6 +65,11 @@ class Settings(BaseSettings):
     llm_api_key: str = ""  # vazio = resumo IA desabilitado
     llm_model_resumo: str = "claude-haiku-4-5-20251001"
 
+    # ── Config runtime (painel admin) ───────────────────────────────────────
+    # Chave para cifrar segredos em repouso na tabela `configuracoes` (Fernet).
+    # Em produção defina um valor forte e estável; vazio usa jwt_secret (dev).
+    config_secret_key: str = ""
+
     # ── CORS ─────────────────────────────────────────────────────────────────
     cors_origins: str = "http://localhost:3000"
 

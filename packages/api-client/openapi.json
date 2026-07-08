@@ -216,6 +216,79 @@
         "title": "Body_login_api_v1_auth_login_post",
         "type": "object"
       },
+      "ConfigItem": {
+        "properties": {
+          "categoria": {
+            "title": "Categoria",
+            "type": "string"
+          },
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "configurado": {
+            "title": "Configurado",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "origem": {
+            "title": "Origem",
+            "type": "string"
+          },
+          "secreto": {
+            "title": "Secreto",
+            "type": "boolean"
+          },
+          "valor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor"
+          }
+        },
+        "required": [
+          "chave",
+          "label",
+          "categoria",
+          "secreto",
+          "configurado",
+          "origem"
+        ],
+        "title": "ConfigItem",
+        "type": "object"
+      },
+      "ConfigSet": {
+        "properties": {
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "valor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor"
+          }
+        },
+        "required": [
+          "chave"
+        ],
+        "title": "ConfigSet",
+        "type": "object"
+      },
       "ConsultaAvulsaRequest": {
         "properties": {
           "fonte": {
@@ -1758,6 +1831,84 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/config": {
+      "get": {
+        "operationId": "listar_config_api_v1_admin_config_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ConfigItem"
+                  },
+                  "title": "Response Listar Config Api V1 Admin Config Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Config",
+        "tags": [
+          "admin-config"
+        ]
+      },
+      "put": {
+        "operationId": "definir_config_api_v1_admin_config_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ConfigItem"
+                  },
+                  "title": "Response Definir Config Api V1 Admin Config Put",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Definir Config",
+        "tags": [
+          "admin-config"
+        ]
+      }
+    },
     "/api/v1/admin/convites": {
       "get": {
         "operationId": "admin_listar_convites_api_v1_admin_convites_get",

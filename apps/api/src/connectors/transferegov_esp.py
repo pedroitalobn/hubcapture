@@ -11,6 +11,7 @@ from datetime import date
 
 from ..core.config import settings
 from ..scraping.firecrawl import get_firecrawl
+from ..services import config as config_service
 from ._http import get_json
 from .base import RawRecord, register
 
@@ -26,9 +27,10 @@ class TransferegovEspConnector:
         self.base_url = base_url or settings.transferegov_esp_base_url
 
     async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
+        base = await config_service.resolver("transferegov_esp_base_url") or self.base_url
         try:
             data = await get_json(
-                self.base_url, ENDPOINT, {IBGE_FIELD: f"eq.{municipio_ibge}", "limit": "500"}
+                base, ENDPOINT, {IBGE_FIELD: f"eq.{municipio_ibge}", "limit": "500"}
             )
             linhas = data if isinstance(data, list) else data.get("items", [])
             return [
@@ -44,9 +46,9 @@ class TransferegovEspConnector:
         except Exception:
             # fallback: scraping do painel gerencial (quando configurado)
             fc = get_firecrawl()
-            if not fc.enabled:
+            if not await fc.is_enabled():
                 raise
-            dados = await fc.scrape(f"{self.base_url}#municipio={municipio_ibge}")
+            dados = await fc.scrape(f"{base}#municipio={municipio_ibge}")
             return [
                 RawRecord(
                     source_id=self.source_id,

@@ -3,6 +3,7 @@
 from ..db.base import Base
 from .alerta import Alerta
 from .audit_log import AuditLog
+from .configuracao import Configuracao
 from .convite import Convite
 from .favorito import Favorito
 from .monitoramento import Monitoramento
@@ -33,4 +34,5 @@ __all__ = [
     "AuditLog",
     "Plano",
     "Convite",
+    "Configuracao",
 ]

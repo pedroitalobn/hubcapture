@@ -4,6 +4,24 @@
  */
 
 export interface paths {
+    "/api/v1/admin/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Config */
+        get: operations["listar_config_api_v1_admin_config_get"];
+        /** Definir Config */
+        put: operations["definir_config_api_v1_admin_config_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/convites": {
         parameters: {
             query?: never;
@@ -552,6 +570,30 @@ export interface components {
             /** Username */
             username: string;
         };
+        /** ConfigItem */
+        ConfigItem: {
+            /** Categoria */
+            categoria: string;
+            /** Chave */
+            chave: string;
+            /** Configurado */
+            configurado: boolean;
+            /** Label */
+            label: string;
+            /** Origem */
+            origem: string;
+            /** Secreto */
+            secreto: boolean;
+            /** Valor */
+            valor?: string | null;
+        };
+        /** ConfigSet */
+        ConfigSet: {
+            /** Chave */
+            chave: string;
+            /** Valor */
+            valor?: string | null;
+        };
         /** ConsultaAvulsaRequest */
         ConsultaAvulsaRequest: {
             /**
@@ -1087,6 +1129,59 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listar_config_api_v1_admin_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigItem"][];
+                };
+            };
+        };
+    };
+    definir_config_api_v1_admin_config_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfigSet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     admin_listar_convites_api_v1_admin_convites_get: {
         parameters: {
             query?: never;

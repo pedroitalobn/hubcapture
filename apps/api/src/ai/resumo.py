@@ -7,8 +7,8 @@ importado de forma preguiçosa para não virar dependência obrigatória.
 
 from __future__ import annotations
 
-from ..core.config import settings
 from ..schemas.proposta import PropostaCanonica
+from ..services import config as config_service
 
 _PROMPT = (
     "Resuma esta proposta de repasse do governo para um gestor público "
@@ -28,16 +28,18 @@ def _contexto(p: PropostaCanonica) -> str:
 
 
 async def gerar_resumo(proposta: PropostaCanonica, papel: str = "executivo") -> str | None:
-    """Retorna o resumo, ou None se a IA está desabilitada (sem LLM_API_KEY)."""
-    if not settings.llm_api_key:
+    """Retorna o resumo, ou None se a IA está desabilitada (sem LLM API key)."""
+    api_key = await config_service.resolver("llm_api_key")
+    if not api_key:
         return None
+    modelo = await config_service.resolver("llm_model_resumo") or "claude-haiku-4-5-20251001"
     try:
         import litellm  # import preguiçoso — só quando há chave
     except ImportError:
         return None
     resp = await litellm.acompletion(
-        model=settings.llm_model_resumo,
-        api_key=settings.llm_api_key,
+        model=modelo,
+        api_key=api_key,
         messages=[{"role": "user", "content": _PROMPT.format(papel=papel) + _contexto(proposta)}],
         max_tokens=250,
     )

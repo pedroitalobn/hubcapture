@@ -33,6 +33,6 @@ def test_get_connector_desconhecido_levanta() -> None:
 
 async def test_firecrawl_desabilitado_sem_key() -> None:
     fc = FirecrawlClient(api_key="")
-    assert fc.enabled is False
+    assert await fc.is_enabled() is False
     with pytest.raises(FirecrawlNotConfigured):
         await fc.scrape("https://exemplo.gov.br")

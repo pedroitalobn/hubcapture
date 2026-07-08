@@ -460,3 +460,17 @@ faz o scraping da coleta combinada/fallback (`scrape` + `extract` estruturado); 
 `FIRECRAWL_API_KEY`. Resumo por IA em `ai/resumo.py` (LiteLLM, import preguiçoso; desabilita
 sem `LLM_API_KEY`). Para ativar uma fonte real: preencher a URL/credencial no `.env`, calibrar
 os nomes de campo do connector e (se scraping) o schema de extração.
+
+## 16. Painel admin de configuração (credenciais dos providers via API)
+
+As credenciais/URLs dos providers são geridas em **runtime** pelo admin (não só via `.env`).
+Tabela `configuracoes` (platform-level, sem RLS); segredos **cifrados em repouso** (Fernet,
+chave de `CONFIG_SECRET_KEY`) e **mascarados** na leitura. Catálogo de chaves em
+`services/config.py::CATALOGO` (Firecrawl, LLM, base URLs/tokens das fontes).
+
+- Endpoints (admin `is_superuser`): `GET /admin/config` (lista mascarada) · `PUT /admin/config` (`{chave, valor}`).
+- `services/config.resolver(chave)` é a fonte de verdade em runtime (DB decifrado > default `.env`).
+  Firecrawl (`scraping/firecrawl.py`), o resumo IA (`ai/resumo.py`) e **todos os connectors**
+  (base URL no `collect`) consultam o resolver. Plugar uma credencial no painel ativa o provider
+  sem redeploy.
+- Web: `app/admin/config` (agrupado por categoria; segredos em campo password, mascarados).
