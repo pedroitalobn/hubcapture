@@ -68,6 +68,11 @@ class Settings(BaseSettings):
     embedding_api_key: str = ""  # vazio = embeddings/RAG desabilitado
     embedding_model: str = "text-embedding-3-small"  # dim 1536 (casa com o schema)
 
+    # ── WhatsApp (Uniq.chat) — alertas + chat (opcional) ────────────────────
+    uniq_api_key: str = ""  # vazio = WhatsApp desabilitado
+    uniq_base_url: str = "https://api.uniq.chat"
+    uniq_webhook_token: str = ""  # valida o webhook de entrada
+
     # ── Config runtime (painel admin) ───────────────────────────────────────
     # Chave para cifrar segredos em repouso na tabela `configuracoes` (Fernet).
     # Em produção defina um valor forte e estável; vazio usa jwt_secret (dev).

@@ -42,6 +42,9 @@ CATALOGO: list[dict] = [
     _c("serpro_token", "SERPRO token", "fonte", True),
     _c("fpm_base_url", "FPM base URL", "fonte", False),
     _c("emendas_base_url", "Emendas base URL", "fonte", False),
+    _c("uniq_api_key", "Uniq API Key (WhatsApp)", "whatsapp", True),
+    _c("uniq_base_url", "Uniq base URL", "whatsapp", False),
+    _c("uniq_webhook_token", "Uniq webhook token", "whatsapp", True),
 ]
 _CATALOGO_POR_CHAVE = {c["chave"]: c for c in CATALOGO}
 

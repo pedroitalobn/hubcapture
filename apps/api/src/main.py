@@ -49,6 +49,7 @@ def register_routers() -> None:
         planos,
         propostas,
         repasses,
+        webhooks,
     )
 
     for mod in (
@@ -65,6 +66,7 @@ def register_routers() -> None:
         admin,
         admin_config,
         copiloto,
+        webhooks,
     ):
         app.include_router(mod.router, prefix="/api/v1")
 

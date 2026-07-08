@@ -44,16 +44,22 @@ async def _clean_db() -> AsyncIterator[None]:
 
 @pytest_asyncio.fixture
 async def seed_user() -> Callable[..., Awaitable[uuid.UUID]]:
-    async def _seed(email: str, papel: str = "executivo") -> uuid.UUID:
+    async def _seed(
+        email: str,
+        papel: str = "executivo",
+        telefone_wpp: str | None = None,
+        optin_wpp: bool = False,
+    ) -> uuid.UUID:
         uid = uuid.uuid4()
         async with _owner_engine.begin() as conn:
             await conn.execute(
                 text(
                     "INSERT INTO usuarios (id, senha_hash, email, is_active, "
-                    "is_superuser, is_verified, papel, optin_wpp) "
-                    "VALUES (:id,'x',:email,true,false,false,:papel,false)"
+                    "is_superuser, is_verified, papel, telefone_wpp, optin_wpp) "
+                    "VALUES (:id,'x',:email,true,false,false,:papel,:tel,:optin)"
                 ),
-                {"id": uid, "email": email, "papel": papel},
+                {"id": uid, "email": email, "papel": papel,
+                 "tel": telefone_wpp, "optin": optin_wpp},
             )
         return uid
 
