@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
+from datetime import date
 
 import pytest_asyncio
 from sqlalchemy import text
@@ -26,7 +27,7 @@ _owner_engine = create_async_engine(settings.database_migrator_url, poolclass=Nu
 
 _TABLES = (
     "alertas, monitoramentos, favoritos, pasta_propostas, pastas, audit_log, "
-    "sync_runs, proposta_embeddings, propostas, municipios_interesse, "
+    "sync_runs, proposta_embeddings, propostas, repasses, municipios_interesse, "
     "preferencias_usuario, usuarios"
 )
 
@@ -75,6 +76,31 @@ async def seed_municipio() -> Callable[..., Awaitable[None]]:
                     "VALUES (:uid,:ibge,:modo) ON CONFLICT DO NOTHING"
                 ),
                 {"uid": usuario_id, "ibge": ibge, "modo": modo},
+            )
+
+    return _seed
+
+
+@pytest_asyncio.fixture
+async def seed_repasse() -> Callable[..., Awaitable[None]]:
+    async def _seed(
+        fonte: str,
+        id_externo: str,
+        ibge: str,
+        *,
+        valor: str = "100",
+        natureza: str = "repasse",
+        data_repasse: str = "2026-06-10",
+    ) -> None:
+        async with _owner_engine.begin() as conn:
+            await conn.execute(
+                text(
+                    "INSERT INTO repasses (fonte, id_externo, municipio_ibge, valor, "
+                    "natureza, data_repasse, emenda, cache_atualizado_em) "
+                    "VALUES (:f,:e,:ibge,:v,:n,:d,false, now())"
+                ),
+                {"f": fonte, "e": id_externo, "ibge": ibge, "v": valor,
+                 "n": natureza, "d": date.fromisoformat(data_repasse)},
             )
 
     return _seed

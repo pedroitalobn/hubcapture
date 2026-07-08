@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     transferegov_ff_base_url: str = (
         "https://api.transferegov.gestao.gov.br/fundoafundo/"
     )
+    # Recebidos (P1). URLs a calibrar contra as APIs/CSVs oficiais.
+    fpm_base_url: str = "https://apidatalake.tesouro.gov.br/ords/transferencias/"
+    emendas_base_url: str = "https://api.portaldatransparencia.gov.br/api-de-dados/"
 
     # ── CORS ─────────────────────────────────────────────────────────────────
     cors_origins: str = "http://localhost:3000"

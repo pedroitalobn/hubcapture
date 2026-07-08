@@ -104,6 +104,31 @@
         "title": "ErrorModel",
         "type": "object"
       },
+      "FonteResumo": {
+        "description": "Card por fonte no dashboard (ícone/valor/nº de movimentações).",
+        "properties": {
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          },
+          "movimentacoes": {
+            "title": "Movimentacoes",
+            "type": "integer"
+          },
+          "total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fonte",
+          "total",
+          "movimentacoes"
+        ],
+        "title": "FonteResumo",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -382,6 +407,234 @@
         "title": "RefreshRequest",
         "type": "object"
       },
+      "RepasseRead": {
+        "properties": {
+          "cache_atualizado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Atualizado Em"
+          },
+          "categoria": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Categoria"
+          },
+          "competencia": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Competencia"
+          },
+          "data_repasse": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Repasse"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "detalhe": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detalhe"
+          },
+          "documento": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Documento"
+          },
+          "emenda": {
+            "title": "Emenda",
+            "type": "boolean"
+          },
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "id_externo": {
+            "title": "Id Externo",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Ibge"
+          },
+          "municipio_nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Nome"
+          },
+          "natureza": {
+            "title": "Natureza",
+            "type": "string"
+          },
+          "orgao_superior": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgao Superior"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          },
+          "valor": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor"
+          }
+        },
+        "required": [
+          "id",
+          "fonte",
+          "id_externo",
+          "natureza",
+          "emenda"
+        ],
+        "title": "RepasseRead",
+        "type": "object"
+      },
+      "RepassesPorDia": {
+        "description": "Item do feed agrupado por data, com subtotal do dia.",
+        "properties": {
+          "data": {
+            "format": "date",
+            "title": "Data",
+            "type": "string"
+          },
+          "itens": {
+            "items": {
+              "$ref": "#/components/schemas/RepasseRead"
+            },
+            "title": "Itens",
+            "type": "array"
+          },
+          "subtotal": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Subtotal",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "subtotal",
+          "itens"
+        ],
+        "title": "RepassesPorDia",
+        "type": "object"
+      },
+      "SyncRepassesRequest": {
+        "properties": {
+          "fontes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fontes"
+          },
+          "municipio_ibge": {
+            "maxLength": 7,
+            "minLength": 7,
+            "title": "Municipio Ibge",
+            "type": "string"
+          }
+        },
+        "required": [
+          "municipio_ibge"
+        ],
+        "title": "SyncRepassesRequest",
+        "type": "object"
+      },
       "TokenPair": {
         "properties": {
           "access_token": {
@@ -631,6 +884,66 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "VisaoGeral": {
+        "description": "Painel consolidado: KPI + fontes + feed agrupado por data.",
+        "properties": {
+          "feed": {
+            "items": {
+              "$ref": "#/components/schemas/RepassesPorDia"
+            },
+            "title": "Feed",
+            "type": "array"
+          },
+          "fim": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fim"
+          },
+          "fontes": {
+            "items": {
+              "$ref": "#/components/schemas/FonteResumo"
+            },
+            "title": "Fontes",
+            "type": "array"
+          },
+          "inicio": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inicio"
+          },
+          "movimentacoes": {
+            "title": "Movimentacoes",
+            "type": "integer"
+          },
+          "total_pago": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Pago",
+            "type": "string"
+          }
+        },
+        "required": [
+          "total_pago",
+          "movimentacoes",
+          "fontes",
+          "feed"
+        ],
+        "title": "VisaoGeral",
         "type": "object"
       }
     },
@@ -1035,6 +1348,252 @@
         "summary": "Obter Proposta",
         "tags": [
           "propostas"
+        ]
+      }
+    },
+    "/api/v1/repasses": {
+      "get": {
+        "operationId": "listar_repasses_api_v1_repasses_get",
+        "parameters": [
+          {
+            "description": "código IBGE (7 dígitos)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "código IBGE (7 dígitos)",
+              "title": "Municipio"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fonte"
+            }
+          },
+          {
+            "in": "query",
+            "name": "inicio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Inicio"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fim",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fim"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RepasseRead"
+                  },
+                  "title": "Response Listar Repasses Api V1 Repasses Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Repasses",
+        "tags": [
+          "repasses"
+        ]
+      }
+    },
+    "/api/v1/repasses/sync": {
+      "post": {
+        "operationId": "sync_repasses_api_v1_repasses_sync_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncRepassesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Sync Repasses Api V1 Repasses Sync Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Sync Repasses",
+        "tags": [
+          "repasses"
+        ]
+      }
+    },
+    "/api/v1/repasses/visao-geral": {
+      "get": {
+        "operationId": "visao_geral_api_v1_repasses_visao_geral_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Municipio"
+            }
+          },
+          {
+            "in": "query",
+            "name": "inicio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Inicio"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fim",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fim"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisaoGeral"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Visao Geral",
+        "tags": [
+          "repasses"
         ]
       }
     },

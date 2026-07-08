@@ -123,6 +123,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/repasses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Repasses */
+        get: operations["listar_repasses_api_v1_repasses_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repasses/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync Repasses */
+        post: operations["sync_repasses_api_v1_repasses_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repasses/visao-geral": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Visao Geral */
+        get: operations["visao_geral_api_v1_repasses_visao_geral_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -187,6 +238,18 @@ export interface components {
             detail: string | {
                 [key: string]: string;
             };
+        };
+        /**
+         * FonteResumo
+         * @description Card por fonte no dashboard (ícone/valor/nº de movimentações).
+         */
+        FonteResumo: {
+            /** Fonte */
+            fonte: string;
+            /** Movimentacoes */
+            movimentacoes: number;
+            /** Total */
+            total: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -254,6 +317,70 @@ export interface components {
         RefreshRequest: {
             /** Refresh Token */
             refresh_token: string;
+        };
+        /** RepasseRead */
+        RepasseRead: {
+            /** Cache Atualizado Em */
+            cache_atualizado_em?: string | null;
+            /** Categoria */
+            categoria?: string | null;
+            /** Competencia */
+            competencia?: string | null;
+            /** Data Repasse */
+            data_repasse?: string | null;
+            /** Descricao */
+            descricao?: string | null;
+            /** Detalhe */
+            detalhe?: {
+                [key: string]: unknown;
+            } | null;
+            /** Documento */
+            documento?: string | null;
+            /** Emenda */
+            emenda: boolean;
+            /** Fonte */
+            fonte: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Id Externo */
+            id_externo: string;
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Municipio Nome */
+            municipio_nome?: string | null;
+            /** Natureza */
+            natureza: string;
+            /** Orgao Superior */
+            orgao_superior?: string | null;
+            /** Uf */
+            uf?: string | null;
+            /** Valor */
+            valor?: string | null;
+        };
+        /**
+         * RepassesPorDia
+         * @description Item do feed agrupado por data, com subtotal do dia.
+         */
+        RepassesPorDia: {
+            /**
+             * Data
+             * Format: date
+             */
+            data: string;
+            /** Itens */
+            itens: components["schemas"]["RepasseRead"][];
+            /** Subtotal */
+            subtotal: string;
+        };
+        /** SyncRepassesRequest */
+        SyncRepassesRequest: {
+            /** Fontes */
+            fontes?: string[] | null;
+            /** Municipio Ibge */
+            municipio_ibge: string;
         };
         /** TokenPair */
         TokenPair: {
@@ -358,6 +485,24 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /**
+         * VisaoGeral
+         * @description Painel consolidado: KPI + fontes + feed agrupado por data.
+         */
+        VisaoGeral: {
+            /** Feed */
+            feed: components["schemas"]["RepassesPorDia"][];
+            /** Fim */
+            fim?: string | null;
+            /** Fontes */
+            fontes: components["schemas"]["FonteResumo"][];
+            /** Inicio */
+            inicio?: string | null;
+            /** Movimentacoes */
+            movimentacoes: number;
+            /** Total Pago */
+            total_pago: string;
         };
     };
     responses: never;
@@ -583,6 +728,109 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PropostaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_repasses_api_v1_repasses_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                fonte?: string | null;
+                inicio?: string | null;
+                fim?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepasseRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_repasses_api_v1_repasses_sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncRepassesRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    visao_geral_api_v1_repasses_visao_geral_get: {
+        parameters: {
+            query?: {
+                municipio?: string | null;
+                inicio?: string | null;
+                fim?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisaoGeral"];
                 };
             };
             /** @description Validation Error */

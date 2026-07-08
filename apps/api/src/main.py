@@ -35,11 +35,12 @@ async def health() -> dict[str, str]:
 
 def register_routers() -> None:
     """Inclui os routers da v1. Chamado no import; separado para facilitar testes."""
-    from .api.v1 import auth, consulta_avulsa, propostas
+    from .api.v1 import auth, consulta_avulsa, propostas, repasses
 
     app.include_router(auth.router, prefix="/api/v1")
     app.include_router(propostas.router, prefix="/api/v1")
     app.include_router(consulta_avulsa.router, prefix="/api/v1")
+    app.include_router(repasses.router, prefix="/api/v1")
 
 
 register_routers()

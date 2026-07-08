@@ -10,6 +10,7 @@ from .pasta import Pasta, PastaProposta
 from .preferencias import PreferenciasUsuario
 from .proposta import Proposta
 from .proposta_embedding import PropostaEmbedding
+from .repasse import Repasse
 from .sync_run import SyncRun
 from .usuario import Usuario
 
@@ -20,6 +21,7 @@ __all__ = [
     "PreferenciasUsuario",
     "Proposta",
     "PropostaEmbedding",
+    "Repasse",
     "Favorito",
     "Pasta",
     "PastaProposta",

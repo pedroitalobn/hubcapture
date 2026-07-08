@@ -401,3 +401,39 @@ docker compose -f infra/docker-compose.yml up -d
 - Novo campo de proposta? Adicione ao schema canônico (seção 4) e ao merge (seção 5).
 - Nova fonte? Novo connector implementando o Protocol — não reescreva o core.
 - Não sabe uma decisão de produto? Pergunte antes de assumir.
+
+---
+
+## 13. Expansão — Recursos recebidos (benchmark Virtù)
+
+> Eixo **complementar** à captação: além de propostas/editais (frente), o Hub passa a cobrir
+> **recursos já recebidos** (recebidos), **conformidade fiscal** e **execução/obras**. Ciclo:
+> captar → receber → executar → prestar contas. As decisões travadas (seção 0) permanecem.
+
+**Entidades canônicas** (uma por eixo, todas escopadas por `municipio_ibge` + RLS):
+`proposta` (captação, seção 4) · **`repasse`** (recebidos — ver abaixo) · `conformidade` (fiscal, roadmap) · `obra` (execução, roadmap).
+
+**Tabela `repasses`** (implementada — cache global, RLS só-SELECT por município, igual a `propostas`):
+`id, fonte (fns|fnde|fpm|emendas|transferegov_ff|caixa), id_externo, municipio_ibge/nome/uf,
+data_repasse, competencia, descricao, categoria, orgao_superior, natureza (credito|deducao|repasse),
+valor, documento, emenda, detalhe jsonb, proveniencia jsonb, hash_conteudo, cache_atualizado_em`.
+`unique(fonte, id_externo)`. A `natureza` permite a decomposição crédito/dedução do FPM
+(líquido = Σ crédito − Σ dedução no agregado da Visão Geral).
+
+**Connectors novos** (Protocol de `connectors/base.py`, retry via `connectors/_http.py`):
+`fpm.py` (decêndios do Tesouro), `emendas.py`. Normalizador próprio em
+`ingestion/normalizer_repasse.py` (reusa `compute_hash`). Serviço `services/repasses.py`
+(cache-first + `visao_geral` + `sync_municipio`). Endpoints: `GET /repasses`,
+`GET /repasses/visao-geral`, `POST /repasses/sync`.
+
+**Catálogo de fontes (connector-first — todas do Virtù + outras):** FNS, FNDE, FPM, Emendas
+(recebidos) · Siconfi/CAUC/CAPAG, órgãos de conformidade (fiscal) · SISMOB, SIMEC, CAIXA/SIORB
+(obras) · TransfereGov (FF/Esp/Disc), SERPRO (captação) · TSE (eleições, futuro) · IBGE (geodados).
+Adicionar fonte = novo módulo connector + mapeamento no normalizador da entidade-alvo; o core não muda.
+
+**Roadmap da expansão:** P1 Recursos recebidos (feito: FPM/Emendas + dashboard) → P2 Conformidade
+fiscal (CAUC/CAPAG via CSV do Tesouro) → P3 Obras (SISMOB/SIMEC/CAIXA + mapa Leaflet).
+
+**Design system (web):** `components/` reutilizáveis — `StatCard`, `StatusBadge`, `FilterChips`,
+`DateRangePresets`, `Feed` (agrupado por data), `Skeleton`. Página `app/painel/repasses`.
+Atenção: **mascarar dados bancários** por `papel` (privacidade).
