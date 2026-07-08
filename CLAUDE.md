@@ -437,3 +437,26 @@ fiscal (CAUC/CAPAG via CSV do Tesouro) → P3 Obras (SISMOB/SIMEC/CAIXA + mapa L
 **Design system (web):** `components/` reutilizáveis — `StatCard`, `StatusBadge`, `FilterChips`,
 `DateRangePresets`, `Feed` (agrupado por data), `Skeleton`. Página `app/painel/repasses`.
 Atenção: **mascarar dados bancários** por `papel` (privacidade).
+
+---
+
+## 14. Plataforma — usuários, convites e planos (v1)
+
+Módulo de administração (admin = `is_superuser`). Tabelas **platform-level (sem RLS por-tenant)**:
+- `planos` (catálogo: nome, slug, `preco_mensal`, `limites` jsonb, ativo) — atribuído via `usuarios.plano_id`.
+- `convites` (email, token, papel, plano, expiração, status) — fluxo de convite.
+
+Endpoints: `GET /planos` (público) · `POST/PATCH /planos` (admin) · `POST /admin/usuarios` ·
+`PATCH /admin/usuarios/{id}/plano` · `POST /admin/convites` · `GET /admin/convites` ·
+`POST /auth/aceitar-convite` (público). Criação de usuário passa pelo UserManager
+(hash de senha). Dependency `current_superuser` em `core/users.py`.
+
+## 15. Ingestão pronta para as APIs + Firecrawl
+
+Todos os connectors estão **registrados** (`connectors/*`), com rotas/campos isolados em
+constantes (ponto de calibração): transferegov_ff/esp/disc(CSV)/fns/fnde/serpro + fpm/emendas.
+Retry/backoff compartilhado em `connectors/_http.py`. **Firecrawl** (`scraping/firecrawl.py`)
+faz o scraping da coleta combinada/fallback (`scrape` + `extract` estruturado); desabilita sem
+`FIRECRAWL_API_KEY`. Resumo por IA em `ai/resumo.py` (LiteLLM, import preguiçoso; desabilita
+sem `LLM_API_KEY`). Para ativar uma fonte real: preencher a URL/credencial no `.env`, calibrar
+os nomes de campo do connector e (se scraping) o schema de extração.
