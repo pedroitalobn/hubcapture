@@ -659,6 +659,46 @@
         "title": "ConviteRead",
         "type": "object"
       },
+      "DimensaoResumo": {
+        "description": "Um eixo do ciclo (captação/recebidos/conformidade/obras) para o perfil.",
+        "properties": {
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "destaque": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destaque"
+          },
+          "href": {
+            "title": "Href",
+            "type": "string"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chave",
+          "titulo",
+          "href"
+        ],
+        "title": "DimensaoResumo",
+        "type": "object"
+      },
       "ErrorModel": {
         "properties": {
           "detail": {
@@ -860,6 +900,46 @@
         "title": "MunicipioIn",
         "type": "object"
       },
+      "MunicipioPerfil": {
+        "properties": {
+          "ibge": {
+            "title": "Ibge",
+            "type": "string"
+          },
+          "modo": {
+            "title": "Modo",
+            "type": "string"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          }
+        },
+        "required": [
+          "ibge",
+          "modo"
+        ],
+        "title": "MunicipioPerfil",
+        "type": "object"
+      },
       "OnboardingRequest": {
         "properties": {
           "areas": {
@@ -1035,6 +1115,64 @@
           }
         },
         "title": "PastaUpdate",
+        "type": "object"
+      },
+      "PerfilRead": {
+        "description": "Identidade do usuário do ponto de vista da navegação.",
+        "properties": {
+          "areas": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Areas",
+            "type": "array"
+          },
+          "fontes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Fontes",
+            "type": "array"
+          },
+          "monitorar_ativo": {
+            "default": true,
+            "title": "Monitorar Ativo",
+            "type": "boolean"
+          },
+          "municipios": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MunicipioPerfil"
+            },
+            "title": "Municipios",
+            "type": "array"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "papel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Papel"
+          }
+        },
+        "title": "PerfilRead",
         "type": "object"
       },
       "PlanoCreate": {
@@ -2123,6 +2261,48 @@
           "feed"
         ],
         "title": "VisaoGeral",
+        "type": "object"
+      },
+      "VisaoGeralPerfil": {
+        "description": "'Meu painel': tudo o que importa no território do usuário, por dimensão.",
+        "properties": {
+          "areas": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Areas",
+            "type": "array"
+          },
+          "dimensoes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DimensaoResumo"
+            },
+            "title": "Dimensoes",
+            "type": "array"
+          },
+          "municipios": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MunicipioPerfil"
+            },
+            "title": "Municipios",
+            "type": "array"
+          },
+          "papel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Papel"
+          }
+        },
+        "title": "VisaoGeralPerfil",
         "type": "object"
       }
     },
@@ -3429,6 +3609,58 @@
         "summary": "Remover Proposta",
         "tags": [
           "pastas"
+        ]
+      }
+    },
+    "/api/v1/perfil": {
+      "get": {
+        "operationId": "get_perfil_api_v1_perfil_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerfilRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Perfil",
+        "tags": [
+          "perfil"
+        ]
+      }
+    },
+    "/api/v1/perfil/visao-geral": {
+      "get": {
+        "operationId": "visao_geral_perfil_api_v1_perfil_visao_geral_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisaoGeralPerfil"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Visao Geral Perfil",
+        "tags": [
+          "perfil"
         ]
       }
     },

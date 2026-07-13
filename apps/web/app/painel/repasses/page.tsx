@@ -1,13 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DateRangePresets, presetToInicio, type RangePreset } from "@/components/DateRangePresets";
 import { Feed } from "@/components/Feed";
 import { FilterChips } from "@/components/FilterChips";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
-import { api, getToken } from "@/lib/api/client";
+import { api } from "@/lib/api/client";
 import { formatBRL } from "@/lib/format";
 
 interface FonteResumo {
@@ -46,7 +45,6 @@ const FONTE_LABEL: Record<string, string> = {
 };
 
 export default function RepassesPage() {
-  const router = useRouter();
   const [preset, setPreset] = useState<RangePreset>("30d");
   const [data, setData] = useState<VisaoGeral | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,12 +67,8 @@ export default function RepassesPage() {
   }, [preset]);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
-      return;
-    }
     void carregar();
-  }, [carregar, router]);
+  }, [carregar]);
 
   async function sincronizar(e: React.FormEvent) {
     e.preventDefault();
@@ -113,7 +107,7 @@ export default function RepassesPage() {
   }, [data, fonteSel]);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-6 px-6 py-8">
+    <>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Recursos recebidos</h1>
         <DateRangePresets value={preset} onChange={setPreset} />
@@ -167,6 +161,6 @@ export default function RepassesPage() {
           </section>
         </>
       )}
-    </main>
+    </>
   );
 }

@@ -47,6 +47,7 @@ def register_routers() -> None:
         monitoramentos,
         onboarding,
         pastas,
+        perfil,
         planos,
         propostas,
         repasses,
@@ -55,6 +56,7 @@ def register_routers() -> None:
 
     for mod in (
         auth,
+        perfil,
         propostas,
         consulta_avulsa,
         repasses,

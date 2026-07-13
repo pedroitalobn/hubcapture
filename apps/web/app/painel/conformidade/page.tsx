@@ -1,11 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { StatCard } from "@/components/StatCard";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { SkeletonCards } from "@/components/Skeleton";
-import { api, getToken } from "@/lib/api/client";
+import { api } from "@/lib/api/client";
 
 interface Requisito {
   id: string;
@@ -44,7 +43,6 @@ const LABEL: Record<string, string> = {
 };
 
 export default function ConformidadePage() {
-  const router = useRouter();
   const [data, setData] = useState<Resumo | null>(null);
   const [loading, setLoading] = useState(true);
   const [ibge, setIbge] = useState("");
@@ -61,12 +59,8 @@ export default function ConformidadePage() {
   }, []);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
-      return;
-    }
     void carregar();
-  }, [carregar, router]);
+  }, [carregar]);
 
   async function sincronizar(e: React.FormEvent) {
     e.preventDefault();
@@ -88,7 +82,7 @@ export default function ConformidadePage() {
     (data?.requisitos ?? []).filter((r) => (r.secao ?? "—") === secao);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-6 px-6 py-8">
+    <>
       <h1 className="text-2xl font-bold">Conformidade fiscal (CAUC/CAPAG)</h1>
 
       <form onSubmit={sincronizar} className="flex flex-wrap items-end gap-3">
@@ -157,6 +151,6 @@ export default function ConformidadePage() {
           )}
         </>
       )}
-    </main>
+    </>
   );
 }

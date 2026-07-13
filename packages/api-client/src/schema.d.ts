@@ -420,6 +420,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/perfil": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Perfil */
+        get: operations["get_perfil_api_v1_perfil_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/perfil/visao-geral": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Visao Geral Perfil */
+        get: operations["visao_geral_perfil_api_v1_perfil_visao_geral_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/planos": {
         parameters: {
             query?: never;
@@ -826,6 +860,25 @@ export interface components {
             /** Token */
             token: string;
         };
+        /**
+         * DimensaoResumo
+         * @description Um eixo do ciclo (captação/recebidos/conformidade/obras) para o perfil.
+         */
+        DimensaoResumo: {
+            /** Chave */
+            chave: string;
+            /** Destaque */
+            destaque?: string | null;
+            /** Href */
+            href: string;
+            /** Titulo */
+            titulo: string;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+        };
         /** ErrorModel */
         ErrorModel: {
             /** Detail */
@@ -917,6 +970,17 @@ export interface components {
             /** Uf */
             uf?: string | null;
         };
+        /** MunicipioPerfil */
+        MunicipioPerfil: {
+            /** Ibge */
+            ibge: string;
+            /** Modo */
+            modo: string;
+            /** Nome */
+            nome?: string | null;
+            /** Uf */
+            uf?: string | null;
+        };
         /** OnboardingRequest */
         OnboardingRequest: {
             /**
@@ -989,6 +1053,36 @@ export interface components {
             cor?: string | null;
             /** Nome */
             nome?: string | null;
+        };
+        /**
+         * PerfilRead
+         * @description Identidade do usuário do ponto de vista da navegação.
+         */
+        PerfilRead: {
+            /**
+             * Areas
+             * @default []
+             */
+            areas: string[];
+            /**
+             * Fontes
+             * @default []
+             */
+            fontes: string[];
+            /**
+             * Monitorar Ativo
+             * @default true
+             */
+            monitorar_ativo: boolean;
+            /**
+             * Municipios
+             * @default []
+             */
+            municipios: components["schemas"]["MunicipioPerfil"][];
+            /** Nome */
+            nome?: string | null;
+            /** Papel */
+            papel?: string | null;
         };
         /** PlanoCreate */
         PlanoCreate: {
@@ -1323,6 +1417,29 @@ export interface components {
             movimentacoes: number;
             /** Total Pago */
             total_pago: string;
+        };
+        /**
+         * VisaoGeralPerfil
+         * @description 'Meu painel': tudo o que importa no território do usuário, por dimensão.
+         */
+        VisaoGeralPerfil: {
+            /**
+             * Areas
+             * @default []
+             */
+            areas: string[];
+            /**
+             * Dimensoes
+             * @default []
+             */
+            dimensoes: components["schemas"]["DimensaoResumo"][];
+            /**
+             * Municipios
+             * @default []
+             */
+            municipios: components["schemas"]["MunicipioPerfil"][];
+            /** Papel */
+            papel?: string | null;
         };
     };
     responses: never;
@@ -2215,6 +2332,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_perfil_api_v1_perfil_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PerfilRead"];
+                };
+            };
+        };
+    };
+    visao_geral_perfil_api_v1_perfil_visao_geral_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisaoGeralPerfil"];
                 };
             };
         };

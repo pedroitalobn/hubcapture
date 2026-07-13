@@ -495,3 +495,22 @@ município, migration 0007). Connector `siconfi` (CSV do Tesouro Transparente; b
 `siconfi_csv_url`), normalizador `ingestion/normalizer_conformidade.py`, serviço
 `services/conformidade.py` (listar/upsert/resumo/sync). Endpoints `GET /conformidade` (KPIs por
 status/seção + CAPAG) e `POST /conformidade/sync`. Web `app/painel/conformidade`.
+
+## 19. Navegação profile-centric (decisão travada)
+
+O Hub Capture **não** é orientado a fonte de dados. Ao contrário de outras plataformas que
+expõem no menu uma aba por fonte (TransfereGov, Fundo Nacional de Saúde, FNDE…), aqui a
+navegação **parte do PERFIL do usuário**: o(s) `municipios_interesse`, as `areas` de
+`preferencias_usuario` e o `papel`. As fontes são detalhe de ingestão (connectors), nunca a
+espinha da UI.
+
+- **Backend** — `services/perfil.py` + `api/v1/perfil.py`:
+  `GET /perfil` (território: municípios + áreas + papel) e `GET /perfil/visao-geral` (agrega as
+  **dimensões do ciclo** — captação/recebidos/conformidade/obras — já recortadas pelo território
+  via RLS; nenhuma agregação é feita "por fonte"). Schemas em `schemas/perfil.py`.
+- **Web** — `app/painel/layout.tsx` é o shell profile-centric: cabeçalho com o **território** e o
+  **papel**, e um menu que são **lentes sobre o município do usuário** (Meu painel · Captação ·
+  Recursos recebidos · Conformidade · Obras · Copiloto), não abas de plataforma. `app/painel/page.tsx`
+  é o **Meu painel** (cards por dimensão vindos de `/perfil/visao-geral`). A antiga lista de propostas
+  virou `app/painel/captacao`. Sem território → CTA para o onboarding (o perfil é o ponto de partida).
+- Adicionar fonte continua sendo só um novo connector; **nunca** vira uma aba nova na navegação.

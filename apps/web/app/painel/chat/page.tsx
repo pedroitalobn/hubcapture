@@ -1,22 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { chatStream, getToken } from "@/lib/api/client";
+import { chatStream } from "@/lib/api/client";
 
 type Msg = { autor: "user" | "ia"; texto: string };
 
 export default function ChatPage() {
-  const router = useRouter();
   const [modo, setModo] = useState<"propostas" | "copiloto">("propostas");
   const [pergunta, setPergunta] = useState("");
   const [mensagens, setMensagens] = useState<Msg[]>([]);
   const [ocupado, setOcupado] = useState(false);
   const fimRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!getToken()) router.replace("/login");
-  }, [router]);
 
   useEffect(() => {
     fimRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -46,7 +40,7 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 px-6 py-8">
+    <>
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Copiloto</h1>
         <div className="inline-flex overflow-hidden rounded-md border border-gray-300 text-sm dark:border-gray-700">
@@ -100,6 +94,6 @@ export default function ChatPage() {
           {ocupado ? "…" : "Enviar"}
         </button>
       </form>
-    </main>
+    </>
   );
 }
