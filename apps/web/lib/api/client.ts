@@ -27,6 +27,60 @@ export function clearTokens(): void {
 /** Client tipado (openapi-fetch) — injeta o Bearer automaticamente. */
 export const api = createHubClient({ baseUrl: API_ORIGIN, getToken });
 
+/** Baixa o PDF de uma proposta (GET autenticado → blob → download). */
+export async function baixarPdfProposta(id: string): Promise<void> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/propostas/${id}/pdf`, {
+    headers: { Authorization: `Bearer ${getToken() ?? ""}` },
+  });
+  if (!resp.ok) throw new Error("Falha ao gerar PDF");
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `proposta-${id}.pdf`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Chat do Copiloto (SSE). Chama `onDelta` a cada token e resolve ao terminar.
+ */
+export async function chatStream(
+  pergunta: string,
+  modo: "propostas" | "copiloto",
+  onDelta: (t: string) => void,
+): Promise<void> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/copiloto/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken() ?? ""}`,
+    },
+    body: JSON.stringify({ pergunta, modo }),
+  });
+  if (!resp.body) return;
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const linhas = buffer.split("\n\n");
+    buffer = linhas.pop() ?? "";
+    for (const linha of linhas) {
+      const m = linha.replace(/^data: /, "").trim();
+      if (!m || m === "[DONE]") continue;
+      try {
+        const { delta } = JSON.parse(m) as { delta?: string };
+        if (delta) onDelta(delta);
+      } catch {
+        /* ignora linhas não-JSON */
+      }
+    }
+  }
+}
+
 /**
  * Login usa OAuth2PasswordRequestForm (application/x-www-form-urlencoded),
  * então vai por fetch direto (não pelo client JSON tipado).

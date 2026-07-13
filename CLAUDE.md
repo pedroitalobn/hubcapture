@@ -401,3 +401,116 @@ docker compose -f infra/docker-compose.yml up -d
 - Novo campo de proposta? Adicione ao schema canônico (seção 4) e ao merge (seção 5).
 - Nova fonte? Novo connector implementando o Protocol — não reescreva o core.
 - Não sabe uma decisão de produto? Pergunte antes de assumir.
+
+---
+
+## 13. Expansão — Recursos recebidos (benchmark Virtù)
+
+> Eixo **complementar** à captação: além de propostas/editais (frente), o Hub passa a cobrir
+> **recursos já recebidos** (recebidos), **conformidade fiscal** e **execução/obras**. Ciclo:
+> captar → receber → executar → prestar contas. As decisões travadas (seção 0) permanecem.
+
+**Entidades canônicas** (uma por eixo, todas escopadas por `municipio_ibge` + RLS):
+`proposta` (captação, seção 4) · **`repasse`** (recebidos — ver abaixo) · `conformidade` (fiscal, roadmap) · `obra` (execução, roadmap).
+
+**Tabela `repasses`** (implementada — cache global, RLS só-SELECT por município, igual a `propostas`):
+`id, fonte (fns|fnde|fpm|emendas|transferegov_ff|caixa), id_externo, municipio_ibge/nome/uf,
+data_repasse, competencia, descricao, categoria, orgao_superior, natureza (credito|deducao|repasse),
+valor, documento, emenda, detalhe jsonb, proveniencia jsonb, hash_conteudo, cache_atualizado_em`.
+`unique(fonte, id_externo)`. A `natureza` permite a decomposição crédito/dedução do FPM
+(líquido = Σ crédito − Σ dedução no agregado da Visão Geral).
+
+**Connectors novos** (Protocol de `connectors/base.py`, retry via `connectors/_http.py`):
+`fpm.py` (decêndios do Tesouro), `emendas.py`. Normalizador próprio em
+`ingestion/normalizer_repasse.py` (reusa `compute_hash`). Serviço `services/repasses.py`
+(cache-first + `visao_geral` + `sync_municipio`). Endpoints: `GET /repasses`,
+`GET /repasses/visao-geral`, `POST /repasses/sync`.
+
+**Catálogo de fontes (connector-first — todas do Virtù + outras):** FNS, FNDE, FPM, Emendas
+(recebidos) · Siconfi/CAUC/CAPAG, órgãos de conformidade (fiscal) · SISMOB, SIMEC, CAIXA/SIORB
+(obras) · TransfereGov (FF/Esp/Disc), SERPRO (captação) · TSE (eleições, futuro) · IBGE (geodados).
+Adicionar fonte = novo módulo connector + mapeamento no normalizador da entidade-alvo; o core não muda.
+
+**Roadmap da expansão:** P1 Recursos recebidos (feito: FPM/Emendas + dashboard) → P2 Conformidade
+fiscal (CAUC/CAPAG via CSV do Tesouro) → P3 Obras (SISMOB/SIMEC/CAIXA + mapa Leaflet).
+
+**Design system (web):** `components/` reutilizáveis — `StatCard`, `StatusBadge`, `FilterChips`,
+`DateRangePresets`, `Feed` (agrupado por data), `Skeleton`. Página `app/painel/repasses`.
+Atenção: **mascarar dados bancários** por `papel` (privacidade).
+
+---
+
+## 14. Plataforma — usuários, convites e planos (v1)
+
+Módulo de administração (admin = `is_superuser`). Tabelas **platform-level (sem RLS por-tenant)**:
+- `planos` (catálogo: nome, slug, `preco_mensal`, `limites` jsonb, ativo) — atribuído via `usuarios.plano_id`.
+- `convites` (email, token, papel, plano, expiração, status) — fluxo de convite.
+
+Endpoints: `GET /planos` (público) · `POST/PATCH /planos` (admin) · `POST /admin/usuarios` ·
+`PATCH /admin/usuarios/{id}/plano` · `POST /admin/convites` · `GET /admin/convites` ·
+`POST /auth/aceitar-convite` (público). Criação de usuário passa pelo UserManager
+(hash de senha). Dependency `current_superuser` em `core/users.py`.
+
+## 15. Ingestão pronta para as APIs + Firecrawl
+
+Todos os connectors estão **registrados** (`connectors/*`), com rotas/campos isolados em
+constantes (ponto de calibração): transferegov_ff/esp/disc(CSV)/fns/fnde/serpro + fpm/emendas.
+Retry/backoff compartilhado em `connectors/_http.py`. **Firecrawl** (`scraping/firecrawl.py`)
+faz o scraping da coleta combinada/fallback (`scrape` + `extract` estruturado); desabilita sem
+`FIRECRAWL_API_KEY`. Resumo por IA em `ai/resumo.py` (LiteLLM, import preguiçoso; desabilita
+sem `LLM_API_KEY`). Para ativar uma fonte real: preencher a URL/credencial no `.env`, calibrar
+os nomes de campo do connector e (se scraping) o schema de extração.
+
+## 16. Painel admin de configuração (credenciais dos providers via API)
+
+As credenciais/URLs dos providers são geridas em **runtime** pelo admin (não só via `.env`).
+Tabela `configuracoes` (platform-level, sem RLS); segredos **cifrados em repouso** (Fernet,
+chave de `CONFIG_SECRET_KEY`) e **mascarados** na leitura. Catálogo de chaves em
+`services/config.py::CATALOGO` (Firecrawl, LLM, base URLs/tokens das fontes).
+
+- Endpoints (admin `is_superuser`): `GET /admin/config` (lista mascarada) · `PUT /admin/config` (`{chave, valor}`).
+- `services/config.resolver(chave)` é a fonte de verdade em runtime (DB decifrado > default `.env`).
+  Firecrawl (`scraping/firecrawl.py`), o resumo IA (`ai/resumo.py`) e **todos os connectors**
+  (base URL no `collect`) consultam o resolver. Plugar uma credencial no painel ativa o provider
+  sem redeploy.
+- Web: `app/admin/config` (agrupado por categoria; segredos em campo password, mascarados).
+
+## 17. Camada de IA + WhatsApp + PDF (v1)
+
+- **Embeddings/RAG**: `ai/embeddings.py` (LiteLLM), `services/rag.py` (similaridade pgvector
+  sob RLS + fallback textual), `jobs/embed.py` (embed_new). Dim 1536.
+- **Chat/Copiloto**: `ai/chat.py` (LiteLLM streaming, fallback sem chave). `POST /copiloto/chat`
+  (SSE) — modo `propostas` (RAG sobre as propostas do usuário) ou `copiloto` (base_conhecimento).
+  Web: `app/painel/chat`.
+- **WhatsApp (Uniq)**: `notifications/uniq.py`, `POST /webhooks/uniq` (telefone→usuário→chat→resposta),
+  `services/dispatch_alerts.py`. Credenciais no painel (categoria whatsapp).
+- **Exportar PDF**: `services/pdf.py` (reportlab), `GET /propostas/{id}/pdf`. Web: botão PDF no painel.
+- Todos os providers de IA/WhatsApp são **opcionais** e ligados pelo painel admin (`/admin/config`);
+  sem credencial, degradam com elegância (o Hub continua entregando dados).
+
+## 18. Conformidade fiscal (CAUC/CAPAG) — P2
+
+Terceiro eixo do ciclo (fiscal). Entidade `conformidades` (cache global, RLS só-SELECT por
+município, migration 0007). Connector `siconfi` (CSV do Tesouro Transparente; base URL no painel
+`siconfi_csv_url`), normalizador `ingestion/normalizer_conformidade.py`, serviço
+`services/conformidade.py` (listar/upsert/resumo/sync). Endpoints `GET /conformidade` (KPIs por
+status/seção + CAPAG) e `POST /conformidade/sync`. Web `app/painel/conformidade`.
+
+## 19. Navegação profile-centric (decisão travada)
+
+O Hub Capture **não** é orientado a fonte de dados. Ao contrário de outras plataformas que
+expõem no menu uma aba por fonte (TransfereGov, Fundo Nacional de Saúde, FNDE…), aqui a
+navegação **parte do PERFIL do usuário**: o(s) `municipios_interesse`, as `areas` de
+`preferencias_usuario` e o `papel`. As fontes são detalhe de ingestão (connectors), nunca a
+espinha da UI.
+
+- **Backend** — `services/perfil.py` + `api/v1/perfil.py`:
+  `GET /perfil` (território: municípios + áreas + papel) e `GET /perfil/visao-geral` (agrega as
+  **dimensões do ciclo** — captação/recebidos/conformidade/obras — já recortadas pelo território
+  via RLS; nenhuma agregação é feita "por fonte"). Schemas em `schemas/perfil.py`.
+- **Web** — `app/painel/layout.tsx` é o shell profile-centric: cabeçalho com o **território** e o
+  **papel**, e um menu que são **lentes sobre o município do usuário** (Meu painel · Captação ·
+  Recursos recebidos · Conformidade · Obras · Copiloto), não abas de plataforma. `app/painel/page.tsx`
+  é o **Meu painel** (cards por dimensão vindos de `/perfil/visao-geral`). A antiga lista de propostas
+  virou `app/painel/captacao`. Sem território → CTA para o onboarding (o perfil é o ponto de partida).
+- Adicionar fonte continua sendo só um novo connector; **nunca** vira uma aba nova na navegação.

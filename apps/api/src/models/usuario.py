@@ -6,10 +6,12 @@ O atributo `hashed_password` do fastapi-users é mapeado para a coluna `senha_ha
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 
 from fastapi_users.db import SQLAlchemyBaseUserTableUUID
-from sqlalchemy import CheckConstraint, String, func
+from sqlalchemy import CheckConstraint, ForeignKey, String, func
+from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import DateTime
 
@@ -31,7 +33,10 @@ class Usuario(SQLAlchemyBaseUserTableUUID, Base):
 
     nome: Mapped[str | None] = mapped_column(String(255), nullable=True)
     papel: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    plano: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    plano: Mapped[str | None] = mapped_column(String(50), nullable=True)  # legado (texto)
+    plano_id: Mapped[uuid.UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("planos.id", ondelete="SET NULL"), nullable=True
+    )
     telefone_wpp: Mapped[str | None] = mapped_column(String(20), nullable=True)
     optin_wpp: Mapped[bool] = mapped_column(default=False)
 

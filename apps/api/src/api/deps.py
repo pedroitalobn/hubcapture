@@ -13,7 +13,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.users import current_active_user
-from ..db.session import rls_session
+from ..db.session import SessionLocal, rls_session
 from ..models.usuario import Usuario
 
 
@@ -22,3 +22,11 @@ async def get_rls_db(
 ) -> AsyncIterator[AsyncSession]:
     async with rls_session(user.id) as session:
         yield session
+
+
+async def get_platform_db() -> AsyncIterator[AsyncSession]:
+    """Sessão para tabelas de nível-plataforma (planos, convites) — sem tenant/RLS.
+    Abre uma transação e commita ao final do request."""
+    async with SessionLocal() as session:
+        async with session.begin():
+            yield session

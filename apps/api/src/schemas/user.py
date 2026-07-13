@@ -11,6 +11,7 @@ class UserRead(schemas.BaseUser[uuid.UUID]):
     nome: str | None = None
     papel: str | None = None
     plano: str | None = None
+    plano_id: uuid.UUID | None = None
     telefone_wpp: str | None = None
     optin_wpp: bool = False
 

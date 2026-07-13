@@ -4,6 +4,147 @@
  */
 
 export interface paths {
+    "/api/v1/admin/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Config */
+        get: operations["listar_config_api_v1_admin_config_get"];
+        /** Definir Config */
+        put: operations["definir_config_api_v1_admin_config_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/conhecimento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin Add Conhecimento
+         * @description Adiciona material à base de conhecimento do Copiloto.
+         */
+        post: operations["admin_add_conhecimento_api_v1_admin_conhecimento_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/convites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Listar Convites */
+        get: operations["admin_listar_convites_api_v1_admin_convites_get"];
+        put?: never;
+        /** Admin Criar Convite */
+        post: operations["admin_criar_convite_api_v1_admin_convites_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/usuarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin Criar Usuario */
+        post: operations["admin_criar_usuario_api_v1_admin_usuarios_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/usuarios/{usuario_id}/plano": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Admin Atribuir Plano */
+        patch: operations["admin_atribuir_plano_api_v1_admin_usuarios__usuario_id__plano_patch"];
+        trace?: never;
+    };
+    "/api/v1/alertas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Alertas */
+        get: operations["listar_alertas_api_v1_alertas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alertas/{alerta_id}/lido": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marcar Lido */
+        post: operations["marcar_lido_api_v1_alertas__alerta_id__lido_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/aceitar-convite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Aceitar Convite */
+        post: operations["aceitar_convite_api_v1_auth_aceitar_convite_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -55,6 +196,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/conformidade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Conformidade Resumo */
+        get: operations["conformidade_resumo_api_v1_conformidade_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conformidade/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Conformidade Sync */
+        post: operations["conformidade_sync_api_v1_conformidade_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/consulta-avulsa": {
         parameters: {
             query?: never;
@@ -67,6 +242,58 @@ export interface paths {
         /** Consulta Avulsa Endpoint */
         post: operations["consulta_avulsa_endpoint_api_v1_consulta_avulsa_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/copiloto/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copiloto Chat */
+        post: operations["copiloto_chat_api_v1_copiloto_chat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/favoritos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Favoritos */
+        get: operations["listar_favoritos_api_v1_favoritos_get"];
+        put?: never;
+        /** Adicionar Favorito */
+        post: operations["adicionar_favorito_api_v1_favoritos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/favoritos/{proposta_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remover Favorito */
+        delete: operations["remover_favorito_api_v1_favoritos__proposta_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -87,6 +314,179 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoramentos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Monitoramentos */
+        get: operations["listar_monitoramentos_api_v1_monitoramentos_get"];
+        put?: never;
+        /** Criar Monitoramento */
+        post: operations["criar_monitoramento_api_v1_monitoramentos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Onboarding */
+        post: operations["onboarding_api_v1_onboarding_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pastas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Pastas */
+        get: operations["listar_pastas_api_v1_pastas_get"];
+        put?: never;
+        /** Criar Pasta */
+        post: operations["criar_pasta_api_v1_pastas_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pastas/{pasta_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Atualizar Pasta */
+        patch: operations["atualizar_pasta_api_v1_pastas__pasta_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/pastas/{pasta_id}/propostas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adicionar Proposta */
+        post: operations["adicionar_proposta_api_v1_pastas__pasta_id__propostas_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pastas/{pasta_id}/propostas/{proposta_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remover Proposta */
+        delete: operations["remover_proposta_api_v1_pastas__pasta_id__propostas__proposta_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/perfil": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Perfil */
+        get: operations["get_perfil_api_v1_perfil_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/perfil/visao-geral": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Visao Geral Perfil */
+        get: operations["visao_geral_perfil_api_v1_perfil_visao_geral_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/planos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Planos */
+        get: operations["listar_planos_api_v1_planos_get"];
+        put?: never;
+        /** Criar Plano */
+        post: operations["criar_plano_api_v1_planos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/planos/{plano_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Atualizar Plano */
+        patch: operations["atualizar_plano_api_v1_planos__plano_id__patch"];
         trace?: never;
     };
     "/api/v1/propostas": {
@@ -123,6 +523,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/propostas/{proposta_id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Exportar Pdf */
+        get: operations["exportar_pdf_api_v1_propostas__proposta_id__pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repasses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Repasses */
+        get: operations["listar_repasses_api_v1_repasses_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repasses/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync Repasses */
+        post: operations["sync_repasses_api_v1_repasses_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repasses/visao-geral": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Visao Geral */
+        get: operations["visao_geral_api_v1_repasses_visao_geral_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/webhooks/uniq": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Uniq Inbound */
+        post: operations["uniq_inbound_api_v1_webhooks_uniq_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -144,6 +629,62 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AceitarConvite */
+        AceitarConvite: {
+            /** Nome */
+            nome?: string | null;
+            /** Senha */
+            senha: string;
+            /** Token */
+            token: string;
+        };
+        /** AdminUsuarioCreate */
+        AdminUsuarioCreate: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Nome */
+            nome?: string | null;
+            /** Papel */
+            papel?: string | null;
+            /** Plano Id */
+            plano_id?: string | null;
+            /** Senha */
+            senha: string;
+        };
+        /** AlertaRead */
+        AlertaRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lido */
+            lido: boolean;
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Proposta Id
+             * Format: uuid
+             */
+            proposta_id: string;
+            /** Tipo */
+            tipo?: string | null;
+        };
+        /** AtribuirPlano */
+        AtribuirPlano: {
+            /** Plano Id */
+            plano_id?: string | null;
+        };
         /** Body_login_api_v1_auth_login_post */
         Body_login_api_v1_auth_login_post: {
             /** Client Id */
@@ -168,6 +709,102 @@ export interface components {
             /** Username */
             username: string;
         };
+        /** ChatRequest */
+        ChatRequest: {
+            /**
+             * Modo
+             * @default propostas
+             */
+            modo: string;
+            /** Pergunta */
+            pergunta: string;
+        };
+        /** ConfigItem */
+        ConfigItem: {
+            /** Categoria */
+            categoria: string;
+            /** Chave */
+            chave: string;
+            /** Configurado */
+            configurado: boolean;
+            /** Label */
+            label: string;
+            /** Origem */
+            origem: string;
+            /** Secreto */
+            secreto: boolean;
+            /** Valor */
+            valor?: string | null;
+        };
+        /** ConfigSet */
+        ConfigSet: {
+            /** Chave */
+            chave: string;
+            /** Valor */
+            valor?: string | null;
+        };
+        /** ConformidadeRead */
+        ConformidadeRead: {
+            /** Cache Atualizado Em */
+            cache_atualizado_em?: string | null;
+            /** Descricao */
+            descricao?: string | null;
+            /** Detalhe */
+            detalhe?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Municipio Ibge */
+            municipio_ibge: string;
+            /** Numero */
+            numero: string;
+            /** Orgao */
+            orgao?: string | null;
+            /** Secao */
+            secao?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Tipo */
+            tipo: string;
+            /** Validade */
+            validade?: string | null;
+            /** Valor */
+            valor?: string | null;
+        };
+        /**
+         * ConformidadeResumo
+         * @description CAUC: KPIs por status + por seção. CAPAG: rating separado.
+         */
+        ConformidadeResumo: {
+            /** A Comprovar */
+            a_comprovar: number;
+            capag?: components["schemas"]["ConformidadeRead"] | null;
+            /** Comprovados */
+            comprovados: number;
+            /** Desativados */
+            desativados: number;
+            /** Requisitos */
+            requisitos: components["schemas"]["ConformidadeRead"][];
+            /** Secoes */
+            secoes: components["schemas"]["SecaoResumo"][];
+            /** Total */
+            total: number;
+        };
+        /** ConhecimentoCreate */
+        ConhecimentoCreate: {
+            /** Categoria */
+            categoria?: string | null;
+            /** Conteudo */
+            conteudo: string;
+            /** Tags */
+            tags?: string[] | null;
+            /** Titulo */
+            titulo: string;
+        };
         /** ConsultaAvulsaRequest */
         ConsultaAvulsaRequest: {
             /**
@@ -181,6 +818,67 @@ export interface components {
              */
             municipio_ibge: string;
         };
+        /** ConviteCreate */
+        ConviteCreate: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /**
+             * Expires Em Dias
+             * @default 7
+             */
+            expires_em_dias: number;
+            /** Papel */
+            papel?: string | null;
+            /** Plano Id */
+            plano_id?: string | null;
+        };
+        /** ConviteRead */
+        ConviteRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email */
+            email: string;
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Papel */
+            papel?: string | null;
+            /** Plano Id */
+            plano_id?: string | null;
+            /** Status */
+            status: string;
+            /** Token */
+            token: string;
+        };
+        /**
+         * DimensaoResumo
+         * @description Um eixo do ciclo (captação/recebidos/conformidade/obras) para o perfil.
+         */
+        DimensaoResumo: {
+            /** Chave */
+            chave: string;
+            /** Destaque */
+            destaque?: string | null;
+            /** Href */
+            href: string;
+            /** Titulo */
+            titulo: string;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+        };
         /** ErrorModel */
         ErrorModel: {
             /** Detail */
@@ -188,10 +886,260 @@ export interface components {
                 [key: string]: string;
             };
         };
+        /** FavoritoCreate */
+        FavoritoCreate: {
+            /**
+             * Proposta Id
+             * Format: uuid
+             */
+            proposta_id: string;
+        };
+        /** FavoritoRead */
+        FavoritoRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Proposta Id
+             * Format: uuid
+             */
+            proposta_id: string;
+        };
+        /**
+         * FonteResumo
+         * @description Card por fonte no dashboard (ícone/valor/nº de movimentações).
+         */
+        FonteResumo: {
+            /** Fonte */
+            fonte: string;
+            /** Movimentacoes */
+            movimentacoes: number;
+            /** Total */
+            total: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** MonitoramentoCreate */
+        MonitoramentoCreate: {
+            /**
+             * Canais
+             * @default [
+             *       "painel"
+             *     ]
+             */
+            canais: string[];
+            /**
+             * Proposta Id
+             * Format: uuid
+             */
+            proposta_id: string;
+        };
+        /** MonitoramentoRead */
+        MonitoramentoRead: {
+            /** Ativo */
+            ativo: boolean;
+            /** Canais */
+            canais?: string[] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Proposta Id
+             * Format: uuid
+             */
+            proposta_id: string;
+        };
+        /** MunicipioIn */
+        MunicipioIn: {
+            /** Ibge */
+            ibge: string;
+            /** Nome */
+            nome?: string | null;
+            /** Uf */
+            uf?: string | null;
+        };
+        /** MunicipioPerfil */
+        MunicipioPerfil: {
+            /** Ibge */
+            ibge: string;
+            /** Modo */
+            modo: string;
+            /** Nome */
+            nome?: string | null;
+            /** Uf */
+            uf?: string | null;
+        };
+        /** OnboardingRequest */
+        OnboardingRequest: {
+            /**
+             * Areas
+             * @default []
+             */
+            areas: string[];
+            /**
+             * Disparar Sync
+             * @default false
+             */
+            disparar_sync: boolean;
+            /**
+             * Fontes
+             * @default []
+             */
+            fontes: string[];
+            /**
+             * Monitorar Ativo
+             * @default true
+             */
+            monitorar_ativo: boolean;
+            /** Municipios */
+            municipios: components["schemas"]["MunicipioIn"][];
+            /** Papel */
+            papel?: string | null;
+        };
+        /** OnboardingResponse */
+        OnboardingResponse: {
+            /** Municipios */
+            municipios: number;
+            /** Sync Disparado */
+            sync_disparado: boolean;
+        };
+        /** PastaCreate */
+        PastaCreate: {
+            /** Cor */
+            cor?: string | null;
+            /** Nome */
+            nome: string;
+        };
+        /** PastaPropostaCreate */
+        PastaPropostaCreate: {
+            /**
+             * Proposta Id
+             * Format: uuid
+             */
+            proposta_id: string;
+        };
+        /** PastaRead */
+        PastaRead: {
+            /** Cor */
+            cor?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Nome */
+            nome: string;
+        };
+        /** PastaUpdate */
+        PastaUpdate: {
+            /** Cor */
+            cor?: string | null;
+            /** Nome */
+            nome?: string | null;
+        };
+        /**
+         * PerfilRead
+         * @description Identidade do usuário do ponto de vista da navegação.
+         */
+        PerfilRead: {
+            /**
+             * Areas
+             * @default []
+             */
+            areas: string[];
+            /**
+             * Fontes
+             * @default []
+             */
+            fontes: string[];
+            /**
+             * Monitorar Ativo
+             * @default true
+             */
+            monitorar_ativo: boolean;
+            /**
+             * Municipios
+             * @default []
+             */
+            municipios: components["schemas"]["MunicipioPerfil"][];
+            /** Nome */
+            nome?: string | null;
+            /** Papel */
+            papel?: string | null;
+        };
+        /** PlanoCreate */
+        PlanoCreate: {
+            /**
+             * Ativo
+             * @default true
+             */
+            ativo: boolean;
+            /** Descricao */
+            descricao?: string | null;
+            /** Limites */
+            limites?: {
+                [key: string]: unknown;
+            } | null;
+            /** Nome */
+            nome: string;
+            /** Preco Mensal */
+            preco_mensal?: number | string | null;
+            /** Slug */
+            slug: string;
+        };
+        /** PlanoRead */
+        PlanoRead: {
+            /** Ativo */
+            ativo: boolean;
+            /** Descricao */
+            descricao?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Limites */
+            limites?: {
+                [key: string]: unknown;
+            } | null;
+            /** Nome */
+            nome: string;
+            /** Preco Mensal */
+            preco_mensal?: string | null;
+            /** Slug */
+            slug: string;
+        };
+        /** PlanoUpdate */
+        PlanoUpdate: {
+            /** Ativo */
+            ativo?: boolean | null;
+            /** Descricao */
+            descricao?: string | null;
+            /** Limites */
+            limites?: {
+                [key: string]: unknown;
+            } | null;
+            /** Nome */
+            nome?: string | null;
+            /** Preco Mensal */
+            preco_mensal?: number | string | null;
         };
         /**
          * PropostaRead
@@ -255,6 +1203,88 @@ export interface components {
             /** Refresh Token */
             refresh_token: string;
         };
+        /** RepasseRead */
+        RepasseRead: {
+            /** Cache Atualizado Em */
+            cache_atualizado_em?: string | null;
+            /** Categoria */
+            categoria?: string | null;
+            /** Competencia */
+            competencia?: string | null;
+            /** Data Repasse */
+            data_repasse?: string | null;
+            /** Descricao */
+            descricao?: string | null;
+            /** Detalhe */
+            detalhe?: {
+                [key: string]: unknown;
+            } | null;
+            /** Documento */
+            documento?: string | null;
+            /** Emenda */
+            emenda: boolean;
+            /** Fonte */
+            fonte: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Id Externo */
+            id_externo: string;
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Municipio Nome */
+            municipio_nome?: string | null;
+            /** Natureza */
+            natureza: string;
+            /** Orgao Superior */
+            orgao_superior?: string | null;
+            /** Uf */
+            uf?: string | null;
+            /** Valor */
+            valor?: string | null;
+        };
+        /**
+         * RepassesPorDia
+         * @description Item do feed agrupado por data, com subtotal do dia.
+         */
+        RepassesPorDia: {
+            /**
+             * Data
+             * Format: date
+             */
+            data: string;
+            /** Itens */
+            itens: components["schemas"]["RepasseRead"][];
+            /** Subtotal */
+            subtotal: string;
+        };
+        /** SecaoResumo */
+        SecaoResumo: {
+            /** A Comprovar */
+            a_comprovar: number;
+            /** Comprovados */
+            comprovados: number;
+            /** Desativados */
+            desativados: number;
+            /** Secao */
+            secao: string;
+            /** Total */
+            total: number;
+        };
+        /** SyncConformidadeRequest */
+        SyncConformidadeRequest: {
+            /** Municipio Ibge */
+            municipio_ibge: string;
+        };
+        /** SyncRepassesRequest */
+        SyncRepassesRequest: {
+            /** Fontes */
+            fontes?: string[] | null;
+            /** Municipio Ibge */
+            municipio_ibge: string;
+        };
         /** TokenPair */
         TokenPair: {
             /** Access Token */
@@ -266,6 +1296,15 @@ export interface components {
              * @default bearer
              */
             token_type: string;
+        };
+        /** UniqInbound */
+        UniqInbound: {
+            /** Mensagem */
+            mensagem: string;
+            /** Telefone */
+            telefone: string;
+            /** Token */
+            token?: string | null;
         };
         /** UserCreate */
         UserCreate: {
@@ -343,6 +1382,8 @@ export interface components {
             papel?: string | null;
             /** Plano */
             plano?: string | null;
+            /** Plano Id */
+            plano_id?: string | null;
             /** Telefone Wpp */
             telefone_wpp?: string | null;
         };
@@ -359,6 +1400,47 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /**
+         * VisaoGeral
+         * @description Painel consolidado: KPI + fontes + feed agrupado por data.
+         */
+        VisaoGeral: {
+            /** Feed */
+            feed: components["schemas"]["RepassesPorDia"][];
+            /** Fim */
+            fim?: string | null;
+            /** Fontes */
+            fontes: components["schemas"]["FonteResumo"][];
+            /** Inicio */
+            inicio?: string | null;
+            /** Movimentacoes */
+            movimentacoes: number;
+            /** Total Pago */
+            total_pago: string;
+        };
+        /**
+         * VisaoGeralPerfil
+         * @description 'Meu painel': tudo o que importa no território do usuário, por dimensão.
+         */
+        VisaoGeralPerfil: {
+            /**
+             * Areas
+             * @default []
+             */
+            areas: string[];
+            /**
+             * Dimensoes
+             * @default []
+             */
+            dimensoes: components["schemas"]["DimensaoResumo"][];
+            /**
+             * Municipios
+             * @default []
+             */
+            municipios: components["schemas"]["MunicipioPerfil"][];
+            /** Papel */
+            papel?: string | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -368,6 +1450,306 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listar_config_api_v1_admin_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigItem"][];
+                };
+            };
+        };
+    };
+    definir_config_api_v1_admin_config_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfigSet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_add_conhecimento_api_v1_admin_conhecimento_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConhecimentoCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_listar_convites_api_v1_admin_convites_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteRead"][];
+                };
+            };
+        };
+    };
+    admin_criar_convite_api_v1_admin_convites_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConviteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_criar_usuario_api_v1_admin_usuarios_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUsuarioCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_atribuir_plano_api_v1_admin_usuarios__usuario_id__plano_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                usuario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AtribuirPlano"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_alertas_api_v1_alertas_get: {
+        parameters: {
+            query?: {
+                nao_lidos?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertaRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    marcar_lido_api_v1_alertas__alerta_id__lido_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alerta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    aceitar_convite_api_v1_auth_aceitar_convite_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AceitarConvite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     login_api_v1_auth_login_post: {
         parameters: {
             query?: never;
@@ -476,6 +1858,73 @@ export interface operations {
             };
         };
     };
+    conformidade_resumo_api_v1_conformidade_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConformidadeResumo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    conformidade_sync_api_v1_conformidade_sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncConformidadeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     consulta_avulsa_endpoint_api_v1_consulta_avulsa_post: {
         parameters: {
             query?: never;
@@ -509,6 +1958,123 @@ export interface operations {
             };
         };
     };
+    copiloto_chat_api_v1_copiloto_chat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_favoritos_api_v1_favoritos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FavoritoRead"][];
+                };
+            };
+        };
+    };
+    adicionar_favorito_api_v1_favoritos_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FavoritoCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_favorito_api_v1_favoritos__proposta_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     me_api_v1_me_get: {
         parameters: {
             query?: never;
@@ -525,6 +2091,375 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserRead"];
+                };
+            };
+        };
+    };
+    listar_monitoramentos_api_v1_monitoramentos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoramentoRead"][];
+                };
+            };
+        };
+    };
+    criar_monitoramento_api_v1_monitoramentos_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonitoramentoCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoramentoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    onboarding_api_v1_onboarding_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnboardingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_pastas_api_v1_pastas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PastaRead"][];
+                };
+            };
+        };
+    };
+    criar_pasta_api_v1_pastas_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PastaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PastaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    atualizar_pasta_api_v1_pastas__pasta_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pasta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PastaUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PastaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    adicionar_proposta_api_v1_pastas__pasta_id__propostas_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pasta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PastaPropostaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_proposta_api_v1_pastas__pasta_id__propostas__proposta_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pasta_id: string;
+                proposta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_perfil_api_v1_perfil_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PerfilRead"];
+                };
+            };
+        };
+    };
+    visao_geral_perfil_api_v1_perfil_visao_geral_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisaoGeralPerfil"];
+                };
+            };
+        };
+    };
+    listar_planos_api_v1_planos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanoRead"][];
+                };
+            };
+        };
+    };
+    criar_plano_api_v1_planos_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanoCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    atualizar_plano_api_v1_planos__plano_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plano_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanoUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -583,6 +2518,175 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PropostaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    exportar_pdf_api_v1_propostas__proposta_id__pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_repasses_api_v1_repasses_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                fonte?: string | null;
+                inicio?: string | null;
+                fim?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepasseRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_repasses_api_v1_repasses_sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncRepassesRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    visao_geral_api_v1_repasses_visao_geral_get: {
+        parameters: {
+            query?: {
+                municipio?: string | null;
+                inicio?: string | null;
+                fim?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisaoGeral"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    uniq_inbound_api_v1_webhooks_uniq_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UniqInbound"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

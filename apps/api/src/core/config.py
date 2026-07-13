@@ -41,6 +41,44 @@ class Settings(BaseSettings):
     transferegov_ff_base_url: str = (
         "https://api.transferegov.gestao.gov.br/fundoafundo/"
     )
+    # Recebidos (P1). URLs a calibrar contra as APIs/CSVs oficiais.
+    fpm_base_url: str = "https://apidatalake.tesouro.gov.br/ords/transferencias/"
+    emendas_base_url: str = "https://api.portaldatransparencia.gov.br/api-de-dados/"
+    # Demais fontes (prontas para receber as APIs — calibrar rota/campos).
+    transferegov_esp_base_url: str = (
+        "https://api.transferegov.gestao.gov.br/transferenciasespeciais/"
+    )
+    transferegov_disc_csv_url: str = "http://repositorio.dados.gov.br/seges/detru/"
+    fns_consulta_url: str = "https://consultafns.saude.gov.br/"
+    fnde_base_url: str = "https://www.fnde.gov.br/sigefweb/"
+    serpro_base_url: str = "https://gateway.apiserpro.serpro.gov.br/"
+    # Conformidade fiscal (CAUC/CAPAG) — CSV do Tesouro Transparente
+    siconfi_csv_url: str = "https://www.tesourotransparente.gov.br/ckan/dataset/cauc/"
+
+    # ── Scraping (Firecrawl) — coleta combinada / fallback ──────────────────
+    firecrawl_api_key: str = ""  # vazio = scraping desabilitado
+    firecrawl_base_url: str = "https://api.firecrawl.dev"
+
+    @property
+    def scraping_enabled(self) -> bool:
+        return bool(self.firecrawl_api_key)
+
+    # ── IA (LiteLLM) — resumo/chat/embeddings (opcionais) ───────────────────
+    llm_api_key: str = ""  # vazio = resumo/chat IA desabilitado
+    llm_model_resumo: str = "claude-haiku-4-5-20251001"
+    llm_model_chat: str = "claude-sonnet-5"
+    embedding_api_key: str = ""  # vazio = embeddings/RAG desabilitado
+    embedding_model: str = "text-embedding-3-small"  # dim 1536 (casa com o schema)
+
+    # ── WhatsApp (Uniq.chat) — alertas + chat (opcional) ────────────────────
+    uniq_api_key: str = ""  # vazio = WhatsApp desabilitado
+    uniq_base_url: str = "https://api.uniq.chat"
+    uniq_webhook_token: str = ""  # valida o webhook de entrada
+
+    # ── Config runtime (painel admin) ───────────────────────────────────────
+    # Chave para cifrar segredos em repouso na tabela `configuracoes` (Fernet).
+    # Em produção defina um valor forte e estável; vazio usa jwt_secret (dev).
+    config_secret_key: str = ""
 
     # ── CORS ─────────────────────────────────────────────────────────────────
     cors_origins: str = "http://localhost:3000"
