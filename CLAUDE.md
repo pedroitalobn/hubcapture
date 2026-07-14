@@ -539,3 +539,29 @@ latitude, longitude, endereco, orgao, detalhe/proveniencia jsonb, hash_conteudo`
 - **Web** `app/painel/obras`: KPIs, **mini-mapa offline** (dispersa obras por lat/long sem tiles
   externos — em produção pode virar Leaflet+GeoJSON), chips por situação e lista. Mascaramento por
   papel segue a mesma diretriz de privacidade dos demais eixos.
+
+## 21. Essenciais de SaaS — recuperação de senha + e-mail transacional
+
+Fecha os itens de plataforma que todo SaaS precisa além do CRUD do produto.
+
+- **Recuperação de senha / verificação**: routers do fastapi-users montados em
+  `api/v1/auth.py` — `POST /auth/forgot-password`, `/auth/reset-password`,
+  `/auth/request-verify-token`, `/auth/verify`. Os hooks do `UserManager`
+  (`on_after_forgot_password`, `on_after_request_verify`, `on_after_register`)
+  disparam e-mail com link para `{app_base_url}/redefinir-senha?token=…` (e
+  `/verificar-email`).
+- **Camada de e-mail** (`notifications/email.py`): SMTP via `smtplib` (stdlib, em
+  thread), **provider-opcional** como o Uniq — sem `email_smtp_host`+`email_from`
+  no painel, o envio degrada (retorna False, sem erro) e o fluxo de negócio segue
+  (o token ainda existe na API). Suporta STARTTLS (587) e SSL (465). Templates
+  txt+HTML em `notifications/email_templates.py` (boas-vindas, redefinir senha,
+  verificar e-mail, convite).
+- **Convite por e-mail**: `services/gestao_usuarios.criar_convite` envia o link de
+  aceite (`/aceitar-convite?token=…`) — best-effort.
+- **Config (painel admin, categoria `email`)**: `email_smtp_host`,
+  `email_smtp_port`, `email_smtp_user`, `email_smtp_password` (segredo cifrado),
+  `email_from`, `app_base_url`. A página `/admin/config` agrupa por categoria
+  automaticamente — a categoria `email` aparece sem alteração de UI.
+- **Web (telas de auth)**: `app/cadastro` (self-signup), `app/esqueci-senha`
+  (solicita link), `app/redefinir-senha` (consome o token; usa Suspense p/
+  `useSearchParams`), com links no `app/login`. Nunca revela se um e-mail existe.
