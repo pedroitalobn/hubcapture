@@ -142,3 +142,32 @@ export async function redefinirSenha(token: string, senha: string): Promise<void
   });
   if (error) throw new Error("Token inválido ou expirado");
 }
+
+/** Confirma o e-mail a partir do token recebido. */
+export async function verificarEmail(token: string): Promise<void> {
+  const { error } = await api.POST("/api/v1/auth/verify", { body: { token } });
+  if (error) throw new Error("Token inválido ou expirado");
+}
+
+/** Dados do usuário logado. */
+export async function meProfile() {
+  const { data, error } = await api.GET("/api/v1/users/me");
+  if (error) throw new Error("Sessão expirada");
+  return data;
+}
+
+/** Atualiza o próprio perfil (nome/telefone/opt-in e, opcionalmente, senha). */
+export async function atualizarPerfil(patch: {
+  nome?: string;
+  telefone_wpp?: string;
+  optin_wpp?: boolean;
+  password?: string;
+}): Promise<void> {
+  const { error } = await api.PATCH("/api/v1/users/me", { body: patch });
+  if (error) {
+    const detail = (error as { detail?: unknown }).detail;
+    throw new Error(
+      typeof detail === "string" ? detail : "Não foi possível salvar",
+    );
+  }
+}

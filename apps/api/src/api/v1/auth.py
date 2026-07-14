@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from ...core.security import get_jwt_strategy, get_refresh_strategy
 from ...core.users import UserManager, current_active_user, fastapi_users, get_user_manager
 from ...models.usuario import Usuario
-from ...schemas.user import UserCreate, UserRead
+from ...schemas.user import UserCreate, UserRead, UserUpdate
 
 router = APIRouter(tags=["auth"])
 
@@ -31,6 +31,11 @@ router.include_router(
 router.include_router(
     fastapi_users.get_verify_router(UserRead),
     prefix="/auth",
+)
+# GET/PATCH /users/me (perfil + trocar senha logado) · admin em /users/{id}
+router.include_router(
+    fastapi_users.get_users_router(UserRead, UserUpdate),
+    prefix="/users",
 )
 
 
