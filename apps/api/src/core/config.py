@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     serpro_base_url: str = "https://gateway.apiserpro.serpro.gov.br/"
     # Conformidade fiscal (CAUC/CAPAG) — CSV do Tesouro Transparente
     siconfi_csv_url: str = "https://www.tesourotransparente.gov.br/ckan/dataset/cauc/"
+    # Obras (execução) — SISMOB (saúde), SIMEC (educação), CAIXA/SIORB (infra)
+    sismob_base_url: str = "https://sismob.saude.gov.br/api/"
+    simec_base_url: str = "https://simec.mec.gov.br/api/"
+    caixa_obras_base_url: str = "https://webp.caixa.gov.br/siorb/api/"
 
     # ── Scraping (Firecrawl) — coleta combinada / fallback ──────────────────
     firecrawl_api_key: str = ""  # vazio = scraping desabilitado

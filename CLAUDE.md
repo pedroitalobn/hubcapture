@@ -514,3 +514,28 @@ espinha da UI.
   é o **Meu painel** (cards por dimensão vindos de `/perfil/visao-geral`). A antiga lista de propostas
   virou `app/painel/captacao`. Sem território → CTA para o onboarding (o perfil é o ponto de partida).
 - Adicionar fonte continua sendo só um novo connector; **nunca** vira uma aba nova na navegação.
+
+## 20. Obras (execução — SISMOB/SIMEC/CAIXA) — P3
+
+Quarto e último eixo do ciclo (execução), fechando captar → receber → executar → prestar
+contas. Entidade `obras` (cache global, RLS só-SELECT por município, migration `66ddf34515bd`):
+`fonte (sismob|simec|caixa), id_externo, municipio_ibge/nome/uf, nome, objeto, programa, eixo
+(saude|educacao|infraestrutura), situacao (planejada|em_execucao|paralisada|concluida|cancelada),
+percentual_execucao, valor_investimento, valor_repassado, data_inicio, data_fim_prevista,
+latitude, longitude, endereco, orgao, detalhe/proveniencia jsonb, hash_conteudo`.
+`unique(fonte, id_externo)`.
+
+- **Connectors** (Protocol de `connectors/base.py`, JSON via `_http.get_json`, campos isolados em
+  constantes p/ calibração; base URL no painel): `sismob.py` (saúde/MS), `simec.py` (educação/FNDE),
+  `caixa.py` (infra/OGU+APF). Normalizador `ingestion/normalizer_obra.py` (de-para de situação +
+  `compute_hash` sobre andamento). Chaves de config: `sismob_base_url`, `simec_base_url`,
+  `caixa_obras_base_url` (categoria fonte).
+- **Serviço** `services/obras.py`: `listar` (cache-first, RLS, filtros fonte/situação), `upsert`
+  (on_conflict por `(fonte,id_externo)`), `resumo` (KPIs de execução + quebra por situação + obras
+  com geo), `sync_municipio` **multi-fonte best-effort** (cada fonte que falha registra `sync_runs`
+  e não derruba as demais). Endpoints `GET /obras`, `GET /obras/resumo`, `POST /obras/sync`.
+- **Perfil**: a dimensão "obras" da `/perfil/visao-geral` passa a contar obras reais (antes era
+  placeholder "em breve").
+- **Web** `app/painel/obras`: KPIs, **mini-mapa offline** (dispersa obras por lat/long sem tiles
+  externos — em produção pode virar Leaflet+GeoJSON), chips por situação e lista. Mascaramento por
+  papel segue a mesma diretriz de privacidade dos demais eixos.

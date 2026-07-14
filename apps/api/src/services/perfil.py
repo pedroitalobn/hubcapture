@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.conformidade import Conformidade
 from ..models.municipio_interesse import MunicipioInteresse
+from ..models.obra import Obra
 from ..models.preferencias import PreferenciasUsuario
 from ..models.proposta import Proposta
 from ..models.repasse import Repasse
@@ -96,6 +97,14 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
         )
     ).scalar_one()
 
+    # Obras (execução) — destaque é o que está em andamento.
+    obras_n = (await session.execute(select(func.count(Obra.id)))).scalar_one()
+    obras_exec = (
+        await session.execute(
+            select(func.count(Obra.id)).where(Obra.situacao == "em_execucao")
+        )
+    ).scalar_one()
+
     dimensoes = [
         DimensaoResumo(
             chave="captacao",
@@ -123,8 +132,10 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
         DimensaoResumo(
             chave="obras",
             titulo="Obras",
-            total=0,
-            destaque="em breve",
+            total=int(obras_n),
+            destaque=(
+                f"{obras_exec} em execução" if obras_n else "sem obras ainda"
+            ),
             href="/painel/obras",
         ),
     ]

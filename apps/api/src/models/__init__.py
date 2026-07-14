@@ -10,6 +10,7 @@ from .convite import Convite
 from .favorito import Favorito
 from .monitoramento import Monitoramento
 from .municipio_interesse import MunicipioInteresse
+from .obra import Obra
 from .pasta import Pasta, PastaProposta
 from .plano import Plano
 from .preferencias import PreferenciasUsuario
@@ -39,4 +40,5 @@ __all__ = [
     "Configuracao",
     "BaseConhecimento",
     "Conformidade",
+    "Obra",
 ]
