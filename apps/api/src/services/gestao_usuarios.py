@@ -17,7 +17,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..core.users import UserManager
 from ..models.convite import Convite
 from ..models.usuario import Usuario
-from ..schemas.planos import AceitarConvite, AdminUsuarioCreate, ConviteCreate
+from ..schemas.planos import (
+    AceitarConvite,
+    AdminUsuarioCreate,
+    AdminUsuarioUpdate,
+    ConviteCreate,
+)
 from ..schemas.user import UserCreate
 
 
@@ -101,12 +106,41 @@ async def criar_usuario(
         ),
         safe=True,
     )
+    # `safe=True` ignora is_superuser no input (segurança). Como aqui QUEM cria é
+    # o admin, aplicamos plano/permissão explicitamente após a criação.
+    valores: dict = {}
     if dados.plano_id:
+        valores["plano_id"] = dados.plano_id
+    if dados.is_superuser:
+        valores["is_superuser"] = True
+    if valores:
         await session.execute(
-            update(Usuario).where(Usuario.id == user.id).values(plano_id=dados.plano_id)
+            update(Usuario).where(Usuario.id == user.id).values(**valores)
         )
-        user.plano_id = dados.plano_id  # reflete na resposta
+        for k, v in valores.items():
+            setattr(user, k, v)  # reflete na resposta
         await session.flush()
+    return user
+
+
+async def listar_usuarios(session: AsyncSession) -> list[Usuario]:
+    rows = await session.execute(select(Usuario).order_by(Usuario.created_at.desc()))
+    return list(rows.scalars().all())
+
+
+async def atualizar_usuario(
+    session: AsyncSession, usuario_id: uuid.UUID, dados: AdminUsuarioUpdate
+) -> Usuario:
+    valores = dados.model_dump(exclude_unset=True)
+    if valores:
+        await session.execute(
+            update(Usuario).where(Usuario.id == usuario_id).values(**valores)
+        )
+    user = (
+        await session.execute(select(Usuario).where(Usuario.id == usuario_id))
+    ).scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="usuário não encontrado")
     return user
 
 

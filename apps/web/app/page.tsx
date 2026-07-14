@@ -33,6 +33,9 @@ export default function Home() {
         </Link>
       </div>
       <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+        <Link href="/admin/usuarios" className="underline">
+          Usuários (admin)
+        </Link>
         <Link href="/admin/planos" className="underline">
           Planos (admin)
         </Link>

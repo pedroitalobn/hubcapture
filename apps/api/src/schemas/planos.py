@@ -69,8 +69,31 @@ class AdminUsuarioCreate(BaseModel):
     email: EmailStr
     senha: str = Field(min_length=8)
     nome: str | None = None
+    papel: str | None = None  # parlamentar | executivo | equipe
+    plano_id: uuid.UUID | None = None
+    is_superuser: bool = False  # permissão de admin da plataforma
+
+
+class AdminUsuarioUpdate(BaseModel):
+    """Ajuste de papel (role) e permissões de um usuário."""
+
+    papel: str | None = None
+    is_superuser: bool | None = None
+    is_active: bool | None = None
+    plano_id: uuid.UUID | None = None
+
+
+class AdminUsuarioRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    email: str
+    nome: str | None = None
     papel: str | None = None
     plano_id: uuid.UUID | None = None
+    is_superuser: bool
+    is_active: bool
+    is_verified: bool
+    created_at: datetime | None = None
 
 
 class AtribuirPlano(BaseModel):

@@ -570,3 +570,24 @@ Fecha os itens de plataforma que todo SaaS precisa além do CRUD do produto.
   `GET/PATCH /users/me` (editar perfil e trocar senha logado; admin em
   `/users/{id}`). Web `app/painel/conta` (nome/telefone/opt-in WhatsApp + trocar
   senha), no menu profile-centric.
+
+## 22. Deploy local via Docker Compose + admin inicial
+
+Stack completo sobe com um comando; o superadmin é criado no boot.
+
+- **Compose** (`infra/docker-compose.yml`): `postgres` (pgvector) · `api` (FastAPI) ·
+  `web` (Next standalone) · `redis` · `n8n` (perfil `orchestration`). `api` depende do
+  Postgres saudável; dentro da rede o host do banco é `postgres` (não `localhost`).
+  Subir: `docker compose -f infra/docker-compose.yml up -d --build`.
+- **Dockerfiles**: `apps/api/Dockerfile` (uv sync; `docker-entrypoint.sh` espera o
+  Postgres → `alembic upgrade head` → uvicorn) e `apps/web/Dockerfile` (build pnpm do
+  monorepo → Next standalone). `.dockerignore` na raiz enxuga o contexto.
+- **Admin inicial (bootstrap)**: `core/bootstrap.ensure_admin()` roda no `lifespan` da
+  API. Com `ADMIN_EMAIL`+`ADMIN_PASSWORD` no `.env`, cria/promove um superusuário
+  (idempotente — não duplica nem reseta senha existente). Destrava o 1º login no painel.
+  Atenção: `email-validator` rejeita domínios reservados (`.local`) — use domínio válido.
+- **Painel admin de usuários** (`app/admin/usuarios`, superuser): cria usuário com
+  **papel (role)** + **plano** + **permissão de admin (`is_superuser`)**; lista todos e
+  alterna papel/admin/ativo inline. Backend: `GET /admin/usuarios`,
+  `POST /admin/usuarios` (agora aceita `is_superuser`), `PATCH /admin/usuarios/{id}`
+  (papel/is_superuser/is_active/plano). Env `ADMIN_EMAIL`/`ADMIN_PASSWORD`/`APP_BASE_URL`.

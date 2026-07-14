@@ -67,7 +67,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Admin Listar Usuarios */
+        get: operations["admin_listar_usuarios_api_v1_admin_usuarios_get"];
         put?: never;
         /** Admin Criar Usuario */
         post: operations["admin_criar_usuario_api_v1_admin_usuarios_post"];
@@ -75,6 +76,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/usuarios/{usuario_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Admin Atualizar Usuario */
+        patch: operations["admin_atualizar_usuario_api_v1_admin_usuarios__usuario_id__patch"];
         trace?: never;
     };
     "/api/v1/admin/usuarios/{usuario_id}/plano": {
@@ -801,6 +819,11 @@ export interface components {
              * Format: email
              */
             email: string;
+            /**
+             * Is Superuser
+             * @default false
+             */
+            is_superuser: boolean;
             /** Nome */
             nome?: string | null;
             /** Papel */
@@ -809,6 +832,44 @@ export interface components {
             plano_id?: string | null;
             /** Senha */
             senha: string;
+        };
+        /** AdminUsuarioRead */
+        AdminUsuarioRead: {
+            /** Created At */
+            created_at?: string | null;
+            /** Email */
+            email: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Is Superuser */
+            is_superuser: boolean;
+            /** Is Verified */
+            is_verified: boolean;
+            /** Nome */
+            nome?: string | null;
+            /** Papel */
+            papel?: string | null;
+            /** Plano Id */
+            plano_id?: string | null;
+        };
+        /**
+         * AdminUsuarioUpdate
+         * @description Ajuste de papel (role) e permissões de um usuário.
+         */
+        AdminUsuarioUpdate: {
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Is Superuser */
+            is_superuser?: boolean | null;
+            /** Papel */
+            papel?: string | null;
+            /** Plano Id */
+            plano_id?: string | null;
         };
         /** AlertaRead */
         AlertaRead: {
@@ -1884,6 +1945,26 @@ export interface operations {
             };
         };
     };
+    admin_listar_usuarios_api_v1_admin_usuarios_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUsuarioRead"][];
+                };
+            };
+        };
+    };
     admin_criar_usuario_api_v1_admin_usuarios_post: {
         parameters: {
             query?: never;
@@ -1904,6 +1985,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_atualizar_usuario_api_v1_admin_usuarios__usuario_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                usuario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUsuarioUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUsuarioRead"];
                 };
             };
             /** @description Validation Error */

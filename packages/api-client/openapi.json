@@ -38,6 +38,11 @@
             "title": "Email",
             "type": "string"
           },
+          "is_superuser": {
+            "default": false,
+            "title": "Is Superuser",
+            "type": "boolean"
+          },
           "nome": {
             "anyOf": [
               {
@@ -83,6 +88,138 @@
           "senha"
         ],
         "title": "AdminUsuarioCreate",
+        "type": "object"
+      },
+      "AdminUsuarioRead": {
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "is_superuser": {
+            "title": "Is Superuser",
+            "type": "boolean"
+          },
+          "is_verified": {
+            "title": "Is Verified",
+            "type": "boolean"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "papel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Papel"
+          },
+          "plano_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plano Id"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "is_superuser",
+          "is_active",
+          "is_verified"
+        ],
+        "title": "AdminUsuarioRead",
+        "type": "object"
+      },
+      "AdminUsuarioUpdate": {
+        "description": "Ajuste de papel (role) e permissões de um usuário.",
+        "properties": {
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "is_superuser": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Superuser"
+          },
+          "papel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Papel"
+          },
+          "plano_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plano Id"
+          }
+        },
+        "title": "AdminUsuarioUpdate",
         "type": "object"
       },
       "AlertaRead": {
@@ -3037,6 +3174,34 @@
       }
     },
     "/api/v1/admin/usuarios": {
+      "get": {
+        "operationId": "admin_listar_usuarios_api_v1_admin_usuarios_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminUsuarioRead"
+                  },
+                  "title": "Response Admin Listar Usuarios Api V1 Admin Usuarios Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Admin Listar Usuarios",
+        "tags": [
+          "admin"
+        ]
+      },
       "post": {
         "operationId": "admin_criar_usuario_api_v1_admin_usuarios_post",
         "requestBody": {
@@ -3077,6 +3242,64 @@
           }
         ],
         "summary": "Admin Criar Usuario",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/usuarios/{usuario_id}": {
+      "patch": {
+        "operationId": "admin_atualizar_usuario_api_v1_admin_usuarios__usuario_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "usuario_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Usuario Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminUsuarioUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUsuarioRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Admin Atualizar Usuario",
         "tags": [
           "admin"
         ]
