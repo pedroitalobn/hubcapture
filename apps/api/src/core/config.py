@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     access_token_ttl: int = 900  # 15 min
     refresh_token_ttl: int = 1209600  # 14 dias
 
+    # ── Admin inicial (bootstrap no startup) ─────────────────────────────────
+    # Se ambos preenchidos, a API cria/promove este superusuário ao subir, para
+    # o primeiro login no painel admin. Vazio = não faz bootstrap.
+    admin_email: str = ""
+    admin_password: str = ""
+
     # ── Cache-first ──────────────────────────────────────────────────────────
     cache_ttl_seconds: int = 21600  # 6h
 

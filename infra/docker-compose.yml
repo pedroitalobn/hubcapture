@@ -1,6 +1,6 @@
-# Infra local de desenvolvimento — Hub Capture
-# Postgres (com pgvector) é o único serviço realmente usado no Sprint 0/1.
-# redis e n8n ficam declarados para as fases seguintes (fila ARQ / orquestração).
+# Stack completo — Hub Capture (sobe com: docker compose -f infra/docker-compose.yml up -d --build)
+# Serviços: postgres (pgvector) · api (FastAPI) · web (Next.js) · redis · n8n (perfil opcional).
+# Variáveis vêm do .env na RAIZ do repo (ver .env.example).
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -22,14 +22,51 @@ services:
       timeout: 5s
       retries: 10
 
-  # Fila para ARQ (sync pesado, retries, alertas) — FASE seguinte. Declarado, não usado ainda.
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    container_name: hubcapture-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # dentro da rede do compose o host do banco é "postgres" (não localhost)
+      DB_HOST: postgres
+      DATABASE_URL: postgresql+asyncpg://hubcapture_app:${APP_DB_PASSWORD:-app_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
+      DATABASE_MIGRATOR_URL: postgresql+asyncpg://${POSTGRES_USER:-hubcapture}:${POSTGRES_PASSWORD:-postgres_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
+      JWT_SECRET: ${JWT_SECRET:-troque-este-segredo-em-producao}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-troque-este-segredo-de-refresh}
+      CONFIG_SECRET_KEY: ${CONFIG_SECRET_KEY:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      # superadmin inicial criado/promovido no startup (primeiro login no painel)
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        # NEXT_PUBLIC_* é embutido no build; o browser fala com a API publicada
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    container_name: hubcapture-web
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+
+  # Fila para ARQ (sync pesado, retries, alertas) — declarado p/ as fases seguintes.
   redis:
     image: redis:7-alpine
     container_name: hubcapture-redis
     ports:
       - "6379:6379"
 
-  # Orquestração de sync/alertas — FASE seguinte. Declarado, não usado ainda.
+  # Orquestração de sync/alertas — sobe só com o perfil `orchestration`.
   n8n:
     image: n8nio/n8n:latest
     container_name: hubcapture-n8n

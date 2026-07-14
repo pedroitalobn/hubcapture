@@ -18,6 +18,8 @@ from ...schemas.config import ConhecimentoCreate
 from ...schemas.planos import (
     AceitarConvite,
     AdminUsuarioCreate,
+    AdminUsuarioRead,
+    AdminUsuarioUpdate,
     AtribuirPlano,
     ConviteCreate,
     ConviteRead,
@@ -37,6 +39,24 @@ async def admin_criar_usuario(
     session: AsyncSession = Depends(get_platform_db),
 ) -> Usuario:
     return await service.criar_usuario(session, user_manager, body)
+
+
+@router.get("/admin/usuarios", response_model=list[AdminUsuarioRead])
+async def admin_listar_usuarios(
+    _admin: Usuario = Depends(current_superuser),
+    session: AsyncSession = Depends(get_platform_db),
+) -> list[Usuario]:
+    return await service.listar_usuarios(session)
+
+
+@router.patch("/admin/usuarios/{usuario_id}", response_model=AdminUsuarioRead)
+async def admin_atualizar_usuario(
+    usuario_id: uuid.UUID,
+    body: AdminUsuarioUpdate,
+    _admin: Usuario = Depends(current_superuser),
+    session: AsyncSession = Depends(get_platform_db),
+) -> Usuario:
+    return await service.atualizar_usuario(session, usuario_id, body)
 
 
 @router.patch("/admin/usuarios/{usuario_id}/plano", status_code=status.HTTP_204_NO_CONTENT)
