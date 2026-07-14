@@ -63,7 +63,7 @@ async def test_visao_geral_agrega_por_perfil_e_isola_por_rls(
     assert set(dims) == {"captacao", "recebidos", "conformidade", "obras"}
     assert dims["captacao"].total == 2  # só as do território de A (não a de B)
     assert dims["recebidos"].total == 1
-    assert dims["obras"].total == 0 and dims["obras"].destaque == "em breve"
+    assert dims["obras"].total == 0 and dims["obras"].destaque == "sem obras ainda"
     assert {m.ibge for m in vg.municipios} == {"3550308"}
 
 

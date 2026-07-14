@@ -334,6 +334,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/obras": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Obras */
+        get: operations["listar_obras_api_v1_obras_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/obras/resumo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obras Resumo */
+        get: operations["obras_resumo_api_v1_obras_resumo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/obras/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Obras Sync */
+        post: operations["obras_sync_api_v1_obras_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/onboarding": {
         parameters: {
             query?: never;
@@ -981,6 +1032,76 @@ export interface components {
             /** Uf */
             uf?: string | null;
         };
+        /** ObraRead */
+        ObraRead: {
+            /** Cache Atualizado Em */
+            cache_atualizado_em?: string | null;
+            /** Data Fim Prevista */
+            data_fim_prevista?: string | null;
+            /** Data Inicio */
+            data_inicio?: string | null;
+            /** Eixo */
+            eixo?: string | null;
+            /** Endereco */
+            endereco?: string | null;
+            /** Fonte */
+            fonte: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Id Externo */
+            id_externo: string;
+            /** Latitude */
+            latitude?: string | null;
+            /** Longitude */
+            longitude?: string | null;
+            /** Municipio Ibge */
+            municipio_ibge: string;
+            /** Municipio Nome */
+            municipio_nome?: string | null;
+            /** Nome */
+            nome?: string | null;
+            /** Objeto */
+            objeto?: string | null;
+            /** Orgao */
+            orgao?: string | null;
+            /** Percentual Execucao */
+            percentual_execucao?: string | null;
+            /** Programa */
+            programa?: string | null;
+            /** Situacao */
+            situacao?: string | null;
+            /** Uf */
+            uf?: string | null;
+            /** Valor Investimento */
+            valor_investimento?: string | null;
+            /** Valor Repassado */
+            valor_repassado?: string | null;
+        };
+        /**
+         * ObrasResumo
+         * @description KPIs de execução + quebra por situação + obras (com geo p/ o mapa).
+         */
+        ObrasResumo: {
+            /** Concluidas */
+            concluidas: number;
+            /** Em Execucao */
+            em_execucao: number;
+            /** Obras */
+            obras: components["schemas"]["ObraRead"][];
+            /** Paralisadas */
+            paralisadas: number;
+            /** Por Situacao */
+            por_situacao: components["schemas"]["SituacaoResumo"][];
+            /** Total */
+            total: number;
+            /** Valor Investimento Total */
+            valor_investimento_total: string;
+            /** Valor Repassado Total */
+            valor_repassado_total: string;
+        };
         /** OnboardingRequest */
         OnboardingRequest: {
             /**
@@ -1273,8 +1394,24 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** SituacaoResumo */
+        SituacaoResumo: {
+            /** Situacao */
+            situacao: string;
+            /** Total */
+            total: number;
+            /** Valor Investimento */
+            valor_investimento: string;
+        };
         /** SyncConformidadeRequest */
         SyncConformidadeRequest: {
+            /** Municipio Ibge */
+            municipio_ibge: string;
+        };
+        /** SyncObrasRequest */
+        SyncObrasRequest: {
+            /** Fontes */
+            fontes?: string[] | null;
             /** Municipio Ibge */
             municipio_ibge: string;
         };
@@ -2135,6 +2272,107 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MonitoramentoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_obras_api_v1_obras_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                fonte?: string | null;
+                situacao?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObraRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    obras_resumo_api_v1_obras_resumo_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObrasResumo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    obras_sync_api_v1_obras_sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncObrasRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

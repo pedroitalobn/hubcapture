@@ -940,6 +940,287 @@
         "title": "MunicipioPerfil",
         "type": "object"
       },
+      "ObraRead": {
+        "properties": {
+          "cache_atualizado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Atualizado Em"
+          },
+          "data_fim_prevista": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Fim Prevista"
+          },
+          "data_inicio": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Inicio"
+          },
+          "eixo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eixo"
+          },
+          "endereco": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endereco"
+          },
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "id_externo": {
+            "title": "Id Externo",
+            "type": "string"
+          },
+          "latitude": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude"
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude"
+          },
+          "municipio_ibge": {
+            "title": "Municipio Ibge",
+            "type": "string"
+          },
+          "municipio_nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Nome"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "objeto": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objeto"
+          },
+          "orgao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgao"
+          },
+          "percentual_execucao": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percentual Execucao"
+          },
+          "programa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Programa"
+          },
+          "situacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Situacao"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          },
+          "valor_investimento": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Investimento"
+          },
+          "valor_repassado": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Repassado"
+          }
+        },
+        "required": [
+          "id",
+          "fonte",
+          "id_externo",
+          "municipio_ibge"
+        ],
+        "title": "ObraRead",
+        "type": "object"
+      },
+      "ObrasResumo": {
+        "description": "KPIs de execução + quebra por situação + obras (com geo p/ o mapa).",
+        "properties": {
+          "concluidas": {
+            "title": "Concluidas",
+            "type": "integer"
+          },
+          "em_execucao": {
+            "title": "Em Execucao",
+            "type": "integer"
+          },
+          "obras": {
+            "items": {
+              "$ref": "#/components/schemas/ObraRead"
+            },
+            "title": "Obras",
+            "type": "array"
+          },
+          "paralisadas": {
+            "title": "Paralisadas",
+            "type": "integer"
+          },
+          "por_situacao": {
+            "items": {
+              "$ref": "#/components/schemas/SituacaoResumo"
+            },
+            "title": "Por Situacao",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "valor_investimento_total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Investimento Total",
+            "type": "string"
+          },
+          "valor_repassado_total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Repassado Total",
+            "type": "string"
+          }
+        },
+        "required": [
+          "total",
+          "em_execucao",
+          "concluidas",
+          "paralisadas",
+          "valor_investimento_total",
+          "valor_repassado_total",
+          "por_situacao",
+          "obras"
+        ],
+        "title": "ObrasResumo",
+        "type": "object"
+      },
       "OnboardingRequest": {
         "properties": {
           "areas": {
@@ -1867,6 +2148,30 @@
         "title": "SecaoResumo",
         "type": "object"
       },
+      "SituacaoResumo": {
+        "properties": {
+          "situacao": {
+            "title": "Situacao",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "valor_investimento": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Investimento",
+            "type": "string"
+          }
+        },
+        "required": [
+          "situacao",
+          "total",
+          "valor_investimento"
+        ],
+        "title": "SituacaoResumo",
+        "type": "object"
+      },
       "SyncConformidadeRequest": {
         "properties": {
           "municipio_ibge": {
@@ -1880,6 +2185,35 @@
           "municipio_ibge"
         ],
         "title": "SyncConformidadeRequest",
+        "type": "object"
+      },
+      "SyncObrasRequest": {
+        "properties": {
+          "fontes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fontes"
+          },
+          "municipio_ibge": {
+            "maxLength": 7,
+            "minLength": 7,
+            "title": "Municipio Ibge",
+            "type": "string"
+          }
+        },
+        "required": [
+          "municipio_ibge"
+        ],
+        "title": "SyncObrasRequest",
         "type": "object"
       },
       "SyncRepassesRequest": {
@@ -3320,6 +3654,202 @@
         "summary": "Criar Monitoramento",
         "tags": [
           "monitoramentos"
+        ]
+      }
+    },
+    "/api/v1/obras": {
+      "get": {
+        "operationId": "listar_obras_api_v1_obras_get",
+        "parameters": [
+          {
+            "description": "código IBGE (7 dígitos)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "código IBGE (7 dígitos)",
+              "title": "Municipio"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fonte"
+            }
+          },
+          {
+            "in": "query",
+            "name": "situacao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Situacao"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ObraRead"
+                  },
+                  "title": "Response Listar Obras Api V1 Obras Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Obras",
+        "tags": [
+          "obras"
+        ]
+      }
+    },
+    "/api/v1/obras/resumo": {
+      "get": {
+        "operationId": "obras_resumo_api_v1_obras_resumo_get",
+        "parameters": [
+          {
+            "description": "código IBGE (7 dígitos)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "código IBGE (7 dígitos)",
+              "title": "Municipio"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObrasResumo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Obras Resumo",
+        "tags": [
+          "obras"
+        ]
+      }
+    },
+    "/api/v1/obras/sync": {
+      "post": {
+        "operationId": "obras_sync_api_v1_obras_sync_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncObrasRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Obras Sync Api V1 Obras Sync Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Obras Sync",
+        "tags": [
+          "obras"
         ]
       }
     },

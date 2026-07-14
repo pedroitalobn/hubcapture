@@ -1,12 +1,15 @@
 """Connectors. Importar as fontes aqui registra-as no registry."""
 
 from . import (
+    caixa,  # noqa: F401  (obras — CAIXA/SIORB OGU+APF)
     emendas,  # noqa: F401  (recebidos — Emendas)
     fnde,  # noqa: F401  (educação — API + scraping)
     fns,  # noqa: F401  (saúde — scraping)
     fpm,  # noqa: F401  (recebidos — FPM)
     serpro,  # noqa: F401  (enrichment)
     siconfi,  # noqa: F401  (conformidade — CAUC/CAPAG CSV)
+    simec,  # noqa: F401  (obras — educação FNDE/MEC)
+    sismob,  # noqa: F401  (obras — saúde MS)
     transferegov_disc,  # noqa: F401  (discricionárias — CSV)
     transferegov_esp,  # noqa: F401  (especiais — API + fallback)
     transferegov_ff,  # noqa: F401  (fundo a fundo — API)
