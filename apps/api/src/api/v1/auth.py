@@ -22,6 +22,16 @@ router.include_router(
     fastapi_users.get_register_router(UserRead, UserCreate),
     prefix="/auth",
 )
+# POST /auth/forgot-password · /auth/reset-password (recuperação de senha)
+router.include_router(
+    fastapi_users.get_reset_password_router(),
+    prefix="/auth",
+)
+# POST /auth/request-verify-token · /auth/verify (verificação de e-mail)
+router.include_router(
+    fastapi_users.get_verify_router(UserRead),
+    prefix="/auth",
+)
 
 
 class TokenPair(BaseModel):

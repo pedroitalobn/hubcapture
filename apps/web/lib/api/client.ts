@@ -101,3 +101,44 @@ export async function login(email: string, senha: string): Promise<void> {
   };
   setTokens(data.access_token, data.refresh_token);
 }
+
+/** Cadastro (self-signup). Cria a conta e já autentica. */
+export async function registrar(
+  email: string,
+  senha: string,
+  nome?: string,
+): Promise<void> {
+  const { error } = await api.POST("/api/v1/auth/register", {
+    // is_active/is_superuser/is_verified são ignorados pelo fastapi-users no
+    // register (segurança); enviados só para satisfazer o tipo gerado.
+    body: {
+      email,
+      password: senha,
+      nome,
+      is_active: true,
+      is_superuser: false,
+      is_verified: false,
+      optin_wpp: false,
+    },
+  });
+  if (error) {
+    const detail = (error as { detail?: unknown }).detail;
+    throw new Error(
+      typeof detail === "string" ? detail : "Não foi possível criar a conta",
+    );
+  }
+  await login(email, senha);
+}
+
+/** Solicita e-mail de recuperação de senha (sempre resolve — não revela se o e-mail existe). */
+export async function esqueciSenha(email: string): Promise<void> {
+  await api.POST("/api/v1/auth/forgot-password", { body: { email } });
+}
+
+/** Redefine a senha a partir do token recebido por e-mail. */
+export async function redefinirSenha(token: string, senha: string): Promise<void> {
+  const { error } = await api.POST("/api/v1/auth/reset-password", {
+    body: { token, password: senha },
+  });
+  if (error) throw new Error("Token inválido ou expirado");
+}

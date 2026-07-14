@@ -13,8 +13,15 @@ from sqlalchemy import text
 from ..db.user_db import get_user_db
 from ..models.preferencias import PreferenciasUsuario
 from ..models.usuario import Usuario
+from ..notifications import email as email_service
+from ..notifications import email_templates as templates
+from ..services import config as config_service
 from .config import settings
 from .security import auth_backend
+
+
+async def _app_base_url() -> str:
+    return (await config_service.resolver("app_base_url")) or settings.app_base_url
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[Usuario, uuid.UUID]):
@@ -34,6 +41,32 @@ class UserManager(UUIDIDMixin, BaseUserManager[Usuario, uuid.UUID]):
         )
         session.add(PreferenciasUsuario(usuario_id=user.id, monitorar_ativo=True))
         await session.commit()
+        # e-mail de boas-vindas (best-effort; desabilitado sem SMTP configurado)
+        try:
+            assunto, txt, html = templates.boas_vindas(user.nome)
+            await email_service.enviar(user.email, assunto, txt, html)
+        except Exception:  # noqa: BLE001 — nunca derruba o registro por falha de e-mail
+            pass
+
+    async def on_after_forgot_password(
+        self, user: Usuario, token: str, request: Request | None = None
+    ) -> None:
+        url = f"{await _app_base_url()}/redefinir-senha?token={token}"
+        assunto, txt, html = templates.redefinir_senha(url)
+        try:
+            await email_service.enviar(user.email, assunto, txt, html)
+        except Exception:  # noqa: BLE001
+            pass
+
+    async def on_after_request_verify(
+        self, user: Usuario, token: str, request: Request | None = None
+    ) -> None:
+        url = f"{await _app_base_url()}/verificar-email?token={token}"
+        assunto, txt, html = templates.verificar_email(url)
+        try:
+            await email_service.enviar(user.email, assunto, txt, html)
+        except Exception:  # noqa: BLE001
+            pass
 
 
 async def get_user_manager(

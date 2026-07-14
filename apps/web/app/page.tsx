@@ -14,6 +14,12 @@ export default function Home() {
           Entrar
         </Link>
         <Link
+          href="/cadastro"
+          className="rounded-md border border-gray-300 px-4 py-2 dark:border-gray-700"
+        >
+          Criar conta
+        </Link>
+        <Link
           href="/onboarding"
           className="rounded-md border border-gray-300 px-4 py-2 dark:border-gray-700"
         >

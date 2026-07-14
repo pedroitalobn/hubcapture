@@ -36,6 +36,19 @@ async def criar_convite(
     )
     session.add(convite)
     await session.flush()
+    # e-mail de convite (best-effort; desabilitado sem SMTP configurado)
+    try:
+        from ..core.config import settings
+        from ..notifications import email as email_service
+        from ..notifications import email_templates as templates
+        from ..services import config as config_service
+
+        base = (await config_service.resolver("app_base_url")) or settings.app_base_url
+        url = f"{base}/aceitar-convite?token={convite.token}"
+        assunto, txt, html = templates.convite(url, convite.papel)
+        await email_service.enviar(convite.email, assunto, txt, html)
+    except Exception:  # noqa: BLE001 — falha de e-mail não invalida o convite
+        pass
     return convite
 
 

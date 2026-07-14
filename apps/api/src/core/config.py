@@ -59,6 +59,9 @@ class Settings(BaseSettings):
     simec_base_url: str = "https://simec.mec.gov.br/api/"
     caixa_obras_base_url: str = "https://webp.caixa.gov.br/siorb/api/"
 
+    # ── E-mail transacional (SMTP) — opcional, ligado pelo painel admin ─────
+    app_base_url: str = "http://localhost:3000"  # base dos links de e-mail
+
     # ── Scraping (Firecrawl) — coleta combinada / fallback ──────────────────
     firecrawl_api_key: str = ""  # vazio = scraping desabilitado
     firecrawl_base_url: str = "https://api.firecrawl.dev"
