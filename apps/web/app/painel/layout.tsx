@@ -28,6 +28,7 @@ const NAV = [
   { href: "/painel/conformidade", label: "Conformidade fiscal" },
   { href: "/painel/obras", label: "Obras" },
   { href: "/painel/chat", label: "Copiloto" },
+  { href: "/painel/conta", label: "Minha conta" },
 ];
 
 const PAPEL_LABEL: Record<string, string> = {

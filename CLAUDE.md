@@ -564,4 +564,9 @@ Fecha os itens de plataforma que todo SaaS precisa além do CRUD do produto.
   automaticamente — a categoria `email` aparece sem alteração de UI.
 - **Web (telas de auth)**: `app/cadastro` (self-signup), `app/esqueci-senha`
   (solicita link), `app/redefinir-senha` (consome o token; usa Suspense p/
-  `useSearchParams`), com links no `app/login`. Nunca revela se um e-mail existe.
+  `useSearchParams`), `app/verificar-email` (confirma o token), com links no
+  `app/login`. Nunca revela se um e-mail existe.
+- **Conta do usuário**: router `get_users_router` montado em `/users` →
+  `GET/PATCH /users/me` (editar perfil e trocar senha logado; admin em
+  `/users/{id}`). Web `app/painel/conta` (nome/telefone/opt-in WhatsApp + trocar
+  senha), no menu profile-centric.
