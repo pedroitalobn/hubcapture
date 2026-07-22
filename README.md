@@ -29,7 +29,9 @@ Monorepo (Turborepo + pnpm). A **API v1 em FastAPI** é a única porta de dados
 ```bash
 # 1. infra local (Postgres + pgvector; redis/n8n declarados p/ fases seguintes)
 cp .env.example .env
-docker compose -f infra/docker-compose.yml up -d postgres
+docker compose up -d postgres
+
+# ...ou o stack completo (api + web + postgres):  docker compose up -d --build
 
 # 2. API
 cd apps/api

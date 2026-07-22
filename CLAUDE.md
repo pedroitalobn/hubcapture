@@ -390,8 +390,8 @@ pnpm install
 cd apps/api && uv sync && alembic upgrade head && uvicorn src.main:app --reload
 # web
 cd apps/web && pnpm dev
-# infra (redis, n8n)
-docker compose -f infra/docker-compose.yml up -d
+# stack completo (postgres + api + web; redis incluso, n8n no perfil orchestration)
+docker compose up -d --build
 ```
 
 ---
@@ -575,10 +575,13 @@ Fecha os itens de plataforma que todo SaaS precisa além do CRUD do produto.
 
 Stack completo sobe com um comando; o superadmin é criado no boot.
 
-- **Compose** (`infra/docker-compose.yml`): `postgres` (pgvector) · `api` (FastAPI) ·
-  `web` (Next standalone) · `redis` · `n8n` (perfil `orchestration`). `api` depende do
-  Postgres saudável; dentro da rede o host do banco é `postgres` (não `localhost`).
-  Subir: `docker compose -f infra/docker-compose.yml up -d --build`.
+- **Compose** (`./docker-compose.yml`, na raiz — composePath de deploy): `postgres`
+  (pgvector) · `api` (FastAPI) · `web` (Next standalone) · `redis` · `n8n` (perfil
+  `orchestration`). `api` depende do Postgres saudável; dentro da rede o host do banco é
+  `postgres` (não `localhost`); o serviço `api` sobrescreve `DATABASE_URL`/
+  `DATABASE_MIGRATOR_URL` para apontar a `postgres:5432` e carrega o `.env` via
+  `env_file`. Os scripts de init do Postgres seguem em `infra/init/`.
+  Subir: `docker compose up -d --build`.
 - **Dockerfiles**: `apps/api/Dockerfile` (uv sync; `docker-entrypoint.sh` espera o
   Postgres → `alembic upgrade head` → uvicorn) e `apps/web/Dockerfile` (build pnpm do
   monorepo → Next standalone). `.dockerignore` na raiz enxuga o contexto.
