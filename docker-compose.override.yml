@@ -1,0 +1,14 @@
+# Override de DEV LOCAL — publica portas no host.
+# Auto-carregado por `docker compose up` (sem -f). O Dokploy roda com
+# `-f ./docker-compose.yml`, então este arquivo é IGNORADO no deploy (onde o
+# proxy/Traefik cuida do roteamento e portas fixas causariam conflito).
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+  api:
+    ports:
+      - "8000:8000"
+  web:
+    ports:
+      - "3000:3000"

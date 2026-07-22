@@ -582,6 +582,12 @@ Stack completo sobe com um comando; o superadmin é criado no boot.
   `DATABASE_MIGRATOR_URL` para apontar a `postgres:5432` e carrega o `.env` via
   `env_file`. Os scripts de init do Postgres seguem em `infra/init/`.
   Subir: `docker compose up -d --build`.
+- **Portas / proxy**: o compose de deploy usa `expose` (NÃO publica portas no host)
+  — em plataformas com proxy (Dokploy/Traefik) portas fixas colidem. No painel aponte
+  o domínio para `web:3000` (e `api:8000` se quiser API pública) e defina
+  `NEXT_PUBLIC_API_URL` = domínio público da API (build arg). Para dev local,
+  `docker-compose.override.yml` publica 3000/8000/5432 e é auto-carregado por
+  `docker compose up` (o Dokploy roda com `-f`, ignorando o override).
 - **Dockerfiles**: `apps/api/Dockerfile` (uv sync; `docker-entrypoint.sh` espera o
   Postgres → `alembic upgrade head` → uvicorn) e `apps/web/Dockerfile` (build pnpm do
   monorepo → Next standalone). `.dockerignore` na raiz enxuga o contexto.

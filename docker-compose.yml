@@ -1,7 +1,13 @@
 # Compose de deploy — Hub Capture (raiz do repo → composePath: ./docker-compose.yml)
-# Sobe com:  docker compose up -d --build
-# Variáveis vêm do .env na RAIZ do repo (ver .env.example).
-# Serviços: postgres (pgvector) · api (FastAPI) · web (Next.js) · redis · n8n (perfil opcional).
+#
+# NÃO publica portas no host: em plataformas com proxy (Dokploy/Traefik) publicar
+# 0.0.0.0:3000/8000/5432 colide com outros apps. Aqui os serviços só se falam pela
+# rede interna e são expostos ao proxy via `expose` — no painel do Dokploy você
+# aponta o domínio para web:3000 (e, se quiser API pública, para api:8000).
+#
+# Para rodar LOCALMENTE com portas publicadas, use `docker compose up` (sem -f):
+# o docker-compose.override.yml (ao lado) publica 3000/8000/5432. O Dokploy roda
+# com `-f ./docker-compose.yml`, então o override é ignorado no deploy.
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -12,10 +18,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-hubcapture}
       # senha da role de app não-superuser criada no init (RLS vale para ela)
       APP_DB_PASSWORD: ${APP_DB_PASSWORD:-app_secret}
-    # publicado p/ dev local (o .env usa localhost:5432). Em produção, remova
-    # esta linha para não expor o banco fora da rede do compose.
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./infra/init:/docker-entrypoint-initdb.d:ro
@@ -43,8 +47,8 @@ services:
       DB_HOST: postgres
       DATABASE_URL: postgresql+asyncpg://hubcapture_app:${APP_DB_PASSWORD:-app_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
       DATABASE_MIGRATOR_URL: postgresql+asyncpg://${POSTGRES_USER:-hubcapture}:${POSTGRES_PASSWORD:-postgres_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     restart: unless-stopped
 
   web:
@@ -52,27 +56,30 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        # NEXT_PUBLIC_* é embutido no build; o browser fala com a API publicada
+        # NEXT_PUBLIC_* é embutido no build; aponte para o domínio PÚBLICO da API
+        # (no Dokploy, o domínio que você deu ao serviço api). Default = dev local.
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     container_name: hubcapture-web
     depends_on:
       - api
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     restart: unless-stopped
 
   # Fila para ARQ (sync pesado, retries, alertas) — declarado p/ as fases seguintes.
   redis:
     image: redis:7-alpine
     container_name: hubcapture-redis
+    expose:
+      - "6379"
     restart: unless-stopped
 
   # Orquestração de sync/alertas — sobe só com o perfil `orchestration`.
   n8n:
     image: n8nio/n8n:latest
     container_name: hubcapture-n8n
-    ports:
-      - "5678:5678"
+    expose:
+      - "5678"
     environment:
       N8N_SECURE_COOKIE: "false"
     profiles:
