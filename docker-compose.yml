@@ -1,6 +1,7 @@
-# Stack completo — Hub Capture (sobe com: docker compose -f infra/docker-compose.yml up -d --build)
-# Serviços: postgres (pgvector) · api (FastAPI) · web (Next.js) · redis · n8n (perfil opcional).
+# Compose de deploy — Hub Capture (raiz do repo → composePath: ./docker-compose.yml)
+# Sobe com:  docker compose up -d --build
 # Variáveis vêm do .env na RAIZ do repo (ver .env.example).
+# Serviços: postgres (pgvector) · api (FastAPI) · web (Next.js) · redis · n8n (perfil opcional).
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -11,44 +12,44 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-hubcapture}
       # senha da role de app não-superuser criada no init (RLS vale para ela)
       APP_DB_PASSWORD: ${APP_DB_PASSWORD:-app_secret}
+    # publicado p/ dev local (o .env usa localhost:5432). Em produção, remova
+    # esta linha para não expor o banco fora da rede do compose.
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./init:/docker-entrypoint-initdb.d:ro
+      - ./infra/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hubcapture} -d ${POSTGRES_DB:-hubcapture}"]
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
   api:
     build:
-      context: ..
+      context: .
       dockerfile: apps/api/Dockerfile
     container_name: hubcapture-api
     depends_on:
       postgres:
         condition: service_healthy
+    # passa TODO o .env ao container (chaves de fonte/providers opcionais);
+    # o bloco `environment` abaixo sobrescreve os hosts de banco p/ a rede interna.
+    env_file:
+      - .env
     environment:
       # dentro da rede do compose o host do banco é "postgres" (não localhost)
       DB_HOST: postgres
       DATABASE_URL: postgresql+asyncpg://hubcapture_app:${APP_DB_PASSWORD:-app_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
       DATABASE_MIGRATOR_URL: postgresql+asyncpg://${POSTGRES_USER:-hubcapture}:${POSTGRES_PASSWORD:-postgres_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
-      JWT_SECRET: ${JWT_SECRET:-troque-este-segredo-em-producao}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-troque-este-segredo-de-refresh}
-      CONFIG_SECRET_KEY: ${CONFIG_SECRET_KEY:-}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
-      # superadmin inicial criado/promovido no startup (primeiro login no painel)
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
-      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
     ports:
       - "8000:8000"
+    restart: unless-stopped
 
   web:
     build:
-      context: ..
+      context: .
       dockerfile: apps/web/Dockerfile
       args:
         # NEXT_PUBLIC_* é embutido no build; o browser fala com a API publicada
@@ -58,13 +59,13 @@ services:
       - api
     ports:
       - "3000:3000"
+    restart: unless-stopped
 
   # Fila para ARQ (sync pesado, retries, alertas) — declarado p/ as fases seguintes.
   redis:
     image: redis:7-alpine
     container_name: hubcapture-redis
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
 
   # Orquestração de sync/alertas — sobe só com o perfil `orchestration`.
   n8n:
@@ -76,6 +77,7 @@ services:
       N8N_SECURE_COOKIE: "false"
     profiles:
       - orchestration
+    restart: unless-stopped
 
 volumes:
   pgdata:
