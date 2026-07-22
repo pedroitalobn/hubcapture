@@ -8,14 +8,17 @@ WORKDIR /repo
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
-# manifestos primeiro (camada de deps cacheável)
+# manifestos primeiro (camada de deps cacheável) — inclui packages/config,
+# que fornece @hub/config/tsconfig.base.json herdado pelo tsconfig da web.
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
 COPY packages/api-client/package.json packages/api-client/
+COPY packages/config/package.json packages/config/
 COPY apps/web/package.json apps/web/
 RUN pnpm install --frozen-lockfile || pnpm install
 
-# código e build (o api-client é workspace:*, transpilado pelo Next)
+# código e build (api-client + config são workspace:*, resolvidos pelo pnpm)
 COPY packages/api-client/ packages/api-client/
+COPY packages/config/ packages/config/
 COPY apps/web/ apps/web/
 RUN pnpm --filter web build
 
