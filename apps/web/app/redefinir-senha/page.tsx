@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { AuthShell } from "@/components/AuthShell";
 import { redefinirSenha } from "@/lib/api/client";
 
 function RedefinirForm() {
@@ -31,9 +32,9 @@ function RedefinirForm() {
 
   if (!token) {
     return (
-      <p className="text-sm text-red-600">
+      <p className="text-sm text-red-500">
         Link inválido. Solicite um novo em{" "}
-        <Link href="/esqueci-senha" className="underline">
+        <Link href="/esqueci-senha" className="font-medium underline">
           recuperar senha
         </Link>
         .
@@ -43,31 +44,29 @@ function RedefinirForm() {
 
   if (ok) {
     return (
-      <p className="text-sm text-green-600">
-        Senha redefinida! Redirecionando para o login…
-      </p>
+      <div className="card p-5 text-sm">
+        <p className="text-green-500">Senha redefinida! Redirecionando para o login…</p>
+      </div>
     );
   }
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      <label className="flex flex-col gap-1 text-sm">
-        Nova senha
+      <label className="flex flex-col gap-1.5">
+        <span className="field-label">Nova senha</span>
         <input
           type="password"
           required
           minLength={8}
+          autoComplete="new-password"
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          className="input"
+          placeholder="Mínimo de 8 caracteres"
         />
       </label>
-      {erro && <p className="text-sm text-red-600">{erro}</p>}
-      <button
-        type="submit"
-        disabled={carregando}
-        className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
-      >
+      {erro && <p className="text-sm text-red-500">{erro}</p>}
+      <button type="submit" disabled={carregando} className="btn btn-primary mt-2">
         {carregando ? "Salvando…" : "Redefinir senha"}
       </button>
     </form>
@@ -76,14 +75,10 @@ function RedefinirForm() {
 
 export default function RedefinirSenhaPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
-      <div>
-        <h1 className="text-2xl font-bold">Redefinir senha</h1>
-        <p className="text-sm text-gray-500">Hub Capture</p>
-      </div>
-      <Suspense fallback={<p className="text-sm text-gray-500">Carregando…</p>}>
+    <AuthShell title="Redefinir senha" subtitle="Escolha uma nova senha para a sua conta.">
+      <Suspense fallback={<p className="text-sm text-ink-3">Carregando…</p>}>
         <RedefinirForm />
       </Suspense>
-    </main>
+    </AuthShell>
   );
 }

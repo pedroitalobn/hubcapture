@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { AuthShell } from "@/components/AuthShell";
 import { esqueciSenha } from "@/lib/api/client";
 
 export default function EsqueciSenhaPage() {
@@ -18,45 +19,41 @@ export default function EsqueciSenhaPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
-      <div>
-        <h1 className="text-2xl font-bold">Recuperar senha</h1>
-        <p className="text-sm text-gray-500">Hub Capture</p>
-      </div>
+    <AuthShell
+      title="Recuperar senha"
+      subtitle="Enviamos um link de redefinição para o seu e-mail."
+      footer={
+        <Link href="/login" className="hover:text-ink">
+          ← Voltar para o login
+        </Link>
+      }
+    >
       {enviado ? (
-        <div className="rounded-md border border-gray-200 p-4 text-sm dark:border-gray-800">
+        <div className="card p-5 text-sm leading-relaxed">
           <p>
-            Se existir uma conta com <b>{email}</b>, enviamos um link para redefinir
-            a senha. Confira sua caixa de entrada.
+            Se existir uma conta com <b>{email}</b>, enviamos um link para
+            redefinir a senha. Confira sua caixa de entrada.
           </p>
-          <Link href="/login" className="mt-3 inline-block text-brand underline">
-            Voltar para o login
-          </Link>
         </div>
       ) : (
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1 text-sm">
-            E-mail da conta
+          <label className="flex flex-col gap-1.5">
+            <span className="field-label">E-mail da conta</span>
             <input
               type="email"
               required
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+              className="input"
+              placeholder="voce@exemplo.gov.br"
             />
           </label>
-          <button
-            type="submit"
-            disabled={carregando}
-            className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
-          >
+          <button type="submit" disabled={carregando} className="btn btn-primary mt-2">
             {carregando ? "Enviando…" : "Enviar link de recuperação"}
           </button>
-          <Link href="/login" className="text-sm text-gray-500 underline">
-            Voltar para o login
-          </Link>
         </form>
       )}
-    </main>
+    </AuthShell>
   );
 }

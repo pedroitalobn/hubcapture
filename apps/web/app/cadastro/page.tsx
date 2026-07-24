@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { AuthShell } from "@/components/AuthShell";
 import { registrar } from "@/lib/api/client";
 
 export default function CadastroPage() {
@@ -28,56 +29,59 @@ export default function CadastroPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
-      <div>
-        <h1 className="text-2xl font-bold">Criar conta</h1>
-        <p className="text-sm text-gray-500">Hub Capture</p>
-      </div>
+    <AuthShell
+      title="Criar conta"
+      subtitle="Comece a acompanhar o ciclo do recurso público do seu município."
+      footer={
+        <span>
+          Já tem conta?{" "}
+          <Link href="/login" className="font-medium text-ink hover:text-brand-deep">
+            Entrar
+          </Link>
+        </span>
+      }
+    >
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          Nome
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">Nome</span>
           <input
             value={nome}
+            autoComplete="name"
             onChange={(e) => setNome(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input"
+            placeholder="Seu nome"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          E-mail
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">E-mail</span>
           <input
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input"
+            placeholder="voce@exemplo.gov.br"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Senha
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">Senha</span>
           <input
             type="password"
             required
             minLength={8}
+            autoComplete="new-password"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input"
+            placeholder="Mínimo de 8 caracteres"
           />
         </label>
-        {erro && <p className="text-sm text-red-600">{erro}</p>}
-        <button
-          type="submit"
-          disabled={carregando}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
-        >
+        {erro && <p className="text-sm text-red-500">{erro}</p>}
+        <button type="submit" disabled={carregando} className="btn btn-primary mt-2">
           {carregando ? "Criando…" : "Criar conta"}
         </button>
       </form>
-      <p className="text-sm text-gray-500">
-        Já tem conta?{" "}
-        <Link href="/login" className="text-brand underline">
-          Entrar
-        </Link>
-      </p>
-    </main>
+    </AuthShell>
   );
 }

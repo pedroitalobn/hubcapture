@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { StatCard } from "@/components/StatCard";
 import { SkeletonCards } from "@/components/Skeleton";
 import { api } from "@/lib/api/client";
 
@@ -42,8 +41,8 @@ export default function MeuPainelPage() {
   return (
     <>
       <header>
-        <h1 className="text-2xl font-bold">Meu painel</h1>
-        <p className="text-sm text-gray-500">
+        <h1 className="text-display text-3xl">Meu painel</h1>
+        <p className="mt-1 text-sm text-ink-2">
           Tudo do seu território, por etapa do ciclo do recurso público.
         </p>
       </header>
@@ -51,32 +50,30 @@ export default function MeuPainelPage() {
       {loading ? (
         <SkeletonCards />
       ) : semTerritorio ? (
-        <div className="rounded-lg border border-dashed border-gray-300 p-6 text-sm dark:border-gray-700">
-          <p className="mb-2 font-medium">Você ainda não acompanha nenhum município.</p>
-          <p className="mb-3 text-gray-500">
+        <div className="card p-8 text-sm">
+          <p className="mb-2 text-base font-semibold tracking-tight">
+            Você ainda não acompanha nenhum município.
+          </p>
+          <p className="mb-5 max-w-md leading-relaxed text-ink-2">
             O Hub Capture se organiza a partir do seu perfil — comece escolhendo
             os municípios e áreas que quer acompanhar.
           </p>
-          <Link
-            href="/onboarding"
-            className="inline-block rounded-md bg-brand px-4 py-2 text-brand-fg"
-          >
+          <Link href="/onboarding" className="btn btn-primary">
             Configurar meu perfil
           </Link>
         </div>
       ) : (
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {(data?.dimensoes ?? []).map((d) => (
-            <Link
-              key={d.chave}
-              href={d.href}
-              className="group rounded-xl border border-gray-200 p-5 transition hover:border-brand hover:shadow-sm dark:border-gray-800"
-            >
+            <Link key={d.chave} href={d.href} className="card card-hover group p-6">
               <div className="flex items-baseline justify-between">
-                <h2 className="font-semibold group-hover:text-brand">{d.titulo}</h2>
-                <span className="text-2xl font-bold tabular-nums">{d.total}</span>
+                <h2 className="font-semibold tracking-tight">{d.titulo}</h2>
+                <span className="text-display text-3xl tabular-nums">{d.total}</span>
               </div>
-              <p className="mt-1 text-sm text-gray-500">{d.destaque ?? "—"}</p>
+              <p className="mt-2 text-sm text-ink-2">{d.destaque ?? "—"}</p>
+              <p className="mt-4 text-xs font-medium text-brand-deep opacity-0 transition-opacity group-hover:opacity-100 dark:text-brand">
+                Abrir →
+              </p>
             </Link>
           ))}
         </section>

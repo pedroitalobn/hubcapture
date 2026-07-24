@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BrandMark } from "@/components/AuthShell";
 import { api, clearTokens, getToken } from "@/lib/api/client";
 
 interface MunicipioPerfil {
@@ -71,29 +72,29 @@ export default function PainelLayout({
           .join(" · ");
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-6 md:flex-row md:gap-8">
-      <aside className="flex shrink-0 flex-col gap-6 md:w-64">
+    <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 p-4 sm:p-6 md:flex-row md:gap-8">
+      <aside className="glass-strong flex shrink-0 flex-col gap-6 self-start rounded-3xl p-5 max-md:w-full md:sticky md:top-6 md:w-64 md:min-h-[calc(100vh-3rem)]">
         <div>
-          <Link href="/painel" className="text-lg font-bold">
-            Hub Capture
+          <Link href="/painel">
+            <BrandMark />
           </Link>
-          <p className="mt-1 text-xs uppercase tracking-wide text-gray-500">
+          <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-3">
             {perfil?.papel ? PAPEL_LABEL[perfil.papel] ?? perfil.papel : "Meu perfil"}
           </p>
         </div>
 
         {/* Território do perfil — a chave de tudo é o município, não a fonte. */}
-        <div className="rounded-lg border border-gray-200 p-3 text-sm dark:border-gray-800">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+        <div className="rounded-2xl bg-surface-2 p-4 text-sm">
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-3">
             Território
           </p>
-          <p className="text-gray-700 dark:text-gray-300">{territorio}</p>
+          <p className="text-ink-2">{territorio}</p>
           {(perfil?.areas ?? []).length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {perfil!.areas.map((a) => (
                 <span
                   key={a}
-                  className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                  className="rounded-full bg-surface-3 px-2 py-0.5 text-xs text-ink-2"
                 >
                   {a}
                 </span>
@@ -102,13 +103,13 @@ export default function PainelLayout({
           )}
           <Link
             href="/onboarding"
-            className="mt-2 inline-block text-xs text-brand underline"
+            className="mt-2.5 inline-block text-xs font-medium text-brand-deep hover:underline dark:text-brand"
           >
-            Ajustar perfil
+            Ajustar perfil →
           </Link>
         </div>
 
-        <nav className="flex flex-col gap-1 text-sm">
+        <nav className="flex flex-col gap-1">
           {NAV.map((item) => {
             const active = item.exact
               ? pathname === item.href
@@ -117,11 +118,7 @@ export default function PainelLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`rounded-md px-3 py-2 ${
-                  active
-                    ? "bg-brand text-brand-fg"
-                    : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-                }`}
+                className={`nav-item ${active ? "nav-item-active" : ""}`}
               >
                 {item.label}
               </Link>
@@ -131,13 +128,13 @@ export default function PainelLayout({
 
         <button
           onClick={sair}
-          className="mt-auto text-left text-xs text-gray-500 underline"
+          className="mt-auto self-start text-xs text-ink-3 transition-colors hover:text-ink"
         >
-          Sair
+          Sair da conta
         </button>
       </aside>
 
-      <main className="flex min-w-0 flex-1 flex-col gap-6">{children}</main>
+      <main className="flex min-w-0 flex-1 flex-col gap-6 py-2">{children}</main>
     </div>
   );
 }

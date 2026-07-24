@@ -64,77 +64,83 @@ export default function CaptacaoPage() {
   return (
     <>
       <header>
-        <h1 className="text-2xl font-bold">Captação</h1>
-        <p className="text-sm text-gray-500">
+        <h1 className="text-display text-3xl">Captação</h1>
+        <p className="mt-1 text-sm text-ink-2">
           Propostas e editais abertos para o seu território.
         </p>
       </header>
 
-      <form onSubmit={consultarAvulsa} className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          Consulta avulsa (IBGE, 7 dígitos)
+      <form onSubmit={consultarAvulsa} className="card flex flex-wrap items-end gap-3 p-5">
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">Consulta avulsa (IBGE, 7 dígitos)</span>
           <input
             value={ibge}
             onChange={(e) => setIbge(e.target.value)}
             placeholder="3550308"
             maxLength={7}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input w-48"
           />
         </label>
         <button
           type="submit"
           disabled={carregando || ibge.length !== 7}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
+          className="btn btn-primary"
         >
           {carregando ? "Consultando…" : "Buscar na fonte"}
         </button>
       </form>
 
-      {msg && <p className="text-sm text-gray-600 dark:text-gray-400">{msg}</p>}
+      {msg && <p className="text-sm text-ink-2">{msg}</p>}
 
       <section className="overflow-x-auto">
         {propostas.length === 0 ? (
-          <p className="text-gray-500">
+          <p className="text-ink-3">
             Nenhuma proposta no cache ainda. Faça uma consulta avulsa acima.
           </p>
         ) : (
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-left dark:border-gray-800">
-                <th className="py-2 pr-4">Nº</th>
-                <th className="py-2 pr-4">Título</th>
-                <th className="py-2 pr-4">Município</th>
-                <th className="py-2 pr-4">Valor</th>
-                <th className="py-2 pr-4">Situação</th>
-                <th className="py-2 pr-4"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {propostas.map((p) => (
-                <tr
-                  key={p.id}
-                  className="border-b border-gray-100 dark:border-gray-900"
-                >
-                  <td className="py-2 pr-4 font-mono text-xs">{p.id_externo}</td>
-                  <td className="py-2 pr-4">{p.titulo ?? "—"}</td>
-                  <td className="py-2 pr-4">
-                    {p.municipio_nome ?? p.municipio_ibge ?? "—"}
-                    {p.uf ? `/${p.uf}` : ""}
-                  </td>
-                  <td className="py-2 pr-4">{formatBRL(p.valor_total)}</td>
-                  <td className="py-2 pr-4">{p.situacao ?? "—"}</td>
-                  <td className="py-2 pr-4">
-                    <button
-                      onClick={() => baixarPdfProposta(p.id)}
-                      className="text-xs text-brand underline"
-                    >
-                      PDF
-                    </button>
-                  </td>
+          <div className="card overflow-hidden">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-hairline text-left text-[11px] font-semibold uppercase tracking-wider text-ink-3">
+                  <th className="px-5 py-3">Nº</th>
+                  <th className="px-3 py-3">Título</th>
+                  <th className="px-3 py-3">Município</th>
+                  <th className="px-3 py-3">Valor</th>
+                  <th className="px-3 py-3">Situação</th>
+                  <th className="px-3 py-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {propostas.map((p) => (
+                  <tr
+                    key={p.id}
+                    className="border-b border-hairline last:border-0 hover:bg-surface-2"
+                  >
+                    <td className="px-5 py-3 font-mono text-xs text-ink-2">
+                      {p.id_externo}
+                    </td>
+                    <td className="px-3 py-3">{p.titulo ?? "—"}</td>
+                    <td className="px-3 py-3 text-ink-2">
+                      {p.municipio_nome ?? p.municipio_ibge ?? "—"}
+                      {p.uf ? `/${p.uf}` : ""}
+                    </td>
+                    <td className="px-3 py-3 font-medium tabular-nums">
+                      {formatBRL(p.valor_total)}
+                    </td>
+                    <td className="px-3 py-3 text-ink-2">{p.situacao ?? "—"}</td>
+                    <td className="px-3 py-3">
+                      <button
+                        onClick={() => baixarPdfProposta(p.id)}
+                        className="btn btn-ghost btn-sm"
+                      >
+                        PDF
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </>

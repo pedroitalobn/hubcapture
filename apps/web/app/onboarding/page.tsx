@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BrandMark } from "@/components/AuthShell";
 import { FilterChips } from "@/components/FilterChips";
 import { api, getToken } from "@/lib/api/client";
 
@@ -62,38 +63,39 @@ export default function OnboardingPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 px-6 py-10">
+      <BrandMark />
       <div>
-        <h1 className="text-2xl font-bold">Vamos configurar seu painel</h1>
-        <p className="text-sm text-gray-500">
+        <h1 className="text-display text-3xl">Vamos configurar seu painel</h1>
+        <p className="mt-2 text-sm text-ink-2">
           Escolha um município e as fontes que quer acompanhar.
         </p>
       </div>
-      <form onSubmit={salvar} className="flex flex-col gap-4">
+      <form onSubmit={salvar} className="card flex flex-col gap-5 p-6">
         <div className="grid grid-cols-3 gap-3">
-          <label className="col-span-1 flex flex-col gap-1 text-sm">
-            IBGE
+          <label className="col-span-1 flex flex-col gap-1.5">
+            <span className="field-label">IBGE</span>
             <input
               value={ibge}
               onChange={(e) => setIbge(e.target.value)}
               maxLength={7}
               required
               placeholder="3550308"
-              className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+              className="input"
             />
           </label>
-          <label className="col-span-2 flex flex-col gap-1 text-sm">
-            Nome do município
+          <label className="col-span-2 flex flex-col gap-1.5">
+            <span className="field-label">Nome do município</span>
             <input
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               placeholder="São Paulo"
-              className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+              className="input"
             />
           </label>
         </div>
 
         <div>
-          <p className="mb-2 text-sm text-gray-500">Seu papel</p>
+          <p className="field-label mb-2">Seu papel</p>
           <FilterChips
             options={PAPEIS}
             selected={papel}
@@ -102,18 +104,14 @@ export default function OnboardingPage() {
         </div>
 
         <div>
-          <p className="mb-2 text-sm text-gray-500">Fontes de interesse</p>
+          <p className="field-label mb-2">Fontes de interesse</p>
           <div className="flex flex-wrap gap-2">
             {FONTES.map((f) => (
               <button
                 key={f.value}
                 type="button"
                 onClick={() => toggleFonte(f.value)}
-                className={`rounded-full border px-3 py-1 text-sm ${
-                  fontes.includes(f.value)
-                    ? "border-brand bg-brand text-brand-fg"
-                    : "border-gray-300 dark:border-gray-700"
-                }`}
+                className={`chip ${fontes.includes(f.value) ? "chip-active" : ""}`}
               >
                 {f.label}
               </button>
@@ -121,11 +119,11 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        {msg && <p className="text-sm text-red-600">{msg}</p>}
+        {msg && <p className="text-sm text-red-500">{msg}</p>}
         <button
           type="submit"
           disabled={salvando || ibge.length !== 7}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
+          className="btn btn-primary"
         >
           {salvando ? "Salvando…" : "Concluir"}
         </button>
