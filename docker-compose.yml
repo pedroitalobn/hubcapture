@@ -64,9 +64,11 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        # NEXT_PUBLIC_* é embutido no build; aponte para o domínio PÚBLICO da API
-        # (no Dokploy, o domínio que você deu ao serviço api). Default = dev local.
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        # Vazio (default) = same-origin: o navegador chama /api/v1/* no domínio
+        # da web e o Next repassa à API via rede interna (API_INTERNAL_URL).
+        # Só defina NEXT_PUBLIC_API_URL se a API tiver domínio público próprio.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+        API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}
     container_name: hubcapture-web
     depends_on:
       - api
