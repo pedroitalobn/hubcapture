@@ -88,7 +88,7 @@ export default function AdminUsuariosPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-8 px-6 py-8">
+    <main className="mx-auto flex min-h-screen w-full max-w-[1400px] flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
       <BrandMark />
       <header>
         <h1 className="page-title">Usuários & permissões</h1>

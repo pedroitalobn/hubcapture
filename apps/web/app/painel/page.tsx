@@ -63,19 +63,25 @@ export default function MeuPainelPage() {
           </Link>
         </div>
       ) : (
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
           {(data?.dimensoes ?? []).map((d) => (
-            <Link key={d.chave} href={d.href} className="card card-hover group p-6">
-              <div className="flex items-baseline justify-between">
+            <Link
+              key={d.chave}
+              href={d.href}
+              className="card card-hover group flex flex-col justify-between p-6 min-h-44"
+            >
+              <div className="flex items-start justify-between">
                 <h2 className="tracking-tight">{d.titulo}</h2>
-                <span className="text-[28px] leading-none tracking-[-0.02em] tabular-nums">
-                  {d.total}
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-lime text-abyss opacity-0 transition-opacity group-hover:opacity-100">
+                  →
                 </span>
               </div>
-              <p className="mt-2 text-sm text-ink-2">{d.destaque ?? "—"}</p>
-              <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 opacity-0 transition-opacity group-hover:opacity-100">
-                Abrir →
-              </p>
+              <div>
+                <div className="text-[44px] leading-none tracking-[-0.03em] tabular-nums">
+                  {d.total}
+                </div>
+                <p className="mt-2 text-sm text-ink-2">{d.destaque ?? "—"}</p>
+              </div>
             </Link>
           ))}
         </section>
