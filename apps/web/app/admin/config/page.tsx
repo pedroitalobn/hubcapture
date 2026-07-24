@@ -9,17 +9,34 @@ interface ConfigItem {
   chave: string;
   label: string;
   categoria: string;
+  provider?: string | null;
   secreto: boolean;
   configurado: boolean;
-  origem: string;
+  origem: string; // 'banco' (painel) | 'env' (fallback .env) | 'padrao'
   valor?: string | null;
 }
 
-const CATEGORIA_LABEL: Record<string, string> = {
-  scraping: "Scraping (Firecrawl)",
-  ia: "IA (LLM)",
-  fonte: "Fontes de dados",
+// Seções por PROVIDER (scraping/IA) e depois pelas demais categorias.
+// A ordem aqui é a ordem de exibição.
+const GRUPOS: { id: string; titulo: string; descricao?: string }[] = [
+  { id: "firecrawl", titulo: "Firecrawl", descricao: "Scraping gerenciado (SaaS)" },
+  { id: "crawl4ai", titulo: "Crawl4AI", descricao: "Scraping self-hosted (Docker)" },
+  { id: "scraping", titulo: "Scraping — preferência", descricao: "Qual provider tentar primeiro" },
+  { id: "llm", titulo: "LLM", descricao: "Resumo por IA, chat e copiloto (via LiteLLM)" },
+  { id: "embeddings", titulo: "Embeddings", descricao: "Busca semântica / RAG (pgvector)" },
+  { id: "fonte", titulo: "Fontes de dados", descricao: "URLs e tokens das fontes de governo" },
+  { id: "whatsapp", titulo: "WhatsApp (Uniq)" },
+  { id: "email", titulo: "E-mail (SMTP)" },
+];
+
+const ORIGEM_LABEL: Record<string, string> = {
+  banco: "painel",
+  env: ".env (fallback)",
 };
+
+function grupoDe(item: ConfigItem): string {
+  return item.provider ?? item.categoria;
+}
 
 export default function AdminConfigPage() {
   const [itens, setItens] = useState<ConfigItem[]>([]);
@@ -57,7 +74,14 @@ export default function AdminConfigPage() {
     }
   }
 
-  const categorias = Array.from(new Set(itens.map((i) => i.categoria)));
+  // grupos conhecidos na ordem definida + eventuais grupos novos no fim
+  const idsConhecidos = new Set(GRUPOS.map((g) => g.id));
+  const extras: typeof GRUPOS = Array.from(
+    new Set(itens.map(grupoDe).filter((g) => !idsConhecidos.has(g))),
+  ).map((id) => ({ id, titulo: id }));
+  const grupos = [...GRUPOS, ...extras].filter((g) =>
+    itens.some((i) => grupoDe(i) === g.id),
+  );
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-8">
@@ -65,18 +89,23 @@ export default function AdminConfigPage() {
       <header>
         <h1 className="page-title">Configuração de providers</h1>
         <p className="mt-1 text-sm text-ink-2">
-          Credenciais e URLs das fontes. Segredos ficam cifrados e mascarados.
+          Credenciais e URLs por provider. O valor salvo aqui vale na hora; sem
+          valor no painel, vale o fallback do <code>.env</code>. Segredos ficam
+          cifrados e mascarados.
         </p>
       </header>
       {msg && <p className="text-sm text-ink-2">{msg}</p>}
 
-      {categorias.map((cat) => (
-        <section key={cat} className="flex flex-col gap-3">
-          <h2 className="label-mono">
-            {CATEGORIA_LABEL[cat] ?? cat}
-          </h2>
+      {grupos.map((g) => (
+        <section key={g.id} className="flex flex-col gap-3">
+          <div>
+            <h2 className="label-mono">{g.titulo}</h2>
+            {g.descricao && (
+              <p className="mt-0.5 text-xs text-ink-3">{g.descricao}</p>
+            )}
+          </div>
           {itens
-            .filter((i) => i.categoria === cat)
+            .filter((i) => grupoDe(i) === g.id)
             .map((i) => (
               <div
                 key={i.chave}
@@ -90,7 +119,9 @@ export default function AdminConfigPage() {
                   </div>
                 </div>
                 <StatusBadge tone={i.configurado ? "success" : "neutral"}>
-                  {i.configurado ? i.origem : "não definido"}
+                  {i.configurado
+                    ? (ORIGEM_LABEL[i.origem] ?? i.origem)
+                    : "não definido"}
                 </StatusBadge>
                 <input
                   type={i.secreto ? "password" : "text"}

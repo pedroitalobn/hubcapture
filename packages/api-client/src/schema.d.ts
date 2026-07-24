@@ -976,6 +976,8 @@ export interface components {
             label: string;
             /** Origem */
             origem: string;
+            /** Provider */
+            provider?: string | null;
             /** Secreto */
             secreto: boolean;
             /** Valor */

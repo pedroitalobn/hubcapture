@@ -21,21 +21,41 @@ from ..models.configuracao import Configuracao
 
 
 # Catálogo de chaves configuráveis pelo painel. `default` vem do Settings (.env).
-def _c(chave: str, label: str, categoria: str, secreto: bool) -> dict:
-    return {"chave": chave, "label": label, "categoria": categoria, "secreto": secreto}
+# `provider` agrupa as chaves por provider na UI (Firecrawl, Crawl4AI, LLM…);
+# None = chave agrupada só pela categoria (fontes de dados, e-mail…).
+def _c(
+    chave: str,
+    label: str,
+    categoria: str,
+    secreto: bool,
+    provider: str | None = None,
+) -> dict:
+    return {
+        "chave": chave,
+        "label": label,
+        "categoria": categoria,
+        "secreto": secreto,
+        "provider": provider,
+    }
 
 
 CATALOGO: list[dict] = [
-    _c("firecrawl_api_key", "Firecrawl API Key", "scraping", True),
-    _c("firecrawl_base_url", "Firecrawl base URL", "scraping", False),
-    _c("crawl4ai_base_url", "Crawl4AI servidor URL (Docker)", "scraping", False),
-    _c("crawl4ai_api_token", "Crawl4AI API token", "scraping", True),
-    _c("scraping_provider", "Scraper preferido (auto|crawl4ai|firecrawl)", "scraping", False),
-    _c("llm_api_key", "LLM API Key", "ia", True),
-    _c("llm_model_resumo", "Modelo LLM (resumo)", "ia", False),
-    _c("llm_model_chat", "Modelo LLM (chat)", "ia", False),
-    _c("embedding_api_key", "Embeddings API Key", "ia", True),
-    _c("embedding_model", "Modelo de embeddings", "ia", False),
+    _c("firecrawl_api_key", "Firecrawl API Key", "scraping", True, "firecrawl"),
+    _c("firecrawl_base_url", "Firecrawl base URL", "scraping", False, "firecrawl"),
+    _c("crawl4ai_base_url", "Crawl4AI servidor URL (Docker)", "scraping", False, "crawl4ai"),
+    _c("crawl4ai_api_token", "Crawl4AI API token", "scraping", True, "crawl4ai"),
+    _c(
+        "scraping_provider",
+        "Scraper preferido (auto|crawl4ai|firecrawl)",
+        "scraping",
+        False,
+        "scraping",
+    ),
+    _c("llm_api_key", "LLM API Key", "ia", True, "llm"),
+    _c("llm_model_resumo", "Modelo LLM (resumo)", "ia", False, "llm"),
+    _c("llm_model_chat", "Modelo LLM (chat)", "ia", False, "llm"),
+    _c("embedding_api_key", "Embeddings API Key", "ia", True, "embeddings"),
+    _c("embedding_model", "Modelo de embeddings", "ia", False, "embeddings"),
     _c("transferegov_ff_base_url", "TransfereGov FF base URL", "fonte", False),
     _c("transferegov_esp_base_url", "TransfereGov Especiais base URL", "fonte", False),
     _c(
@@ -141,13 +161,20 @@ async def listar_catalogo(session: AsyncSession) -> list[dict]:
         row = rows.get(chave)
         efetivo = await get_valor(session, chave)
         configurado = efetivo not in (None, "")
+        if row and row.valor is not None:
+            origem = "banco"  # gravado pelo painel
+        elif configurado:
+            origem = "env"  # fallback do .env/Settings
+        else:
+            origem = "padrao"  # nada definido
         item = {
             "chave": chave,
             "label": meta["label"],
             "categoria": meta["categoria"],
+            "provider": meta.get("provider"),
             "secreto": meta["secreto"],
             "configurado": configurado,
-            "origem": "banco" if row and row.valor is not None else "padrao",
+            "origem": origem,
         }
         if meta["secreto"]:
             item["valor"] = _mascarar(efetivo) if configurado else None
