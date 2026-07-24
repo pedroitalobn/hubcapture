@@ -289,11 +289,12 @@ class Connector(Protocol):
 
 Fontes e endpoints reais:
 - `transferegov_ff` → `https://api.transferegov.gestao.gov.br/fundoafundo/` (PostgREST: `?campo=eq.valor`). ✅ responde.
-- `transferegov_esp` → `.../transferenciasespeciais/`. ⚠️ instável → merge/fallback com scraping obrigatório.
-- `transferegov_disc` → **sem API**; CSV diário em `http://repositorio.dados.gov.br/seges/detru/`. Loader agendado.
-- `fns` → scraping (Crawl4AI) do portal de consultas. Fonte primária por scraping.
+- `transferegov_esp` → **API pública** `https://api-publica.transferegov.gestao.gov.br/especiais/` (docs em `<base>/docs`) + fallback scraping.
+- `transferegov_voluntarias` → **API pública** `https://api-publica.transferegov.gestao.gov.br/voluntarias/` (convênios/discricionárias on-line) + fallback scraping.
+- `transferegov_disc` → CSV diário em `http://repositorio.dados.gov.br/seges/detru/`. Loader agendado.
+- `fns` → scraping (facade Crawl4AI/Firecrawl) do portal de consultas. Fonte primária por scraping.
 - `fnde` → API + scraping (merge).
-- `serpro` → API direta, usada para enrichment/cruzamento.
+- `serpro` → painel público `https://dd-publico.serpro.gov.br/extensions/painel/painel.html` (Qlik, JS pesado → extração via scraping headless) + API gateway (token) p/ enrichment/cruzamento.
 
 ---
 
@@ -451,14 +452,22 @@ Endpoints: `GET /planos` (público) · `POST/PATCH /planos` (admin) · `POST /ad
 `POST /auth/aceitar-convite` (público). Criação de usuário passa pelo UserManager
 (hash de senha). Dependency `current_superuser` em `core/users.py`.
 
-## 15. Ingestão pronta para as APIs + Firecrawl
+## 15. Ingestão pronta para as APIs + scraping (Crawl4AI + Firecrawl)
 
 Todos os connectors estão **registrados** (`connectors/*`), com rotas/campos isolados em
-constantes (ponto de calibração): transferegov_ff/esp/disc(CSV)/fns/fnde/serpro + fpm/emendas.
-Retry/backoff compartilhado em `connectors/_http.py`. **Firecrawl** (`scraping/firecrawl.py`)
-faz o scraping da coleta combinada/fallback (`scrape` + `extract` estruturado); desabilita sem
-`FIRECRAWL_API_KEY`. Resumo por IA em `ai/resumo.py` (LiteLLM, import preguiçoso; desabilita
-sem `LLM_API_KEY`). Para ativar uma fonte real: preencher a URL/credencial no `.env`, calibrar
+constantes (ponto de calibração): transferegov_ff/esp/voluntarias/disc(CSV)/fns/fnde/serpro +
+fpm/emendas. Retry/backoff compartilhado em `connectors/_http.py`.
+
+**Scraping em facade** (`scraping/scraper.py::get_scraper`): os connectors nunca chamam um
+provider direto. Providers: **Crawl4AI** (`scraping/crawl4ai.py`, servidor Docker self-hosted —
+`crawl4ai_base_url` + token opcional) e **Firecrawl** (`scraping/firecrawl.py`,
+`firecrawl_api_key`). Ordem por `scraping_provider` (`auto` = Crawl4AI primeiro, Firecrawl
+fallback); provider sem credencial fica fora da rodada; nenhum configurado →
+`ScraperNotConfigured` (registrado em `sync_runs`). O resultado carrega `_scraper` e a
+proveniência marca `scrape` nos campos vindos de scraping.
+
+Resumo por IA em `ai/resumo.py` (LiteLLM, import preguiçoso; desabilita sem `LLM_API_KEY`).
+Para ativar uma fonte real: preencher a URL/credencial no painel admin (ou `.env`), calibrar
 os nomes de campo do connector e (se scraping) o schema de extração.
 
 ## 16. Painel admin de configuração (credenciais dos providers via API)

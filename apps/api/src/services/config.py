@@ -28,6 +28,9 @@ def _c(chave: str, label: str, categoria: str, secreto: bool) -> dict:
 CATALOGO: list[dict] = [
     _c("firecrawl_api_key", "Firecrawl API Key", "scraping", True),
     _c("firecrawl_base_url", "Firecrawl base URL", "scraping", False),
+    _c("crawl4ai_base_url", "Crawl4AI servidor URL (Docker)", "scraping", False),
+    _c("crawl4ai_api_token", "Crawl4AI API token", "scraping", True),
+    _c("scraping_provider", "Scraper preferido (auto|crawl4ai|firecrawl)", "scraping", False),
     _c("llm_api_key", "LLM API Key", "ia", True),
     _c("llm_model_resumo", "Modelo LLM (resumo)", "ia", False),
     _c("llm_model_chat", "Modelo LLM (chat)", "ia", False),
@@ -35,11 +38,18 @@ CATALOGO: list[dict] = [
     _c("embedding_model", "Modelo de embeddings", "ia", False),
     _c("transferegov_ff_base_url", "TransfereGov FF base URL", "fonte", False),
     _c("transferegov_esp_base_url", "TransfereGov Especiais base URL", "fonte", False),
+    _c(
+        "transferegov_voluntarias_base_url",
+        "TransfereGov Voluntárias base URL (api-publica)",
+        "fonte",
+        False,
+    ),
     _c("transferegov_disc_csv_url", "TransfereGov Discricionárias CSV", "fonte", False),
     _c("fns_consulta_url", "FNS consulta URL", "fonte", False),
     _c("fnde_base_url", "FNDE base URL", "fonte", False),
     _c("serpro_base_url", "SERPRO base URL", "fonte", False),
     _c("serpro_token", "SERPRO token", "fonte", True),
+    _c("serpro_painel_url", "SERPRO painel público (dd-publico, scraping)", "fonte", False),
     _c("fpm_base_url", "FPM base URL", "fonte", False),
     _c("emendas_base_url", "Emendas base URL", "fonte", False),
     _c("siconfi_csv_url", "Siconfi/CAUC CSV (Tesouro)", "fonte", False),
@@ -124,10 +134,7 @@ async def get_valor(session: AsyncSession, chave: str) -> str | None:
 
 async def listar_catalogo(session: AsyncSession) -> list[dict]:
     """Catálogo com status por chave (segredos mascarados, nunca em claro)."""
-    rows = {
-        r.chave: r
-        for r in (await session.execute(select(Configuracao))).scalars().all()
-    }
+    rows = {r.chave: r for r in (await session.execute(select(Configuracao))).scalars().all()}
     saida: list[dict] = []
     for meta in CATALOGO:
         chave = meta["chave"]

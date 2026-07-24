@@ -11,8 +11,9 @@ from . import (
     simec,  # noqa: F401  (obras — educação FNDE/MEC)
     sismob,  # noqa: F401  (obras — saúde MS)
     transferegov_disc,  # noqa: F401  (discricionárias — CSV)
-    transferegov_esp,  # noqa: F401  (especiais — API + fallback)
+    transferegov_esp,  # noqa: F401  (especiais — API pública + fallback)
     transferegov_ff,  # noqa: F401  (fundo a fundo — API)
+    transferegov_voluntarias,  # noqa: F401  (voluntárias/convênios — API pública)
 )
 from .base import RawRecord, available_sources, get_connector, register
 
