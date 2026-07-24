@@ -72,8 +72,8 @@ export default function PainelLayout({
           .join(" · ");
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 p-4 sm:p-6 md:flex-row md:gap-8">
-      <aside className="card flex shrink-0 flex-col gap-6 self-start p-5 max-md:w-full md:sticky md:top-6 md:w-64 md:min-h-[calc(100vh-3rem)]">
+    <div className="flex min-h-screen w-full flex-col gap-5 p-4 sm:p-6 md:flex-row md:gap-6 lg:p-8">
+      <aside className="rail flex shrink-0 flex-col gap-6 self-start p-5 max-md:w-full md:sticky md:top-6 md:w-72 md:min-h-[calc(100vh-4rem)]">
         <div>
           <Link href="/painel">
             <BrandMark />
@@ -133,7 +133,9 @@ export default function PainelLayout({
         </button>
       </aside>
 
-      <main className="flex min-w-0 flex-1 flex-col gap-6 py-2">{children}</main>
+      <main className="mx-auto flex w-full min-w-0 max-w-[1600px] flex-1 flex-col gap-6 py-2">
+        {children}
+      </main>
     </div>
   );
 }
