@@ -29,6 +29,7 @@ export default function LoginPage() {
 
   return (
     <AuthShell
+      image
       title="Bem-vindo de volta"
       subtitle="Entre para acompanhar o seu território."
       footer={

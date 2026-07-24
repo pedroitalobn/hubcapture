@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" preserveAspectRatio="xMidYMid slice">
+  <!-- Topografia do território — placeholder on-brand até o asset do Magnific -->
+  <rect width="900" height="1200" fill="#222f30"/>
+  <g fill="none" stroke="#cef79e" stroke-width="1.1">
+    <path stroke-opacity="0.34" d="M-40 980 C 140 900, 210 1010, 380 940 S 700 860, 950 930"/>
+    <path stroke-opacity="0.28" d="M-40 1040 C 160 960, 240 1070, 420 1000 S 720 920, 950 990"/>
+    <path stroke-opacity="0.22" d="M-40 1100 C 180 1030, 270 1130, 460 1060 S 740 980, 950 1050"/>
+    <path stroke-opacity="0.30" d="M-40 300 C 120 230, 260 330, 430 260 S 760 190, 950 270"/>
+    <path stroke-opacity="0.22" d="M-40 240 C 140 170, 280 270, 460 200 S 780 130, 950 210"/>
+    <path stroke-opacity="0.16" d="M-40 180 C 160 110, 300 210, 490 140 S 800 80, 950 150"/>
+    <ellipse cx="620" cy="560" rx="210" ry="150" stroke-opacity="0.30" transform="rotate(-14 620 560)"/>
+    <ellipse cx="620" cy="560" rx="150" ry="102" stroke-opacity="0.40" transform="rotate(-14 620 560)"/>
+    <ellipse cx="620" cy="560" rx="95" ry="60" stroke-opacity="0.52" transform="rotate(-14 620 560)"/>
+    <ellipse cx="620" cy="560" rx="46" ry="27" stroke-opacity="0.68" transform="rotate(-14 620 560)"/>
+    <ellipse cx="235" cy="760" rx="150" ry="105" stroke-opacity="0.26" transform="rotate(10 235 760)"/>
+    <ellipse cx="235" cy="760" rx="98" ry="66" stroke-opacity="0.36" transform="rotate(10 235 760)"/>
+    <ellipse cx="235" cy="760" rx="50" ry="32" stroke-opacity="0.5" transform="rotate(10 235 760)"/>
+    <path stroke-opacity="0.35" d="M120 -40 C 180 200, 90 420, 210 640 S 260 1000, 170 1240"/>
+    <path stroke-opacity="0.25" d="M760 -40 C 700 240, 820 460, 720 700 S 690 1020, 780 1240"/>
+  </g>
+  <g fill="#cef79e">
+    <circle cx="620" cy="560" r="4" fill-opacity="0.95"/>
+    <circle cx="235" cy="760" r="3.4" fill-opacity="0.85"/>
+    <circle cx="452" cy="352" r="2.6" fill-opacity="0.7"/>
+    <circle cx="705" cy="880" r="2.6" fill-opacity="0.6"/>
+    <circle cx="330" cy="512" r="2.2" fill-opacity="0.55"/>
+    <circle cx="540" cy="1020" r="2.2" fill-opacity="0.5"/>
+    <circle cx="150" cy="330" r="2" fill-opacity="0.45"/>
+    <circle cx="800" cy="420" r="2" fill-opacity="0.45"/>
+    <circle cx="480" cy="720" r="1.8" fill-opacity="0.4"/>
+    <circle cx="680" cy="180" r="1.8" fill-opacity="0.4"/>
+  </g>
+</svg>
