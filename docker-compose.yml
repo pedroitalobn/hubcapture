@@ -5,6 +5,11 @@
 # rede interna e são expostos ao proxy via `expose` — no painel do Dokploy você
 # aponta o domínio para web:3000 (e, se quiser API pública, para api:8000).
 #
+# O Traefik do Dokploy roda na rede Docker EXTERNA `dokploy-network`. Os serviços
+# com domínio (web/api) precisam estar nela, senão o proxy não os alcança e o
+# domínio responde 502 Bad Gateway. Eles ficam nas DUAS redes: `default` (falar
+# com postgres/redis) + `dokploy-network` (ser alcançado pelo proxy).
+#
 # Para rodar LOCALMENTE com portas publicadas, use `docker compose up` (sem -f):
 # o docker-compose.override.yml (ao lado) publica 3000/8000/5432. O Dokploy roda
 # com `-f ./docker-compose.yml`, então o override é ignorado no deploy.
@@ -49,6 +54,9 @@ services:
       DATABASE_MIGRATOR_URL: postgresql+asyncpg://${POSTGRES_USER:-hubcapture}:${POSTGRES_PASSWORD:-postgres_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
     expose:
       - "8000"
+    networks:
+      - default
+      - dokploy-network
     restart: unless-stopped
 
   web:
@@ -64,6 +72,9 @@ services:
       - api
     expose:
       - "3000"
+    networks:
+      - default
+      - dokploy-network
     restart: unless-stopped
 
   # Fila para ARQ (sync pesado, retries, alertas) — declarado p/ as fases seguintes.
@@ -82,9 +93,18 @@ services:
       - "5678"
     environment:
       N8N_SECURE_COOKIE: "false"
+    networks:
+      - default
+      - dokploy-network
     profiles:
       - orchestration
     restart: unless-stopped
 
 volumes:
   pgdata:
+
+networks:
+  # rede do proxy do Dokploy (criada pelo próprio Dokploy no servidor).
+  # Em dev local o docker-compose.override.yml a redefine como não-externa.
+  dokploy-network:
+    external: true
