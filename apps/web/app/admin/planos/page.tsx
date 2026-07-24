@@ -58,7 +58,7 @@ export default function AdminPlanosPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-6 py-8">
       <BrandMark />
-      <h1 className="text-display text-3xl">Planos da plataforma</h1>
+      <h1 className="page-title">Planos da plataforma</h1>
 
       <form onSubmit={criar} className="card flex flex-wrap items-end gap-3 p-5">
         <label className="flex flex-col gap-1.5">
@@ -98,7 +98,7 @@ export default function AdminPlanosPage() {
         {planos.map((p) => (
           <li key={p.id} className="flex items-center justify-between py-3.5">
             <div>
-              <span className="font-medium tracking-tight">{p.nome}</span>{" "}
+              <span className="tracking-tight">{p.nome}</span>{" "}
               <span className="text-xs text-ink-3">/{p.slug}</span>
             </div>
             <div className="flex items-center gap-3">

@@ -1,5 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import { Inter_Tight, Roboto_Mono } from "next/font/google";
 import "./globals.css";
+
+// Peso único (400): a hierarquia do sistema é tamanho + tracking, nunca bold.
+const sans = Inter_Tight({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-sans-src",
+});
+const mono = Roboto_Mono({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-mono-src",
+});
 
 export const metadata: Metadata = {
   title: "Hub Capture",
@@ -8,8 +21,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+    { media: "(prefers-color-scheme: light)", color: "#f7f7f5" },
+    { media: "(prefers-color-scheme: dark)", color: "#222f30" },
   ],
 };
 
@@ -19,8 +32,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR">
-      <body className="ambient">{children}</body>
+    <html lang="pt-BR" className={`${sans.variable} ${mono.variable}`}>
+      <body>{children}</body>
     </html>
   );
 }

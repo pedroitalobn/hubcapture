@@ -41,7 +41,7 @@ export default function MeuPainelPage() {
   return (
     <>
       <header>
-        <h1 className="text-display text-3xl">Meu painel</h1>
+        <h1 className="page-title">Meu painel</h1>
         <p className="mt-1 text-sm text-ink-2">
           Tudo do seu território, por etapa do ciclo do recurso público.
         </p>
@@ -51,7 +51,7 @@ export default function MeuPainelPage() {
         <SkeletonCards />
       ) : semTerritorio ? (
         <div className="card p-8 text-sm">
-          <p className="mb-2 text-base font-semibold tracking-tight">
+          <p className="mb-2 text-base tracking-tight">
             Você ainda não acompanha nenhum município.
           </p>
           <p className="mb-5 max-w-md leading-relaxed text-ink-2">
@@ -67,11 +67,13 @@ export default function MeuPainelPage() {
           {(data?.dimensoes ?? []).map((d) => (
             <Link key={d.chave} href={d.href} className="card card-hover group p-6">
               <div className="flex items-baseline justify-between">
-                <h2 className="font-semibold tracking-tight">{d.titulo}</h2>
-                <span className="text-display text-3xl tabular-nums">{d.total}</span>
+                <h2 className="tracking-tight">{d.titulo}</h2>
+                <span className="text-[28px] leading-none tracking-[-0.02em] tabular-nums">
+                  {d.total}
+                </span>
               </div>
               <p className="mt-2 text-sm text-ink-2">{d.destaque ?? "—"}</p>
-              <p className="mt-4 text-xs font-medium text-brand-deep opacity-0 transition-opacity group-hover:opacity-100 dark:text-brand">
+              <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 opacity-0 transition-opacity group-hover:opacity-100">
                 Abrir →
               </p>
             </Link>

@@ -71,14 +71,14 @@ export default function ContaPage() {
   return (
     <>
       <header>
-        <h1 className="text-display text-3xl">Minha conta</h1>
+        <h1 className="page-title">Minha conta</h1>
         <p className="mt-1 text-sm text-ink-2">{email}</p>
       </header>
 
       {msg && <p className="text-sm text-ink-2">{msg}</p>}
 
       <form onSubmit={salvarPerfil} className="card flex max-w-md flex-col gap-4 p-6">
-        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">
+        <h2 className="label-mono">
           Perfil
         </h2>
         <label className="flex flex-col gap-1.5">
@@ -113,7 +113,7 @@ export default function ContaPage() {
       </form>
 
       <form onSubmit={trocarSenha} className="card flex max-w-md flex-col gap-4 p-6">
-        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">
+        <h2 className="label-mono">
           Trocar senha
         </h2>
         <label className="flex flex-col gap-1.5">

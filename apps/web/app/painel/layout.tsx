@@ -73,29 +73,28 @@ export default function PainelLayout({
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 p-4 sm:p-6 md:flex-row md:gap-8">
-      <aside className="glass-strong flex shrink-0 flex-col gap-6 self-start rounded-3xl p-5 max-md:w-full md:sticky md:top-6 md:w-64 md:min-h-[calc(100vh-3rem)]">
+      <aside className="card flex shrink-0 flex-col gap-6 self-start p-5 max-md:w-full md:sticky md:top-6 md:w-64 md:min-h-[calc(100vh-3rem)]">
         <div>
           <Link href="/painel">
             <BrandMark />
           </Link>
-          <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-3">
+          <p className="label-mono mt-1.5">
             {perfil?.papel ? PAPEL_LABEL[perfil.papel] ?? perfil.papel : "Meu perfil"}
           </p>
         </div>
 
         {/* Território do perfil — a chave de tudo é o município, não a fonte. */}
-        <div className="rounded-2xl bg-surface-2 p-4 text-sm">
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-3">
-            Território
-          </p>
+        <div className="border-t border-hairline pt-4 text-sm">
+          <p className="label-mono mb-1.5">Território</p>
           <p className="text-ink-2">{territorio}</p>
           {(perfil?.areas ?? []).length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {perfil!.areas.map((a) => (
                 <span
                   key={a}
-                  className="rounded-full bg-surface-3 px-2 py-0.5 text-xs text-ink-2"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-2 py-0.5 font-mono text-[11px] text-ink-2"
                 >
+                  <span className="brand-dot" aria-hidden />
                   {a}
                 </span>
               ))}
@@ -103,7 +102,7 @@ export default function PainelLayout({
           )}
           <Link
             href="/onboarding"
-            className="mt-2.5 inline-block text-xs font-medium text-brand-deep hover:underline dark:text-brand"
+            className="mt-3 inline-block font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 hover:text-ink"
           >
             Ajustar perfil →
           </Link>
@@ -128,7 +127,7 @@ export default function PainelLayout({
 
         <button
           onClick={sair}
-          className="mt-auto self-start text-xs text-ink-3 transition-colors hover:text-ink"
+          className="mt-auto self-start font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3 transition-colors hover:text-ink"
         >
           Sair da conta
         </button>

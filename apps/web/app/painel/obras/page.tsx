@@ -155,7 +155,7 @@ export default function ObrasPage() {
   return (
     <>
       <header>
-        <h1 className="text-display text-3xl">Obras</h1>
+        <h1 className="page-title">Obras</h1>
         <p className="mt-1 text-sm text-ink-2">
           Execução no seu território (SISMOB · SIMEC · CAIXA).
         </p>
@@ -211,7 +211,7 @@ export default function ObrasPage() {
             {obras.map((o) => (
               <li key={o.id} className="flex items-start justify-between gap-3 py-3.5 text-sm">
                 <span className="min-w-0">
-                  <span className="block truncate font-medium tracking-tight">
+                  <span className="block truncate tracking-tight">
                     {o.nome ?? o.objeto ?? "Obra"}
                   </span>
                   <span className="text-xs text-ink-3">

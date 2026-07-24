@@ -109,7 +109,7 @@ export default function RepassesPage() {
   return (
     <>
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-display text-3xl">Recursos recebidos</h1>
+        <h1 className="page-title">Recursos recebidos</h1>
         <DateRangePresets value={preset} onChange={setPreset} />
       </header>
 

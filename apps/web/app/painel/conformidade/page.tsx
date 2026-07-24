@@ -84,7 +84,7 @@ export default function ConformidadePage() {
   return (
     <>
       <header>
-        <h1 className="text-display text-3xl">Conformidade fiscal</h1>
+        <h1 className="page-title">Conformidade fiscal</h1>
         <p className="mt-1 text-sm text-ink-2">CAUC e CAPAG do seu território.</p>
       </header>
 
@@ -126,7 +126,7 @@ export default function ConformidadePage() {
 
           {(data?.secoes ?? []).map((sec) => (
             <section key={sec.secao} className="card flex flex-col gap-2 p-5">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">
+              <h2 className="label-mono">
                 {sec.secao} · {sec.comprovados}/{sec.total} comprovados
               </h2>
               <ul className="flex flex-col divide-y divide-hairline">

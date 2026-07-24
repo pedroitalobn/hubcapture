@@ -34,7 +34,7 @@ function RedefinirForm() {
     return (
       <p className="text-sm text-red-500">
         Link inválido. Solicite um novo em{" "}
-        <Link href="/esqueci-senha" className="font-medium underline">
+        <Link href="/esqueci-senha" className="underline">
           recuperar senha
         </Link>
         .

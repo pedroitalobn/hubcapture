@@ -37,12 +37,10 @@ export function Feed({ dias }: { dias: DiaGroup[] }) {
       {dias.map((dia) => (
         <div key={dia.data} className="card p-5">
           <div className="mb-3 flex items-baseline justify-between border-b border-hairline pb-2.5">
-            <span className="font-semibold tracking-tight">{formatDate(dia.data)}</span>
-            <span className="text-sm text-ink-3">
-              Pago no dia:{" "}
-              <span className="font-medium tabular-nums text-ink">
-                {formatBRL(dia.subtotal)}
-              </span>
+            <span className="tracking-tight">{formatDate(dia.data)}</span>
+            <span className="font-mono text-[12px] tracking-[-0.02em] text-ink-3">
+              PAGO NO DIA{" "}
+              <span className="tabular-nums text-ink">{formatBRL(dia.subtotal)}</span>
             </span>
           </div>
           <ul className="flex flex-col gap-2.5">
@@ -54,13 +52,13 @@ export function Feed({ dias }: { dias: DiaGroup[] }) {
                   </StatusBadge>
                   {it.emenda && <StatusBadge tone="info">emenda</StatusBadge>}
                   <span className="truncate text-ink-2">
-                    <span className="font-medium uppercase text-ink">{it.fonte}</span>
+                    <span className="font-mono text-[12px] uppercase tracking-[-0.02em] text-ink">
+                      {it.fonte}
+                    </span>
                     {it.descricao ? ` · ${it.descricao}` : ""}
                   </span>
                 </div>
-                <span className="shrink-0 font-medium tabular-nums">
-                  {formatBRL(it.valor)}
-                </span>
+                <span className="shrink-0 tabular-nums">{formatBRL(it.valor)}</span>
               </li>
             ))}
           </ul>

@@ -91,7 +91,7 @@ export default function AdminUsuariosPage() {
     <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-8 px-6 py-8">
       <BrandMark />
       <header>
-        <h1 className="text-display text-3xl">Usuários & permissões</h1>
+        <h1 className="page-title">Usuários & permissões</h1>
         <p className="mt-1 text-sm text-ink-2">
           Crie usuários, defina o papel (role) e conceda permissão de admin.
         </p>
@@ -175,7 +175,7 @@ export default function AdminUsuariosPage() {
       <section className="card overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-hairline text-left text-[11px] font-semibold uppercase tracking-wider text-ink-3">
+            <tr className="border-b border-hairline text-left label-mono">
               <th className="px-5 py-3">Usuário</th>
               <th className="px-3 py-3">Papel</th>
               <th className="px-3 py-3">Admin</th>
@@ -190,7 +190,7 @@ export default function AdminUsuariosPage() {
                 className="border-b border-hairline last:border-0 hover:bg-surface-2"
               >
                 <td className="px-5 py-3">
-                  <span className="block font-medium tracking-tight">
+                  <span className="block tracking-tight">
                     {u.nome ?? "—"}
                   </span>
                   <span className="text-xs text-ink-3">{u.email}</span>
