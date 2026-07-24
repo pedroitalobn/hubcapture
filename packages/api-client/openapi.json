@@ -452,6 +452,17 @@
             "title": "Origem",
             "type": "string"
           },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
           "secreto": {
             "title": "Secreto",
             "type": "boolean"

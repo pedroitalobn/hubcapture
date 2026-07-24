@@ -9,9 +9,10 @@ class ConfigItem(BaseModel):
     chave: str
     label: str
     categoria: str
+    provider: str | None = None  # agrupamento por provider na UI (firecrawl, llm…)
     secreto: bool
     configurado: bool
-    origem: str  # 'banco' | 'padrao'
+    origem: str  # 'banco' (painel) | 'env' (fallback .env) | 'padrao' (não definido)
     valor: str | None = None  # segredos vêm mascarados
 
 
