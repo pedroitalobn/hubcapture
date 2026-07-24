@@ -83,28 +83,31 @@ export default function ConformidadePage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold">Conformidade fiscal (CAUC/CAPAG)</h1>
+      <header>
+        <h1 className="text-display text-3xl">Conformidade fiscal</h1>
+        <p className="mt-1 text-sm text-ink-2">CAUC e CAPAG do seu território.</p>
+      </header>
 
-      <form onSubmit={sincronizar} className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          Sincronizar município (IBGE)
+      <form onSubmit={sincronizar} className="card flex flex-wrap items-end gap-3 p-5">
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">Sincronizar município (IBGE)</span>
           <input
             value={ibge}
             onChange={(e) => setIbge(e.target.value)}
             placeholder="3550308"
             maxLength={7}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input w-48"
           />
         </label>
         <button
           type="submit"
           disabled={sinc || ibge.length !== 7}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
+          className="btn btn-primary"
         >
           {sinc ? "Sincronizando…" : "Buscar no Tesouro"}
         </button>
       </form>
-      {msg && <p className="text-sm text-gray-600 dark:text-gray-400">{msg}</p>}
+      {msg && <p className="text-sm text-ink-2">{msg}</p>}
 
       {loading ? (
         <SkeletonCards />
@@ -122,18 +125,18 @@ export default function ConformidadePage() {
           </div>
 
           {(data?.secoes ?? []).map((sec) => (
-            <section key={sec.secao} className="flex flex-col gap-2">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+            <section key={sec.secao} className="card flex flex-col gap-2 p-5">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">
                 {sec.secao} · {sec.comprovados}/{sec.total} comprovados
               </h2>
-              <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-900">
+              <ul className="flex flex-col divide-y divide-hairline">
                 {requisitosPorSecao(sec.secao).map((r) => (
-                  <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                    <span>
-                      <span className="font-mono text-xs text-gray-500">{r.numero}</span>{" "}
-                      {r.descricao ?? "—"}
+                  <li key={r.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                    <span className="text-ink-2">
+                      <span className="font-mono text-xs text-ink-3">{r.numero}</span>{" "}
+                      <span className="text-ink">{r.descricao ?? "—"}</span>
                       {r.orgao ? (
-                        <span className="text-xs text-gray-400"> · {r.orgao}</span>
+                        <span className="text-xs text-ink-3"> · {r.orgao}</span>
                       ) : null}
                     </span>
                     <StatusBadge tone={TONE[r.status ?? ""] ?? "neutral"}>
@@ -145,7 +148,7 @@ export default function ConformidadePage() {
             </section>
           ))}
           {(data?.total ?? 0) === 0 && (
-            <p className="text-gray-500">
+            <p className="text-ink-3">
               Sem dados de conformidade. Sincronize um município acima.
             </p>
           )}
