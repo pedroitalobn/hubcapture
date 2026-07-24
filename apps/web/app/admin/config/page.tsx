@@ -20,6 +20,10 @@ const CATEGORIA_LABEL: Record<string, string> = {
   fonte: "Fontes de dados",
 };
 
+// Categorias ocultas na interface (por hora). O backend continua íntegro —
+// as chaves seguem existindo na API; só não aparecem no painel.
+const CATEGORIAS_OCULTAS = new Set<string>(["email"]);
+
 export default function AdminConfigPage() {
   const [itens, setItens] = useState<ConfigItem[]>([]);
   const [edits, setEdits] = useState<Record<string, string>>({});
@@ -56,7 +60,9 @@ export default function AdminConfigPage() {
     }
   }
 
-  const categorias = Array.from(new Set(itens.map((i) => i.categoria)));
+  const categorias = Array.from(
+    new Set(itens.map((i) => i.categoria)),
+  ).filter((cat) => !CATEGORIAS_OCULTAS.has(cat));
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-8">
