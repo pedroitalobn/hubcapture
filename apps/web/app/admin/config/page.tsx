@@ -63,16 +63,16 @@ export default function AdminConfigPage() {
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-8">
       <BrandMark />
       <header>
-        <h1 className="text-display text-3xl">Configuração de providers</h1>
+        <h1 className="page-title">Configuração de providers</h1>
         <p className="mt-1 text-sm text-ink-2">
           Credenciais e URLs das fontes. Segredos ficam cifrados e mascarados.
         </p>
       </header>
-      {msg && <p className="text-sm text-brand-deep dark:text-brand">{msg}</p>}
+      {msg && <p className="text-sm text-ink-2">{msg}</p>}
 
       {categorias.map((cat) => (
         <section key={cat} className="flex flex-col gap-3">
-          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">
+          <h2 className="label-mono">
             {CATEGORIA_LABEL[cat] ?? cat}
           </h2>
           {itens
@@ -83,7 +83,7 @@ export default function AdminConfigPage() {
                 className="card flex flex-wrap items-center gap-3 p-4"
               >
                 <div className="min-w-40 flex-1">
-                  <div className="text-sm font-medium tracking-tight">{i.label}</div>
+                  <div className="text-sm tracking-tight">{i.label}</div>
                   <div className="text-xs text-ink-3">
                     {i.chave}
                     {i.valor ? ` · ${i.valor}` : ""}

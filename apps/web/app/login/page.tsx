@@ -35,7 +35,7 @@ export default function LoginPage() {
         <div className="flex items-center justify-between">
           <span>
             Novo por aqui?{" "}
-            <Link href="/cadastro" className="font-medium text-ink hover:text-brand-deep">
+            <Link href="/cadastro" className="text-ink underline hover:no-underline">
               Criar conta
             </Link>
           </span>

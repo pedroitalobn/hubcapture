@@ -64,7 +64,7 @@ export default function CaptacaoPage() {
   return (
     <>
       <header>
-        <h1 className="text-display text-3xl">Captação</h1>
+        <h1 className="page-title">Captação</h1>
         <p className="mt-1 text-sm text-ink-2">
           Propostas e editais abertos para o seu território.
         </p>
@@ -101,7 +101,7 @@ export default function CaptacaoPage() {
           <div className="card overflow-hidden">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="border-b border-hairline text-left text-[11px] font-semibold uppercase tracking-wider text-ink-3">
+                <tr className="border-b border-hairline text-left label-mono">
                   <th className="px-5 py-3">Nº</th>
                   <th className="px-3 py-3">Título</th>
                   <th className="px-3 py-3">Município</th>
@@ -124,7 +124,7 @@ export default function CaptacaoPage() {
                       {p.municipio_nome ?? p.municipio_ibge ?? "—"}
                       {p.uf ? `/${p.uf}` : ""}
                     </td>
-                    <td className="px-3 py-3 font-medium tabular-nums">
+                    <td className="px-3 py-3 tabular-nums">
                       {formatBRL(p.valor_total)}
                     </td>
                     <td className="px-3 py-3 text-ink-2">{p.situacao ?? "—"}</td>

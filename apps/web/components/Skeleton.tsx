@@ -1,7 +1,7 @@
-/** Skeleton pulsante (estado de loading). */
+/** Skeleton pulsante (estado de loading) — flat, sem sombra. */
 export function Skeleton({ className = "" }: { className?: string }) {
   return (
-    <div className={`animate-pulse rounded-2xl bg-surface-3 ${className}`} />
+    <div className={`animate-pulse rounded-2xl bg-surface-2 ${className}`} />
   );
 }
 

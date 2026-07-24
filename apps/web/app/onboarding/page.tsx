@@ -65,7 +65,7 @@ export default function OnboardingPage() {
     <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 px-6 py-10">
       <BrandMark />
       <div>
-        <h1 className="text-display text-3xl">Vamos configurar seu painel</h1>
+        <h1 className="page-title">Vamos configurar seu painel</h1>
         <p className="mt-2 text-sm text-ink-2">
           Escolha um município e as fontes que quer acompanhar.
         </p>

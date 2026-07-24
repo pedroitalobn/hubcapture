@@ -42,7 +42,7 @@ export default function ChatPage() {
   return (
     <>
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-display text-3xl">Copiloto</h1>
+        <h1 className="page-title">Copiloto</h1>
         <div className="segmented">
           {(["propostas", "copiloto"] as const).map((m) => (
             <button
@@ -67,7 +67,7 @@ export default function ChatPage() {
             key={i}
             className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
               m.autor === "user"
-                ? "self-end rounded-br-md bg-brand text-brand-fg"
+                ? "self-end rounded-br-md bg-[var(--action-bg)] text-[var(--action-fg)]"
                 : "self-start rounded-bl-md bg-surface-2 text-ink"
             }`}
           >
