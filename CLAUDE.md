@@ -593,8 +593,11 @@ Stack completo sobe com um comando; o superadmin é criado no boot.
   Subir: `docker compose up -d --build`.
 - **Portas / proxy**: o compose de deploy usa `expose` (NÃO publica portas no host)
   — em plataformas com proxy (Dokploy/Traefik) portas fixas colidem. No painel aponte
-  o domínio para `web:3000` (e `api:8000` se quiser API pública) e defina
-  `NEXT_PUBLIC_API_URL` = domínio público da API (build arg). Para dev local,
+  o domínio para `web:3000`. A web faz **proxy same-origin** da API: o navegador chama
+  `/api/v1/*` no domínio da web e o rewrite do `next.config.mjs` repassa à API pela rede
+  interna (`API_INTERNAL_URL`, default `http://api:8000`) — a API não precisa de domínio
+  público. Só defina `NEXT_PUBLIC_API_URL` (build arg) se quiser expor a API num domínio
+  próprio e o front chamá-la direto. Para dev local,
   `docker-compose.override.yml` publica 3000/8000/5432 e é auto-carregado por
   `docker compose up` (o Dokploy roda com `-f`, ignorando o override).
 - **Dockerfiles**: `apps/api/Dockerfile` (uv sync; `docker-entrypoint.sh` espera o

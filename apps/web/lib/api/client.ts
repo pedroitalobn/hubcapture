@@ -3,8 +3,10 @@
 import { createHubClient } from "@hub/api-client";
 
 // Origem da API (sem /api/v1). Os paths do client tipado já carregam /api/v1.
-export const API_ORIGIN =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Vazio = same-origin: o navegador chama /api/v1/* no próprio domínio da web e
+// o rewrite do next.config.mjs repassa para a API pela rede interna. Definir
+// NEXT_PUBLIC_API_URL só se a API tiver domínio público próprio.
+export const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL || "";
 
 const TOKEN_KEY = "hub_access_token";
 const REFRESH_KEY = "hub_refresh_token";
