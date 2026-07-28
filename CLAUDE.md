@@ -814,3 +814,32 @@ município e ainda não foi utilizado":
 - **Web detalhe**: seção "Execução financeira — TransfereGov" com barra de
   progresso empilhada (pago ⊂ liberado ⊂ empenhado sobre o global), os 6
   valores, vigências e ente recebedor.
+
+## 29. Módulos da plataforma — ligar/desligar eixos pelo painel admin
+
+Cada eixo do produto (as lentes do menu profile-centric da seção 19) é um **módulo**
+que o admin liga/desliga em **runtime**, sem redeploy e sem remover código. Serve para
+lançar o Hub só com o que está maduro e reativar o resto quando a fonte estiver calibrada.
+
+**Estado inicial (decisão de produto):** `captacao`, `recebidos` e `copiloto` **ativos**;
+`conformidade` e `obras` **desativados** — a implementação continua no repositório
+(connectors, migrations, serviços, telas), apenas não é exposta.
+
+- **Registro** — `services/modulos.py::MODULOS` (chave, label, descrição, `padrao`).
+  O estado vive na tabela `configuracoes` (platform-level) sob a chave `modulo_<chave>`
+  com valor `on`/`off`; sem linha no banco vale o `padrao` do registro (nenhuma migration
+  necessária). Adicionar um módulo = mais uma entrada nesse registro.
+- **Guard de API** — `services/modulos.require_modulo(chave)` é dependency de router:
+  módulo desligado → **404 `MODULO_DESATIVADO: <chave>`** em todo o eixo. Aplicado em
+  `proposals` (captacao), `transfers` (recebidos), `compliance`, `works` e `copilot`.
+  O guard roda ANTES da autenticação (dependency de router), então o eixo simplesmente
+  não existe enquanto desligado.
+- **Endpoints admin** (`is_superuser`): `GET /admin/modules` (catálogo + estado efetivo)
+  e `PUT /admin/modules` (`{chave, ativo}`). Router `api/v1/admin_modulos.py`.
+- **Perfil** — `GET /profile` passa a devolver `modulos` (lista dos ativos) e
+  `GET /profile/overview` só agrega/retorna as dimensões dos módulos ativos (módulo
+  desligado nem é consultado no banco).
+- **Web** — `app/admin/modules` (toggle por módulo, no shell admin da seção 24); o menu
+  de `app/panel/layout.tsx` filtra os itens por `perfil.modulos`;
+  `components/ModuloGate.tsx` cobre o acesso direto por URL às telas de eixo desligado
+  (explica em vez de mostrar tela vazia).

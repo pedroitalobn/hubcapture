@@ -10,9 +10,11 @@ from ...core.users import current_active_user
 from ...models.usuario import Usuario
 from ...schemas.obra import ObraRead, ObrasResumo
 from ...services import obras as service
+from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
-router = APIRouter(tags=["obras"])
+# Módulo desligável pelo painel admin: desativado → todo o eixo responde 404.
+router = APIRouter(tags=["obras"], dependencies=[Depends(require_modulo("obras"))])
 
 
 class SyncObrasRequest(BaseModel):

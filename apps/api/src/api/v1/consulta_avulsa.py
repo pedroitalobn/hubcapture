@@ -19,9 +19,13 @@ from ...core.users import current_active_user
 from ...models.usuario import Usuario
 from ...schemas.proposta import PropostaRead
 from ...services import consulta_avulsa as service
+from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
-router = APIRouter(tags=["proposals"])
+# Faz parte do eixo de captação — segue o mesmo módulo de `proposals`.
+router = APIRouter(
+    tags=["proposals"], dependencies=[Depends(require_modulo("captacao"))]
+)
 
 
 class LiveSearchRequest(BaseModel):

@@ -32,6 +32,7 @@ from ..schemas.perfil import (
     SyncRunStatus,
     VisaoGeralPerfil,
 )
+from . import modulos as modulos_service
 
 # Áreas de interesse → fontes que as servem. Usado só como RECORTE do feed de
 # novidades (a navegação continua profile-centric; fonte nunca vira aba).
@@ -69,6 +70,7 @@ async def _preferencias(session: AsyncSession, usuario_id) -> PreferenciasUsuari
 
 async def get_perfil(session: AsyncSession, usuario: Usuario) -> PerfilRead:
     pref = await _preferencias(session, usuario.id)
+    ativos = await modulos_service.ativos(session)
     return PerfilRead(
         nome=usuario.nome,
         papel=usuario.papel,
@@ -76,71 +78,96 @@ async def get_perfil(session: AsyncSession, usuario: Usuario) -> PerfilRead:
         areas=list(pref.areas or []) if pref else [],
         fontes=list(pref.fontes or []) if pref else [],
         monitorar_ativo=bool(pref.monitorar_ativo) if pref else True,
+        modulos=[chave for chave, on in ativos.items() if on],
     )
 
 
 async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerfil:
     pref = await _preferencias(session, usuario.id)
     municipios = await _municipios(session)
+    # Módulos desligados no painel admin nem são consultados nem aparecem.
+    ativos = await modulos_service.ativos(session)
 
-    # Captação (propostas) — RLS já restringe ao território do usuário.
-    prop_n, prop_valor = (
-        await session.execute(
-            select(func.count(Proposta.id), func.coalesce(func.sum(Proposta.valor_total), 0))
+    dimensoes: list[DimensaoResumo] = []
+
+    if ativos.get("captacao"):
+        # Captação (propostas) — RLS já restringe ao território do usuário.
+        prop_n, prop_valor = (
+            await session.execute(
+                select(
+                    func.count(Proposta.id),
+                    func.coalesce(func.sum(Proposta.valor_total), 0),
+                )
+            )
+        ).one()
+        dimensoes.append(
+            DimensaoResumo(
+                chave="captacao",
+                titulo="Captação",
+                total=int(prop_n),
+                destaque=(
+                    f"{_brl(prop_valor)} em propostas" if prop_n else "sem propostas ainda"
+                ),
+                href="/panel/funding",
+            )
         )
-    ).one()
 
-    # Recebidos (repasses).
-    rep_n, rep_valor = (
-        await session.execute(
-            select(func.count(Repasse.id), func.coalesce(func.sum(Repasse.valor), 0))
+    if ativos.get("recebidos"):
+        # Recebidos (repasses).
+        rep_n, rep_valor = (
+            await session.execute(
+                select(func.count(Repasse.id), func.coalesce(func.sum(Repasse.valor), 0))
+            )
+        ).one()
+        dimensoes.append(
+            DimensaoResumo(
+                chave="recebidos",
+                titulo="Recursos recebidos",
+                total=int(rep_n),
+                destaque=f"{_brl(rep_valor)} recebidos" if rep_n else "sem repasses ainda",
+                href="/panel/transfers",
+            )
         )
-    ).one()
 
-    # Conformidade fiscal — destaque é o que falta comprovar.
-    conf_n = (await session.execute(select(func.count(Conformidade.id)))).scalar_one()
-    conf_pendentes = (
-        await session.execute(
-            select(func.count(Conformidade.id)).where(Conformidade.status == "a_comprovar")
+    if ativos.get("conformidade"):
+        # Conformidade fiscal — destaque é o que falta comprovar.
+        conf_n = (await session.execute(select(func.count(Conformidade.id)))).scalar_one()
+        conf_pendentes = (
+            await session.execute(
+                select(func.count(Conformidade.id)).where(
+                    Conformidade.status == "a_comprovar"
+                )
+            )
+        ).scalar_one()
+        dimensoes.append(
+            DimensaoResumo(
+                chave="conformidade",
+                titulo="Conformidade fiscal",
+                total=int(conf_n),
+                destaque=(
+                    f"{conf_pendentes} a comprovar" if conf_n else "sem dados fiscais ainda"
+                ),
+                href="/panel/compliance",
+            )
         )
-    ).scalar_one()
 
-    # Obras (execução) — destaque é o que está em andamento.
-    obras_n = (await session.execute(select(func.count(Obra.id)))).scalar_one()
-    obras_exec = (
-        await session.execute(select(func.count(Obra.id)).where(Obra.situacao == "em_execucao"))
-    ).scalar_one()
-
-    dimensoes = [
-        DimensaoResumo(
-            chave="captacao",
-            titulo="Captação",
-            total=int(prop_n),
-            destaque=f"{_brl(prop_valor)} em propostas" if prop_n else "sem propostas ainda",
-            href="/panel/funding",
-        ),
-        DimensaoResumo(
-            chave="recebidos",
-            titulo="Recursos recebidos",
-            total=int(rep_n),
-            destaque=f"{_brl(rep_valor)} recebidos" if rep_n else "sem repasses ainda",
-            href="/panel/transfers",
-        ),
-        DimensaoResumo(
-            chave="conformidade",
-            titulo="Conformidade fiscal",
-            total=int(conf_n),
-            destaque=(f"{conf_pendentes} a comprovar" if conf_n else "sem dados fiscais ainda"),
-            href="/panel/compliance",
-        ),
-        DimensaoResumo(
-            chave="obras",
-            titulo="Obras",
-            total=int(obras_n),
-            destaque=(f"{obras_exec} em execução" if obras_n else "sem obras ainda"),
-            href="/panel/works",
-        ),
-    ]
+    if ativos.get("obras"):
+        # Obras (execução) — destaque é o que está em andamento.
+        obras_n = (await session.execute(select(func.count(Obra.id)))).scalar_one()
+        obras_exec = (
+            await session.execute(
+                select(func.count(Obra.id)).where(Obra.situacao == "em_execucao")
+            )
+        ).scalar_one()
+        dimensoes.append(
+            DimensaoResumo(
+                chave="obras",
+                titulo="Obras",
+                total=int(obras_n),
+                destaque=f"{obras_exec} em execução" if obras_n else "sem obras ainda",
+                href="/panel/works",
+            )
+        )
 
     return VisaoGeralPerfil(
         papel=usuario.papel,

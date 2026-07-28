@@ -9,7 +9,8 @@ from __future__ import annotations
 
 from sqlalchemy import text
 
-from src.db.session import rls_session
+from src.db.session import SessionLocal, rls_session
+from src.services import modulos as modulos_service
 from src.services import perfil as service
 from tests.conftest import _owner_engine
 
@@ -58,11 +59,27 @@ async def test_visao_geral_agrega_por_perfil_e_isola_por_rls(
         vg = await service.visao_geral(s, _FakeUser(a, "executivo"))
 
     dims = {d.chave: d for d in vg.dimensoes}
-    assert set(dims) == {"captacao", "recebidos", "conformidade", "obras"}
+    # conformidade/obras nascem desativados (módulos, painel admin) → fora da visão
+    assert set(dims) == {"captacao", "recebidos"}
     assert dims["captacao"].total == 2  # só as do território de A (não a de B)
     assert dims["recebidos"].total == 1
-    assert dims["obras"].total == 0 and dims["obras"].destaque == "sem obras ainda"
     assert {m.ibge for m in vg.municipios} == {"3550308"}
+
+
+async def test_visao_geral_inclui_dimensao_de_modulo_reativado(
+    seed_user, seed_municipio
+) -> None:
+    u = await seed_user("vm@m.com")
+    await seed_municipio(u, "3550308")
+    async with SessionLocal() as s:
+        async with s.begin():
+            await modulos_service.definir(s, "obras", True)
+
+    async with rls_session(u) as s:
+        vg = await service.visao_geral(s, _FakeUser(u, "executivo"))
+    dims = {d.chave: d for d in vg.dimensoes}
+    assert "obras" in dims and dims["obras"].destaque == "sem obras ainda"
+    assert "conformidade" not in dims  # continua desativado
 
 
 class _FakeUser:

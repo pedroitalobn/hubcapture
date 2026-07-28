@@ -13,9 +13,13 @@ from ...core.users import current_active_user
 from ...models.usuario import Usuario
 from ...schemas.repasse import RepasseRead, VisaoGeral
 from ...services import repasses as service
+from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
-router = APIRouter(tags=["repasses"])
+# Módulo desligável pelo painel admin (recebidos): desativado → eixo responde 404.
+router = APIRouter(
+    tags=["repasses"], dependencies=[Depends(require_modulo("recebidos"))]
+)
 
 FONTES_PADRAO = ["fpm", "emendas"]
 

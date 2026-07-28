@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.usuario import Usuario
 from ..services import conformidade as conformidade_service
 from ..services import llm_providers, rag
+from ..services import modulos as modulos_service
 from ..services import noticias as noticias_service
 from ..services import obras as obras_service
 from ..services import propostas as propostas_service
@@ -170,6 +171,7 @@ TOOLS: dict[str, dict[str, Any]] = {
         "parametros": _p(dict(_MUN)),
         "executor": _tool_repasses,
         "gatilhos": ("repasse", "receb", "fpm", "verba", "fundo", "transfer"),
+        "modulo": "recebidos",
     },
     "propostas_listar": {
         "descricao": (
@@ -187,12 +189,14 @@ TOOLS: dict[str, dict[str, Any]] = {
         ),
         "executor": _tool_propostas,
         "gatilhos": ("proposta", "captac", "edital", "convenio", "disponi", "cadastrad"),
+        "modulo": "captacao",
     },
     "propostas_prazos": {
         "descricao": "Propostas com PRAZO vencendo na janela de N dias ('o que vence este mês?').",
         "parametros": _p({"dias": {"type": "integer", "minimum": 1, "maximum": 365}}),
         "executor": _tool_prazos,
         "gatilhos": ("prazo", "venc", "expira", "data limite"),
+        "modulo": "captacao",
     },
     "conformidade_resumo": {
         "descricao": (
@@ -201,6 +205,7 @@ TOOLS: dict[str, dict[str, Any]] = {
         "parametros": _p(dict(_MUN)),
         "executor": _tool_conformidade,
         "gatilhos": ("cauc", "capag", "conformidade", "fiscal", "certid"),
+        "modulo": "conformidade",
     },
     "obras_resumo": {
         "descricao": (
@@ -209,6 +214,7 @@ TOOLS: dict[str, dict[str, Any]] = {
         "parametros": _p(dict(_MUN)),
         "executor": _tool_obras,
         "gatilhos": ("obra", "execu", "sismob", "simec", "paralis"),
+        "modulo": "obras",
     },
     "noticias_transferegov": {
         "descricao": "Últimas notícias oficiais do TransfereGov (editais, programas, avisos).",
@@ -224,11 +230,24 @@ TOOLS: dict[str, dict[str, Any]] = {
         ),
         "executor": _tool_pesquisar,
         "gatilhos": ("pesquis", "procur", "busca", "encontr"),
+        "modulo": "captacao",
     },
 }
 
 
-def _tools_openai() -> list[dict]:
+async def tools_ativas(session: AsyncSession) -> dict[str, dict[str, Any]]:
+    """Só as ferramentas cujo módulo está ligado (painel admin). Um eixo
+    desligado não pode ser respondido pelo copiloto — nem pelo LLM, nem pelo
+    roteador de fallback."""
+    ativos = await modulos_service.ativos(session)
+    return {
+        nome: t
+        for nome, t in TOOLS.items()
+        if t.get("modulo") is None or ativos.get(t["modulo"], False)
+    }
+
+
+def _tools_openai(tools: dict[str, dict[str, Any]]) -> list[dict]:
     return [
         {
             "type": "function",
@@ -238,7 +257,7 @@ def _tools_openai() -> list[dict]:
                 "parameters": t["parametros"],
             },
         }
-        for nome, t in TOOLS.items()
+        for nome, t in tools.items()
     ]
 
 
@@ -255,13 +274,20 @@ _PRIORIDADE_FALLBACK = (
 )
 
 
-def escolher_tool_fallback(pergunta: str) -> str:
-    """Sem LLM: roteia por palavra-chave; padrão = visão de repasses."""
+def escolher_tool_fallback(
+    pergunta: str, tools: dict[str, dict[str, Any]] | None = None
+) -> str | None:
+    """Sem LLM: roteia por palavra-chave entre as ferramentas ATIVAS; padrão =
+    visão de repasses (ou a primeira ativa, se recebidos estiver desligado).
+    Devolve None quando nenhum módulo com ferramenta está ligado."""
+    disponiveis = TOOLS if tools is None else tools
     baixa = pergunta.lower()
     for nome in _PRIORIDADE_FALLBACK:
-        if any(g in baixa for g in TOOLS[nome]["gatilhos"]):
+        if nome in disponiveis and any(g in baixa for g in disponiveis[nome]["gatilhos"]):
             return nome
-    return "repasses_visao_geral"
+    if "repasses_visao_geral" in disponiveis:
+        return "repasses_visao_geral"
+    return next(iter(disponiveis), None)
 
 
 def _formatar_fallback(nome: str, dado: dict[str, Any]) -> str:
@@ -330,6 +356,9 @@ async def _executar_tool(
     tool = TOOLS.get(nome)
     if tool is None:
         return {"erro": f"ferramenta desconhecida: {nome}"}
+    modulo = tool.get("modulo")
+    if modulo is not None and not await modulos_service.esta_ativo(modulo):
+        return {"erro": f"MODULO_DESATIVADO: {modulo}"}
     try:
         return await tool["executor"](session, usuario, args)
     except Exception as exc:  # ferramenta nunca derruba o agente
@@ -347,8 +376,16 @@ async def executar(
         except ImportError:
             params = None
 
+    tools = await tools_ativas(session)
+    if not tools:
+        yield {"delta": "Nenhum módulo de dados está ativo na plataforma no momento."}
+        return
+
     if params is None:
-        nome = escolher_tool_fallback(pergunta)
+        nome = escolher_tool_fallback(pergunta, tools)
+        if nome is None:
+            yield {"delta": "Nenhum módulo de dados está ativo na plataforma no momento."}
+            return
         yield {"tool": nome}
         dado = await _executar_tool(session, usuario, nome, {})
         yield {"delta": _formatar_fallback(nome, dado)}
@@ -366,7 +403,9 @@ async def executar(
     ]
 
     for _ in range(MAX_RODADAS):
-        resp = await litellm.acompletion(**params, messages=mensagens, tools=_tools_openai())
+        resp = await litellm.acompletion(
+            **params, messages=mensagens, tools=_tools_openai(tools)
+        )
         msg = resp["choices"][0]["message"]
         tool_calls = msg.get("tool_calls") or []
         if not tool_calls:
