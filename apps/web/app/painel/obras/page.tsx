@@ -64,7 +64,7 @@ function MiniMapa({ obras }: { obras: Obra[] }) {
   const geo = obras.filter((o) => o.latitude && o.longitude);
   if (geo.length === 0) {
     return (
-      <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-gray-300 text-sm text-gray-500 dark:border-gray-700">
+      <div className="flex h-48 items-center justify-center glass-card border-dashed text-sm text-gray-500 dark:border-gray-700">
         Sem coordenadas para plotar no mapa.
       </div>
     );
@@ -76,7 +76,7 @@ function MiniMapa({ obras }: { obras: Obra[] }) {
   const spanLa = maxLa - minLa || 1;
   const spanLo = maxLo - minLo || 1;
   return (
-    <div className="relative h-64 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
+    <div className="glass-card relative h-64 overflow-hidden">
       {geo.map((o) => {
         const x = ((Number(o.longitude) - minLo) / spanLo) * 92 + 4;
         const y = 96 - ((Number(o.latitude) - minLa) / spanLa) * 92;
@@ -155,7 +155,7 @@ export default function ObrasPage() {
   return (
     <>
       <header>
-        <h1 className="text-2xl font-bold">Obras</h1>
+        <h1 className="text-gradient text-2xl font-bold">Obras</h1>
         <p className="text-sm text-gray-500">
           Execução no seu território (SISMOB · SIMEC · CAIXA).
         </p>
@@ -169,13 +169,13 @@ export default function ObrasPage() {
             onChange={(e) => setIbge(e.target.value)}
             placeholder="3550308"
             maxLength={7}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input-glass px-3.5 py-2.5"
           />
         </label>
         <button
           type="submit"
           disabled={sinc || ibge.length !== 7}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
+          className="btn-primary px-5 py-2.5"
         >
           {sinc ? "Sincronizando…" : "Buscar nas fontes"}
         </button>
@@ -207,7 +207,7 @@ export default function ObrasPage() {
             <FilterChips options={chips} selected={sit} onSelect={setSit} />
           )}
 
-          <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-900">
+          <ul className="flex flex-col divide-y divide-white/5">
             {obras.map((o) => (
               <li key={o.id} className="flex items-start justify-between gap-3 py-3 text-sm">
                 <span className="min-w-0">

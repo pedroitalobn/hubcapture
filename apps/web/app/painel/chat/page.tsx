@@ -42,14 +42,16 @@ export default function ChatPage() {
   return (
     <>
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Copiloto</h1>
-        <div className="inline-flex overflow-hidden rounded-md border border-gray-300 text-sm dark:border-gray-700">
+        <h1 className="text-gradient text-2xl font-bold">Copiloto</h1>
+        <div className="glass-card inline-flex gap-1 rounded-full! p-1 text-sm">
           {(["propostas", "copiloto"] as const).map((m) => (
             <button
               key={m}
               onClick={() => setModo(m)}
-              className={`px-3 py-1.5 ${
-                modo === m ? "bg-brand text-brand-fg" : ""
+              className={`pressable rounded-full px-3 py-1.5 transition ${
+                modo === m
+                  ? "bg-white/12 font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_2px_10px_rgba(99,102,241,.25)]"
+                  : "text-gray-400 hover:bg-white/5 hover:text-gray-200"
               }`}
             >
               {m === "propostas" ? "Minhas propostas" : "Tutoriais"}
@@ -58,7 +60,7 @@ export default function ChatPage() {
         </div>
       </header>
 
-      <div className="flex min-h-[50vh] flex-col gap-3 rounded-md border border-gray-200 p-4 dark:border-gray-800">
+      <div className="glass-card flex min-h-[50vh] flex-col gap-3 p-4">
         {mensagens.length === 0 && (
           <p className="text-sm text-gray-500">
             Pergunte sobre suas propostas ou peça um tutorial do TransfereGov.
@@ -67,10 +69,10 @@ export default function ChatPage() {
         {mensagens.map((m, i) => (
           <div
             key={i}
-            className={`max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm ${
+            className={`animate-fade-up max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm backdrop-blur-md ${
               m.autor === "user"
-                ? "self-end bg-brand text-brand-fg"
-                : "self-start bg-gray-100 dark:bg-gray-900"
+                ? "self-end bg-gradient-to-br from-indigo-500/90 to-violet-500/90 text-white shadow-[0_4px_18px_rgba(99,102,241,.35)]"
+                : "self-start border border-white/10 bg-white/6 text-gray-200 shadow-[inset_0_1px_0_rgba(255,255,255,.08)]"
             }`}
           >
             {m.texto || "…"}
@@ -84,12 +86,12 @@ export default function ChatPage() {
           value={pergunta}
           onChange={(e) => setPergunta(e.target.value)}
           placeholder="Sua pergunta…"
-          className="flex-1 rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          className="flex-1 input-glass px-3.5 py-2.5"
         />
         <button
           type="submit"
           disabled={ocupado}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
+          className="btn-primary px-5 py-2.5"
         >
           {ocupado ? "…" : "Enviar"}
         </button>

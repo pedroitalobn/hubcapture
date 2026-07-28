@@ -64,7 +64,7 @@ export default function CaptacaoPage() {
   return (
     <>
       <header>
-        <h1 className="text-2xl font-bold">Captação</h1>
+        <h1 className="text-gradient text-2xl font-bold">Captação</h1>
         <p className="text-sm text-gray-500">
           Propostas e editais abertos para o seu território.
         </p>
@@ -78,13 +78,13 @@ export default function CaptacaoPage() {
             onChange={(e) => setIbge(e.target.value)}
             placeholder="3550308"
             maxLength={7}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input-glass px-3.5 py-2.5"
           />
         </label>
         <button
           type="submit"
           disabled={carregando || ibge.length !== 7}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
+          className="btn-primary px-5 py-2.5"
         >
           {carregando ? "Consultando…" : "Buscar na fonte"}
         </button>
@@ -100,7 +100,7 @@ export default function CaptacaoPage() {
         ) : (
           <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left dark:border-gray-800">
+              <tr className="border-b border-white/10 text-left">
                 <th className="py-2 pr-4">Nº</th>
                 <th className="py-2 pr-4">Título</th>
                 <th className="py-2 pr-4">Município</th>
@@ -113,7 +113,7 @@ export default function CaptacaoPage() {
               {propostas.map((p) => (
                 <tr
                   key={p.id}
-                  className="border-b border-gray-100 dark:border-gray-900"
+                  className="border-b border-white/5"
                 >
                   <td className="py-2 pr-4 font-mono text-xs">{p.id_externo}</td>
                   <td className="py-2 pr-4">{p.titulo ?? "—"}</td>

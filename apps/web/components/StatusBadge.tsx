@@ -6,11 +6,11 @@ export type BadgeTone =
   | "info";
 
 const TONES: Record<BadgeTone, string> = {
-  neutral: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-  success: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
-  warning: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
-  danger: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
-  info: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+  neutral: "border-white/10 bg-white/5 text-gray-300",
+  success: "border-emerald-400/25 bg-emerald-400/10 text-emerald-300",
+  warning: "border-amber-400/25 bg-amber-400/10 text-amber-300",
+  danger: "border-red-400/25 bg-red-400/10 text-red-300",
+  info: "border-sky-400/25 bg-sky-400/10 text-sky-300",
 };
 
 /** Badge de status semântico e colorido (PAGO, Crédito, Dedução, Emenda…). */
@@ -23,8 +23,9 @@ export function StatusBadge({
 }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TONES[tone]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium backdrop-blur-sm ${TONES[tone]}`}
     >
+      <span className="glow-dot h-1.5 w-1.5" />
       {children}
     </span>
   );

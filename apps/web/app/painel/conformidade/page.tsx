@@ -83,7 +83,7 @@ export default function ConformidadePage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold">Conformidade fiscal (CAUC/CAPAG)</h1>
+      <h1 className="text-gradient text-2xl font-bold">Conformidade fiscal (CAUC/CAPAG)</h1>
 
       <form onSubmit={sincronizar} className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1 text-sm">
@@ -93,13 +93,13 @@ export default function ConformidadePage() {
             onChange={(e) => setIbge(e.target.value)}
             placeholder="3550308"
             maxLength={7}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input-glass px-3.5 py-2.5"
           />
         </label>
         <button
           type="submit"
           disabled={sinc || ibge.length !== 7}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
+          className="btn-primary px-5 py-2.5"
         >
           {sinc ? "Sincronizando…" : "Buscar no Tesouro"}
         </button>
@@ -126,7 +126,7 @@ export default function ConformidadePage() {
               <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
                 {sec.secao} · {sec.comprovados}/{sec.total} comprovados
               </h2>
-              <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-900">
+              <ul className="flex flex-col divide-y divide-white/5">
                 {requisitosPorSecao(sec.secao).map((r) => (
                   <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
                     <span>

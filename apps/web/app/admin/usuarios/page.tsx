@@ -89,7 +89,7 @@ export default function AdminUsuariosPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-8 px-6 py-8">
       <header>
-        <h1 className="text-2xl font-bold">Usuários & permissões</h1>
+        <h1 className="text-gradient text-2xl font-bold">Usuários & permissões</h1>
         <p className="text-sm text-gray-500">
           Crie usuários, defina o papel (role) e conceda permissão de admin.
         </p>
@@ -99,7 +99,7 @@ export default function AdminUsuariosPage() {
 
       <form
         onSubmit={criar}
-        className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 p-4 sm:grid-cols-2 dark:border-gray-800"
+        className="grid grid-cols-1 gap-3 glass-card p-4 sm:grid-cols-2 dark:border-gray-800"
       >
         <label className="flex flex-col gap-1 text-sm">
           E-mail
@@ -108,7 +108,7 @@ export default function AdminUsuariosPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input-glass px-3.5 py-2.5"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -116,7 +116,7 @@ export default function AdminUsuariosPage() {
           <input
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input-glass px-3.5 py-2.5"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -127,7 +127,7 @@ export default function AdminUsuariosPage() {
             minLength={8}
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input-glass px-3.5 py-2.5"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -135,7 +135,7 @@ export default function AdminUsuariosPage() {
           <select
             value={papel}
             onChange={(e) => setPapel(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input-glass px-3.5 py-2.5"
           >
             {PAPEIS.map((p) => (
               <option key={p} value={p}>
@@ -149,7 +149,7 @@ export default function AdminUsuariosPage() {
           <select
             value={planoId}
             onChange={(e) => setPlanoId(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input-glass px-3.5 py-2.5"
           >
             <option value="">— sem plano —</option>
             {planos.map((p) => (
@@ -169,7 +169,7 @@ export default function AdminUsuariosPage() {
         </label>
         <button
           type="submit"
-          className="col-span-full self-start rounded-md bg-brand px-4 py-2 text-brand-fg"
+          className="col-span-full self-start btn-primary px-5 py-2.5"
         >
           Criar usuário
         </button>
@@ -178,7 +178,7 @@ export default function AdminUsuariosPage() {
       <section className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left dark:border-gray-800">
+            <tr className="border-b border-white/10 text-left">
               <th className="py-2 pr-4">Usuário</th>
               <th className="py-2 pr-4">Papel</th>
               <th className="py-2 pr-4">Admin</th>
@@ -188,7 +188,7 @@ export default function AdminUsuariosPage() {
           </thead>
           <tbody>
             {usuarios.map((u) => (
-              <tr key={u.id} className="border-b border-gray-100 dark:border-gray-900">
+              <tr key={u.id} className="border-b border-white/5">
                 <td className="py-2 pr-4">
                   <span className="block">{u.nome ?? "—"}</span>
                   <span className="text-xs text-gray-400">{u.email}</span>
@@ -197,7 +197,7 @@ export default function AdminUsuariosPage() {
                   <select
                     value={u.papel ?? ""}
                     onChange={(e) => atualizar(u.id, { papel: e.target.value })}
-                    className="rounded-md border border-gray-300 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900"
+                    className="input-glass px-2 py-1 text-xs"
                   >
                     <option value="">—</option>
                     {PAPEIS.map((p) => (

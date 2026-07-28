@@ -121,13 +121,13 @@ export default function RepassesPage() {
             onChange={(e) => setIbge(e.target.value)}
             placeholder="3550308"
             maxLength={7}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input-glass px-3.5 py-2.5"
           />
         </label>
         <button
           type="submit"
           disabled={sincronizando || ibge.length !== 7}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
+          className="btn-primary px-5 py-2.5"
         >
           {sincronizando ? "Sincronizando…" : "Buscar nas fontes"}
         </button>

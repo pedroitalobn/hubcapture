@@ -61,12 +61,12 @@ export default function AdminConfigPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-8">
       <header>
-        <h1 className="text-2xl font-bold">Configuração de providers</h1>
+        <h1 className="text-gradient text-2xl font-bold">Configuração de providers</h1>
         <p className="text-sm text-gray-500">
           Credenciais e URLs das fontes. Segredos ficam cifrados e mascarados.
         </p>
       </header>
-      {msg && <p className="text-sm text-amber-600">{msg}</p>}
+      {msg && <p className="text-sm text-amber-400">{msg}</p>}
 
       {categorias.map((cat) => (
         <section key={cat} className="flex flex-col gap-3">
@@ -97,12 +97,12 @@ export default function AdminConfigPage() {
                   onChange={(e) =>
                     setEdits((s) => ({ ...s, [i.chave]: e.target.value }))
                   }
-                  className="w-48 rounded-md border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900"
+                  className="input-glass w-48 px-3 py-1.5 text-sm"
                 />
                 <button
                   onClick={() => salvar(i.chave)}
                   disabled={!(edits[i.chave] ?? "").length}
-                  className="rounded-md bg-brand px-3 py-1.5 text-sm text-brand-fg disabled:opacity-50"
+                  className="btn-primary px-3.5 py-1.5 text-sm"
                 >
                   Salvar
                 </button>

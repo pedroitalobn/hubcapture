@@ -28,9 +28,10 @@ export default function CadastroPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6">
+      <div className="glass-card animate-fade-up flex flex-col gap-6 p-8">
       <div>
-        <h1 className="text-2xl font-bold">Criar conta</h1>
+        <h1 className="text-gradient text-2xl font-bold">Criar conta</h1>
         <p className="text-sm text-gray-500">Hub Capture</p>
       </div>
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
@@ -39,7 +40,7 @@ export default function CadastroPage() {
           <input
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input-glass px-3.5 py-2.5"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -49,7 +50,7 @@ export default function CadastroPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input-glass px-3.5 py-2.5"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -60,14 +61,14 @@ export default function CadastroPage() {
             minLength={8}
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input-glass px-3.5 py-2.5"
           />
         </label>
-        {erro && <p className="text-sm text-red-600">{erro}</p>}
+        {erro && <p className="text-sm text-red-400">{erro}</p>}
         <button
           type="submit"
           disabled={carregando}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
+          className="btn-primary px-5 py-2.5"
         >
           {carregando ? "Criando…" : "Criar conta"}
         </button>
@@ -78,6 +79,7 @@ export default function CadastroPage() {
           Entrar
         </Link>
       </p>
+      </div>
     </main>
   );
 }

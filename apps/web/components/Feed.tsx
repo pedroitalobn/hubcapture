@@ -33,25 +33,36 @@ export function Feed({ dias }: { dias: DiaGroup[] }) {
     );
   }
   return (
-    <div className="flex flex-col gap-6">
-      {dias.map((dia) => (
-        <div key={dia.data}>
-          <div className="mb-2 flex items-baseline justify-between border-b border-gray-200 pb-1 dark:border-gray-800">
+    <div className="flex flex-col gap-5">
+      {dias.map((dia, i) => (
+        <div
+          key={dia.data}
+          className={`glass-card animate-fade-up stagger-${(i % 6) + 1} p-5`}
+        >
+          <div className="mb-3 flex items-baseline justify-between border-b border-white/10 pb-2">
             <span className="font-semibold">{formatDate(dia.data)}</span>
-            <span className="text-sm text-gray-500">
-              Pago no dia: {formatBRL(dia.subtotal)}
+            <span className="text-sm text-gray-400">
+              Pago no dia:{" "}
+              <span className="text-gradient font-semibold">
+                {formatBRL(dia.subtotal)}
+              </span>
             </span>
           </div>
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col">
             {dia.itens.map((it) => (
-              <li key={it.id} className="flex items-center justify-between gap-4 text-sm">
+              <li
+                key={it.id}
+                className="-mx-2 flex items-center justify-between gap-4 rounded-lg px-2 py-1.5 text-sm transition hover:bg-white/5"
+              >
                 <div className="flex min-w-0 items-center gap-2">
                   <StatusBadge tone={naturezaTone(it.natureza)}>
                     {it.natureza}
                   </StatusBadge>
                   {it.emenda && <StatusBadge tone="info">emenda</StatusBadge>}
-                  <span className="truncate">
-                    <span className="font-medium uppercase">{it.fonte}</span>
+                  <span className="truncate text-gray-300">
+                    <span className="font-medium uppercase text-gray-100">
+                      {it.fonte}
+                    </span>
                     {it.descricao ? ` · ${it.descricao}` : ""}
                   </span>
                 </div>

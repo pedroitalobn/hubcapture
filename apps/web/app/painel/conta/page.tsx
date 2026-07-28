@@ -71,7 +71,7 @@ export default function ContaPage() {
   return (
     <>
       <header>
-        <h1 className="text-2xl font-bold">Minha conta</h1>
+        <h1 className="text-gradient text-2xl font-bold">Minha conta</h1>
         <p className="text-sm text-gray-500">{email}</p>
       </header>
 
@@ -86,7 +86,7 @@ export default function ContaPage() {
           <input
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input-glass px-3.5 py-2.5"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -95,7 +95,7 @@ export default function ContaPage() {
             value={telefone}
             onChange={(e) => setTelefone(e.target.value)}
             placeholder="+5511999999999"
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input-glass px-3.5 py-2.5"
           />
         </label>
         <label className="flex items-center gap-2 text-sm">
@@ -109,7 +109,7 @@ export default function ContaPage() {
         <button
           type="submit"
           disabled={salvando}
-          className="self-start rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
+          className="btn-primary self-start px-5 py-2.5"
         >
           Salvar perfil
         </button>
@@ -126,13 +126,13 @@ export default function ContaPage() {
             minLength={8}
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input-glass px-3.5 py-2.5"
           />
         </label>
         <button
           type="submit"
           disabled={salvando || !senha}
-          className="self-start rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
+          className="btn-primary self-start px-5 py-2.5"
         >
           Alterar senha
         </button>

@@ -46,17 +46,13 @@ function Chip({
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition ${
-        active
-          ? "border-brand bg-brand text-brand-fg"
-          : "border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900"
-      }`}
+      className={`chip px-3 py-1 text-sm ${active ? "chip-active" : ""}`}
     >
       {label}
       {count !== undefined && (
         <span
           className={`rounded-full px-1.5 text-xs ${
-            active ? "bg-white/20" : "bg-gray-200 dark:bg-gray-800"
+            active ? "bg-white/20" : "bg-white/10"
           }`}
         >
           {count}

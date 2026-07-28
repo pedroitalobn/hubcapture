@@ -12,8 +12,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR">
-      <body>{children}</body>
+    <html lang="pt-BR" className="dark">
+      <body>
+        {/* Camada fixa de fundo: auroras + grade, atrás de todo o app */}
+        <div aria-hidden className="spatial-bg">
+          <div className="aurora aurora-a" />
+          <div className="aurora aurora-b" />
+          <div className="aurora aurora-c" />
+          <div className="spatial-grid" />
+        </div>
+        {children}
+      </body>
     </html>
   );
 }

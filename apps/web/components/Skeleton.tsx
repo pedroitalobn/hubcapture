@@ -1,10 +1,6 @@
-/** Skeleton pulsante (estado de loading). */
+/** Skeleton com shimmer de vidro (estado de loading). */
 export function Skeleton({ className = "" }: { className?: string }) {
-  return (
-    <div
-      className={`animate-pulse rounded-md bg-gray-200 dark:bg-gray-800 ${className}`}
-    />
-  );
+  return <div className={`skeleton-glass ${className}`} />;
 }
 
 export function SkeletonCards({ count = 4 }: { count?: number }) {
