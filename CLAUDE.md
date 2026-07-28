@@ -768,6 +768,12 @@ painel admin quando preciso):
   pelo IBGE — linha sem coluna de IBGE compatível é descartada (nunca ingere o
   Brasil inteiro). Mapeamento de campos genérico (valor/data/descrição por
   palavra-chave; FUNDEB/PASEP/retenção → natureza dedução).
+- **transferegov_esp / transferegov_voluntarias**: mesmo padrão do ff via
+  helper compartilhado `connectors/_postgrest.py` — descoberta de ROTA e coluna
+  de IBGE pelo OpenAPI do módulo (tabelas preferidas: plano_acao/convenio…),
+  overrides `transferegov_esp_endpoint|_ibge_field` e
+  `transferegov_voluntarias_endpoint|_ibge_field`, candidatos de coluna em 42703
+  e fallback IBGE 6 dígitos; scraping segue como fallback quando a API cai.
 - **siconfi/CAUC**: se `siconfi_csv_url` é página de dataset CKAN, resolve o
   recurso CSV real via `api/3/action/package_show` (preferindo 'cauc'; cache
   1h); colunas achadas por palavra-chave; delimitador ;/, autodetectado.
