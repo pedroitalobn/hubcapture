@@ -1070,6 +1070,36 @@
         "title": "MonitoramentoRead",
         "type": "object"
       },
+      "MunicipioBusca": {
+        "description": "Resultado da busca IBGE (nome → código) usada no onboarding conversacional.",
+        "properties": {
+          "ibge": {
+            "title": "Ibge",
+            "type": "string"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          }
+        },
+        "required": [
+          "ibge",
+          "nome"
+        ],
+        "title": "MunicipioBusca",
+        "type": "object"
+      },
       "MunicipioIn": {
         "properties": {
           "ibge": {
@@ -1145,6 +1175,115 @@
           "modo"
         ],
         "title": "MunicipioPerfil",
+        "type": "object"
+      },
+      "NovidadeItem": {
+        "description": "Uma novidade do território — proposta/verba recém-atualizada no cache.",
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          },
+          "href": {
+            "title": "Href",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Ibge"
+          },
+          "municipio_nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Nome"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          },
+          "valor": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor"
+          }
+        },
+        "required": [
+          "tipo",
+          "titulo",
+          "fonte",
+          "href"
+        ],
+        "title": "NovidadeItem",
+        "type": "object"
+      },
+      "NovidadesPerfil": {
+        "description": "Feed 'últimas novidades' do Meu painel, recortado pelo perfil (RLS).",
+        "properties": {
+          "itens": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/NovidadeItem"
+            },
+            "title": "Itens",
+            "type": "array"
+          },
+          "sync_runs": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SyncRunStatus"
+            },
+            "title": "Sync Runs",
+            "type": "array"
+          }
+        },
+        "title": "NovidadesPerfil",
         "type": "object"
       },
       "ObraRead": {
@@ -2450,6 +2589,58 @@
           "municipio_ibge"
         ],
         "title": "SyncRepassesRequest",
+        "type": "object"
+      },
+      "SyncRunStatus": {
+        "description": "Última execução de coleta por fonte — o painel mostra o estado honesto.",
+        "properties": {
+          "finalizado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalizado Em"
+          },
+          "fonte": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fonte"
+          },
+          "registros": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registros"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "title": "SyncRunStatus",
         "type": "object"
       },
       "TokenPair": {
@@ -4276,6 +4467,59 @@
         ]
       }
     },
+    "/api/v1/municipios": {
+      "get": {
+        "operationId": "buscar_municipios_api_v1_municipios_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 2,
+              "title": "Q",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MunicipioBusca"
+                  },
+                  "title": "Response Buscar Municipios Api V1 Municipios Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Buscar Municipios",
+        "tags": [
+          "municipios"
+        ]
+      }
+    },
     "/api/v1/obras": {
       "get": {
         "operationId": "listar_obras_api_v1_obras_get",
@@ -4782,6 +5026,33 @@
           }
         ],
         "summary": "Get Perfil",
+        "tags": [
+          "perfil"
+        ]
+      }
+    },
+    "/api/v1/perfil/novidades": {
+      "get": {
+        "description": "Feed 'últimas novidades' do território, recortado pelo perfil do usuário.",
+        "operationId": "novidades_perfil_api_v1_perfil_novidades_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NovidadesPerfil"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Novidades Perfil",
         "tags": [
           "perfil"
         ]

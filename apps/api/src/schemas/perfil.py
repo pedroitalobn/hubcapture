@@ -9,7 +9,18 @@ já filtrada pelo território do usuário via RLS.
 
 from __future__ import annotations
 
+from datetime import date, datetime
+from decimal import Decimal
+
 from pydantic import BaseModel, ConfigDict
+
+
+class MunicipioBusca(BaseModel):
+    """Resultado da busca IBGE (nome → código) usada no onboarding conversacional."""
+
+    ibge: str
+    nome: str
+    uf: str | None = None
 
 
 class MunicipioPerfil(BaseModel):
@@ -48,3 +59,34 @@ class VisaoGeralPerfil(BaseModel):
     municipios: list[MunicipioPerfil] = []
     areas: list[str] = []
     dimensoes: list[DimensaoResumo] = []
+
+
+class NovidadeItem(BaseModel):
+    """Uma novidade do território — proposta/verba recém-atualizada no cache."""
+
+    tipo: str  # 'captacao' | 'recebido'
+    titulo: str
+    descricao: str | None = None
+    valor: Decimal | None = None
+    data: date | None = None
+    fonte: str
+    municipio_ibge: str | None = None
+    municipio_nome: str | None = None
+    href: str
+
+
+class SyncRunStatus(BaseModel):
+    """Última execução de coleta por fonte — o painel mostra o estado honesto."""
+
+    model_config = ConfigDict(from_attributes=True)
+    fonte: str | None = None
+    status: str | None = None  # 'ok' | 'degradado' | 'erro'
+    registros: int | None = None
+    finalizado_em: datetime | None = None
+
+
+class NovidadesPerfil(BaseModel):
+    """Feed 'últimas novidades' do Meu painel, recortado pelo perfil (RLS)."""
+
+    itens: list[NovidadeItem] = []
+    sync_runs: list[SyncRunStatus] = []

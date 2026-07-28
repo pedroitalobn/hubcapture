@@ -1,8 +1,8 @@
-"""Onboarding: grava municípios monitorados + preferências e dispara 1º sync.
+"""Onboarding: grava municípios monitorados + preferências do perfil.
 
-O sync inicial é best-effort e roda em SAVEPOINT por município: uma falha de
-fonte (comum — APIs oficiais instáveis) reverte só o savepoint e é registrada em
-`sync_runs`, sem derrubar o onboarding.
+O 1º sync (dados reais das fontes) NÃO roda aqui: o router agenda
+`services.primeiro_sync.executar` como BackgroundTask — o onboarding responde
+na hora e o painel se povoa conforme as fontes concluem (best-effort).
 """
 
 from __future__ import annotations
@@ -17,10 +17,6 @@ from ..models.municipio_interesse import MunicipioInteresse
 from ..models.preferencias import PreferenciasUsuario
 from ..models.usuario import Usuario
 from ..schemas.curadoria import OnboardingRequest, OnboardingResponse
-from . import repasses as repasses_service
-
-# fontes de recebidos que o onboarding pode sincronizar de cara
-FONTES_RECEBIDOS = {"fpm", "emendas", "fns", "fnde"}
 
 
 async def onboarding(
@@ -56,22 +52,6 @@ async def onboarding(
     )
     await session.execute(prefs)
 
-    sync_disparado = False
-    if req.disparar_sync:
-        fontes = sorted(set(req.fontes) & FONTES_RECEBIDOS) or ["fpm", "emendas"]
-        for m in req.municipios:
-            try:
-                async with session.begin_nested():
-                    await repasses_service.sync_municipio(
-                        session,
-                        usuario_id=usuario_id,
-                        municipio_ibge=m.ibge,
-                        fontes=fontes,
-                    )
-            except Exception:
-                pass  # sync_runs já registrou; onboarding não falha
-        sync_disparado = True
-
     return OnboardingResponse(
-        municipios=len(req.municipios), sync_disparado=sync_disparado
+        municipios=len(req.municipios), sync_disparado=req.disparar_sync
     )

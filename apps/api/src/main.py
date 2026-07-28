@@ -64,6 +64,7 @@ def register_routers() -> None:
         copiloto,
         favoritos,
         monitoramentos,
+        municipios,
         obras,
         onboarding,
         pastas,
@@ -77,6 +78,7 @@ def register_routers() -> None:
     for mod in (
         auth,
         perfil,
+        municipios,
         propostas,
         consulta_avulsa,
         repasses,

@@ -1,4 +1,10 @@
-"""Endpoint de onboarding (grava municípios/preferências + 1º sync opcional)."""
+"""Endpoint de onboarding (grava municípios/preferências + 1º sync em background).
+
+O perfil é gravado na transação do request; o 1º sync (dados REAIS de todas as
+dimensões — captação/recebidos/conformidade/obras) é agendado via
+`primeiro_sync.agendar` (asyncio.create_task — NUNCA BackgroundTasks, que
+rodaria antes do commit da sessão e travaria o perfil; ver o módulo do serviço).
+"""
 
 from __future__ import annotations
 
@@ -9,6 +15,7 @@ from ...core.users import current_active_user
 from ...models.usuario import Usuario
 from ...schemas.curadoria import OnboardingRequest, OnboardingResponse
 from ...services import onboarding as service
+from ...services import primeiro_sync
 from ..deps import get_rls_db
 
 router = APIRouter(tags=["onboarding"])
@@ -20,4 +27,12 @@ async def onboarding(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> OnboardingResponse:
-    return await service.onboarding(session, usuario_id=user.id, req=body)
+    resp = await service.onboarding(session, usuario_id=user.id, req=body)
+    if body.disparar_sync and body.municipios:
+        primeiro_sync.agendar(
+            user.id,
+            [m.ibge for m in body.municipios],
+            list(body.fontes),
+            list(body.areas),
+        )
+    return resp
