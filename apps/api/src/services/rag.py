@@ -15,9 +15,7 @@ from ..models.proposta import Proposta
 from ..models.proposta_embedding import PropostaEmbedding
 
 
-async def buscar_propostas(
-    session: AsyncSession, query: str, k: int = 5
-) -> list[Proposta]:
+async def buscar_propostas(session: AsyncSession, query: str, k: int = 5) -> list[Proposta]:
     vec = await embed_um(query)
     if vec is not None:
         stmt = (

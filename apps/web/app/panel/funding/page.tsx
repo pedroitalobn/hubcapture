@@ -17,6 +17,14 @@ type Proposta = {
   fonte: string;
   tipo?: string;
   resumo_ia?: string | null;
+  execucao?: {
+    valor_global?: string | null;
+    valor_empenhado?: string | null;
+    valor_liberado?: string | null;
+    valor_pago?: string | null;
+    saldo_conta?: string | null;
+    ano?: string | number | null;
+  } | null;
 };
 
 type FonteStatus = {
@@ -31,6 +39,7 @@ type MunicipioPerfil = { ibge: string; nome?: string | null; uf?: string | null 
 
 type Filtros = {
   municipio: string;
+  ano: string;
   tipo: "" | "cadastrada" | "disponivel";
   fonte: string;
   area: string;
@@ -45,6 +54,7 @@ type Aba = { id: string; nome: string; filtros: Filtros };
 
 const FILTROS_VAZIOS: Filtros = {
   municipio: "",
+  ano: "",
   tipo: "",
   fonte: "",
   area: "",
@@ -83,6 +93,11 @@ function formatBRL(v?: string | null): string {
   const n = Number(v);
   if (Number.isNaN(n)) return v;
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function num(v?: string | number | null): number {
+  const n = Number(v);
+  return Number.isNaN(n) ? 0 : n;
 }
 
 function abasIniciais(): Aba[] {
@@ -280,10 +295,43 @@ export default function CaptacaoPage() {
 
   const visiveis = useMemo(() => {
     let lista = acompanhando ? acompanhadas : propostas;
+    if (filtros.ano)
+      lista = lista.filter((p) => String(p.execucao?.ano ?? "") === filtros.ano);
     if (filtros.soFavoritas) lista = lista.filter((p) => favoritos.has(p.id));
     if (filtros.pastaId) lista = lista.filter((p) => pastaPropostas.has(p.id));
     return lista;
-  }, [propostas, acompanhadas, acompanhando, filtros.soFavoritas, filtros.pastaId, favoritos, pastaPropostas]);
+  }, [propostas, acompanhadas, acompanhando, filtros.ano, filtros.soFavoritas, filtros.pastaId, favoritos, pastaPropostas]);
+
+  const anos = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (acompanhando ? acompanhadas : propostas)
+            .map((p) => String(p.execucao?.ano ?? ""))
+            .filter(Boolean),
+        ),
+      ).sort((a, b) => b.localeCompare(a)),
+    [propostas, acompanhadas, acompanhando],
+  );
+
+  // agregados de EXECUÇÃO (TransfereGov): o que foi disponibilizado × usado
+  const execucao = useMemo(() => {
+    const com = visiveis.filter((p) => p.execucao);
+    if (com.length === 0) return null;
+    const soma = (k: "valor_global" | "valor_empenhado" | "valor_liberado" | "valor_pago" | "saldo_conta") =>
+      com.reduce((acc, p) => acc + num(p.execucao?.[k]), 0);
+    const empenhado = soma("valor_empenhado");
+    const pago = soma("valor_pago");
+    return {
+      transferencias: com.length,
+      global: soma("valor_global"),
+      empenhado,
+      liberado: soma("valor_liberado"),
+      pago,
+      saldo: soma("saldo_conta"),
+      aUtilizar: Math.max(0, empenhado - pago),
+    };
+  }, [visiveis]);
 
   const situacoes = useMemo(
     () =>
@@ -386,6 +434,21 @@ export default function CaptacaoPage() {
               <option key={m.ibge} value={m.ibge}>
                 {m.nome ?? m.ibge}
                 {m.uf ? `/${m.uf}` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="field-label">Ano</span>
+          <select
+            value={filtros.ano}
+            onChange={(e) => setFiltros({ ano: e.target.value })}
+            className="input w-28"
+          >
+            <option value="">todos</option>
+            {anos.map((a) => (
+              <option key={a} value={a}>
+                {a}
               </option>
             ))}
           </select>
@@ -521,6 +584,41 @@ export default function CaptacaoPage() {
 
       {msg && <p className="text-sm text-ink-2">{msg}</p>}
 
+      {/* execução financeira (TransfereGov): quanto foi disponibilizado × usado */}
+      {execucao && (
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          {(
+            [
+              ["Transferências", String(execucao.transferencias), false],
+              ["Valor global", formatBRL(String(execucao.global)), false],
+              ["Empenhado", formatBRL(String(execucao.empenhado)), false],
+              ["Empenhado a utilizar", formatBRL(String(execucao.aUtilizar)), true],
+              ["Pago", formatBRL(String(execucao.pago)), false],
+              ["Saldo em conta", formatBRL(String(execucao.saldo)), false],
+            ] as const
+          ).map(([rotulo, valor, destaque]) => (
+            <div
+              key={rotulo}
+              className={`card p-4 ${destaque ? "ring-1 ring-lime" : ""}`}
+            >
+              <p className="field-label">{rotulo}</p>
+              <p
+                className={`mt-1 text-lg tabular-nums tracking-tight ${
+                  destaque ? "text-lime" : ""
+                }`}
+              >
+                {valor}
+              </p>
+              {destaque && (
+                <p className="mt-0.5 text-[11px] text-ink-3">
+                  verba disponibilizada ainda não utilizada
+                </p>
+              )}
+            </div>
+          ))}
+        </section>
+      )}
+
       <section className="overflow-x-auto">
         {visiveis.length === 0 ? (
           <p className="text-ink-3">
@@ -538,7 +636,8 @@ export default function CaptacaoPage() {
                   <th className="px-4 py-3 w-8"></th>
                   <th className="px-3 py-3">Proposta</th>
                   <th className="px-3 py-3">Município</th>
-                  <th className="px-3 py-3">Valor</th>
+                  <th className="px-3 py-3">Valor global</th>
+                  <th className="px-3 py-3">Empenhado</th>
                   <th className="px-3 py-3">Situação</th>
                   <th className="px-3 py-3">Pasta</th>
                 </tr>
@@ -578,7 +677,24 @@ export default function CaptacaoPage() {
                       {p.uf ? `/${p.uf}` : ""}
                     </td>
                     <td className="px-3 py-3 tabular-nums">
-                      {formatBRL(p.valor_total)}
+                      {formatBRL(p.execucao?.valor_global ?? p.valor_total)}
+                    </td>
+                    <td className="px-3 py-3 tabular-nums">
+                      {p.execucao?.valor_empenhado != null ? (
+                        <>
+                          {formatBRL(p.execucao.valor_empenhado)}
+                          {num(p.execucao.valor_empenhado) > num(p.execucao.valor_pago) && (
+                            <span
+                              className="ml-1 align-middle text-[10px] text-lime"
+                              title="Há verba empenhada ainda não utilizada"
+                            >
+                              ●
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="px-3 py-3">
                       <span className="text-ink-2">{p.situacao ?? "—"}</span>

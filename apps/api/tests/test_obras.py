@@ -23,9 +23,7 @@ def _rec(fonte: str, ext: str, ibge: str, situacao: str, **extra) -> RawRecord:
     )
 
 
-async def _seed(
-    fonte: str, ext: str, ibge: str, situacao: str, invest: str = "100"
-) -> None:
+async def _seed(fonte: str, ext: str, ibge: str, situacao: str, invest: str = "100") -> None:
     async with _owner_engine.begin() as conn:
         await conn.execute(
             text(
@@ -102,9 +100,7 @@ async def test_sync_municipio_multi_fonte(seed_user, monkeypatch) -> None:
         assert len(rows) == 6
 
 
-async def test_sync_fonte_com_falha_nao_derruba_as_outras(
-    seed_user, monkeypatch
-) -> None:
+async def test_sync_fonte_com_falha_nao_derruba_as_outras(seed_user, monkeypatch) -> None:
     u = await seed_user("oe@e.com")
 
     class _Quebrada:

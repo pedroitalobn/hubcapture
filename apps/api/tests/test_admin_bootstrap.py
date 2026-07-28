@@ -34,9 +34,7 @@ async def test_bootstrap_cria_e_promove(monkeypatch) -> None:
     await bootstrap.ensure_admin()  # idempotente (não duplica)
 
     async with SessionLocal() as s:
-        rows = (
-            await s.execute(select(Usuario).where(Usuario.email == email))
-        ).scalars().all()
+        rows = (await s.execute(select(Usuario).where(Usuario.email == email))).scalars().all()
     assert len(rows) == 1
     assert rows[0].is_superuser and rows[0].is_active
 
@@ -93,9 +91,7 @@ async def test_login_promove_admin_do_ambiente(monkeypatch, seed_user) -> None:
     monkeypatch.setattr(settings, "admin_password", "irrelevante")
 
     async with SessionLocal() as s:
-        user = (
-            await s.execute(select(Usuario).where(Usuario.id == uid))
-        ).scalar_one()
+        user = (await s.execute(select(Usuario).where(Usuario.id == uid))).scalar_one()
         assert not user.is_superuser
         promovido = await bootstrap.promover_se_admin_env(user)
         assert promovido
@@ -103,9 +99,7 @@ async def test_login_promove_admin_do_ambiente(monkeypatch, seed_user) -> None:
         assert not await bootstrap.promover_se_admin_env(user)
 
     async with SessionLocal() as s:
-        atualizado = (
-            await s.execute(select(Usuario).where(Usuario.id == uid))
-        ).scalar_one()
+        atualizado = (await s.execute(select(Usuario).where(Usuario.id == uid))).scalar_one()
         assert atualizado.is_superuser and atualizado.is_active and atualizado.is_verified
 
 
@@ -117,8 +111,6 @@ async def test_promover_ignora_email_diferente(monkeypatch, seed_user) -> None:
     monkeypatch.setattr(settings, "admin_email", "outro@hub.com")
 
     async with SessionLocal() as s:
-        user = (
-            await s.execute(select(Usuario).where(Usuario.id == uid))
-        ).scalar_one()
+        user = (await s.execute(select(Usuario).where(Usuario.id == uid))).scalar_one()
         assert not await bootstrap.promover_se_admin_env(user)
         assert not user.is_superuser

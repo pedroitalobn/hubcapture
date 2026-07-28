@@ -114,9 +114,7 @@ async def criar_usuario(
     if dados.is_superuser:
         valores["is_superuser"] = True
     if valores:
-        await session.execute(
-            update(Usuario).where(Usuario.id == user.id).values(**valores)
-        )
+        await session.execute(update(Usuario).where(Usuario.id == user.id).values(**valores))
         for k, v in valores.items():
             setattr(user, k, v)  # reflete na resposta
         await session.flush()
@@ -133,9 +131,7 @@ async def atualizar_usuario(
 ) -> Usuario:
     valores = dados.model_dump(exclude_unset=True)
     if valores:
-        await session.execute(
-            update(Usuario).where(Usuario.id == usuario_id).values(**valores)
-        )
+        await session.execute(update(Usuario).where(Usuario.id == usuario_id).values(**valores))
     user = (
         await session.execute(select(Usuario).where(Usuario.id == usuario_id))
     ).scalar_one_or_none()
@@ -147,6 +143,4 @@ async def atualizar_usuario(
 async def atribuir_plano(
     session: AsyncSession, usuario_id: uuid.UUID, plano_id: uuid.UUID | None
 ) -> None:
-    await session.execute(
-        update(Usuario).where(Usuario.id == usuario_id).values(plano_id=plano_id)
-    )
+    await session.execute(update(Usuario).where(Usuario.id == usuario_id).values(plano_id=plano_id))

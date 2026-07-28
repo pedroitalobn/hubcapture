@@ -32,6 +32,7 @@ class PropostaCanonica(BaseModel):
     data_atualizacao_fonte: date | None = None
     url_origem: str | None = None
     proveniencia: dict | None = None
+    execucao: dict | None = None
     hash_conteudo: str | None = None
 
 
@@ -61,6 +62,7 @@ class PropostaRead(BaseModel):
     data_atualizacao_fonte: date | None = None
     url_origem: str | None = None
     proveniencia: dict | None = None
+    execucao: dict | None = None
     resumo_ia: str | None = None
     cache_atualizado_em: datetime | None = None
 

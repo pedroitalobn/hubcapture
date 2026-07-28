@@ -30,6 +30,7 @@ _HASH_FIELDS = (
     "pendencias",
     "movimentacao",
     "data_atualizacao_fonte",
+    "execucao",
 )
 
 
@@ -67,6 +68,43 @@ def compute_hash(data: dict[str, Any]) -> str:
     material = {k: data.get(k) for k in _HASH_FIELDS}
     payload = json.dumps(material, sort_keys=True, default=str, ensure_ascii=False)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+# colunas de execução financeira do painel TransfereGov (Visão Geral) — o
+# "quanto foi disponibilizado (empenhado) e ainda não utilizado" que o gestor
+# quer ver. Aceita tanto snake_case quanto os cabeçalhos do relatório.
+_EXEC_KEYS = {
+    "valor_global": ("valor_global", "valor global", "vl_global"),
+    "valor_empenhado": ("valor_empenhado", "valor empenhado", "vl_empenhado"),
+    "valor_liberado": ("valor_liberado", "valor liberado", "vl_desembolsado", "vl_liberado"),
+    "valor_pago": ("valor_pago", "valor pago", "vl_pago"),
+    "saldo_conta": ("saldo_conta", "saldo em conta", "vl_saldo"),
+    "ano": ("ano",),
+    "qtd_transferencias": ("qtd_transferencias", "qtd. transferencias"),
+    "ente_recebedor": ("ente_recebedor", "ente recebedor"),
+    "natureza_juridica": ("natureza_juridica", "natureza juridica"),
+    "data_assinatura": ("data_assinatura", "data assinatura"),
+    "data_inicio_vigencia": ("data_inicio_vigencia", "data inicio vigencia"),
+    "data_fim_vigencia": ("data_fim_vigencia", "data fim vigencia"),
+    "tipo_transferencia": ("tipo_transferencia", "tipo transferencia"),
+}
+
+
+def _montar_execucao(plano: dict) -> dict | None:
+    """Extrai o bloco de execução financeira quando a fonte o fornece."""
+    normalizado = {
+        k.strip().lower().replace("ê", "e").replace("ã", "a").replace("ç", "c"): v
+        for k, v in plano.items()
+        if isinstance(k, str)
+    }
+    execucao: dict = {}
+    for destino, candidatos in _EXEC_KEYS.items():
+        for c in candidatos:
+            if c in normalizado and normalizado[c] not in (None, ""):
+                v = normalizado[c]
+                execucao[destino] = str(v) if destino.startswith(("valor", "saldo")) else v
+                break
+    return execucao or None
 
 
 def normalize(record: RawRecord) -> PropostaCanonica:
@@ -136,8 +174,15 @@ def normalize(record: RawRecord) -> PropostaCanonica:
                 plano.get("ano_plano_acao"),
             )
         ),
-        "url_origem": None,
+        "url_origem": _first(plano.get("link"), plano.get("url"), plano.get("url_origem")),
+        "execucao": _montar_execucao(plano) if isinstance(plano, dict) else None,
     }
+
+    # fim de vigência vira prazo estruturado (alimenta /proposals/deadlines)
+    execucao = fields.get("execucao") or {}
+    fim_vigencia = _to_date(execucao.get("data_fim_vigencia"))
+    if fim_vigencia:
+        fields["prazos"] = [{"tipo": "fim de vigência", "data_limite": fim_vigencia.isoformat()}]
 
     # proveniência por-campo: registros vindos de scraper marcam 'scrape'
     origem = "scrape" if record.endpoint in ("scrape", "firecrawl", "crawl4ai") else "api"

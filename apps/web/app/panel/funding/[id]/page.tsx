@@ -32,7 +32,26 @@ type Proposta = {
   proveniencia?: Record<string, string> | null;
   resumo_ia?: string | null;
   tipo?: string;
+  execucao?: {
+    valor_global?: string | null;
+    valor_empenhado?: string | null;
+    valor_liberado?: string | null;
+    valor_pago?: string | null;
+    saldo_conta?: string | null;
+    ano?: string | number | null;
+    ente_recebedor?: string | null;
+    natureza_juridica?: string | null;
+    data_assinatura?: string | null;
+    data_inicio_vigencia?: string | null;
+    data_fim_vigencia?: string | null;
+    tipo_transferencia?: string | null;
+  } | null;
 };
+
+function num(v?: string | number | null): number {
+  const n = Number(v);
+  return Number.isNaN(n) ? 0 : n;
+}
 
 function formatBRL(v?: string | null): string {
   if (!v) return "—";
@@ -217,6 +236,62 @@ export default function PropostaDetalhePage() {
             <Campo rotulo="Contrapartida" valor={formatBRL(p.contrapartida)} />
           </div>
         </Secao>
+
+        {p.execucao && (
+          <Secao titulo={`Execução financeira — TransfereGov${p.execucao.ano ? ` (${p.execucao.ano})` : ""}`}>
+            {(() => {
+              const global = num(p.execucao!.valor_global ?? p.valor_total);
+              const empenhado = num(p.execucao!.valor_empenhado);
+              const liberado = num(p.execucao!.valor_liberado);
+              const pago = num(p.execucao!.valor_pago);
+              const pct = (v: number) =>
+                global > 0 ? `${Math.min(100, (v / global) * 100)}%` : "0%";
+              return (
+                <div className="flex flex-col gap-3">
+                  {/* barra: global (trilho) ▸ empenhado ▸ liberado ▸ pago */}
+                  <div
+                    className="relative h-3 overflow-hidden rounded-full bg-surface-2"
+                    title="Barra sobre o valor global: empenhado, liberado e pago"
+                  >
+                    <div
+                      className="absolute inset-y-0 left-0 rounded-full bg-lime/30"
+                      style={{ width: pct(empenhado) }}
+                    />
+                    <div
+                      className="absolute inset-y-0 left-0 rounded-full bg-lime/60"
+                      style={{ width: pct(liberado) }}
+                    />
+                    <div
+                      className="absolute inset-y-0 left-0 rounded-full bg-lime"
+                      style={{ width: pct(pago) }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <Campo rotulo="Valor global" valor={formatBRL(p.execucao!.valor_global)} />
+                    <Campo rotulo="Empenhado" valor={formatBRL(p.execucao!.valor_empenhado)} />
+                    <Campo rotulo="Liberado" valor={formatBRL(p.execucao!.valor_liberado)} />
+                    <Campo rotulo="Pago" valor={formatBRL(p.execucao!.valor_pago)} />
+                    <Campo rotulo="Saldo em conta" valor={formatBRL(p.execucao!.saldo_conta)} />
+                    <div>
+                      <p className="field-label">Empenhado a utilizar</p>
+                      <p className="text-sm font-medium text-lime">
+                        {formatBRL(String(Math.max(0, empenhado - pago)))}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <Campo rotulo="Tipo" valor={p.execucao!.tipo_transferencia} />
+                    <Campo rotulo="Ente recebedor" valor={p.execucao!.ente_recebedor} />
+                    <Campo rotulo="Assinatura" valor={p.execucao!.data_assinatura} />
+                    <Campo rotulo="Início da vigência" valor={p.execucao!.data_inicio_vigencia} />
+                    <Campo rotulo="Fim da vigência" valor={p.execucao!.data_fim_vigencia} />
+                    <Campo rotulo="Natureza jurídica" valor={p.execucao!.natureza_juridica} />
+                  </div>
+                </div>
+              );
+            })()}
+          </Secao>
+        )}
 
         <Secao titulo="Situação e movimentação">
           <div className="grid gap-3">
