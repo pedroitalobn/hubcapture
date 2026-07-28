@@ -22,6 +22,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/config/llm/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Llm Providers
+         * @description Provedores de LLM suportados, com status da chave e seleção de modelo atual.
+         */
+        get: operations["listar_llm_providers_api_v1_admin_config_llm_providers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/llm/{provider_id}/chave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Definir Llm Chave
+         * @description Grava a API key do provedor e já devolve os modelos dele (menor fricção).
+         */
+        put: operations["definir_llm_chave_api_v1_admin_config_llm__provider_id__chave_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/llm/{provider_id}/modelos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Llm Modelos
+         * @description Modelos do provedor usando a chave já salva (listagem ao vivo + fallback).
+         */
+        get: operations["listar_llm_modelos_api_v1_admin_config_llm__provider_id__modelos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/conhecimento": {
         parameters: {
             query?: never;
@@ -1169,6 +1229,47 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** LlmChaveIn */
+        LlmChaveIn: {
+            /** Api Key */
+            api_key: string;
+        };
+        /** LlmModelosOut */
+        LlmModelosOut: {
+            /** Erro */
+            erro?: string | null;
+            /** Modelos */
+            modelos: string[];
+            /** Origem */
+            origem: string;
+            /** Provider */
+            provider: string;
+        };
+        /** LlmProviderOut */
+        LlmProviderOut: {
+            /** Chave */
+            chave: string;
+            /** Chave Mascarada */
+            chave_mascarada?: string | null;
+            /** Configurado */
+            configurado: boolean;
+            /** Docs Url */
+            docs_url: string;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Modelo Chat
+             * @default false
+             */
+            modelo_chat: boolean;
+            /**
+             * Modelo Resumo
+             * @default false
+             */
+            modelo_resumo: boolean;
+        };
         /** MonitoramentoCreate */
         MonitoramentoCreate: {
             /**
@@ -1844,6 +1945,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConfigItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_llm_providers_api_v1_admin_config_llm_providers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LlmProviderOut"][];
+                };
+            };
+        };
+    };
+    definir_llm_chave_api_v1_admin_config_llm__provider_id__chave_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LlmChaveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LlmModelosOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_llm_modelos_api_v1_admin_config_llm__provider_id__modelos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LlmModelosOut"];
                 };
             };
             /** @description Validation Error */

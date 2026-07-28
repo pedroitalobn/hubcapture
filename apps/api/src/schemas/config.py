@@ -20,6 +20,28 @@ class ConfigSet(BaseModel):
     valor: str | None = None
 
 
+class LlmProviderOut(BaseModel):
+    id: str
+    label: str
+    chave: str  # nome da chave no catálogo (llm_<id>_api_key)
+    configurado: bool
+    chave_mascarada: str | None = None
+    docs_url: str
+    modelo_chat: bool = False  # este provedor é o do modelo de chat atual
+    modelo_resumo: bool = False
+
+
+class LlmChaveIn(BaseModel):
+    api_key: str
+
+
+class LlmModelosOut(BaseModel):
+    provider: str
+    modelos: list[str]
+    origem: str  # 'api' (listagem ao vivo) | 'fallback' (lista curada)
+    erro: str | None = None
+
+
 class ConhecimentoCreate(BaseModel):
     titulo: str
     conteudo: str

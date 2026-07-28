@@ -990,6 +990,110 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "LlmChaveIn": {
+        "properties": {
+          "api_key": {
+            "title": "Api Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "api_key"
+        ],
+        "title": "LlmChaveIn",
+        "type": "object"
+      },
+      "LlmModelosOut": {
+        "properties": {
+          "erro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erro"
+          },
+          "modelos": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Modelos",
+            "type": "array"
+          },
+          "origem": {
+            "title": "Origem",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "modelos",
+          "origem"
+        ],
+        "title": "LlmModelosOut",
+        "type": "object"
+      },
+      "LlmProviderOut": {
+        "properties": {
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "chave_mascarada": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chave Mascarada"
+          },
+          "configurado": {
+            "title": "Configurado",
+            "type": "boolean"
+          },
+          "docs_url": {
+            "title": "Docs Url",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "modelo_chat": {
+            "default": false,
+            "title": "Modelo Chat",
+            "type": "boolean"
+          },
+          "modelo_resumo": {
+            "default": false,
+            "title": "Modelo Resumo",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "chave",
+          "configurado",
+          "docs_url"
+        ],
+        "title": "LlmProviderOut",
+        "type": "object"
+      },
       "MonitoramentoCreate": {
         "properties": {
           "canais": {
@@ -3045,6 +3149,143 @@
           }
         ],
         "summary": "Definir Config",
+        "tags": [
+          "admin-config"
+        ]
+      }
+    },
+    "/api/v1/admin/config/llm/providers": {
+      "get": {
+        "description": "Provedores de LLM suportados, com status da chave e seleção de modelo atual.",
+        "operationId": "listar_llm_providers_api_v1_admin_config_llm_providers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LlmProviderOut"
+                  },
+                  "title": "Response Listar Llm Providers Api V1 Admin Config Llm Providers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Llm Providers",
+        "tags": [
+          "admin-config"
+        ]
+      }
+    },
+    "/api/v1/admin/config/llm/{provider_id}/chave": {
+      "put": {
+        "description": "Grava a API key do provedor e já devolve os modelos dele (menor fricção).",
+        "operationId": "definir_llm_chave_api_v1_admin_config_llm__provider_id__chave_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider_id",
+            "required": true,
+            "schema": {
+              "title": "Provider Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LlmChaveIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LlmModelosOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Definir Llm Chave",
+        "tags": [
+          "admin-config"
+        ]
+      }
+    },
+    "/api/v1/admin/config/llm/{provider_id}/modelos": {
+      "get": {
+        "description": "Modelos do provedor usando a chave já salva (listagem ao vivo + fallback).",
+        "operationId": "listar_llm_modelos_api_v1_admin_config_llm__provider_id__modelos_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider_id",
+            "required": true,
+            "schema": {
+              "title": "Provider Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LlmModelosOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Llm Modelos",
         "tags": [
           "admin-config"
         ]
