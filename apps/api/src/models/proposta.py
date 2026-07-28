@@ -11,7 +11,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import Date, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import DateTime
@@ -41,8 +41,11 @@ class Proposta(Base):
     numero_proposta: Mapped[str | None] = mapped_column(String(64), nullable=True)
     titulo: Mapped[str | None] = mapped_column(Text, nullable=True)
     objeto: Mapped[str | None] = mapped_column(Text, nullable=True)
+    descricao: Mapped[str | None] = mapped_column(Text, nullable=True)
     orgao_superior: Mapped[str | None] = mapped_column(String(255), nullable=True)
     modalidade: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # exercício da proposta — o painel abre no ano corrente e filtra por ele
+    ano: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     municipio_ibge: Mapped[str | None] = mapped_column(String(7), index=True)
     municipio_nome: Mapped[str | None] = mapped_column(String(255), nullable=True)
     uf: Mapped[str | None] = mapped_column(String(2), nullable=True)

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import unicodedata
 import uuid
+from collections import defaultdict
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
@@ -16,15 +17,22 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.proposta import Proposta
-from ..schemas.proposta import PropostaCanonica
+from ..schemas.proposta import (
+    AnoResumo,
+    PropostaCanonica,
+    PropostaRead,
+    PropostasResumo,
+)
 
 # campos que o upsert atualiza em conflito (fonte,id_externo)
 _UPSERT_FIELDS = (
     "numero_proposta",
     "titulo",
     "objeto",
+    "descricao",
     "orgao_superior",
     "modalidade",
+    "ano",
     "municipio_ibge",
     "municipio_nome",
     "uf",
@@ -72,6 +80,7 @@ async def listar(
     valor_min: Decimal | None = None,
     valor_max: Decimal | None = None,
     tipo: str | None = None,
+    ano: int | None = None,
 ) -> list[Proposta]:
     stmt = select(Proposta)
     if municipio:
@@ -80,6 +89,8 @@ async def listar(
         stmt = stmt.where(Proposta.fonte == fonte)
     if situacao:
         stmt = stmt.where(Proposta.situacao == situacao)
+    if ano is not None:
+        stmt = stmt.where(Proposta.ano == ano)
     if area:
         from .perfil import AREA_FONTES
 
@@ -90,12 +101,59 @@ async def listar(
         stmt = stmt.where(Proposta.valor_total >= valor_min)
     if valor_max is not None:
         stmt = stmt.where(Proposta.valor_total <= valor_max)
-    stmt = stmt.order_by(Proposta.cache_atualizado_em.desc().nullslast())
+    stmt = stmt.order_by(
+        Proposta.ano.desc().nullslast(), Proposta.cache_atualizado_em.desc().nullslast()
+    )
     result = await session.execute(stmt)
     rows = list(result.scalars().all())
     if tipo in ("cadastrada", "disponivel"):
         rows = [p for p in rows if classificar_tipo(p.situacao) == tipo]
     return rows
+
+
+async def resumo(
+    session: AsyncSession,
+    *,
+    municipio: str | None = None,
+    fonte: str | None = None,
+    situacao: str | None = None,
+    area: str | None = None,
+    tipo: str | None = None,
+    ano: int | None = None,
+) -> PropostasResumo:
+    """KPIs do exercício em foco + a quebra por ano que alimenta o filtro.
+
+    `por_ano` é calculado SEM o recorte de ano — senão o filtro esconderia os
+    outros exercícios que ele mesmo precisa oferecer.
+    """
+    todas = await listar(
+        session, municipio=municipio, fonte=fonte, situacao=situacao, area=area, tipo=tipo
+    )
+
+    por_ano_itens: dict[int | None, list[Proposta]] = defaultdict(list)
+    for p in todas:
+        por_ano_itens[p.ano].append(p)
+
+    por_ano = [
+        AnoResumo(
+            ano=a,
+            total=len(itens),
+            valor_total=sum((p.valor_total or Decimal(0) for p in itens), Decimal(0)),
+        )
+        # exercícios mais recentes primeiro; os sem ano ficam no fim
+        for a, itens in sorted(por_ano_itens.items(), key=lambda kv: (kv[0] is None, -(kv[0] or 0)))
+    ]
+
+    foco = todas if ano is None else por_ano_itens.get(ano, [])
+    return PropostasResumo(
+        ano=ano,
+        total=len(foco),
+        valor_total=sum((p.valor_total or Decimal(0) for p in foco), Decimal(0)),
+        contrapartida_total=sum((p.contrapartida or Decimal(0) for p in foco), Decimal(0)),
+        municipios=len({p.municipio_ibge for p in foco if p.municipio_ibge}),
+        por_ano=por_ano,
+        propostas=[PropostaRead.model_validate(p) for p in foco],
+    )
 
 
 def _prazos_na_janela(p: Proposta, inicio: date, fim: date) -> list[dict]:

@@ -282,6 +282,35 @@
         "title": "AlertaRead",
         "type": "object"
       },
+      "AnoResumo": {
+        "description": "Um exercício disponível no território do usuário (alimenta os filtros).",
+        "properties": {
+          "ano": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ano"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "valor_total": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Total",
+            "type": "string"
+          }
+        },
+        "title": "AnoResumo",
+        "type": "object"
+      },
       "AtribuirPlano": {
         "properties": {
           "plano_id": {
@@ -2606,6 +2635,17 @@
       "PropostaRead": {
         "description": "Representação da proposta devolvida pela API.",
         "properties": {
+          "ano": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ano"
+          },
           "cache_atualizado_em": {
             "anyOf": [
               {
@@ -2641,6 +2681,17 @@
               }
             ],
             "title": "Data Atualizacao Fonte"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
           },
           "emenda": {
             "anyOf": [
@@ -2872,6 +2923,62 @@
           "tipo"
         ],
         "title": "PropostaRead",
+        "type": "object"
+      },
+      "PropostasResumo": {
+        "description": "KPIs da captação já recortados pelo ano em foco + os anos disponíveis.",
+        "properties": {
+          "ano": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ano"
+          },
+          "contrapartida_total": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Contrapartida Total",
+            "type": "string"
+          },
+          "municipios": {
+            "default": 0,
+            "title": "Municipios",
+            "type": "integer"
+          },
+          "por_ano": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AnoResumo"
+            },
+            "title": "Por Ano",
+            "type": "array"
+          },
+          "propostas": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PropostaRead"
+            },
+            "title": "Propostas",
+            "type": "array"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "valor_total": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Total",
+            "type": "string"
+          }
+        },
+        "title": "PropostasResumo",
         "type": "object"
       },
       "RefreshRequest": {
@@ -6377,6 +6484,24 @@
               ],
               "title": "Tipo"
             }
+          },
+          {
+            "description": "exercício; omitir = todos",
+            "in": "query",
+            "name": "ano",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "exercício; omitir = todos",
+              "title": "Ano"
+            }
           }
         ],
         "responses": {
@@ -6514,6 +6639,146 @@
         "summary": "Live Search Endpoint",
         "tags": [
           "proposals"
+        ]
+      }
+    },
+    "/api/v1/proposals/summary": {
+      "get": {
+        "description": "KPIs da captação no exercício em foco + a quebra por ano (filtro).",
+        "operationId": "resumo_propostas_api_v1_proposals_summary_get",
+        "parameters": [
+          {
+            "description": "código IBGE (7 dígitos)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "código IBGE (7 dígitos)",
+              "title": "Municipio"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fonte"
+            }
+          },
+          {
+            "in": "query",
+            "name": "area",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Area"
+            }
+          },
+          {
+            "in": "query",
+            "name": "situacao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Situacao"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tipo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(cadastrada|disponivel)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tipo"
+            }
+          },
+          {
+            "description": "exercício; omitir = todos",
+            "in": "query",
+            "name": "ano",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "exercício; omitir = todos",
+              "title": "Ano"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropostasResumo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Resumo Propostas",
+        "tags": [
+          "propostas"
         ]
       }
     },

@@ -843,3 +843,39 @@ lançar o Hub só com o que está maduro e reativar o resto quando a fonte estiv
   de `app/panel/layout.tsx` filtra os itens por `perfil.modulos`;
   `components/ModuloGate.tsx` cobre o acesso direto por URL às telas de eixo desligado
   (explica em vez de mostrar tela vazia).
+
+## 30. Propostas legíveis: exercício (ano) como coluna + normalizador tolerante
+
+Sintomas relatados: painel de captação com propostas de **nome errado, sem
+objeto e sem descrição**, e sem valores separados por ano.
+
+- **Exercício vira coluna** (`propostas.ano`, indexada, migration `d5e6f7a8b9c0`,
+  com backfill). Antes o ano só existia dentro de `execucao` (jsonb), que só o
+  relatório do painel SERPRO preenche — o Fundo a Fundo e as demais fontes
+  ficavam sem ano nenhum e o filtro do painel abria vazio. Entra também
+  `propostas.descricao`, ao lado de `objeto` (as fontes preenchem ora um, ora
+  outro). `listar(ano=…)` filtra; `GET /proposals?ano=` e
+  `GET /proposals/summary` (KPIs do ano em foco + `por_ano`, que **ignora** o
+  recorte porque é ele que alimenta o filtro). **Atenção**: `summary` é caminho
+  literal e tem de ser declarado ANTES de `/proposals/{proposta_id}`, senão vira
+  UUID inválido (422) — preso por `tests/test_propostas_endpoints.py`.
+- **Normalizador tolerante a variantes** (`ingestion/normalizer.py`): em vez de
+  ler blocos fixos (`plano_acao`/`programa`/`beneficiario`), ACHATA todos os
+  blocos de `raw` (incluindo `csv`, `convenio`, `scrape`) num dict de chaves
+  minúsculas sem acento e resolve cada campo canônico por **lista de candidatos**
+  — o ponto de calibração contra as APIs vivas (adicionar variante = adicionar
+  string). O bloco `execucao` (seção 28) segue intacto, agora alimentado pelo
+  dict achatado. Regras que matam os sintomas: **título nunca vazio** (nome →
+  objeto truncado em 120 → nº → id), **objeto e descrição se cobrem**,
+  `valor_total` soma custeio+investimento quando não há total explícito, valor em
+  formato BR (`1.234,56`) é aceito, e `ano` cai de `ano_*` → nº (`043210/2025`) →
+  `execucao.ano` → data da fonte.
+- **Web**: `/panel/funding` filtra por `ano` (com `execucao.ano` como retaguarda)
+  e **abre no exercício corrente**; se ele estiver vazio mas a busca trouxer
+  outros anos, mostra o mais recente em vez de uma lista vazia. A linha da lista
+  mostra o objeto quando não há resumo de IA (provedor é opcional).
+- **PDF é EXPORTAÇÃO, não visualização** (decisão travada): a forma oficial de
+  ver uma proposta é clicar nela e abrir `/panel/funding/[id]`. O botão
+  "↓ Exportar PDF" é ação **secundária no detalhe** — nunca na lista, nunca como
+  caminho de leitura. O PDF passou a incluir objeto, descrição e exercício, que
+  antes ficavam de fora.
