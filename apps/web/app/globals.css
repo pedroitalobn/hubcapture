@@ -75,6 +75,9 @@
   --elev-1: 0 1px 2px rgba(34, 47, 48, 0.05), 0 8px 24px rgba(34, 47, 48, 0.06);
   --elev-2: 0 2px 8px rgba(34, 47, 48, 0.07), 0 20px 48px rgba(34, 47, 48, 0.1);
   --rail: rgba(255, 255, 255, 0.7); /* trilho/painel lateral em vidro */
+  /* Auroras spatial — um passo acima do lume estático do canvas */
+  --aurora-1: color-mix(in srgb, var(--color-lime) 20%, transparent);
+  --aurora-2: color-mix(in srgb, var(--color-aqua) 16%, transparent);
   /* Movimento: easing padrão do sistema */
   --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -98,6 +101,8 @@
     --elev-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.35);
     --elev-2: 0 2px 10px rgba(0, 0, 0, 0.5), 0 24px 60px rgba(0, 0, 0, 0.45);
     --rail: rgba(43, 56, 57, 0.55);
+    --aurora-1: color-mix(in srgb, var(--color-lime) 12%, transparent);
+    --aurora-2: color-mix(in srgb, var(--color-aqua) 10%, transparent);
   }
 }
 
@@ -115,6 +120,61 @@ body {
   letter-spacing: -0.001em;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Camada spatial: auroras que derivam lentamente atrás de todo o app.
+   Pseudo-elementos fixos do body — zero markup, zero JS, GPU-only. */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  border-radius: 9999px;
+  filter: blur(80px);
+  pointer-events: none;
+  will-change: transform;
+}
+body::before {
+  width: 46rem;
+  height: 46rem;
+  top: -16rem;
+  right: -12rem;
+  background: radial-gradient(circle at 40% 40%, var(--aurora-1), transparent 65%);
+  animation: hc-aurora 30s ease-in-out infinite alternate;
+}
+body::after {
+  width: 40rem;
+  height: 40rem;
+  bottom: -14rem;
+  left: -10rem;
+  background: radial-gradient(circle at 60% 50%, var(--aurora-2), transparent 65%);
+  animation: hc-aurora 38s ease-in-out infinite alternate-reverse;
+}
+
+/* Grade técnica sutil no topo do canvas — profundidade de bancada */
+html::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--ink) 4%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--ink) 4%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 56px 56px;
+  mask-image: radial-gradient(75% 55% at 50% 0%, black 0%, transparent 100%);
+  -webkit-mask-image: radial-gradient(
+    75% 55% at 50% 0%,
+    black 0%,
+    transparent 100%
+  );
 }
 
 /* Hierarquia real: títulos e destaques em 500/600 — leitura primeiro. */
@@ -192,6 +252,26 @@ p {
   }
   50% {
     box-shadow: 0 0 0 5px transparent;
+  }
+}
+@keyframes hc-aurora {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-4rem, 2.5rem, 0) scale(1.1);
+  }
+  to {
+    transform: translate3d(3rem, -3rem, 0) scale(0.94);
+  }
+}
+@keyframes hc-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
   }
 }
 
@@ -300,11 +380,13 @@ p {
   .card {
     position: relative;
     background: var(--glass);
-    -webkit-backdrop-filter: blur(16px) saturate(135%);
-    backdrop-filter: blur(16px) saturate(135%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
     border: 1px solid var(--hairline);
     border-radius: 1rem;
-    box-shadow: var(--elev-1);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      var(--elev-1);
     overflow: hidden;
   }
   .card::before {
@@ -324,18 +406,41 @@ p {
   }
   .card-hover:hover {
     border-color: color-mix(in srgb, var(--color-lime) 45%, var(--hairline));
-    box-shadow: var(--elev-2);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.09),
+      var(--elev-2),
+      0 0 32px color-mix(in srgb, var(--color-lime) 10%, transparent);
     transform: translateY(-3px);
+  }
+  /* Brilho especular: um facho de luz varre o vidro no hover */
+  .card.card-hover::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 42%,
+      rgba(255, 255, 255, 0.08) 50%,
+      transparent 58%
+    );
+    transform: translateX(-160%);
+    transition: transform 0.9s var(--ease-spring);
+    pointer-events: none;
+  }
+  .card.card-hover:hover::after {
+    transform: translateX(160%);
   }
 
   /* Trilho lateral spatial — painel de vidro fixo, elevado do canvas */
   .rail {
     background: var(--rail);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
-    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    backdrop-filter: blur(24px) saturate(150%);
     border: 1px solid var(--hairline);
     border-radius: 1.25rem;
-    box-shadow: var(--elev-1);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.07),
+      var(--elev-1);
   }
 
   /* Barra superior de vidro (sticky) */
@@ -429,6 +534,7 @@ p {
   .input:focus {
     outline: none;
     border-color: var(--color-lime);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-lime) 16%, transparent);
   }
   @media (prefers-color-scheme: light) {
     .input:focus {
@@ -487,7 +593,9 @@ p {
     padding: 3px;
     border-radius: 12px;
     border: 1px solid var(--hairline);
-    background: transparent;
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(12px) saturate(130%);
+    backdrop-filter: blur(12px) saturate(130%);
   }
   .segmented-item {
     border-radius: 8px;
@@ -504,6 +612,7 @@ p {
   .segmented-item-active {
     background: var(--color-lime);
     color: var(--color-abyss);
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--color-lime) 30%, transparent);
   }
 
   /* Navegação: mono, r12; ativo = pill lime (sinal permitido) */
@@ -535,6 +644,7 @@ p {
     border-color: transparent;
     color: var(--color-abyss);
     padding-left: 0.75rem;
+    box-shadow: 0 4px 18px color-mix(in srgb, var(--color-lime) 28%, transparent);
   }
 
   /* Dot de tag: 6px gradiente — o marcador de classificação do sistema */
@@ -575,9 +685,17 @@ p {
   .bubble-ai {
     align-self: flex-start;
     border-bottom-left-radius: 6px;
-    background: var(--surface-2);
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(12px) saturate(130%);
+    backdrop-filter: blur(12px) saturate(130%);
     border: 1px solid var(--hairline);
     color: var(--ink);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  /* Levitação sutil — para marcas/ilhas flutuantes */
+  .anim-float {
+    animation: hc-float 7s ease-in-out infinite;
   }
 
   /* Barra de progresso fina com gradiente (onboarding, syncs) */
