@@ -76,6 +76,7 @@ CATALOGO: list[dict] = [
     _c("sismob_base_url", "SISMOB base URL (obras saúde)", "fonte", False),
     _c("simec_base_url", "SIMEC base URL (obras educação)", "fonte", False),
     _c("caixa_obras_base_url", "CAIXA/SIORB base URL (obras infra)", "fonte", False),
+    _c("ibge_localidades_url", "IBGE Localidades base URL (busca de municípios)", "fonte", False),
     _c("uniq_api_key", "Uniq API Key (WhatsApp)", "whatsapp", True),
     _c("uniq_base_url", "Uniq base URL", "whatsapp", False),
     _c("uniq_webhook_token", "Uniq webhook token", "whatsapp", True),

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AuthShell } from "@/components/AuthShell";
-import { login } from "@/lib/api/client";
+import { api, login } from "@/lib/api/client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,7 +19,11 @@ export default function LoginPage() {
     setCarregando(true);
     try {
       await login(email, senha);
-      router.push("/painel");
+      // Sem território configurado → a porta de entrada é o onboarding
+      // conversacional (o perfil é o ponto de partida da navegação).
+      const { data } = await api.GET("/api/v1/perfil");
+      const temTerritorio = ((data?.municipios as unknown[]) ?? []).length > 0;
+      router.push(temTerritorio ? "/painel" : "/onboarding");
     } catch (err) {
       setErro(err instanceof Error ? err.message : "Erro ao entrar");
     } finally {

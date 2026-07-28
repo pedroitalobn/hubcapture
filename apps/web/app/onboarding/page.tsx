@@ -1,115 +1,379 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BrandMark } from "@/components/AuthShell";
-import { FilterChips } from "@/components/FilterChips";
 import { api, getToken } from "@/lib/api/client";
 
-const FONTES = [
-  { value: "fpm", label: "FPM" },
-  { value: "emendas", label: "Emendas" },
-  { value: "fns", label: "FNS (Saúde)" },
-  { value: "fnde", label: "FNDE (Educação)" },
-  { value: "transferegov_ff", label: "TransfereGov" },
-];
+/**
+ * Onboarding conversacional — o Copiloto pergunta o perfil (papel, território,
+ * áreas e fontes) num chat guiado e configura a conta ao final. O 1º sync com
+ * dados REAIS das fontes dispara em background na API; o usuário cai no painel
+ * já vendo o feed se povoar.
+ */
+
+type Msg = { autor: "copiloto" | "user"; texto: string };
+type Etapa = "papel" | "municipios" | "areas" | "fontes" | "confirmar" | "salvando";
+
+interface MunicipioBusca {
+  ibge: string;
+  nome: string;
+  uf?: string | null;
+}
 
 const PAPEIS = [
   { value: "parlamentar", label: "Parlamentar" },
-  { value: "executivo", label: "Chefe do Executivo" },
-  { value: "equipe", label: "Equipe" },
+  { value: "executivo", label: "Prefeitura / Executivo" },
+  { value: "equipe", label: "Equipe / Assessoria" },
 ];
+
+const AREAS = [
+  { value: "saude", label: "Saúde" },
+  { value: "educacao", label: "Educação" },
+  { value: "cultura", label: "Cultura" },
+  { value: "infraestrutura", label: "Obras e infraestrutura" },
+  { value: "assistencia_social", label: "Assistência social" },
+  { value: "esporte", label: "Esporte" },
+  { value: "meio_ambiente", label: "Meio ambiente" },
+  { value: "agricultura", label: "Agricultura" },
+];
+
+const FONTES = [
+  { value: "transferegov_ff", label: "TransfereGov (Fundo a Fundo)" },
+  { value: "transferegov_esp", label: "TransfereGov (Especiais)" },
+  { value: "transferegov_voluntarias", label: "TransfereGov (Voluntárias)" },
+  { value: "fpm", label: "FPM (Tesouro)" },
+  { value: "emendas", label: "Emendas parlamentares" },
+  { value: "fns", label: "FNS — Fundo Nacional de Saúde" },
+  { value: "fnde", label: "FNDE — Educação" },
+];
+
+// Sugestão de fontes a partir das áreas — o Copiloto pré-marca por você.
+function fontesSugeridas(areas: string[]): string[] {
+  const f = new Set(["transferegov_ff", "fpm", "emendas"]);
+  if (areas.includes("saude")) f.add("fns");
+  if (areas.includes("educacao")) f.add("fnde");
+  if (
+    areas.some((a) =>
+      ["cultura", "esporte", "meio_ambiente", "agricultura"].includes(a),
+    )
+  )
+    f.add("transferegov_voluntarias");
+  if (areas.includes("infraestrutura")) f.add("transferegov_esp");
+  return [...f];
+}
+
+const rotulo = (lista: { value: string; label: string }[], v: string) =>
+  lista.find((o) => o.value === v)?.label ?? v;
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [ibge, setIbge] = useState("");
-  const [nome, setNome] = useState("");
-  const [uf, setUf] = useState("");
-  const [papel, setPapel] = useState<string | null>("executivo");
-  const [fontes, setFontes] = useState<string[]>(["fpm", "emendas"]);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [salvando, setSalvando] = useState(false);
+  const [mensagens, setMensagens] = useState<Msg[]>([]);
+  const [digitando, setDigitando] = useState(false);
+  const [etapa, setEtapa] = useState<Etapa>("papel");
 
-  function toggleFonte(v: string | null) {
-    if (v === null) return;
-    setFontes((f) => (f.includes(v) ? f.filter((x) => x !== v) : [...f, v]));
-  }
+  const [papel, setPapel] = useState<string | null>(null);
+  const [municipios, setMunicipios] = useState<MunicipioBusca[]>([]);
+  const [areas, setAreas] = useState<string[]>([]);
+  const [fontes, setFontes] = useState<string[]>([]);
 
-  async function salvar(e: React.FormEvent) {
-    e.preventDefault();
+  const [busca, setBusca] = useState("");
+  const [sugestoes, setSugestoes] = useState<MunicipioBusca[]>([]);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const fimRef = useRef<HTMLDivElement>(null);
+  const timeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    fimRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [mensagens, digitando, etapa]);
+
+  useEffect(() => {
     if (!getToken()) {
       router.replace("/login");
       return;
     }
-    setSalvando(true);
-    setMsg(null);
+    falar([
+      "Olá! Eu sou o Copiloto do Hub Capture. Vou montar seu painel em menos de um minuto.",
+      "Pra começar: qual é o seu papel na gestão pública?",
+    ]);
+    return () => timeouts.current.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Fala do Copiloto com efeito de digitação entre as frases. */
+  function falar(textos: string[], aoTerminar?: () => void) {
+    setDigitando(true);
+    textos.forEach((texto, i) => {
+      const t = setTimeout(() => {
+        setMensagens((m) => [...m, { autor: "copiloto", texto }]);
+        if (i === textos.length - 1) {
+          setDigitando(false);
+          aoTerminar?.();
+        }
+      }, 450 * (i + 1));
+      timeouts.current.push(t);
+    });
+  }
+
+  function responder(texto: string) {
+    setMensagens((m) => [...m, { autor: "user", texto }]);
+  }
+
+  // ── Etapa 1: papel ────────────────────────────────────────────────────────
+  function escolherPapel(v: string) {
+    setPapel(v);
+    responder(rotulo(PAPEIS, v));
+    setEtapa("municipios");
+    falar([
+      "Perfeito. E qual município você quer acompanhar?",
+      "Digite o nome (ou o código IBGE) e escolha na lista. Pode adicionar mais de um.",
+    ]);
+  }
+
+  // ── Etapa 2: municípios (busca por nome via IBGE) ─────────────────────────
+  useEffect(() => {
+    if (etapa !== "municipios" || busca.trim().length < 2) {
+      setSugestoes([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      const { data } = await api.GET("/api/v1/municipios", {
+        params: { query: { q: busca.trim() } },
+      });
+      setSugestoes(((data ?? []) as MunicipioBusca[]).slice(0, 6));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [busca, etapa]);
+
+  function adicionarMunicipio(m: MunicipioBusca) {
+    if (municipios.some((x) => x.ibge === m.ibge)) return;
+    setMunicipios((lista) => [...lista, m]);
+    setBusca("");
+    setSugestoes([]);
+    responder(`${m.nome}${m.uf ? `/${m.uf}` : ""}`);
+    falar([
+      `Anotado: ${m.nome}${m.uf ? `/${m.uf}` : ""}. Quer adicionar outro município ou seguimos?`,
+    ]);
+  }
+
+  function adicionarPorCodigo() {
+    const codigo = busca.trim();
+    if (/^\d{7}$/.test(codigo)) {
+      adicionarMunicipio({ ibge: codigo, nome: `IBGE ${codigo}` });
+    }
+  }
+
+  function concluirMunicipios() {
+    if (municipios.length === 0) return;
+    responder("Pode seguir!");
+    setEtapa("areas");
+    falar([
+      "Ótimo. Quais ÁREAS interessam mais? Isso ajusta o que te mostro primeiro.",
+      "Marque quantas quiser e toque em continuar.",
+    ]);
+  }
+
+  // ── Etapa 3: áreas ────────────────────────────────────────────────────────
+  function toggleArea(v: string) {
+    setAreas((a) => (a.includes(v) ? a.filter((x) => x !== v) : [...a, v]));
+  }
+
+  function concluirAreas() {
+    responder(
+      areas.length
+        ? areas.map((a) => rotulo(AREAS, a)).join(", ")
+        : "Sem preferência — tudo me interessa",
+    );
+    setFontes(fontesSugeridas(areas));
+    setEtapa("fontes");
+    falar([
+      "Fechado. E de quais FONTES oficiais você quer receber dados?",
+      "Já marquei as que combinam com o seu perfil — ajuste se quiser.",
+    ]);
+  }
+
+  // ── Etapa 4: fontes ───────────────────────────────────────────────────────
+  function toggleFonte(v: string) {
+    setFontes((f) => (f.includes(v) ? f.filter((x) => x !== v) : [...f, v]));
+  }
+
+  function concluirFontes() {
+    if (fontes.length === 0) return;
+    responder(fontes.map((f) => rotulo(FONTES, f)).join(", "));
+    setEtapa("confirmar");
+    falar([
+      "Tudo pronto! Vou configurar seu painel assim:",
+      resumo(),
+      "Confirma? Assim que você confirmar, eu já começo a buscar os dados reais nas fontes.",
+    ]);
+  }
+
+  function resumo(): string {
+    const m = municipios
+      .map((x) => `${x.nome}${x.uf ? `/${x.uf}` : ""}`)
+      .join(", ");
+    const a = areas.length
+      ? areas.map((x) => rotulo(AREAS, x)).join(", ")
+      : "todas";
+    return `• Papel: ${papel ? rotulo(PAPEIS, papel) : "—"}\n• Território: ${m}\n• Áreas: ${a}\n• Fontes: ${fontes.map((f) => rotulo(FONTES, f)).join(", ")}`;
+  }
+
+  // ── Etapa 5: confirmar → grava e dispara o 1º sync real ──────────────────
+  async function confirmar() {
+    responder("Confirmo!");
+    setEtapa("salvando");
+    setErro(null);
+    falar(["Configurando seu painel e disparando a primeira coleta…"]);
     const { error } = await api.POST("/api/v1/onboarding", {
       body: {
-        municipios: [{ ibge, nome: nome || null, uf: uf || null }],
+        municipios: municipios.map((m) => ({
+          ibge: m.ibge,
+          nome: m.nome.startsWith("IBGE ") ? null : m.nome,
+          uf: m.uf ?? null,
+        })),
         fontes,
-        areas: [],
+        areas,
         monitorar_ativo: true,
         papel: papel ?? undefined,
-        disparar_sync: false,
+        disparar_sync: true,
       },
     });
     if (error) {
-      setMsg("Falha ao salvar o onboarding.");
-    } else {
-      router.push("/painel/repasses");
+      setErro("Não consegui salvar seu perfil. Tente confirmar novamente.");
+      setEtapa("confirmar");
+      return;
     }
-    setSalvando(false);
+    falar(
+      ["Perfil salvo! Te levando para o seu painel — os dados chegam em instantes."],
+      () => router.push("/painel?sync=1"),
+    );
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 px-6 py-10">
-      <BrandMark />
-      <div>
-        <h1 className="page-title">Vamos configurar seu painel</h1>
-        <p className="mt-2 text-sm text-ink-2">
-          Escolha um município e as fontes que quer acompanhar.
-        </p>
+    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-4 px-4 py-8 sm:px-6">
+      <div className="flex items-center justify-between">
+        <BrandMark />
+        <span className="label-mono">Onboarding</span>
       </div>
-      <form onSubmit={salvar} className="card flex flex-col gap-5 p-6">
-        <div className="grid grid-cols-3 gap-3">
-          <label className="col-span-1 flex flex-col gap-1.5">
-            <span className="field-label">IBGE</span>
-            <input
-              value={ibge}
-              onChange={(e) => setIbge(e.target.value)}
-              maxLength={7}
-              required
-              placeholder="3550308"
-              className="input"
-            />
-          </label>
-          <label className="col-span-2 flex flex-col gap-1.5">
-            <span className="field-label">Nome do município</span>
-            <input
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              placeholder="São Paulo"
-              className="input"
-            />
-          </label>
-        </div>
 
-        <div>
-          <p className="field-label mb-2">Seu papel</p>
-          <FilterChips
-            options={PAPEIS}
-            selected={papel}
-            onSelect={(v) => setPapel(v)}
-          />
-        </div>
+      <div className="card flex flex-1 flex-col gap-3 p-5">
+        {mensagens.map((m, i) => (
+          <div
+            key={i}
+            className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+              m.autor === "user"
+                ? "self-end rounded-br-md bg-[var(--action-bg)] text-[var(--action-fg)]"
+                : "self-start rounded-bl-md bg-surface-2 text-ink"
+            }`}
+          >
+            {m.texto}
+          </div>
+        ))}
+        {digitando && (
+          <div className="max-w-[85%] self-start rounded-2xl rounded-bl-md bg-surface-2 px-4 py-2.5 text-sm text-ink-3">
+            …
+          </div>
+        )}
+        <div ref={fimRef} />
+      </div>
 
-        <div>
-          <p className="field-label mb-2">Fontes de interesse</p>
+      {/* Área de resposta do usuário — muda conforme a etapa da conversa. */}
+      {!digitando && etapa === "papel" && (
+        <div className="flex flex-wrap gap-2">
+          {PAPEIS.map((p) => (
+            <button
+              key={p.value}
+              onClick={() => escolherPapel(p.value)}
+              className="chip"
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {etapa === "municipios" && !digitando && (
+        <div className="flex flex-col gap-2">
+          {municipios.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {municipios.map((m) => (
+                <span key={m.ibge} className="chip chip-active">
+                  {m.nome}
+                  {m.uf ? `/${m.uf}` : ""}
+                  <button
+                    onClick={() =>
+                      setMunicipios((l) => l.filter((x) => x.ibge !== m.ibge))
+                    }
+                    className="ml-2 opacity-70 hover:opacity-100"
+                    aria-label={`Remover ${m.nome}`}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="relative">
+            <input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && adicionarPorCodigo()}
+              placeholder="Nome do município ou código IBGE…"
+              className="input w-full"
+              autoFocus
+            />
+            {sugestoes.length > 0 && (
+              <div className="card absolute inset-x-0 top-full z-10 mt-1 flex flex-col overflow-hidden p-1">
+                {sugestoes.map((s) => (
+                  <button
+                    key={s.ibge}
+                    onClick={() => adicionarMunicipio(s)}
+                    className="rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-2"
+                  >
+                    {s.nome}
+                    {s.uf ? `/${s.uf}` : ""}{" "}
+                    <span className="font-mono text-[11px] text-ink-3">
+                      {s.ibge}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {municipios.length > 0 && (
+            <button onClick={concluirMunicipios} className="btn btn-primary self-end">
+              Continuar
+            </button>
+          )}
+        </div>
+      )}
+
+      {etapa === "areas" && !digitando && (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2">
+            {AREAS.map((a) => (
+              <button
+                key={a.value}
+                onClick={() => toggleArea(a.value)}
+                className={`chip ${areas.includes(a.value) ? "chip-active" : ""}`}
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
+          <button onClick={concluirAreas} className="btn btn-primary self-end">
+            Continuar
+          </button>
+        </div>
+      )}
+
+      {etapa === "fontes" && !digitando && (
+        <div className="flex flex-col gap-3">
           <div className="flex flex-wrap gap-2">
             {FONTES.map((f) => (
               <button
                 key={f.value}
-                type="button"
                 onClick={() => toggleFonte(f.value)}
                 className={`chip ${fontes.includes(f.value) ? "chip-active" : ""}`}
               >
@@ -117,17 +381,29 @@ export default function OnboardingPage() {
               </button>
             ))}
           </div>
+          <button
+            onClick={concluirFontes}
+            disabled={fontes.length === 0}
+            className="btn btn-primary self-end"
+          >
+            Continuar
+          </button>
         </div>
+      )}
 
-        {msg && <p className="text-sm text-red-500">{msg}</p>}
-        <button
-          type="submit"
-          disabled={salvando || ibge.length !== 7}
-          className="btn btn-primary"
-        >
-          {salvando ? "Salvando…" : "Concluir"}
-        </button>
-      </form>
+      {etapa === "confirmar" && !digitando && (
+        <div className="flex flex-col gap-2">
+          {erro && <p className="text-sm text-red-500">{erro}</p>}
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setEtapa("papel")} className="chip">
+              Recomeçar
+            </button>
+            <button onClick={confirmar} className="btn btn-primary">
+              Confirmar e buscar dados
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

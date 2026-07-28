@@ -420,6 +420,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/municipios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Buscar Municipios */
+        get: operations["buscar_municipios_api_v1_municipios_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/obras": {
         parameters: {
             query?: never;
@@ -566,6 +583,26 @@ export interface paths {
         };
         /** Get Perfil */
         get: operations["get_perfil_api_v1_perfil_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/perfil/novidades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Novidades Perfil
+         * @description Feed 'últimas novidades' do território, recortado pelo perfil do usuário.
+         */
+        get: operations["novidades_perfil_api_v1_perfil_novidades_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1208,6 +1245,18 @@ export interface components {
              */
             proposta_id: string;
         };
+        /**
+         * MunicipioBusca
+         * @description Resultado da busca IBGE (nome → código) usada no onboarding conversacional.
+         */
+        MunicipioBusca: {
+            /** Ibge */
+            ibge: string;
+            /** Nome */
+            nome: string;
+            /** Uf */
+            uf?: string | null;
+        };
         /** MunicipioIn */
         MunicipioIn: {
             /** Ibge */
@@ -1227,6 +1276,46 @@ export interface components {
             nome?: string | null;
             /** Uf */
             uf?: string | null;
+        };
+        /**
+         * NovidadeItem
+         * @description Uma novidade do território — proposta/verba recém-atualizada no cache.
+         */
+        NovidadeItem: {
+            /** Data */
+            data?: string | null;
+            /** Descricao */
+            descricao?: string | null;
+            /** Fonte */
+            fonte: string;
+            /** Href */
+            href: string;
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Municipio Nome */
+            municipio_nome?: string | null;
+            /** Tipo */
+            tipo: string;
+            /** Titulo */
+            titulo: string;
+            /** Valor */
+            valor?: string | null;
+        };
+        /**
+         * NovidadesPerfil
+         * @description Feed 'últimas novidades' do Meu painel, recortado pelo perfil (RLS).
+         */
+        NovidadesPerfil: {
+            /**
+             * Itens
+             * @default []
+             */
+            itens: components["schemas"]["NovidadeItem"][];
+            /**
+             * Sync Runs
+             * @default []
+             */
+            sync_runs: components["schemas"]["SyncRunStatus"][];
         };
         /** ObraRead */
         ObraRead: {
@@ -1617,6 +1706,20 @@ export interface components {
             fontes?: string[] | null;
             /** Municipio Ibge */
             municipio_ibge: string;
+        };
+        /**
+         * SyncRunStatus
+         * @description Última execução de coleta por fonte — o painel mostra o estado honesto.
+         */
+        SyncRunStatus: {
+            /** Finalizado Em */
+            finalizado_em?: string | null;
+            /** Fonte */
+            fonte?: string | null;
+            /** Registros */
+            registros?: number | null;
+            /** Status */
+            status?: string | null;
         };
         /** TokenPair */
         TokenPair: {
@@ -2709,6 +2812,37 @@ export interface operations {
             };
         };
     };
+    buscar_municipios_api_v1_municipios_get: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MunicipioBusca"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listar_obras_api_v1_obras_get: {
         parameters: {
             query?: {
@@ -3014,6 +3148,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PerfilRead"];
+                };
+            };
+        };
+    };
+    novidades_perfil_api_v1_perfil_novidades_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NovidadesPerfil"];
                 };
             };
         };

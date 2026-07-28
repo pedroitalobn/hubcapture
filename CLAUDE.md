@@ -524,6 +524,32 @@ espinha da UI.
   virou `app/painel/captacao`. Sem território → CTA para o onboarding (o perfil é o ponto de partida).
 - Adicionar fonte continua sendo só um novo connector; **nunca** vira uma aba nova na navegação.
 
+## 19b. Onboarding conversacional + primeiro sync real (decisão travada)
+
+A porta de entrada do app é o **onboarding conversacional**: após login/cadastro sem
+território, o usuário cai em `/onboarding`, onde o Copiloto pergunta em chat guiado —
+papel → município(s) (busca por nome via IBGE) → áreas de interesse → fontes (pré-marcadas
+pelas áreas) → confirmação. Nada de formulário em página; a conversa é o wizard.
+
+- **Busca de municípios** — `services/municipios.py` + `GET /municipios?q=` (IBGE
+  Localidades, cache em memória 24h, chave `ibge_localidades_url` no painel). Degrada
+  para lista vazia; o front aceita código IBGE de 7 dígitos digitado direto.
+- **Primeiro sync (dados reais)** — ao confirmar, `POST /onboarding` grava o perfil e
+  agenda `services/primeiro_sync.executar` cobrindo as 4 dimensões (captação via
+  consulta-avulsa, recebidos por fonte, conformidade, obras por área), cada fonte
+  best-effort com incidente em `sync_runs`. ATENÇÃO: o agendamento é
+  `asyncio.create_task` (`primeiro_sync.agendar`) — **nunca** `BackgroundTasks`, que
+  executa antes do teardown/commit da sessão RLS do request e trava o perfil atrás do
+  sync (lock em `municipios_interesse`/`usuarios`).
+- **Feed de novidades** — `GET /perfil/novidades` (schemas em `schemas/perfil.py`):
+  últimas propostas + repasses do território, recortados pelas fontes do perfil e pelas
+  fontes derivadas das áreas (`services/perfil.py::AREA_FONTES`), intercalados por data,
+  mais o estado honesto da coleta (última execução por fonte em `sync_runs`). O Meu
+  painel (`app/painel/page.tsx`) mostra o feed e, vindo do onboarding (`?sync=1`), faz
+  polling ~8s até os primeiros dados chegarem.
+- **Login** (`app/login`) → `GET /perfil`: sem município → `/onboarding`; com território →
+  `/painel`. O cadastro segue direto para o onboarding.
+
 ## 20. Obras (execução — SISMOB/SIMEC/CAIXA) — P3
 
 Quarto e último eixo do ciclo (execução), fechando captar → receber → executar → prestar

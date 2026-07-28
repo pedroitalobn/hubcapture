@@ -64,6 +64,8 @@ class Settings(BaseSettings):
     sismob_base_url: str = "https://sismob.saude.gov.br/api/"
     simec_base_url: str = "https://simec.mec.gov.br/api/"
     caixa_obras_base_url: str = "https://webp.caixa.gov.br/siorb/api/"
+    # IBGE Localidades — resolve nome do município → código IBGE (onboarding)
+    ibge_localidades_url: str = "https://servicodados.ibge.gov.br/api/v1/localidades/"
 
     # ── E-mail transacional (SMTP) — opcional, ligado pelo painel admin ─────
     app_base_url: str = "http://localhost:3000"  # base dos links de e-mail
