@@ -1070,6 +1070,19 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "IslandRequest": {
+        "properties": {
+          "pergunta": {
+            "title": "Pergunta",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pergunta"
+        ],
+        "title": "IslandRequest",
+        "type": "object"
+      },
       "MonitoramentoBuscaCreate": {
         "description": "Monitorar FUTURAS propostas de um município (opcionalmente por área/fonte).",
         "properties": {
@@ -4645,6 +4658,51 @@
           }
         ],
         "summary": "Copiloto Chat",
+        "tags": [
+          "copiloto"
+        ]
+      }
+    },
+    "/api/v1/copiloto/island": {
+      "post": {
+        "description": "Agente do Dynamic Island (tool calling). O loop de ferramentas roda AQUI,\ncom a sessão RLS do request viva; o stream só replaye os eventos coletados\n(mesma razão do RAG pré-stream acima).",
+        "operationId": "copiloto_island_api_v1_copiloto_island_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IslandRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Copiloto Island",
         "tags": [
           "copiloto"
         ]

@@ -690,3 +690,28 @@ Fecha os gaps entre o fluxograma de jornada (5 etapas) e o produto:
   situação, prazos, pendências, proveniência) com monitorar/PDF; central
   `app/painel/alertas` (varredura, marcar lido, monitorar futuras propostas) no menu;
   card de alertas não lidos + notícias no Meu painel.
+
+## 24. Copiloto em Dynamic Island (tool calling)
+
+O Copiloto ganhou uma presença PERSISTENTE: um **Dynamic Island** flutuante
+(`components/DynamicIsland.tsx`, montado em `app/painel/layout.tsx`) que acompanha o
+usuário em TODAS as telas do painel após o onboarding (só aparece com território
+configurado). Fechado é uma cápsula discreta; expandido vira chat, mostrando em tempo
+real qual ferramenta o agente está consultando. Histórico em sessionStorage.
+
+- **Backend** — `ai/agent.py`: agente LLM com **tool calling** (LiteLLM, formato
+  OpenAI tools, até 4 rodadas). Ferramentas = serviços do Hub na MESMA sessão RLS do
+  request: `repasses_visao_geral`, `propostas_listar`, `propostas_prazos`,
+  `conformidade_resumo`, `obras_resumo`, `noticias_transferegov`,
+  `pesquisar_propostas` (RAG). O agente só enxerga o território do tenant por
+  construção; executor com erro devolve `{"erro": ...}` e nunca derruba o loop.
+- **Degradação** — sem `llm_api_key`, roteador por palavra-chave
+  (`escolher_tool_fallback`, ordem de prioridade em `_PRIORIDADE_FALLBACK`) executa a
+  ferramenta mais provável e formata resposta legível (`_formatar_fallback`) — o
+  island continua útil sem credencial.
+- **Endpoint** — `POST /copiloto/island` (SSE): o loop de tools roda ANTES do stream
+  (sessão RLS do request precisa estar viva); eventos `{"tool": nome}` e
+  `{"delta": texto}`. Client web: `islandStream` em `lib/api/client.ts`.
+- Adicionar ferramenta = nova entrada em `ai/agent.py::TOOLS` (descrição + JSON
+  schema + executor + gatilhos de fallback); o front mostra o chip automaticamente
+  (rotule em `DynamicIsland.tsx::TOOL_CHIP`).
