@@ -600,3 +600,31 @@ Stack completo sobe com um comando; o superadmin é criado no boot.
   alterna papel/admin/ativo inline. Backend: `GET /admin/usuarios`,
   `POST /admin/usuarios` (agora aceita `is_superuser`), `PATCH /admin/usuarios/{id}`
   (papel/is_superuser/is_active/plano). Env `ADMIN_EMAIL`/`ADMIN_PASSWORD`/`APP_BASE_URL`.
+
+## 23. Módulos da plataforma — ligar/desligar eixos pelo painel admin
+
+Cada eixo do produto (as lentes do menu profile-centric da seção 19) é um **módulo**
+que o admin liga/desliga em **runtime**, sem redeploy e sem remover código. Serve para
+lançar o Hub só com o que está maduro e reativar o resto quando a fonte estiver calibrada.
+
+**Estado inicial (decisão de produto):** `captacao`, `recebidos` e `copiloto` **ativos**;
+`conformidade` e `obras` **desativados** — a implementação continua no repositório
+(connectors, migrations, serviços, telas), apenas não é exposta.
+
+- **Registro** — `services/modulos.py::MODULOS` (chave, label, descrição, `padrao`).
+  O estado vive na tabela `configuracoes` (platform-level) sob a chave `modulo_<chave>`
+  com valor `on`/`off`; sem linha no banco vale o `padrao` do registro. Adicionar um
+  módulo = mais uma entrada nesse registro.
+- **Guard de API** — `services/modulos.require_modulo(chave)` é dependency de router:
+  módulo desligado → **404 `MODULO_DESATIVADO: <chave>`** em todo o eixo. Aplicado em
+  `propostas` (captacao), `repasses` (recebidos), `conformidade`, `obras` e `copiloto`.
+  O guard roda ANTES da autenticação (dependency de router), então o eixo simplesmente
+  não existe enquanto desligado.
+- **Endpoints admin** (`is_superuser`): `GET /admin/modulos` (catálogo + estado efetivo)
+  e `PUT /admin/modulos` (`{chave, ativo}`). Router `api/v1/admin_modulos.py`.
+- **Perfil** — `GET /perfil` passa a devolver `modulos` (lista dos ativos) e
+  `GET /perfil/visao-geral` só agrega/retorna as dimensões dos módulos ativos (módulo
+  desligado nem é consultado no banco).
+- **Web** — `app/admin/modulos` (toggle por módulo); o menu de `app/painel/layout.tsx`
+  filtra os itens por `perfil.modulos`; `components/ModuloGate.tsx` cobre o acesso
+  direto por URL às telas de eixo desligado (explica em vez de mostrar tela vazia).

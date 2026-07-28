@@ -60,6 +60,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/modulos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Modulos */
+        get: operations["listar_modulos_api_v1_admin_modulos_get"];
+        /** Definir Modulo */
+        put: operations["definir_modulo_api_v1_admin_modulos_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/usuarios": {
         parameters: {
             query?: never;
@@ -1169,6 +1187,26 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** ModuloItem */
+        ModuloItem: {
+            /** Ativo */
+            ativo: boolean;
+            /** Chave */
+            chave: string;
+            /** Descricao */
+            descricao?: string | null;
+            /** Label */
+            label: string;
+            /** Padrao */
+            padrao: boolean;
+        };
+        /** ModuloSet */
+        ModuloSet: {
+            /** Ativo */
+            ativo: boolean;
+            /** Chave */
+            chave: string;
+        };
         /** MonitoramentoCreate */
         MonitoramentoCreate: {
             /**
@@ -1384,6 +1422,11 @@ export interface components {
              * @default []
              */
             fontes: string[];
+            /**
+             * Modulos
+             * @default []
+             */
+            modulos: string[];
             /**
              * Monitorar Ativo
              * @default true
@@ -1932,6 +1975,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConviteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_modulos_api_v1_admin_modulos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModuloItem"][];
+                };
+            };
+        };
+    };
+    definir_modulo_api_v1_admin_modulos_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModuloSet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModuloItem"][];
                 };
             };
             /** @description Validation Error */

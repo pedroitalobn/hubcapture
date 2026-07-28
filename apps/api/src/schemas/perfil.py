@@ -29,6 +29,7 @@ class PerfilRead(BaseModel):
     areas: list[str] = []
     fontes: list[str] = []
     monitorar_ativo: bool = True
+    modulos: list[str] = []  # módulos ativos na plataforma (lentes do menu)
 
 
 class DimensaoResumo(BaseModel):

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ModuloGate } from "@/components/ModuloGate";
 import { StatCard } from "@/components/StatCard";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { SkeletonCards } from "@/components/Skeleton";
@@ -43,6 +44,14 @@ const LABEL: Record<string, string> = {
 };
 
 export default function ConformidadePage() {
+  return (
+    <ModuloGate modulo="conformidade" titulo="Conformidade fiscal">
+      <ConformidadeConteudo />
+    </ModuloGate>
+  );
+}
+
+function ConformidadeConteudo() {
   const [data, setData] = useState<Resumo | null>(null);
   const [loading, setLoading] = useState(true);
   const [ibge, setIbge] = useState("");

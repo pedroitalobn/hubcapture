@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FilterChips } from "@/components/FilterChips";
+import { ModuloGate } from "@/components/ModuloGate";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
@@ -102,6 +103,14 @@ function MiniMapa({ obras }: { obras: Obra[] }) {
 }
 
 export default function ObrasPage() {
+  return (
+    <ModuloGate modulo="obras" titulo="Obras">
+      <ObrasConteudo />
+    </ModuloGate>
+  );
+}
+
+function ObrasConteudo() {
   const [data, setData] = useState<Resumo | null>(null);
   const [loading, setLoading] = useState(true);
   const [sit, setSit] = useState<string | null>(null);

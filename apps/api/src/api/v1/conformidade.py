@@ -11,9 +11,13 @@ from ...core.users import current_active_user
 from ...models.usuario import Usuario
 from ...schemas.conformidade import ConformidadeResumo
 from ...services import conformidade as service
+from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
-router = APIRouter(tags=["conformidade"])
+# Módulo desligável pelo painel admin: desativado → todo o eixo responde 404.
+router = APIRouter(
+    tags=["conformidade"], dependencies=[Depends(require_modulo("conformidade"))]
+)
 
 
 class SyncConformidadeRequest(BaseModel):

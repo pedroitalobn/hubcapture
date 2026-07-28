@@ -5,9 +5,9 @@ export default function Home() {
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-6 px-6">
       <h1 className="text-3xl font-bold">Hub Capture</h1>
       <p className="text-gray-600 dark:text-gray-400">
-        Seu território, do começo ao fim do ciclo do recurso público: captação,
-        recursos recebidos, conformidade fiscal e obras — organizados a partir do
-        seu perfil, não de abas por fonte de dados.
+        Seu território, do começo ao fim do ciclo do recurso público: captação e
+        recursos recebidos hoje, conformidade fiscal e obras a seguir —
+        organizados a partir do seu perfil, não de abas por fonte de dados.
       </p>
       <div className="flex flex-wrap gap-3">
         <Link href="/login" className="rounded-md bg-brand px-4 py-2 text-brand-fg">
@@ -41,6 +41,9 @@ export default function Home() {
         </Link>
         <Link href="/admin/config" className="underline">
           Configuração (admin)
+        </Link>
+        <Link href="/admin/modulos" className="underline">
+          Módulos (admin)
         </Link>
       </div>
     </main>

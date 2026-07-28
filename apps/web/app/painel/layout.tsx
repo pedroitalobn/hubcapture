@@ -16,18 +16,24 @@ interface Perfil {
   papel?: string | null;
   municipios: MunicipioPerfil[];
   areas: string[];
+  modulos?: string[];
 }
 
 // A navegação NÃO é por fonte de dados — é o ciclo do recurso público, sempre
 // recortado pelo território do usuário (via RLS). Cada item é uma LENTE sobre
 // o(s) município(s) do perfil, não uma aba de plataforma de governo.
+// Itens com `modulo` só aparecem se o módulo estiver ativo (painel admin).
 const NAV = [
   { href: "/painel", label: "Meu painel", exact: true },
-  { href: "/painel/captacao", label: "Captação" },
-  { href: "/painel/repasses", label: "Recursos recebidos" },
-  { href: "/painel/conformidade", label: "Conformidade fiscal" },
-  { href: "/painel/obras", label: "Obras" },
-  { href: "/painel/chat", label: "Copiloto" },
+  { href: "/painel/captacao", label: "Captação", modulo: "captacao" },
+  { href: "/painel/repasses", label: "Recursos recebidos", modulo: "recebidos" },
+  {
+    href: "/painel/conformidade",
+    label: "Conformidade fiscal",
+    modulo: "conformidade",
+  },
+  { href: "/painel/obras", label: "Obras", modulo: "obras" },
+  { href: "/painel/chat", label: "Copiloto", modulo: "copiloto" },
   { href: "/painel/conta", label: "Minha conta" },
 ];
 
@@ -109,7 +115,10 @@ export default function PainelLayout({
         </div>
 
         <nav className="flex flex-col gap-1 text-sm">
-          {NAV.map((item) => {
+          {NAV.filter(
+            (item) =>
+              !item.modulo || (perfil?.modulos ?? []).includes(item.modulo)
+          ).map((item) => {
             const active = item.exact
               ? pathname === item.href
               : pathname.startsWith(item.href);

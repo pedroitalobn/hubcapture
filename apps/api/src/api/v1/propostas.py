@@ -10,9 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...schemas.proposta import PropostaRead
 from ...services import pdf as pdf_service
 from ...services import propostas as propostas_service
+from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
-router = APIRouter(tags=["propostas"])
+# Módulo desligável pelo painel admin (captação): desativado → eixo responde 404.
+router = APIRouter(
+    tags=["propostas"], dependencies=[Depends(require_modulo("captacao"))]
+)
 
 
 @router.get("/propostas", response_model=list[PropostaRead])
