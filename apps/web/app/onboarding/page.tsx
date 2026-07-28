@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { BrandMark } from "@/components/AuthShell";
+import { ChatBubble, TypingDots } from "@/components/Chat";
 import { api, getToken } from "@/lib/api/client";
 
 /**
@@ -250,37 +251,37 @@ export default function OnboardingPage() {
     );
   }
 
+  const ETAPAS: Etapa[] = ["papel", "municipios", "areas", "fontes", "confirmar"];
+  const progresso =
+    ((etapa === "salvando" ? ETAPAS.length : ETAPAS.indexOf(etapa)) /
+      ETAPAS.length) *
+    100;
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-4 px-4 py-8 sm:px-6">
-      <div className="flex items-center justify-between">
+      <div className="anim-fade-up flex items-center justify-between">
         <BrandMark />
         <span className="label-mono">Onboarding</span>
       </div>
 
-      <div className="card flex flex-1 flex-col gap-3 p-5">
+      {/* Progresso da conversa — gradiente da marca preenchendo as etapas */}
+      <div className="anim-fade-up progress-track" aria-hidden>
+        <div className="progress-fill" style={{ width: `${progresso}%` }} />
+      </div>
+
+      <div className="card anim-fade-up flex flex-1 flex-col gap-3 p-5">
         {mensagens.map((m, i) => (
-          <div
-            key={i}
-            className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-              m.autor === "user"
-                ? "self-end rounded-br-md bg-[var(--action-bg)] text-[var(--action-fg)]"
-                : "self-start rounded-bl-md bg-surface-2 text-ink"
-            }`}
-          >
+          <ChatBubble key={i} autor={m.autor === "user" ? "user" : "ai"}>
             {m.texto}
-          </div>
+          </ChatBubble>
         ))}
-        {digitando && (
-          <div className="max-w-[85%] self-start rounded-2xl rounded-bl-md bg-surface-2 px-4 py-2.5 text-sm text-ink-3">
-            …
-          </div>
-        )}
+        {digitando && <TypingDots />}
         <div ref={fimRef} />
       </div>
 
       {/* Área de resposta do usuário — muda conforme a etapa da conversa. */}
       {!digitando && etapa === "papel" && (
-        <div className="flex flex-wrap gap-2">
+        <div className="stagger flex flex-wrap gap-2">
           {PAPEIS.map((p) => (
             <button
               key={p.value}
@@ -294,7 +295,7 @@ export default function OnboardingPage() {
       )}
 
       {etapa === "municipios" && !digitando && (
-        <div className="flex flex-col gap-2">
+        <div className="anim-fade-up flex flex-col gap-2">
           {municipios.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {municipios.map((m) => (
@@ -324,7 +325,7 @@ export default function OnboardingPage() {
               autoFocus
             />
             {sugestoes.length > 0 && (
-              <div className="card absolute inset-x-0 top-full z-10 mt-1 flex flex-col overflow-hidden p-1">
+              <div className="card anim-pop absolute inset-x-0 top-full z-10 mt-1 flex flex-col overflow-hidden p-1">
                 {sugestoes.map((s) => (
                   <button
                     key={s.ibge}
@@ -350,8 +351,8 @@ export default function OnboardingPage() {
       )}
 
       {etapa === "areas" && !digitando && (
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap gap-2">
+        <div className="anim-fade-up flex flex-col gap-3">
+          <div className="stagger flex flex-wrap gap-2">
             {AREAS.map((a) => (
               <button
                 key={a.value}
@@ -369,8 +370,8 @@ export default function OnboardingPage() {
       )}
 
       {etapa === "fontes" && !digitando && (
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap gap-2">
+        <div className="anim-fade-up flex flex-col gap-3">
+          <div className="stagger flex flex-wrap gap-2">
             {FONTES.map((f) => (
               <button
                 key={f.value}
@@ -392,7 +393,7 @@ export default function OnboardingPage() {
       )}
 
       {etapa === "confirmar" && !digitando && (
-        <div className="flex flex-col gap-2">
+        <div className="anim-fade-up flex flex-col gap-2">
           {erro && <p className="text-sm text-red-500">{erro}</p>}
           <div className="flex justify-end gap-2">
             <button onClick={() => setEtapa("papel")} className="chip">

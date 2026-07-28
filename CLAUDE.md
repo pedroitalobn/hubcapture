@@ -452,6 +452,14 @@ Endpoints: `GET /planos` (público) · `POST/PATCH /planos` (admin) · `POST /ad
 `POST /auth/aceitar-convite` (público). Criação de usuário passa pelo UserManager
 (hash de senha). Dependency `current_superuser` em `core/users.py`.
 
+**Web (painel de administração unificado):** `app/admin/layout.tsx` é o shell com guard de
+superuser (`/users/me` → redirect se não-admin) e navegação Usuários · Convites · Planos ·
+Providers & Config. Usuários: criar + editar inline papel/plano/admin/ativo
+(`PATCH /admin/usuarios/{id}` com `plano_id`). Convites: criar com papel/plano/validade,
+listar com status e **copiar link** (`/aceitar-convite?token=…`). A página pública
+`app/aceitar-convite` consome o token (nome+senha → aceite → login → onboarding). O menu do
+painel comum mostra "Administração" só para superusers.
+
 ## 15. Ingestão pronta para as APIs + scraping (Crawl4AI + Firecrawl)
 
 Todos os connectors estão **registrados** (`connectors/*`), com rotas/campos isolados em
@@ -477,7 +485,12 @@ Tabela `configuracoes` (platform-level, sem RLS); segredos **cifrados em repouso
 chave de `CONFIG_SECRET_KEY`) e **mascarados** na leitura. Catálogo de chaves em
 `services/config.py::CATALOGO` (Firecrawl, LLM, base URLs/tokens das fontes).
 
-- Endpoints (admin `is_superuser`): `GET /admin/config` (lista mascarada) · `PUT /admin/config` (`{chave, valor}`).
+- Endpoints (admin `is_superuser`): `GET /admin/config` (lista mascarada) · `PUT /admin/config` (`{chave, valor}`) ·
+  `GET /admin/fontes` (**diagnóstico**: health_check ao vivo de todos os connectors em paralelo
+  com timeout + última coleta por fonte de `sync_runs` + estado de Firecrawl/Crawl4AI/LLM/chave
+  de emendas — página `app/admin/fontes`). A API de emendas (Portal da Transparência) EXIGE a
+  chave `chave-api-dados` (`emendas_api_key`, cadastro gratuito); sem ela o connector falha com
+  mensagem clara em `sync_runs`.
 - `services/config.resolver(chave)` é a fonte de verdade em runtime (DB decifrado > default `.env`).
   Firecrawl (`scraping/firecrawl.py`), o resumo IA (`ai/resumo.py`) e **todos os connectors**
   (base URL no `collect`) consultam o resolver. Plugar uma credencial no painel ativa o provider

@@ -2,15 +2,16 @@ import type { Metadata, Viewport } from "next";
 import { Inter_Tight, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 
-// Peso único (400): a hierarquia do sistema é tamanho + tracking, nunca bold.
+// Hierarquia tipográfica real: 400 no corpo, 500/600 em títulos e números —
+// legibilidade primeiro; o tracking negativo continua dando o tom técnico.
 const sans = Inter_Tight({
   subsets: ["latin"],
-  weight: "400",
+  weight: ["400", "500", "600"],
   variable: "--font-sans-src",
 });
 const mono = Roboto_Mono({
   subsets: ["latin"],
-  weight: "400",
+  weight: ["400", "500"],
   variable: "--font-mono-src",
 });
 

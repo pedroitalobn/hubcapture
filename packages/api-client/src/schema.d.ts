@@ -60,6 +60,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/fontes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Diagnostico Fontes */
+        get: operations["diagnostico_fontes_api_v1_admin_fontes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/usuarios": {
         parameters: {
             query?: never;
@@ -1145,6 +1162,37 @@ export interface components {
             token: string;
         };
         /**
+         * DiagnosticoFontes
+         * @description Estado real da ingestão: fontes ao vivo + providers de scraping/IA.
+         */
+        DiagnosticoFontes: {
+            /**
+             * Crawl4Ai Configurado
+             * @default false
+             */
+            crawl4ai_configurado: boolean;
+            /**
+             * Emendas Api Key Configurada
+             * @default false
+             */
+            emendas_api_key_configurada: boolean;
+            /**
+             * Firecrawl Configurado
+             * @default false
+             */
+            firecrawl_configurado: boolean;
+            /**
+             * Fontes
+             * @default []
+             */
+            fontes: components["schemas"]["FonteDiagnostico"][];
+            /**
+             * Llm Configurado
+             * @default false
+             */
+            llm_configurado: boolean;
+        };
+        /**
          * DimensaoResumo
          * @description Um eixo do ciclo (captação/recebidos/conformidade/obras) para o perfil.
          */
@@ -1190,6 +1238,14 @@ export interface components {
              * Format: uuid
              */
             proposta_id: string;
+        };
+        /** FonteDiagnostico */
+        FonteDiagnostico: {
+            /** Fonte */
+            fonte: string;
+            /** Saudavel */
+            saudavel: boolean;
+            ultima_coleta?: components["schemas"]["UltimaColeta"] | null;
         };
         /**
          * FonteResumo
@@ -1733,6 +1789,17 @@ export interface components {
              */
             token_type: string;
         };
+        /** UltimaColeta */
+        UltimaColeta: {
+            /** Erro */
+            erro?: string | null;
+            /** Finalizado Em */
+            finalizado_em?: string | null;
+            /** Registros */
+            registros?: number | null;
+            /** Status */
+            status?: string | null;
+        };
         /** UniqInbound */
         UniqInbound: {
             /** Mensagem */
@@ -2046,6 +2113,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    diagnostico_fontes_api_v1_admin_fontes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiagnosticoFontes"];
                 };
             };
         };

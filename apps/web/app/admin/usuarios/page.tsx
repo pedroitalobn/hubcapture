@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { BrandMark } from "@/components/AuthShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api, getToken } from "@/lib/api/client";
 
@@ -10,6 +9,7 @@ interface Usuario {
   email: string;
   nome?: string | null;
   papel?: string | null;
+  plano_id?: string | null;
   is_superuser: boolean;
   is_active: boolean;
   is_verified: boolean;
@@ -78,7 +78,10 @@ export default function AdminUsuariosPage() {
     await carregar();
   }
 
-  async function atualizar(id: string, patch: Partial<Usuario>) {
+  async function atualizar(
+    id: string,
+    patch: { papel?: string; is_superuser?: boolean; is_active?: boolean; plano_id?: string | null },
+  ) {
     const { error } = await api.PATCH("/api/v1/admin/usuarios/{usuario_id}", {
       params: { path: { usuario_id: id } },
       body: patch,
@@ -88,12 +91,12 @@ export default function AdminUsuariosPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[1400px] flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
-      <BrandMark />
+    <>
       <header>
         <h1 className="page-title">Usuários & permissões</h1>
         <p className="mt-1 text-sm text-ink-2">
-          Crie usuários, defina o papel (role) e conceda permissão de admin.
+          Crie usuários, defina papel (role), atribua plano e conceda permissão
+          de admin.
         </p>
       </header>
 
@@ -178,6 +181,7 @@ export default function AdminUsuariosPage() {
             <tr className="border-b border-hairline text-left label-mono">
               <th className="px-5 py-3">Usuário</th>
               <th className="px-3 py-3">Papel</th>
+              <th className="px-3 py-3">Plano</th>
               <th className="px-3 py-3">Admin</th>
               <th className="px-3 py-3">Ativo</th>
               <th className="px-3 py-3"></th>
@@ -210,6 +214,22 @@ export default function AdminUsuariosPage() {
                   </select>
                 </td>
                 <td className="px-3 py-3">
+                  <select
+                    value={u.plano_id ?? ""}
+                    onChange={(e) =>
+                      atualizar(u.id, { plano_id: e.target.value || null })
+                    }
+                    className="input w-auto px-2 py-1 text-xs"
+                  >
+                    <option value="">— sem plano —</option>
+                    {planos.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nome}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-3 py-3">
                   <button
                     onClick={() => atualizar(u.id, { is_superuser: !u.is_superuser })}
                     title="Alternar permissão de admin"
@@ -237,6 +257,6 @@ export default function AdminUsuariosPage() {
           </tbody>
         </table>
       </section>
-    </main>
+    </>
   );
 }

@@ -866,6 +866,41 @@
         "title": "ConviteRead",
         "type": "object"
       },
+      "DiagnosticoFontes": {
+        "description": "Estado real da ingestão: fontes ao vivo + providers de scraping/IA.",
+        "properties": {
+          "crawl4ai_configurado": {
+            "default": false,
+            "title": "Crawl4Ai Configurado",
+            "type": "boolean"
+          },
+          "emendas_api_key_configurada": {
+            "default": false,
+            "title": "Emendas Api Key Configurada",
+            "type": "boolean"
+          },
+          "firecrawl_configurado": {
+            "default": false,
+            "title": "Firecrawl Configurado",
+            "type": "boolean"
+          },
+          "fontes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FonteDiagnostico"
+            },
+            "title": "Fontes",
+            "type": "array"
+          },
+          "llm_configurado": {
+            "default": false,
+            "title": "Llm Configurado",
+            "type": "boolean"
+          }
+        },
+        "title": "DiagnosticoFontes",
+        "type": "object"
+      },
       "DimensaoResumo": {
         "description": "Um eixo do ciclo (captação/recebidos/conformidade/obras) para o perfil.",
         "properties": {
@@ -961,6 +996,34 @@
           "created_at"
         ],
         "title": "FavoritoRead",
+        "type": "object"
+      },
+      "FonteDiagnostico": {
+        "properties": {
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          },
+          "saudavel": {
+            "title": "Saudavel",
+            "type": "boolean"
+          },
+          "ultima_coleta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UltimaColeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "fonte",
+          "saudavel"
+        ],
+        "title": "FonteDiagnostico",
         "type": "object"
       },
       "FonteResumo": {
@@ -2666,6 +2729,56 @@
         "title": "TokenPair",
         "type": "object"
       },
+      "UltimaColeta": {
+        "properties": {
+          "erro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erro"
+          },
+          "finalizado_em": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalizado Em"
+          },
+          "registros": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registros"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "title": "UltimaColeta",
+        "type": "object"
+      },
       "UniqInbound": {
         "properties": {
           "mensagem": {
@@ -3370,6 +3483,32 @@
           }
         ],
         "summary": "Admin Criar Convite",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/fontes": {
+      "get": {
+        "operationId": "diagnostico_fontes_api_v1_admin_fontes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticoFontes"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Diagnostico Fontes",
         "tags": [
           "admin"
         ]

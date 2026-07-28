@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ChatBubble, TypingDots } from "@/components/Chat";
 import { chatStream } from "@/lib/api/client";
 
 type Msg = { autor: "user" | "ia"; texto: string };
@@ -62,18 +63,15 @@ export default function ChatPage() {
             Pergunte sobre suas propostas ou peça um tutorial do TransfereGov.
           </p>
         )}
-        {mensagens.map((m, i) => (
-          <div
-            key={i}
-            className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-              m.autor === "user"
-                ? "self-end rounded-br-md bg-[var(--action-bg)] text-[var(--action-fg)]"
-                : "self-start rounded-bl-md bg-surface-2 text-ink"
-            }`}
-          >
-            {m.texto || "…"}
-          </div>
-        ))}
+        {mensagens.map((m, i) =>
+          m.autor === "ia" && !m.texto ? (
+            <TypingDots key={i} />
+          ) : (
+            <ChatBubble key={i} autor={m.autor === "user" ? "user" : "ai"}>
+              {m.texto}
+            </ChatBubble>
+          ),
+        )}
         <div ref={fimRef} />
       </div>
 
