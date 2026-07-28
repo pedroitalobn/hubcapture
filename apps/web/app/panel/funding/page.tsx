@@ -76,6 +76,7 @@ const FONTES = [
 ];
 
 const ABAS_KEY = "hub_captacao_abas";
+const ABA_ACOMPANHAMENTO = "acompanhamento";
 
 function formatBRL(v?: string | null): string {
   if (!v) return "—";
@@ -118,9 +119,20 @@ export default function CaptacaoPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const buscaSeq = useRef(0);
 
+  const acompanhando = abaAtiva === ABA_ACOMPANHAMENTO;
   const aba: Aba = abas.find((a) => a.id === abaAtiva) ??
     abas[0] ?? { id: "aba-1", nome: "Geral", filtros: { ...FILTROS_VAZIOS } };
   const filtros = aba.filtros;
+  const [acompanhadas, setAcompanhadas] = useState<Proposta[]>([]);
+
+  // aba ACOMPANHAMENTO: as favoritas completas, direto da API
+  const carregarAcompanhadas = useCallback(async () => {
+    const { data } = await api.GET("/api/v1/favorites/proposals");
+    if (data) setAcompanhadas(data as Proposta[]);
+  }, []);
+  useEffect(() => {
+    if (acompanhando) void carregarAcompanhadas();
+  }, [acompanhando, carregarAcompanhadas]);
 
   useEffect(() => {
     window.localStorage.setItem(ABAS_KEY, JSON.stringify(abas));
@@ -156,9 +168,10 @@ export default function CaptacaoPage() {
   }, [filtros]);
 
   useEffect(() => {
+    if (acompanhando) return;
     const t = setTimeout(() => void buscarAoVivo(), 500);
     return () => clearTimeout(t);
-  }, [buscarAoVivo]);
+  }, [buscarAoVivo, acompanhando]);
 
   const carregarCuradoria = useCallback(async () => {
     const [fav, pas, perf] = await Promise.all([
@@ -244,6 +257,7 @@ export default function CaptacaoPage() {
       await api.POST("/api/v1/favorites", { body: { proposta_id: p.id } });
       setFavoritos((prev) => new Set(prev).add(p.id));
     }
+    if (acompanhando) void carregarAcompanhadas();
   }
 
   async function criarPasta() {
@@ -265,11 +279,11 @@ export default function CaptacaoPage() {
   }
 
   const visiveis = useMemo(() => {
-    let lista = propostas;
+    let lista = acompanhando ? acompanhadas : propostas;
     if (filtros.soFavoritas) lista = lista.filter((p) => favoritos.has(p.id));
     if (filtros.pastaId) lista = lista.filter((p) => pastaPropostas.has(p.id));
     return lista;
-  }, [propostas, filtros.soFavoritas, filtros.pastaId, favoritos, pastaPropostas]);
+  }, [propostas, acompanhadas, acompanhando, filtros.soFavoritas, filtros.pastaId, favoritos, pastaPropostas]);
 
   const situacoes = useMemo(
     () =>
@@ -322,12 +336,22 @@ export default function CaptacaoPage() {
             )}
           </span>
         ))}
+        <button
+          onClick={() => setAbaAtiva(ABA_ACOMPANHAMENTO)}
+          className={`inline-flex items-center rounded-t-lg border border-b-0 border-hairline px-3 py-1.5 text-sm ${
+            acompanhando ? "bg-surface-2 font-medium" : "text-ink-2"
+          }`}
+          title="Propostas favoritadas que você acompanha"
+        >
+          ★ Acompanhamento
+        </button>
         <button onClick={novaAba} className="btn btn-ghost btn-sm" title="Nova aba">
           + aba
         </button>
       </div>
 
       {/* filtros — cada mudança dispara a busca ao vivo */}
+      {!acompanhando && (
       <div className="card flex flex-wrap items-end gap-3 p-4">
         <div className="flex gap-1.5">
           {(
@@ -458,8 +482,10 @@ export default function CaptacaoPage() {
           + pasta
         </button>
       </div>
+      )}
 
       {/* estado honesto da coleta ao vivo */}
+      {!acompanhando && (
       <div className="flex flex-wrap items-center gap-2 text-sm text-ink-2">
         {buscando ? (
           <span className="label-mono animate-pulse">
@@ -484,15 +510,25 @@ export default function CaptacaoPage() {
           </>
         )}
       </div>
+      )}
+
+      {acompanhando && (
+        <p className="text-sm text-ink-2">
+          Suas propostas favoritadas ★ — toque na estrela para parar de
+          acompanhar. Favorite na busca (abas ao lado) para adicionar aqui.
+        </p>
+      )}
 
       {msg && <p className="text-sm text-ink-2">{msg}</p>}
 
       <section className="overflow-x-auto">
         {visiveis.length === 0 ? (
           <p className="text-ink-3">
-            {buscando
-              ? "Buscando nas fontes…"
-              : "Nenhuma proposta com esses filtros nas fontes consultadas."}
+            {acompanhando
+              ? "Nenhuma favorita ainda — favorite ★ uma proposta na busca para acompanhá-la aqui."
+              : buscando
+                ? "Buscando nas fontes…"
+                : "Nenhuma proposta com esses filtros nas fontes consultadas."}
           </p>
         ) : (
           <div className="card overflow-hidden">
