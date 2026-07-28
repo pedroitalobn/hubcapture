@@ -14,11 +14,11 @@ import { api, getToken } from "@/lib/api/client";
  */
 
 const NAV = [
-  { href: "/admin/usuarios", label: "Usuários" },
-  { href: "/admin/convites", label: "Convites" },
-  { href: "/admin/planos", label: "Planos" },
+  { href: "/admin/users", label: "Usuários" },
+  { href: "/admin/invites", label: "Convites" },
+  { href: "/admin/plans", label: "Planos" },
   { href: "/admin/config", label: "Providers & Config" },
-  { href: "/admin/fontes", label: "Fontes (diagnóstico)" },
+  { href: "/admin/sources", label: "Fontes (diagnóstico)" },
 ];
 
 export default function AdminLayout({
@@ -39,7 +39,7 @@ export default function AdminLayout({
       const { data, error } = await api.GET("/api/v1/users/me");
       const me = data as { is_superuser?: boolean } | undefined;
       if (error || !me?.is_superuser) {
-        router.replace("/painel");
+        router.replace("/panel");
         return;
       }
       setPronto(true);
@@ -62,7 +62,7 @@ export default function AdminLayout({
           <p className="label-mono mt-1.5">Administração</p>
         </div>
         <Link
-          href="/painel"
+          href="/panel"
           className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 hover:text-ink"
         >
           ← Meu painel

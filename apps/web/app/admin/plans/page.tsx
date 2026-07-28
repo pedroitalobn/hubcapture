@@ -21,7 +21,7 @@ export default function AdminPlanosPage() {
   const [msg, setMsg] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
-    const { data, error } = await api.GET("/api/v1/planos", {});
+    const { data, error } = await api.GET("/api/v1/plans", {});
     if (!error) setPlanos((data as Plano[]) ?? []);
   }, []);
 
@@ -36,7 +36,7 @@ export default function AdminPlanosPage() {
       setMsg("Faça login como administrador.");
       return;
     }
-    const { error } = await api.POST("/api/v1/planos", {
+    const { error } = await api.POST("/api/v1/plans", {
       body: {
         nome,
         slug,

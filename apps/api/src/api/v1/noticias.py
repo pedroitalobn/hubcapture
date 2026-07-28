@@ -19,7 +19,7 @@ class NoticiaRead(BaseModel):
     resumo: str | None = None
 
 
-@router.get("/noticias", response_model=list[NoticiaRead])
+@router.get("/news", response_model=list[NoticiaRead])
 async def listar_noticias(
     limite: int = Query(default=10, ge=1, le=50),
     _user: Usuario = Depends(current_active_user),

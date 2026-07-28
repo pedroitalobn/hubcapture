@@ -23,9 +23,9 @@ async def test_email_desabilitado_sem_smtp() -> None:
 def test_templates_tem_assunto_txt_html() -> None:
     for assunto, txt, html in (
         templates.boas_vindas("Ana"),
-        templates.redefinir_senha("https://app/redefinir-senha?token=abc"),
-        templates.verificar_email("https://app/verificar-email?token=abc"),
-        templates.convite("https://app/aceitar-convite?token=abc", "parlamentar"),
+        templates.redefinir_senha("https://app/reset-password?token=abc"),
+        templates.verificar_email("https://app/verify-email?token=abc"),
+        templates.convite("https://app/accept-invite?token=abc", "parlamentar"),
     ):
         assert assunto and "Hub Capture" in assunto or assunto
         assert isinstance(txt, str) and txt
@@ -59,7 +59,7 @@ async def test_forgot_password_dispara_email(seed_user, monkeypatch) -> None:
     assert len(enviados) == 1
     dest, txt = enviados[0]
     assert dest == "reset@a.com"
-    assert "redefinir-senha?token=tok-123" in txt
+    assert "reset-password?token=tok-123" in txt
 
 
 @pytest.mark.parametrize("port", [587, 465])

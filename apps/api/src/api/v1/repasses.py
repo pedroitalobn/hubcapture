@@ -25,7 +25,7 @@ class SyncRepassesRequest(BaseModel):
     fontes: list[str] | None = None
 
 
-@router.get("/repasses", response_model=list[RepasseRead])
+@router.get("/transfers", response_model=list[RepasseRead])
 async def listar_repasses(
     municipio: str | None = Query(default=None, description="código IBGE (7 dígitos)"),
     fonte: str | None = Query(default=None),
@@ -39,7 +39,7 @@ async def listar_repasses(
     return [RepasseRead.model_validate(r) for r in rows]
 
 
-@router.get("/repasses/visao-geral", response_model=VisaoGeral)
+@router.get("/transfers/overview", response_model=VisaoGeral)
 async def visao_geral(
     municipio: str | None = Query(default=None),
     inicio: date | None = Query(default=None),
@@ -49,7 +49,7 @@ async def visao_geral(
     return await service.visao_geral(session, municipio=municipio, inicio=inicio, fim=fim)
 
 
-@router.post("/repasses/sync", response_model=dict)
+@router.post("/transfers/sync", response_model=dict)
 async def sync_repasses(
     body: SyncRepassesRequest,
     user: Usuario = Depends(current_active_user),

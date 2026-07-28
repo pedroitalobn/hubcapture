@@ -24,14 +24,14 @@ interface Perfil {
 // recortado pelo território do usuário (via RLS). Cada item é uma LENTE sobre
 // o(s) município(s) do perfil, não uma aba de plataforma de governo.
 const NAV = [
-  { href: "/painel", label: "Meu painel", exact: true },
-  { href: "/painel/captacao", label: "Captação" },
-  { href: "/painel/repasses", label: "Recursos recebidos" },
-  { href: "/painel/conformidade", label: "Conformidade fiscal" },
-  { href: "/painel/obras", label: "Obras" },
-  { href: "/painel/alertas", label: "Alertas" },
-  { href: "/painel/chat", label: "Copiloto" },
-  { href: "/painel/conta", label: "Minha conta" },
+  { href: "/panel", label: "Meu painel", exact: true },
+  { href: "/panel/funding", label: "Captação" },
+  { href: "/panel/transfers", label: "Recursos recebidos" },
+  { href: "/panel/compliance", label: "Conformidade fiscal" },
+  { href: "/panel/works", label: "Obras" },
+  { href: "/panel/alerts", label: "Alertas" },
+  { href: "/panel/copilot", label: "Copiloto" },
+  { href: "/panel/account", label: "Minha conta" },
 ];
 
 const PAPEL_LABEL: Record<string, string> = {
@@ -57,7 +57,7 @@ export default function PainelLayout({
     }
     void (async () => {
       const [{ data }, me] = await Promise.all([
-        api.GET("/api/v1/perfil"),
+        api.GET("/api/v1/profile"),
         api.GET("/api/v1/users/me"),
       ]);
       if (data) setPerfil(data as Perfil);
@@ -82,7 +82,7 @@ export default function PainelLayout({
     <div className="flex min-h-screen w-full flex-col gap-5 p-4 sm:p-6 md:flex-row md:gap-6 lg:p-8">
       <aside className="rail flex shrink-0 flex-col gap-6 self-start p-5 max-md:w-full md:sticky md:top-6 md:w-72 md:min-h-[calc(100vh-4rem)]">
         <div>
-          <Link href="/painel">
+          <Link href="/panel">
             <BrandMark />
           </Link>
           <p className="label-mono mt-1.5">
@@ -131,7 +131,7 @@ export default function PainelLayout({
             );
           })}
           {admin && (
-            <Link href="/admin/usuarios" className="nav-item">
+            <Link href="/admin/users" className="nav-item">
               Administração
             </Link>
           )}

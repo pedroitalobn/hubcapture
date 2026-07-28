@@ -28,7 +28,7 @@ async def _get_pasta_ou_404(session, user, pasta_id):
     return pasta
 
 
-@router.get("/pastas", response_model=list[PastaRead])
+@router.get("/folders", response_model=list[PastaRead])
 async def listar_pastas(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
@@ -37,7 +37,7 @@ async def listar_pastas(
     return [PastaRead.model_validate(r) for r in rows]
 
 
-@router.post("/pastas", response_model=PastaRead, status_code=status.HTTP_201_CREATED)
+@router.post("/folders", response_model=PastaRead, status_code=status.HTTP_201_CREATED)
 async def criar_pasta(
     body: PastaCreate,
     user: Usuario = Depends(current_active_user),
@@ -47,7 +47,7 @@ async def criar_pasta(
     return PastaRead.model_validate(pasta)
 
 
-@router.patch("/pastas/{pasta_id}", response_model=PastaRead)
+@router.patch("/folders/{pasta_id}", response_model=PastaRead)
 async def atualizar_pasta(
     pasta_id: uuid.UUID,
     body: PastaUpdate,
@@ -59,7 +59,7 @@ async def atualizar_pasta(
     return PastaRead.model_validate(pasta)
 
 
-@router.get("/pastas/{pasta_id}/propostas", response_model=list[uuid.UUID])
+@router.get("/folders/{pasta_id}/proposals", response_model=list[uuid.UUID])
 async def listar_propostas_da_pasta(
     pasta_id: uuid.UUID,
     user: Usuario = Depends(current_active_user),
@@ -69,7 +69,7 @@ async def listar_propostas_da_pasta(
     return await service.propostas_da_pasta(session, pasta_id)
 
 
-@router.post("/pastas/{pasta_id}/propostas", status_code=status.HTTP_201_CREATED)
+@router.post("/folders/{pasta_id}/proposals", status_code=status.HTTP_201_CREATED)
 async def adicionar_proposta(
     pasta_id: uuid.UUID,
     body: PastaPropostaCreate,
@@ -82,7 +82,7 @@ async def adicionar_proposta(
 
 
 @router.delete(
-    "/pastas/{pasta_id}/propostas/{proposta_id}",
+    "/folders/{pasta_id}/proposals/{proposta_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def remover_proposta(

@@ -26,13 +26,81 @@ export function clearTokens(): void {
   window.localStorage.removeItem(REFRESH_KEY);
 }
 
-/** Client tipado (openapi-fetch) — injeta o Bearer automaticamente. */
-export const api = createHubClient({ baseUrl: API_ORIGIN, getToken });
+// ── Sessão com auto-refresh ─────────────────────────────────────────────────
+// O access token expira em ~15 min; sem renovação, TODA chamada vira 401 e o
+// app "apodrece" logado (painel vazio, admin negado). `garantirSessao` renova
+// com o refresh token ANTES do request quando o access está vencido/perto de
+// vencer (single-flight) e, se a sessão acabou de verdade, desloga e manda
+// para o /login em vez de deixar a UI quebrada.
+
+function _expDoToken(token: string): number | null {
+  try {
+    const payload = token.split(".")[1] ?? "";
+    const json = JSON.parse(
+      atob(payload.replace(/-/g, "+").replace(/_/g, "/")),
+    ) as { exp?: number };
+    return typeof json.exp === "number" ? json.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+function _expirado(token: string): boolean {
+  const exp = _expDoToken(token);
+  // 30s de margem para não perder o request na virada
+  return exp !== null && exp * 1000 - 30_000 < Date.now();
+}
+
+let _refreshEmCurso: Promise<string | null> | null = null;
+
+async function _renovarTokens(): Promise<string | null> {
+  const refresh = window.localStorage.getItem(REFRESH_KEY);
+  if (!refresh) return null;
+  try {
+    const resp = await fetch(`${API_ORIGIN}/api/v1/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refresh }),
+    });
+    if (!resp.ok) return null;
+    const data = (await resp.json()) as {
+      access_token: string;
+      refresh_token: string;
+    };
+    setTokens(data.access_token, data.refresh_token);
+    return data.access_token;
+  } catch {
+    return null;
+  }
+}
+
+/** Access token válido (renovando se preciso) ou null se a sessão acabou. */
+export async function garantirSessao(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  const atual = getToken();
+  if (!atual) return null;
+  if (!_expirado(atual)) return atual;
+  _refreshEmCurso ??= _renovarTokens().finally(() => {
+    _refreshEmCurso = null;
+  });
+  const novo = await _refreshEmCurso;
+  if (novo) return novo;
+  // refresh também venceu → sessão realmente encerrada
+  clearTokens();
+  const path = window.location.pathname;
+  if (path.startsWith("/panel") || path.startsWith("/admin")) {
+    window.location.href = "/login";
+  }
+  return null;
+}
+
+/** Client tipado (openapi-fetch) — injeta o Bearer, renovando quando vencido. */
+export const api = createHubClient({ baseUrl: API_ORIGIN, getToken: garantirSessao });
 
 /** Baixa o PDF de uma proposta (GET autenticado → blob → download). */
 export async function baixarPdfProposta(id: string): Promise<void> {
-  const resp = await fetch(`${API_ORIGIN}/api/v1/propostas/${id}/pdf`, {
-    headers: { Authorization: `Bearer ${getToken() ?? ""}` },
+  const resp = await fetch(`${API_ORIGIN}/api/v1/proposals/${id}/pdf`, {
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
   });
   if (!resp.ok) throw new Error("Falha ao gerar PDF");
   const blob = await resp.blob();
@@ -52,11 +120,11 @@ export async function chatStream(
   modo: "propostas" | "copiloto",
   onDelta: (t: string) => void,
 ): Promise<void> {
-  const resp = await fetch(`${API_ORIGIN}/api/v1/copiloto/chat`, {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/copilot/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken() ?? ""}`,
+      Authorization: `Bearer ${(await garantirSessao()) ?? ""}`,
     },
     body: JSON.stringify({ pergunta, modo }),
   });
@@ -185,11 +253,11 @@ export async function islandStream(
   pergunta: string,
   onEvento: (e: IslandEvento) => void,
 ): Promise<void> {
-  const resp = await fetch(`${API_ORIGIN}/api/v1/copiloto/island`, {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/copilot/island`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken() ?? ""}`,
+      Authorization: `Bearer ${(await garantirSessao()) ?? ""}`,
     },
     body: JSON.stringify({ pergunta }),
   });

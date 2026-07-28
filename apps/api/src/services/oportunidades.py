@@ -181,7 +181,7 @@ async def _despachar(usuario: Usuario, alertas: list[Alerta], canais: set[str]) 
     linhas = [_linha(a) for a in alertas]
     if "email" in canais and usuario.email:
         base = await config_service.resolver("app_base_url")
-        url = f"{base.rstrip('/')}/painel/alertas" if base else None
+        url = f"{base.rstrip('/')}/panel/alerts" if base else None
         assunto, txt, html = alertas_resumo(linhas, url)
         await email_notif.enviar(usuario.email, assunto, txt, html)
     if "wpp" in canais and usuario.optin_wpp and usuario.telefone_wpp:

@@ -55,7 +55,7 @@ export default function RepassesPage() {
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const { data: vg, error } = await api.GET("/api/v1/repasses/visao-geral", {
+    const { data: vg, error } = await api.GET("/api/v1/transfers/overview", {
       params: { query: { inicio: presetToInicio(preset) } },
     });
     if (error) {
@@ -74,7 +74,7 @@ export default function RepassesPage() {
     e.preventDefault();
     setMsg(null);
     setSincronizando(true);
-    const { error } = await api.POST("/api/v1/repasses/sync", {
+    const { error } = await api.POST("/api/v1/transfers/sync", {
       body: { municipio_ibge: ibge },
     });
     if (error) {

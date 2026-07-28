@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { api, baixarPdfProposta } from "@/lib/api/client";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { api } from "@/lib/api/client";
 
 type Proposta = {
   id: string;
@@ -19,9 +19,18 @@ type Proposta = {
   resumo_ia?: string | null;
 };
 
+type FonteStatus = {
+  fonte: string;
+  municipio_ibge: string;
+  status: string;
+  erro?: string | null;
+};
+
 type Pasta = { id: string; nome: string; cor?: string | null };
+type MunicipioPerfil = { ibge: string; nome?: string | null; uf?: string | null };
 
 type Filtros = {
+  municipio: string;
   tipo: "" | "cadastrada" | "disponivel";
   fonte: string;
   area: string;
@@ -35,6 +44,7 @@ type Filtros = {
 type Aba = { id: string; nome: string; filtros: Filtros };
 
 const FILTROS_VAZIOS: Filtros = {
+  municipio: "",
   tipo: "",
   fonte: "",
   area: "",
@@ -56,7 +66,17 @@ const AREAS = [
   "agricultura",
 ];
 
+const FONTES = [
+  "transferegov_ff",
+  "transferegov_esp",
+  "transferegov_voluntarias",
+  "fns",
+  "fnde",
+  "serpro",
+];
+
 const ABAS_KEY = "hub_captacao_abas";
+const ABA_ACOMPANHAMENTO = "acompanhamento";
 
 function formatBRL(v?: string | null): string {
   if (!v) return "—";
@@ -69,7 +89,14 @@ function abasIniciais(): Aba[] {
   if (typeof window !== "undefined") {
     try {
       const salvo = window.localStorage.getItem(ABAS_KEY);
-      if (salvo) return JSON.parse(salvo) as Aba[];
+      if (salvo) {
+        const abas = JSON.parse(salvo) as Aba[];
+        // migra abas salvas antes do filtro de município existir
+        return abas.map((a) => ({
+          ...a,
+          filtros: { ...FILTROS_VAZIOS, ...a.filtros },
+        }));
+      }
     } catch {
       /* estado corrompido → recomeça */
     }
@@ -79,47 +106,78 @@ function abasIniciais(): Aba[] {
 
 export default function CaptacaoPage() {
   const [propostas, setPropostas] = useState<Proposta[]>([]);
+  const [fontesStatus, setFontesStatus] = useState<FonteStatus[]>([]);
+  const [buscando, setBuscando] = useState(true);
   const [favoritos, setFavoritos] = useState<Set<string>>(new Set());
   const [pastas, setPastas] = useState<Pasta[]>([]);
   const [pastaPropostas, setPastaPropostas] = useState<Set<string>>(new Set());
+  const [municipios, setMunicipios] = useState<MunicipioPerfil[]>([]);
   const [abas, setAbas] = useState<Aba[]>(abasIniciais);
   const [abaAtiva, setAbaAtiva] = useState<string>(
     () => abasIniciais()[0]?.id ?? "aba-1",
   );
-  const [ibge, setIbge] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
-  const [carregando, setCarregando] = useState(false);
+  const buscaSeq = useRef(0);
 
+  const acompanhando = abaAtiva === ABA_ACOMPANHAMENTO;
   const aba: Aba = abas.find((a) => a.id === abaAtiva) ??
     abas[0] ?? { id: "aba-1", nome: "Geral", filtros: { ...FILTROS_VAZIOS } };
   const filtros = aba.filtros;
+  const [acompanhadas, setAcompanhadas] = useState<Proposta[]>([]);
+
+  // aba ACOMPANHAMENTO: as favoritas completas, direto da API
+  const carregarAcompanhadas = useCallback(async () => {
+    const { data } = await api.GET("/api/v1/favorites/proposals");
+    if (data) setAcompanhadas(data as Proposta[]);
+  }, []);
+  useEffect(() => {
+    if (acompanhando) void carregarAcompanhadas();
+  }, [acompanhando, carregarAcompanhadas]);
 
   useEffect(() => {
     window.localStorage.setItem(ABAS_KEY, JSON.stringify(abas));
   }, [abas]);
 
-  const carregar = useCallback(async () => {
-    const query: Record<string, string> = {};
-    if (filtros.tipo) query.tipo = filtros.tipo;
-    if (filtros.fonte) query.fonte = filtros.fonte;
-    if (filtros.area) query.area = filtros.area;
-    if (filtros.situacao) query.situacao = filtros.situacao;
-    if (filtros.valorMin) query.valor_min = filtros.valorMin;
-    if (filtros.valorMax) query.valor_max = filtros.valorMax;
-    const { data, error } = await api.GET("/api/v1/propostas", {
-      params: { query: query as never },
+  // Busca em TEMPO REAL: a cada mudança de filtro (debounce), a API consulta as
+  // fontes oficiais ao vivo (API pública + scraping via connectors) e devolve
+  // as propostas já filtradas + o status por fonte.
+  const buscarAoVivo = useCallback(async () => {
+    const seq = ++buscaSeq.current;
+    setBuscando(true);
+    const { data, error } = await api.POST("/api/v1/proposals/live-search", {
+      body: {
+        municipio_ibge: filtros.municipio || null,
+        fonte: filtros.fonte || null,
+        area: filtros.area || null,
+        situacao: filtros.situacao || null,
+        valor_min: filtros.valorMin || null,
+        valor_max: filtros.valorMax || null,
+        tipo: filtros.tipo || null,
+      } as never,
     });
+    if (seq !== buscaSeq.current) return; // resposta antiga — descarta
     if (error) {
-      setMsg("Falha ao carregar propostas.");
-      return;
+      setMsg("Falha na busca em tempo real. Tente novamente.");
+    } else if (data) {
+      const resp = data as { propostas: Proposta[]; fontes: FonteStatus[] };
+      setPropostas(resp.propostas ?? []);
+      setFontesStatus(resp.fontes ?? []);
+      setMsg(null);
     }
-    setPropostas((data as Proposta[]) ?? []);
+    setBuscando(false);
   }, [filtros]);
 
+  useEffect(() => {
+    if (acompanhando) return;
+    const t = setTimeout(() => void buscarAoVivo(), 500);
+    return () => clearTimeout(t);
+  }, [buscarAoVivo, acompanhando]);
+
   const carregarCuradoria = useCallback(async () => {
-    const [fav, pas] = await Promise.all([
-      api.GET("/api/v1/favoritos"),
-      api.GET("/api/v1/pastas"),
+    const [fav, pas, perf] = await Promise.all([
+      api.GET("/api/v1/favorites"),
+      api.GET("/api/v1/folders"),
+      api.GET("/api/v1/profile"),
     ]);
     if (fav.data) {
       setFavoritos(
@@ -129,11 +187,12 @@ export default function CaptacaoPage() {
       );
     }
     if (pas.data) setPastas(pas.data as Pasta[]);
+    if (perf.data)
+      setMunicipios(
+        (perf.data as { municipios: MunicipioPerfil[] }).municipios ?? [],
+      );
   }, []);
 
-  useEffect(() => {
-    void carregar();
-  }, [carregar]);
   useEffect(() => {
     void carregarCuradoria();
   }, [carregarCuradoria]);
@@ -145,7 +204,7 @@ export default function CaptacaoPage() {
       return;
     }
     void (async () => {
-      const { data } = await api.GET("/api/v1/pastas/{pasta_id}/propostas", {
+      const { data } = await api.GET("/api/v1/folders/{pasta_id}/proposals", {
         params: { path: { pasta_id: filtros.pastaId } },
       });
       if (data) setPastaPropostas(new Set(data as string[]));
@@ -186,7 +245,7 @@ export default function CaptacaoPage() {
 
   async function alternarFavorito(p: Proposta) {
     if (favoritos.has(p.id)) {
-      await api.DELETE("/api/v1/favoritos/{proposta_id}", {
+      await api.DELETE("/api/v1/favorites/{proposta_id}", {
         params: { path: { proposta_id: p.id } },
       });
       setFavoritos((prev) => {
@@ -195,21 +254,22 @@ export default function CaptacaoPage() {
         return s;
       });
     } else {
-      await api.POST("/api/v1/favoritos", { body: { proposta_id: p.id } });
+      await api.POST("/api/v1/favorites", { body: { proposta_id: p.id } });
       setFavoritos((prev) => new Set(prev).add(p.id));
     }
+    if (acompanhando) void carregarAcompanhadas();
   }
 
   async function criarPasta() {
     const nome = window.prompt("Nome da nova pasta (projeto, área ou região):");
     if (!nome) return;
-    const { data } = await api.POST("/api/v1/pastas", { body: { nome } });
+    const { data } = await api.POST("/api/v1/folders", { body: { nome } });
     if (data) setPastas((prev) => [...prev, data as Pasta]);
   }
 
   async function moverParaPasta(propostaId: string, pastaId: string) {
     if (!pastaId) return;
-    await api.POST("/api/v1/pastas/{pasta_id}/propostas", {
+    await api.POST("/api/v1/folders/{pasta_id}/proposals", {
       params: { path: { pasta_id: pastaId } },
       body: { proposta_id: propostaId },
     });
@@ -218,30 +278,12 @@ export default function CaptacaoPage() {
     setMsg("Proposta adicionada à pasta.");
   }
 
-  async function consultarAvulsa(e: React.FormEvent) {
-    e.preventDefault();
-    setMsg(null);
-    setCarregando(true);
-    const { error } = await api.POST("/api/v1/consulta-avulsa", {
-      body: { municipio_ibge: ibge, fonte: "transferegov_ff" },
-    });
-    if (error) {
-      setMsg(
-        "A fonte oficial não respondeu agora (comum: API do TransfereGov instável). Tente novamente.",
-      );
-    } else {
-      setMsg("Consulta concluída.");
-      await carregar();
-    }
-    setCarregando(false);
-  }
-
   const visiveis = useMemo(() => {
-    let lista = propostas;
+    let lista = acompanhando ? acompanhadas : propostas;
     if (filtros.soFavoritas) lista = lista.filter((p) => favoritos.has(p.id));
     if (filtros.pastaId) lista = lista.filter((p) => pastaPropostas.has(p.id));
     return lista;
-  }, [propostas, filtros.soFavoritas, filtros.pastaId, favoritos, pastaPropostas]);
+  }, [propostas, acompanhadas, acompanhando, filtros.soFavoritas, filtros.pastaId, favoritos, pastaPropostas]);
 
   const situacoes = useMemo(
     () =>
@@ -250,9 +292,10 @@ export default function CaptacaoPage() {
       ).sort(),
     [propostas],
   );
-  const fontes = useMemo(
-    () => Array.from(new Set(propostas.map((p) => p.fonte))).sort(),
-    [propostas],
+
+  const fontesOk = fontesStatus.filter((f) => f.status === "ok").length;
+  const fontesErro = Array.from(
+    new Set(fontesStatus.filter((f) => f.status === "erro").map((f) => f.fonte)),
   );
 
   return (
@@ -260,7 +303,8 @@ export default function CaptacaoPage() {
       <header>
         <h1 className="page-title">Captação</h1>
         <p className="mt-1 text-sm text-ink-2">
-          Propostas cadastradas e oportunidades disponíveis para o seu território.
+          Propostas e oportunidades do seu território, consultadas em tempo real
+          nas fontes oficiais (API + scraping).
         </p>
       </header>
 
@@ -292,12 +336,22 @@ export default function CaptacaoPage() {
             )}
           </span>
         ))}
+        <button
+          onClick={() => setAbaAtiva(ABA_ACOMPANHAMENTO)}
+          className={`inline-flex items-center rounded-t-lg border border-b-0 border-hairline px-3 py-1.5 text-sm ${
+            acompanhando ? "bg-surface-2 font-medium" : "text-ink-2"
+          }`}
+          title="Propostas favoritadas que você acompanha"
+        >
+          ★ Acompanhamento
+        </button>
         <button onClick={novaAba} className="btn btn-ghost btn-sm" title="Nova aba">
           + aba
         </button>
       </div>
 
-      {/* filtros — granularidade do painel BI, entregue simples */}
+      {/* filtros — cada mudança dispara a busca ao vivo */}
+      {!acompanhando && (
       <div className="card flex flex-wrap items-end gap-3 p-4">
         <div className="flex gap-1.5">
           {(
@@ -321,14 +375,30 @@ export default function CaptacaoPage() {
           ))}
         </div>
         <label className="flex flex-col gap-1">
+          <span className="field-label">Município</span>
+          <select
+            value={filtros.municipio}
+            onChange={(e) => setFiltros({ municipio: e.target.value })}
+            className="input w-48"
+          >
+            <option value="">todos do perfil</option>
+            {municipios.map((m) => (
+              <option key={m.ibge} value={m.ibge}>
+                {m.nome ?? m.ibge}
+                {m.uf ? `/${m.uf}` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
           <span className="field-label">Fonte</span>
           <select
             value={filtros.fonte}
             onChange={(e) => setFiltros({ fonte: e.target.value })}
-            className="input w-40"
+            className="input w-44"
           >
             <option value="">todas</option>
-            {fontes.map((f) => (
+            {FONTES.map((f) => (
               <option key={f} value={f}>
                 {f}
               </option>
@@ -412,34 +482,53 @@ export default function CaptacaoPage() {
           + pasta
         </button>
       </div>
+      )}
 
-      <form onSubmit={consultarAvulsa} className="card flex flex-wrap items-end gap-3 p-5">
-        <label className="flex flex-col gap-1.5">
-          <span className="field-label">Consulta avulsa (IBGE, 7 dígitos)</span>
-          <input
-            value={ibge}
-            onChange={(e) => setIbge(e.target.value)}
-            placeholder="3550308"
-            maxLength={7}
-            className="input w-48"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={carregando || ibge.length !== 7}
-          className="btn btn-primary"
-        >
-          {carregando ? "Consultando…" : "Buscar na fonte"}
-        </button>
-      </form>
+      {/* estado honesto da coleta ao vivo */}
+      {!acompanhando && (
+      <div className="flex flex-wrap items-center gap-2 text-sm text-ink-2">
+        {buscando ? (
+          <span className="label-mono animate-pulse">
+            Consultando fontes oficiais em tempo real…
+          </span>
+        ) : (
+          <>
+            <span className="label-mono">
+              {fontesOk} consulta{fontesOk === 1 ? "" : "s"} ok
+            </span>
+            {fontesErro.length > 0 && (
+              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-mono text-[11px] text-amber-600">
+                fora do ar agora: {fontesErro.join(", ")}
+              </span>
+            )}
+            <button
+              onClick={() => void buscarAoVivo()}
+              className="btn btn-ghost btn-sm"
+            >
+              ↻ Buscar de novo
+            </button>
+          </>
+        )}
+      </div>
+      )}
+
+      {acompanhando && (
+        <p className="text-sm text-ink-2">
+          Suas propostas favoritadas ★ — toque na estrela para parar de
+          acompanhar. Favorite na busca (abas ao lado) para adicionar aqui.
+        </p>
+      )}
 
       {msg && <p className="text-sm text-ink-2">{msg}</p>}
 
       <section className="overflow-x-auto">
         {visiveis.length === 0 ? (
           <p className="text-ink-3">
-            Nenhuma proposta com esses filtros. Ajuste os filtros ou faça uma
-            consulta avulsa acima.
+            {acompanhando
+              ? "Nenhuma favorita ainda — favorite ★ uma proposta na busca para acompanhá-la aqui."
+              : buscando
+                ? "Buscando nas fontes…"
+                : "Nenhuma proposta com esses filtros nas fontes consultadas."}
           </p>
         ) : (
           <div className="card overflow-hidden">
@@ -452,7 +541,6 @@ export default function CaptacaoPage() {
                   <th className="px-3 py-3">Valor</th>
                   <th className="px-3 py-3">Situação</th>
                   <th className="px-3 py-3">Pasta</th>
-                  <th className="px-3 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -474,7 +562,7 @@ export default function CaptacaoPage() {
                     </td>
                     <td className="px-3 py-3">
                       <Link
-                        href={`/painel/captacao/${p.id}`}
+                        href={`/panel/funding/${p.id}`}
                         className="font-medium hover:underline"
                       >
                         {p.titulo ?? p.objeto ?? p.id_externo}
@@ -521,14 +609,6 @@ export default function CaptacaoPage() {
                           </option>
                         ))}
                       </select>
-                    </td>
-                    <td className="px-3 py-3">
-                      <button
-                        onClick={() => baixarPdfProposta(p.id)}
-                        className="btn btn-ghost btn-sm"
-                      >
-                        PDF
-                      </button>
                     </td>
                   </tr>
                 ))}

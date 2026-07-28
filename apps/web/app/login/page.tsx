@@ -21,9 +21,9 @@ export default function LoginPage() {
       await login(email, senha);
       // Sem território configurado → a porta de entrada é o onboarding
       // conversacional (o perfil é o ponto de partida da navegação).
-      const { data } = await api.GET("/api/v1/perfil");
+      const { data } = await api.GET("/api/v1/profile");
       const temTerritorio = ((data?.municipios as unknown[]) ?? []).length > 0;
-      router.push(temTerritorio ? "/painel" : "/onboarding");
+      router.push(temTerritorio ? "/panel" : "/onboarding");
     } catch (err) {
       setErro(err instanceof Error ? err.message : "Erro ao entrar");
     } finally {
@@ -40,11 +40,11 @@ export default function LoginPage() {
         <div className="flex items-center justify-between">
           <span>
             Novo por aqui?{" "}
-            <Link href="/cadastro" className="text-ink underline hover:no-underline">
+            <Link href="/signup" className="text-ink underline hover:no-underline">
               Criar conta
             </Link>
           </span>
-          <Link href="/esqueci-senha" className="hover:text-ink">
+          <Link href="/forgot-password" className="hover:text-ink">
             Esqueci a senha
           </Link>
         </div>

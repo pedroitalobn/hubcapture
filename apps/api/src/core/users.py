@@ -51,7 +51,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[Usuario, uuid.UUID]):
     async def on_after_forgot_password(
         self, user: Usuario, token: str, request: Request | None = None
     ) -> None:
-        url = f"{await _app_base_url()}/redefinir-senha?token={token}"
+        url = f"{await _app_base_url()}/reset-password?token={token}"
         assunto, txt, html = templates.redefinir_senha(url)
         try:
             await email_service.enviar(user.email, assunto, txt, html)
@@ -61,7 +61,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[Usuario, uuid.UUID]):
     async def on_after_request_verify(
         self, user: Usuario, token: str, request: Request | None = None
     ) -> None:
-        url = f"{await _app_base_url()}/verificar-email?token={token}"
+        url = f"{await _app_base_url()}/verify-email?token={token}"
         assunto, txt, html = templates.verificar_email(url)
         try:
             await email_service.enviar(user.email, assunto, txt, html)

@@ -54,6 +54,21 @@ services:
       DATABASE_MIGRATOR_URL: postgresql+asyncpg://${POSTGRES_USER:-hubcapture}:${POSTGRES_PASSWORD:-postgres_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
     expose:
       - "8000"
+    # O boot leva ~11s (espera o Postgres, roda alembic, compila bytecode) e o
+    # uvicorn só escuta no fim. Sem healthcheck o container já conta como "no ar"
+    # assim que sobe, e o Traefik encaminha pra uma porta morta → 502 Bad Gateway
+    # em toda janela de redeploy. Com o healthcheck o estado só vira healthy
+    # quando /health responde de fato.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=3).status==200 else 1)\"",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     networks:
       - default
       - dokploy-network
