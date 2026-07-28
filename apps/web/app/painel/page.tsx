@@ -44,6 +44,16 @@ interface Novidades {
   itens: Novidade[];
   sync_runs: SyncRunStatus[];
 }
+interface Noticia {
+  titulo: string;
+  url: string;
+  data?: string | null;
+  resumo?: string | null;
+}
+interface Alerta {
+  id: string;
+  lido: boolean;
+}
 
 const FONTE_LABEL: Record<string, string> = {
   transferegov_ff: "TransfereGov FF",
@@ -77,6 +87,8 @@ function MeuPainel() {
 
   const [data, setData] = useState<VisaoGeral | null>(null);
   const [novidades, setNovidades] = useState<Novidades | null>(null);
+  const [noticias, setNoticias] = useState<Noticia[]>([]);
+  const [naoLidos, setNaoLidos] = useState(0);
   const [loading, setLoading] = useState(true);
   const tentativas = useRef(0);
 
@@ -93,6 +105,15 @@ function MeuPainel() {
 
   useEffect(() => {
     void carregar();
+    // painel informativo (notícias oficiais) + alertas não lidos — best-effort
+    void (async () => {
+      const [not, al] = await Promise.all([
+        api.GET("/api/v1/noticias", { params: { query: { limite: 5 } } }),
+        api.GET("/api/v1/alertas", { params: { query: { nao_lidos: true } } }),
+      ]);
+      if (not.data) setNoticias(not.data as Noticia[]);
+      if (al.data) setNaoLidos((al.data as Alerta[]).length);
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -123,6 +144,20 @@ function MeuPainel() {
           Tudo do seu território, por etapa do ciclo do recurso público.
         </p>
       </header>
+
+      {naoLidos > 0 && (
+        <Link
+          href="/painel/alertas"
+          className="card card-hover flex items-center justify-between p-4 text-sm"
+        >
+          <span>
+            🔔 Você tem <strong>{naoLidos}</strong>{" "}
+            {naoLidos === 1 ? "alerta não lido" : "alertas não lidos"} — novas
+            propostas, prazos e oportunidades.
+          </span>
+          <span className="btn btn-ghost btn-sm">Ver alertas →</span>
+        </Link>
+      )}
 
       {loading ? (
         <SkeletonCards />
@@ -236,6 +271,31 @@ function MeuPainel() {
               </ol>
             )}
           </section>
+
+          {noticias.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <h2 className="tracking-tight">Painel informativo — TransfereGov</h2>
+              <ol className="card divide-y divide-hairline p-0">
+                {noticias.map((n, i) => (
+                  <li key={i}>
+                    <a
+                      href={n.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex flex-col gap-0.5 px-5 py-3.5 transition-colors hover:bg-surface-2"
+                    >
+                      <p className="text-sm text-ink">{n.titulo} ↗</p>
+                      {n.resumo && (
+                        <p className="line-clamp-1 text-[12px] text-ink-3">
+                          {n.resumo}
+                        </p>
+                      )}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
         </>
       )}
     </>

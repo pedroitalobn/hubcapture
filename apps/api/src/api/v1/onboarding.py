@@ -8,7 +8,7 @@ rodaria antes do commit da sessão e travaria o perfil; ver o módulo do serviç
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.users import current_active_user
@@ -16,6 +16,7 @@ from ...models.usuario import Usuario
 from ...schemas.curadoria import OnboardingRequest, OnboardingResponse
 from ...services import onboarding as service
 from ...services import primeiro_sync
+from ...services.onboarding import LimitePlanoExcedido
 from ..deps import get_rls_db
 
 router = APIRouter(tags=["onboarding"])
@@ -27,7 +28,13 @@ async def onboarding(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> OnboardingResponse:
-    resp = await service.onboarding(session, usuario_id=user.id, req=body)
+    try:
+        resp = await service.onboarding(session, usuario_id=user.id, req=body)
+    except LimitePlanoExcedido as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"LIMITE_PLANO_MUNICIPIOS: máximo de {exc.maximo} município(s) no seu plano",
+        ) from exc
     if body.disparar_sync and body.municipios:
         primeiro_sync.agendar(
             user.id,

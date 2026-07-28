@@ -13,7 +13,14 @@ import { api, getToken } from "@/lib/api/client";
  */
 
 type Msg = { autor: "copiloto" | "user"; texto: string };
-type Etapa = "papel" | "municipios" | "areas" | "fontes" | "confirmar" | "salvando";
+type Etapa =
+  | "papel"
+  | "municipios"
+  | "areas"
+  | "fontes"
+  | "avisos"
+  | "confirmar"
+  | "salvando";
 
 interface MunicipioBusca {
   ibge: string;
@@ -80,6 +87,10 @@ export default function OnboardingPage() {
   const [busca, setBusca] = useState("");
   const [sugestoes, setSugestoes] = useState<MunicipioBusca[]>([]);
   const [erro, setErro] = useState<string | null>(null);
+
+  // passo "ativar avisos": canais + WhatsApp opcional
+  const [telefone, setTelefone] = useState("");
+  const [canaisAlerta, setCanaisAlerta] = useState<string[]>(["painel"]);
 
   const fimRef = useRef<HTMLDivElement>(null);
   const timeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -201,6 +212,26 @@ export default function OnboardingPage() {
   function concluirFontes() {
     if (fontes.length === 0) return;
     responder(fontes.map((f) => rotulo(FONTES, f)).join(", "));
+    setEtapa("avisos");
+    falar([
+      "Última coisa: quer ser AVISADO quando aparecer proposta nova ou algo mudar?",
+      "O painel sempre mostra os alertas. Se quiser, eu também aviso por e-mail — e no WhatsApp, é só deixar seu número.",
+    ]);
+  }
+
+  // ── Etapa 5: ativar avisos (e conectar WhatsApp, se quiser) ───────────────
+  function toggleCanal(v: string) {
+    setCanaisAlerta((c) =>
+      c.includes(v) ? c.filter((x) => x !== v) : [...c, v],
+    );
+  }
+
+  function concluirAvisos() {
+    const optinWpp = canaisAlerta.includes("wpp") && telefone.trim().length >= 10;
+    const partes = ["painel"];
+    if (canaisAlerta.includes("email")) partes.push("e-mail");
+    if (optinWpp) partes.push(`WhatsApp (${telefone.trim()})`);
+    responder(`Avisos por: ${partes.join(", ")}`);
     setEtapa("confirmar");
     falar([
       "Tudo pronto! Vou configurar seu painel assim:",
@@ -216,15 +247,24 @@ export default function OnboardingPage() {
     const a = areas.length
       ? areas.map((x) => rotulo(AREAS, x)).join(", ")
       : "todas";
-    return `• Papel: ${papel ? rotulo(PAPEIS, papel) : "—"}\n• Território: ${m}\n• Áreas: ${a}\n• Fontes: ${fontes.map((f) => rotulo(FONTES, f)).join(", ")}`;
+    const optinWpp = canaisAlerta.includes("wpp") && telefone.trim().length >= 10;
+    const avisos = [
+      "painel",
+      canaisAlerta.includes("email") ? "e-mail" : null,
+      optinWpp ? "WhatsApp" : null,
+    ]
+      .filter(Boolean)
+      .join(", ");
+    return `• Papel: ${papel ? rotulo(PAPEIS, papel) : "—"}\n• Território: ${m}\n• Áreas: ${a}\n• Fontes: ${fontes.map((f) => rotulo(FONTES, f)).join(", ")}\n• Avisos: ${avisos}`;
   }
 
-  // ── Etapa 5: confirmar → grava e dispara o 1º sync real ──────────────────
+  // ── Etapa 6: confirmar → grava e dispara o 1º sync real ──────────────────
   async function confirmar() {
     responder("Confirmo!");
     setEtapa("salvando");
     setErro(null);
     falar(["Configurando seu painel e disparando a primeira coleta…"]);
+    const optinWpp = canaisAlerta.includes("wpp") && telefone.trim().length >= 10;
     const { error } = await api.POST("/api/v1/onboarding", {
       body: {
         municipios: municipios.map((m) => ({
@@ -237,10 +277,18 @@ export default function OnboardingPage() {
         monitorar_ativo: true,
         papel: papel ?? undefined,
         disparar_sync: true,
+        telefone_wpp: optinWpp ? telefone.trim() : null,
+        optin_wpp: optinWpp,
+        canais_alerta: canaisAlerta,
       },
     });
     if (error) {
-      setErro("Não consegui salvar seu perfil. Tente confirmar novamente.");
+      const detail = (error as { detail?: unknown }).detail;
+      setErro(
+        typeof detail === "string" && detail.startsWith("LIMITE_PLANO")
+          ? "Seu plano não permite tantos municípios — remova algum ou fale com o suporte para mudar de plano."
+          : "Não consegui salvar seu perfil. Tente confirmar novamente.",
+      );
       setEtapa("confirmar");
       return;
     }
@@ -386,6 +434,39 @@ export default function OnboardingPage() {
             disabled={fontes.length === 0}
             className="btn btn-primary self-end"
           >
+            Continuar
+          </button>
+        </div>
+      )}
+
+      {etapa === "avisos" && !digitando && (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2">
+            <span className="chip chip-active">Painel (sempre)</span>
+            <button
+              onClick={() => toggleCanal("email")}
+              className={`chip ${canaisAlerta.includes("email") ? "chip-active" : ""}`}
+            >
+              E-mail
+            </button>
+            <button
+              onClick={() => toggleCanal("wpp")}
+              className={`chip ${canaisAlerta.includes("wpp") ? "chip-active" : ""}`}
+            >
+              WhatsApp
+            </button>
+          </div>
+          {canaisAlerta.includes("wpp") && (
+            <input
+              value={telefone}
+              onChange={(e) => setTelefone(e.target.value)}
+              placeholder="Seu WhatsApp com DDD, ex.: 11 91234-5678"
+              className="input w-full"
+              inputMode="tel"
+              autoFocus
+            />
+          )}
+          <button onClick={concluirAvisos} className="btn btn-primary self-end">
             Continuar
           </button>
         </div>

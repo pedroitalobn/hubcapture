@@ -11,9 +11,21 @@ from ...core.users import current_active_user
 from ...models.usuario import Usuario
 from ...schemas.monitoramento import AlertaRead
 from ...services import alertas as service
+from ...services import oportunidades as oportunidades_service
 from ..deps import get_rls_db
 
 router = APIRouter(tags=["alertas"])
+
+
+@router.post("/alertas/varredura")
+async def varredura_alertas(
+    user: Usuario = Depends(current_active_user),
+    session: AsyncSession = Depends(get_rls_db),
+) -> dict:
+    """Roda a detecção de novas propostas (buscas) + oportunidades e despacha
+    por email/WhatsApp conforme os canais. Retorna quantos alertas foram criados."""
+    criados = await oportunidades_service.varredura(session, user)
+    return {"alertas_criados": criados}
 
 
 @router.get("/alertas", response_model=list[AlertaRead])
