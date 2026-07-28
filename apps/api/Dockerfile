@@ -24,5 +24,15 @@ RUN uv sync --no-install-project --no-dev || uv sync --no-dev
 COPY apps/api/ ./
 RUN uv sync --no-dev
 
+# O ambiente já está pronto e com bytecode compilado (UV_COMPILE_BYTECODE=1).
+# Colocar o .venv no PATH deixa o entrypoint chamar `alembic`/`uvicorn` direto,
+# sem `uv run` — que a cada execução re-sincroniza o ambiente, reinstala as
+# dev-deps (ruff/black/pygments, excluídas por --no-dev) e recompila 6005
+# arquivos de bytecode. Isso custava ~11s em TODO start do container e abria
+# uma janela de 502 no redeploy (Traefik encaminhando pra porta ainda morta).
+# UV_NO_SYNC é o cinto de segurança caso algum `uv run` sobre em outro script.
+ENV PATH="/app/apps/api/.venv/bin:${PATH}" \
+    UV_NO_SYNC=1
+
 EXPOSE 8000
 ENTRYPOINT ["./docker-entrypoint.sh"]
