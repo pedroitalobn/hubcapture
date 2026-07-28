@@ -495,7 +495,16 @@ chave de `CONFIG_SECRET_KEY`) e **mascarados** na leitura. Catálogo de chaves e
   Firecrawl (`scraping/firecrawl.py`), o resumo IA (`ai/resumo.py`) e **todos os connectors**
   (base URL no `collect`) consultam o resolver. Plugar uma credencial no painel ativa o provider
   sem redeploy.
-- Web: `app/admin/config` (agrupado por categoria; segredos em campo password, mascarados).
+- Web: `app/admin/config` — **menu lateral por categoria** (IA · Scraping · Fontes · WhatsApp ·
+  E-mail); cada categoria mostra os provedores **ativos** e um fluxo "Adicionar provedor" para os
+  inativos (segredos em campo password, mascarados).
+- **LLMs multi-provedor** (`services/llm_providers.py`): registry cobrindo Anthropic, OpenAI,
+  Gemini, DeepSeek, Grok (xAI), Kimi (Moonshot), Qwen (Alibaba) e GLM (Z.ai), cada um com sua
+  chave (`llm_<id>_api_key`). Ao colar a API key (`PUT /admin/config/llm/{id}/chave`) os modelos
+  do provedor são listados **ao vivo** do endpoint `/models` da fonte (fallback curado se falhar)
+  — menor fricção. Modelos escolhidos são salvos como `<provider>/<modelo>` em
+  `llm_model_chat`/`llm_model_resumo`; `params_para()` resolve p/ LiteLLM (prefixo nativo ou
+  rota OpenAI-compatible + `api_base`). Valor sem prefixo conhecido = caminho legado (`llm_api_key`).
 
 ## 17. Camada de IA + WhatsApp + PDF (v1)
 
