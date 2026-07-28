@@ -69,7 +69,7 @@ async def diagnostico_fontes(
     return DiagnosticoFontes(
         fontes=[
             FonteDiagnostico(fonte=f, saudavel=ok, ultima_coleta=ultima.get(f))
-            for f, ok in zip(fontes, saude)
+            for f, ok in zip(fontes, saude, strict=False)
         ],
         firecrawl_configurado=bool(await config_service.resolver("firecrawl_api_key")),
         crawl4ai_configurado=bool(await config_service.resolver("crawl4ai_base_url")),
