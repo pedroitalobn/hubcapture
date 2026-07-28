@@ -173,3 +173,44 @@ export async function atualizarPerfil(patch: {
     );
   }
 }
+
+/** Evento do agente do Dynamic Island: ferramenta em uso ou texto da resposta. */
+export type IslandEvento = { tool?: string; delta?: string };
+
+/**
+ * Copiloto do Dynamic Island (SSE) — agente com tool calling no backend.
+ * Emite {tool} quando o agente consulta uma ferramenta e {delta} com a resposta.
+ */
+export async function islandStream(
+  pergunta: string,
+  onEvento: (e: IslandEvento) => void,
+): Promise<void> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/copiloto/island`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken() ?? ""}`,
+    },
+    body: JSON.stringify({ pergunta }),
+  });
+  if (!resp.body) return;
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const linhas = buffer.split("\n\n");
+    buffer = linhas.pop() ?? "";
+    for (const linha of linhas) {
+      const m = linha.replace(/^data: /, "").trim();
+      if (!m || m === "[DONE]") continue;
+      try {
+        onEvento(JSON.parse(m) as IslandEvento);
+      } catch {
+        /* ignora linhas não-JSON */
+      }
+    }
+  }
+}

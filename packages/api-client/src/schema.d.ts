@@ -388,6 +388,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/copiloto/island": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Copiloto Island
+         * @description Agente do Dynamic Island (tool calling). O loop de ferramentas roda AQUI,
+         *     com a sessão RLS do request viva; o stream só replaye os eventos coletados
+         *     (mesma razão do RAG pré-stream acima).
+         */
+        post: operations["copiloto_island_api_v1_copiloto_island_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/favoritos": {
         parameters: {
             query?: never;
@@ -1371,6 +1393,11 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** IslandRequest */
+        IslandRequest: {
+            /** Pergunta */
+            pergunta: string;
         };
         /**
          * MonitoramentoBuscaCreate
@@ -2931,6 +2958,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ChatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    copiloto_island_api_v1_copiloto_island_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IslandRequest"];
             };
         };
         responses: {

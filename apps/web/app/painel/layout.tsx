@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/AuthShell";
+import DynamicIsland from "@/components/DynamicIsland";
 import { api, clearTokens, getToken } from "@/lib/api/client";
 
 interface MunicipioPerfil {
@@ -147,6 +148,10 @@ export default function PainelLayout({
       <main className="mx-auto flex w-full min-w-0 max-w-[1600px] flex-1 flex-col gap-6 py-2">
         {children}
       </main>
+
+      {/* Copiloto em Dynamic Island — persiste em TODAS as telas do painel,
+          só depois do onboarding (precisa de território p/ ter o que consultar). */}
+      {municipios.length > 0 && <DynamicIsland />}
     </div>
   );
 }

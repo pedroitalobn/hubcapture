@@ -14,6 +14,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...ai import agent as ai_agent
 from ...ai import chat as ai_chat
 from ...core.users import current_active_user
 from ...models.usuario import Usuario
@@ -73,6 +74,29 @@ async def copiloto_chat(
     async def gen() -> AsyncIterator[str]:
         async for token in ai_chat.stream(contexto, body.pergunta, papel):
             yield f"data: {json.dumps({'delta': token}, ensure_ascii=False)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
+
+
+class IslandRequest(BaseModel):
+    pergunta: str
+
+
+@router.post("/copiloto/island")
+async def copiloto_island(
+    body: IslandRequest,
+    user: Usuario = Depends(current_active_user),
+    session: AsyncSession = Depends(get_rls_db),
+) -> StreamingResponse:
+    """Agente do Dynamic Island (tool calling). O loop de ferramentas roda AQUI,
+    com a sessão RLS do request viva; o stream só replaye os eventos coletados
+    (mesma razão do RAG pré-stream acima)."""
+    eventos = [e async for e in ai_agent.executar(session, user, body.pergunta)]
+
+    async def gen() -> AsyncIterator[str]:
+        for ev in eventos:
+            yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(gen(), media_type="text/event-stream")
