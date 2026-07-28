@@ -38,9 +38,7 @@ async def _carregar() -> list[dict]:
     if _cache is not None and (time.monotonic() - _cache_em) < _TTL_SEGUNDOS:
         return _cache
 
-    base = await config_service.resolver("ibge_localidades_url") or (
-        settings.ibge_localidades_url
-    )
+    base = await config_service.resolver("ibge_localidades_url") or (settings.ibge_localidades_url)
     async with httpx.AsyncClient(base_url=base, timeout=_TIMEOUT) as client:
         resp = await client.get(ENDPOINT, params={"view": "nivelado"})
         resp.raise_for_status()
@@ -52,9 +50,7 @@ async def _carregar() -> list[dict]:
         nome = row.get("municipio-nome") or ""
         uf = row.get("UF-sigla") or ""
         if len(ibge) == 7 and nome:
-            municipios.append(
-                {"ibge": ibge, "nome": nome, "uf": uf, "busca": _normalizar(nome)}
-            )
+            municipios.append({"ibge": ibge, "nome": nome, "uf": uf, "busca": _normalizar(nome)})
     _cache, _cache_em = municipios, time.monotonic()
     return municipios
 
@@ -71,14 +67,23 @@ async def buscar(q: str, *, limite: int = 8) -> list[dict]:
 
     if q.isdigit():
         return [
-            {k: m[k] for k in ("ibge", "nome", "uf")}
-            for m in municipios
-            if m["ibge"].startswith(q)
+            {k: m[k] for k in ("ibge", "nome", "uf")} for m in municipios if m["ibge"].startswith(q)
         ][:limite]
 
     alvo = _normalizar(q)
     prefixo = [m for m in municipios if m["busca"].startswith(alvo)]
     contem = [m for m in municipios if alvo in m["busca"] and not m["busca"].startswith(alvo)]
-    return [
-        {k: m[k] for k in ("ibge", "nome", "uf")} for m in (prefixo + contem)[:limite]
-    ]
+    return [{k: m[k] for k in ("ibge", "nome", "uf")} for m in (prefixo + contem)[:limite]]
+
+
+async def nome_uf_por_ibge(ibge: str) -> tuple[str, str] | None:
+    """(nome, UF) do município — usado por connectors que filtram por NOME
+    (ex.: emendas do Portal da Transparência, cuja API não filtra por IBGE)."""
+    try:
+        municipios = await _carregar()
+    except Exception:
+        return None
+    for m in municipios:
+        if m["ibge"] == ibge:
+            return m["nome"], m["uf"]
+    return None

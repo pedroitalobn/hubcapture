@@ -57,6 +57,12 @@ CATALOGO: list[dict] = [
     _c("embedding_api_key", "Embeddings API Key", "ia", True, "embeddings"),
     _c("embedding_model", "Modelo de embeddings", "ia", False, "embeddings"),
     _c("transferegov_ff_base_url", "TransfereGov FF base URL", "fonte", False),
+    _c(
+        "transferegov_ff_ibge_field",
+        "TransfereGov FF coluna de IBGE (autodescoberta se vazio)",
+        "fonte",
+        False,
+    ),
     _c("transferegov_esp_base_url", "TransfereGov Especiais base URL", "fonte", False),
     _c(
         "transferegov_voluntarias_base_url",
@@ -77,6 +83,7 @@ CATALOGO: list[dict] = [
         False,
     ),
     _c("fpm_base_url", "FPM base URL", "fonte", False),
+    _c("fpm_endpoint", "FPM rota no ORDS (autodescoberta se vazio)", "fonte", False),
     _c("emendas_base_url", "Emendas base URL", "fonte", False),
     _c(
         "emendas_api_key",
