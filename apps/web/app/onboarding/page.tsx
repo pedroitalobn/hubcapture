@@ -97,7 +97,7 @@ export default function OnboardingPage() {
   const timeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
-    fimRef.current?.scrollIntoView({ behavior: "smooth" });
+    fimRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [mensagens, digitando, etapa]);
 
   useEffect(() => {
@@ -306,7 +306,7 @@ export default function OnboardingPage() {
     100;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-4 px-4 py-8 sm:px-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-4 px-4 py-6 sm:px-6">
       <div className="anim-fade-up flex items-center justify-between">
         <BrandMark />
         <span className="label-mono">Onboarding</span>
@@ -317,7 +317,10 @@ export default function OnboardingPage() {
         <div className="progress-fill" style={{ width: `${progresso}%` }} />
       </div>
 
-      <div className="card anim-fade-up flex flex-1 flex-col gap-3 p-5">
+      {/* O card cresce com a conversa até um teto e rola por dentro — assim a
+          área de resposta fica sempre logo abaixo da última mensagem, visível
+          sem rolar a página. */}
+      <div className="card anim-fade-up flex max-h-[55dvh] flex-col gap-3 overflow-y-auto overscroll-contain p-5">
         {mensagens.map((m, i) => (
           <ChatBubble key={i} autor={m.autor === "user" ? "user" : "ai"}>
             {m.texto}
