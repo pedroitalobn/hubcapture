@@ -21,7 +21,9 @@ from .base import RawRecord, register
 
 ENDPOINT = "transferencias/municipio"  # calibrar (API gateway, requer token)
 
-# schema de extração do painel dd-publico — calibrar contra o painel vivo
+# schema de extração do painel dd-publico (TransferegovbrVisaoGeral) —
+# calibrado contra o RELATÓRIO real exportado do painel (22 colunas), com os
+# valores de execução financeira que o gestor quer ver (empenhado etc.)
 PAINEL_EXTRACT_SCHEMA = {
     "type": "object",
     "properties": {
@@ -30,13 +32,26 @@ PAINEL_EXTRACT_SCHEMA = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "programa": {"type": "string"},
-                    "orgao": {"type": "string"},
-                    "modalidade": {"type": "string"},
+                    "numero": {"type": "string", "description": "Nº Transferência"},
+                    "link": {"type": "string"},
+                    "ano": {"type": "string"},
                     "situacao": {"type": "string"},
-                    "valor": {"type": "string"},
-                    "data": {"type": "string"},
-                    "numero": {"type": "string"},
+                    "tipo_transferencia": {"type": "string"},
+                    "modalidade": {"type": "string"},
+                    "orgao": {"type": "string", "description": "Órgão Repassador"},
+                    "ente_recebedor": {"type": "string"},
+                    "natureza_juridica": {"type": "string"},
+                    "uf": {"type": "string"},
+                    "municipio": {"type": "string"},
+                    "data_assinatura": {"type": "string"},
+                    "data_inicio_vigencia": {"type": "string"},
+                    "data_fim_vigencia": {"type": "string"},
+                    "objeto": {"type": "string"},
+                    "valor_global": {"type": "string"},
+                    "valor_empenhado": {"type": "string"},
+                    "valor_liberado": {"type": "string"},
+                    "valor_pago": {"type": "string"},
+                    "saldo_conta": {"type": "string", "description": "Saldo em Conta"},
                 },
             },
         }

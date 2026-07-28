@@ -1876,6 +1876,10 @@ export interface components {
             data_atualizacao_fonte?: string | null;
             /** Emenda */
             emenda?: string | null;
+            /** Execucao */
+            execucao?: {
+                [key: string]: unknown;
+            } | null;
             /** Fonte */
             fonte: string;
             /**

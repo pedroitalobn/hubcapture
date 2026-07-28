@@ -54,21 +54,15 @@ def _brl(v: Decimal | None) -> str:
 
 async def _municipios(session: AsyncSession) -> list[MunicipioPerfil]:
     rows = (
-        await session.execute(
-            select(MunicipioInteresse).order_by(MunicipioInteresse.nome)
-        )
+        await session.execute(select(MunicipioInteresse).order_by(MunicipioInteresse.nome))
     ).scalars()
     return [MunicipioPerfil.model_validate(m) for m in rows]
 
 
-async def _preferencias(
-    session: AsyncSession, usuario_id
-) -> PreferenciasUsuario | None:
+async def _preferencias(session: AsyncSession, usuario_id) -> PreferenciasUsuario | None:
     return (
         await session.execute(
-            select(PreferenciasUsuario).where(
-                PreferenciasUsuario.usuario_id == usuario_id
-            )
+            select(PreferenciasUsuario).where(PreferenciasUsuario.usuario_id == usuario_id)
         )
     ).scalar_one_or_none()
 
@@ -104,23 +98,17 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
     ).one()
 
     # Conformidade fiscal — destaque é o que falta comprovar.
-    conf_n = (
-        await session.execute(select(func.count(Conformidade.id)))
-    ).scalar_one()
+    conf_n = (await session.execute(select(func.count(Conformidade.id)))).scalar_one()
     conf_pendentes = (
         await session.execute(
-            select(func.count(Conformidade.id)).where(
-                Conformidade.status == "a_comprovar"
-            )
+            select(func.count(Conformidade.id)).where(Conformidade.status == "a_comprovar")
         )
     ).scalar_one()
 
     # Obras (execução) — destaque é o que está em andamento.
     obras_n = (await session.execute(select(func.count(Obra.id)))).scalar_one()
     obras_exec = (
-        await session.execute(
-            select(func.count(Obra.id)).where(Obra.situacao == "em_execucao")
-        )
+        await session.execute(select(func.count(Obra.id)).where(Obra.situacao == "em_execucao"))
     ).scalar_one()
 
     dimensoes = [
@@ -142,18 +130,14 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
             chave="conformidade",
             titulo="Conformidade fiscal",
             total=int(conf_n),
-            destaque=(
-                f"{conf_pendentes} a comprovar" if conf_n else "sem dados fiscais ainda"
-            ),
+            destaque=(f"{conf_pendentes} a comprovar" if conf_n else "sem dados fiscais ainda"),
             href="/panel/compliance",
         ),
         DimensaoResumo(
             chave="obras",
             titulo="Obras",
             total=int(obras_n),
-            destaque=(
-                f"{obras_exec} em execução" if obras_n else "sem obras ainda"
-            ),
+            destaque=(f"{obras_exec} em execução" if obras_n else "sem obras ainda"),
             href="/panel/works",
         ),
     ]
@@ -188,9 +172,7 @@ async def novidades(
     pref = await _preferencias(session, usuario.id)
     fontes = _fontes_do_perfil(pref)
 
-    stmt_p = select(Proposta).order_by(
-        Proposta.cache_atualizado_em.desc().nullslast()
-    )
+    stmt_p = select(Proposta).order_by(Proposta.cache_atualizado_em.desc().nullslast())
     stmt_r = select(Repasse).order_by(Repasse.data_repasse.desc().nullslast())
     if fontes:
         stmt_p = stmt_p.where(Proposta.fonte.in_(fontes))

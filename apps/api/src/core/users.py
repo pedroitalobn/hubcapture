@@ -28,9 +28,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[Usuario, uuid.UUID]):
     reset_password_token_secret = settings.jwt_secret
     verification_token_secret = settings.jwt_secret
 
-    async def on_after_register(
-        self, user: Usuario, request: Request | None = None
-    ) -> None:
+    async def on_after_register(self, user: Usuario, request: Request | None = None) -> None:
         # cria preferências default (onboarding preenche depois).
         # `preferencias_usuario` tem RLS: seta o tenant na transação atual para
         # o INSERT satisfazer a policy WITH CHECK (a sessão de auth não tem tenant).

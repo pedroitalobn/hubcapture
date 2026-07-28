@@ -776,3 +776,26 @@ painel admin quando preciso):
   `localidadeDoGasto` com o nome do município resolvido via IBGE Localidades
   (`services/municipios.nome_uf_por_ibge`), sem acento + UF. Segue exigindo
   `emendas_api_key`.
+
+## 28. Execução financeira do TransfereGov (empenhado por município/ano)
+
+O relatório da Visão Geral do TransfereGov (22 colunas) agora é cidadão de
+primeira classe — o gestor vê "quanto foi disponibilizado (EMPENHADO) ao meu
+município e ainda não foi utilizado":
+
+- **`propostas.execucao`** (jsonb, migration `c7d8e9f0a1b2`): valor_global/
+  empenhado/liberado/pago, saldo_conta, ano, tipo_transferencia,
+  ente_recebedor, natureza_juridica, datas de assinatura/vigência. Entra no
+  hash de mudança (empenho novo → alerta) e no upsert. Fim de vigência vira
+  prazo estruturado (alimenta /proposals/deadlines e o copiloto).
+- **Normalizador** (`_montar_execucao`): aceita snake_case e os cabeçalhos do
+  relatório ("Valor Empenhado", "Saldo em Conta"…), sem acento.
+- **Fontes**: serpro (schema de extração calibrado às 22 colunas do painel) e
+  transferegov_disc (CSV nacional SIconv/detru com mapeamento por
+  palavra-chave + cache em memória 1h; incluído em CAPTACAO_FONTES).
+- **Web Captação**: cards agregados (Transferências · Valor global · Empenhado ·
+  **Empenhado a utilizar** [destaque] · Pago · Saldo em conta), filtro por ANO,
+  colunas Valor global/Empenhado (com ponto verde quando há verba parada).
+- **Web detalhe**: seção "Execução financeira — TransfereGov" com barra de
+  progresso empilhada (pago ⊂ liberado ⊂ empenhado sobre o global), os 6
+  valores, vigências e ente recebedor.

@@ -33,9 +33,7 @@ async def listar_repasses(
     fim: date | None = Query(default=None),
     session: AsyncSession = Depends(get_rls_db),
 ) -> list[RepasseRead]:
-    rows = await service.listar(
-        session, municipio=municipio, fonte=fonte, inicio=inicio, fim=fim
-    )
+    rows = await service.listar(session, municipio=municipio, fonte=fonte, inicio=inicio, fim=fim)
     return [RepasseRead.model_validate(r) for r in rows]
 
 
@@ -68,9 +66,7 @@ async def sync_repasses(
             status_code=status.HTTP_400_BAD_REQUEST, detail="FONTE_DESCONHECIDA"
         ) from exc
     except ConnectorClientError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
     except Exception as exc:  # fonte instável/indisponível
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

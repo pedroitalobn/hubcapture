@@ -2484,6 +2484,18 @@
             ],
             "title": "Emenda"
           },
+          "execucao": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execucao"
+          },
           "fonte": {
             "title": "Fonte",
             "type": "string"

@@ -293,3 +293,62 @@ async def test_favoritos_propostas_completas(seed_user, seed_municipio) -> None:
         await fav_service.adicionar(s, u, pid)
         acompanhadas = await fav_service.listar_propostas(s, u)
         assert [p.id_externo for p in acompanhadas] == ["FAV1"]
+
+
+# ── execução financeira do TransfereGov (empenhado etc.) ────────────────────
+def test_normalize_execucao_do_painel() -> None:
+    from src.connectors.base import RawRecord
+    from src.ingestion.normalizer import normalize
+
+    r = RawRecord(
+        source_id="serpro",
+        id_externo="7AAAFE",
+        municipio_ibge="2307700",
+        endpoint="scrape",
+        raw={
+            "plano_acao": {
+                "numero": "7AAAFE",
+                "situacao": "Em execução",
+                "modalidade": "CONTRATO DE REPASSE",
+                "objeto": "Pavimentação de acesso",
+                "orgao": "MINISTERIO DO TURISMO",
+                "link": "https://discricionarias.transferegov.sistema.gov.br/x",
+                "valor_global": "453388",
+                "valor_empenhado": "451888",
+                "valor_pago": "0",
+                "saldo_conta": "0",
+                "ano": "2026",
+                "data_fim_vigencia": "2029-07-10",
+            }
+        },
+    )
+    c = normalize(r)
+    assert c.execucao["valor_empenhado"] == "451888"
+    assert c.execucao["ano"] == "2026"
+    assert c.prazos == [{"tipo": "fim de vigência", "data_limite": "2029-07-10"}]
+    assert c.url_origem.startswith("https://")
+
+
+def test_disc_csv_mapeia_colunas_do_relatorio() -> None:
+    from src.connectors.transferegov_disc import _plano_do_csv
+
+    row = {
+        "Nº Transferência": "7AAAFE",
+        "Situação": "Em execução",
+        "Modalidade Transferência": "CONTRATO DE REPASSE",
+        "Órgão Repassador": "MINISTERIO DO TURISMO",
+        "Objeto": "Pavimentação",
+        "Valor Global": "453388",
+        "Valor Empenhado": "451888",
+        "Valor Liberado": "0",
+        "Valor Pago": "0",
+        "Saldo em Conta": "0",
+        "Ano": "2026",
+        "Data Fim Vigência": "2029-07-10",
+    }
+    plano = _plano_do_csv(row)
+    assert plano["numero"] == "7AAAFE"
+    assert plano["valor_empenhado"] == "451888"
+    assert plano["valor_global"] == "453388"
+    assert plano["saldo_conta"] == "0"
+    assert plano["data_fim_vigencia"] == "2029-07-10"
