@@ -18,6 +18,7 @@ const NAV = [
   { href: "/admin/convites", label: "Convites" },
   { href: "/admin/planos", label: "Planos" },
   { href: "/admin/config", label: "Providers & Config" },
+  { href: "/admin/fontes", label: "Fontes (diagnóstico)" },
 ];
 
 export default function AdminLayout({

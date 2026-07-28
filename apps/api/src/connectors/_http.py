@@ -27,10 +27,17 @@ class ConnectorClientError(Exception):
     retry=retry_if_exception_type((httpx.TransportError, httpx.HTTPStatusError)),
     reraise=True,
 )
-async def get_json(base_url: str, endpoint: str, params: dict[str, str]) -> list | dict:
+async def get_json(
+    base_url: str,
+    endpoint: str,
+    params: dict[str, str],
+    headers: dict[str, str] | None = None,
+) -> list | dict:
     async with httpx.AsyncClient(base_url=base_url, timeout=TIMEOUT) as client:
         resp = await client.get(
-            endpoint, params=params, headers={"Accept": "application/json"}
+            endpoint,
+            params=params,
+            headers={"Accept": "application/json", **(headers or {})},
         )
         if 400 <= resp.status_code < 500:
             raise ConnectorClientError(f"{endpoint} {resp.status_code}: {resp.text[:200]}")

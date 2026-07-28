@@ -57,6 +57,7 @@ def register_routers() -> None:
     from .api.v1 import (
         admin,
         admin_config,
+        admin_fontes,
         alertas,
         auth,
         conformidade,
@@ -92,6 +93,7 @@ def register_routers() -> None:
         planos,
         admin,
         admin_config,
+        admin_fontes,
         copiloto,
         webhooks,
     ):

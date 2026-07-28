@@ -26,3 +26,27 @@ class ConhecimentoCreate(BaseModel):
     conteudo: str
     categoria: str | None = None
     tags: list[str] | None = None
+
+
+# ── Diagnóstico de fontes (admin) ──────────────────────────────────────────
+class UltimaColeta(BaseModel):
+    status: str | None = None  # 'ok' | 'degradado' | 'erro'
+    registros: int | None = None
+    finalizado_em: str | None = None
+    erro: str | None = None
+
+
+class FonteDiagnostico(BaseModel):
+    fonte: str
+    saudavel: bool  # health_check ao vivo (com timeout)
+    ultima_coleta: UltimaColeta | None = None
+
+
+class DiagnosticoFontes(BaseModel):
+    """Estado real da ingestão: fontes ao vivo + providers de scraping/IA."""
+
+    fontes: list[FonteDiagnostico] = []
+    firecrawl_configurado: bool = False
+    crawl4ai_configurado: bool = False
+    llm_configurado: bool = False
+    emendas_api_key_configurada: bool = False

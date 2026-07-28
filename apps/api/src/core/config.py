@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     # Recebidos (P1). URLs a calibrar contra as APIs/CSVs oficiais.
     fpm_base_url: str = "https://apidatalake.tesouro.gov.br/ords/transferencias/"
     emendas_base_url: str = "https://api.portaldatransparencia.gov.br/api-de-dados/"
+    emendas_api_key: str = ""  # chave-api-dados (Portal da Transparência) — obrigatória
     # Demais fontes (prontas para receber as APIs — calibrar rota/campos).
     # API pública do TransfereGov (docs por módulo em <base>/<modulo>/docs).
     transferegov_esp_base_url: str = "https://api-publica.transferegov.gestao.gov.br/especiais/"

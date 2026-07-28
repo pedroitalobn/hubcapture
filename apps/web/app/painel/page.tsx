@@ -141,7 +141,7 @@ function MeuPainel() {
         </div>
       ) : (
         <>
-          <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          <section className="stagger grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
             {(data?.dimensoes ?? []).map((d) => (
               <Link
                 key={d.chave}
@@ -150,12 +150,16 @@ function MeuPainel() {
               >
                 <div className="flex items-start justify-between">
                   <h2 className="tracking-tight">{d.titulo}</h2>
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-lime text-abyss opacity-0 transition-opacity group-hover:opacity-100">
+                  <span className="flex h-9 w-9 translate-y-1 items-center justify-center rounded-lg bg-lime text-abyss opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
                     →
                   </span>
                 </div>
                 <div>
-                  <div className="text-[44px] leading-none tracking-[-0.03em] tabular-nums">
+                  <div
+                    className={`text-[44px] font-medium leading-none tracking-[-0.03em] tabular-nums ${
+                      d.total > 0 ? "text-gradient" : ""
+                    }`}
+                  >
                     {d.total}
                   </div>
                   <p className="mt-2 text-sm text-ink-2">{d.destaque ?? "—"}</p>
@@ -164,7 +168,7 @@ function MeuPainel() {
             ))}
           </section>
 
-          <section className="flex flex-col gap-3">
+          <section className="anim-fade-up flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <h2 className="tracking-tight">Últimas novidades no seu território</h2>
               {aguardandoDados && (
@@ -200,7 +204,7 @@ function MeuPainel() {
                 )}
               </div>
             ) : (
-              <ol className="card divide-y divide-hairline p-0">
+              <ol className="card stagger divide-y divide-hairline p-0">
                 {itens.map((n, i) => (
                   <li key={i}>
                     <Link

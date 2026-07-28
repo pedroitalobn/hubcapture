@@ -485,7 +485,12 @@ Tabela `configuracoes` (platform-level, sem RLS); segredos **cifrados em repouso
 chave de `CONFIG_SECRET_KEY`) e **mascarados** na leitura. Catálogo de chaves em
 `services/config.py::CATALOGO` (Firecrawl, LLM, base URLs/tokens das fontes).
 
-- Endpoints (admin `is_superuser`): `GET /admin/config` (lista mascarada) · `PUT /admin/config` (`{chave, valor}`).
+- Endpoints (admin `is_superuser`): `GET /admin/config` (lista mascarada) · `PUT /admin/config` (`{chave, valor}`) ·
+  `GET /admin/fontes` (**diagnóstico**: health_check ao vivo de todos os connectors em paralelo
+  com timeout + última coleta por fonte de `sync_runs` + estado de Firecrawl/Crawl4AI/LLM/chave
+  de emendas — página `app/admin/fontes`). A API de emendas (Portal da Transparência) EXIGE a
+  chave `chave-api-dados` (`emendas_api_key`, cadastro gratuito); sem ela o connector falha com
+  mensagem clara em `sync_runs`.
 - `services/config.resolver(chave)` é a fonte de verdade em runtime (DB decifrado > default `.env`).
   Firecrawl (`scraping/firecrawl.py`), o resumo IA (`ai/resumo.py`) e **todos os connectors**
   (base URL no `collect`) consultam o resolver. Plugar uma credencial no painel ativa o provider

@@ -72,6 +72,12 @@ CATALOGO: list[dict] = [
     _c("serpro_painel_url", "SERPRO painel público (dd-publico, scraping)", "fonte", False),
     _c("fpm_base_url", "FPM base URL", "fonte", False),
     _c("emendas_base_url", "Emendas base URL", "fonte", False),
+    _c(
+        "emendas_api_key",
+        "Emendas — chave-api-dados (Portal da Transparência)",
+        "fonte",
+        True,
+    ),
     _c("siconfi_csv_url", "Siconfi/CAUC CSV (Tesouro)", "fonte", False),
     _c("sismob_base_url", "SISMOB base URL (obras saúde)", "fonte", False),
     _c("simec_base_url", "SIMEC base URL (obras educação)", "fonte", False),
