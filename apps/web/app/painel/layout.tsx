@@ -128,12 +128,23 @@ export default function PainelLayout({
               </Link>
             );
           })}
-          {admin && (
-            <Link href="/admin/usuarios" className="nav-item">
+        </nav>
+
+        {/* Bloco de plataforma — SÓ renderiza para superuser (is_superuser via
+            /users/me); usuário comum nem vê o botão. A API nega de qualquer
+            forma; aqui é visibilidade. */}
+        {admin && (
+          <div className="border-t border-hairline pt-4">
+            <p className="label-mono mb-1.5">Plataforma</p>
+            <Link
+              href="/admin/usuarios"
+              className={`nav-item ${pathname.startsWith("/admin") ? "nav-item-active" : ""}`}
+            >
+              <span className="brand-dot" aria-hidden />
               Administração
             </Link>
-          )}
-        </nav>
+          </div>
+        )}
 
         <button
           onClick={sair}
