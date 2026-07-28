@@ -452,6 +452,14 @@ Endpoints: `GET /planos` (público) · `POST/PATCH /planos` (admin) · `POST /ad
 `POST /auth/aceitar-convite` (público). Criação de usuário passa pelo UserManager
 (hash de senha). Dependency `current_superuser` em `core/users.py`.
 
+**Web (painel de administração unificado):** `app/admin/layout.tsx` é o shell com guard de
+superuser (`/users/me` → redirect se não-admin) e navegação Usuários · Convites · Planos ·
+Providers & Config. Usuários: criar + editar inline papel/plano/admin/ativo
+(`PATCH /admin/usuarios/{id}` com `plano_id`). Convites: criar com papel/plano/validade,
+listar com status e **copiar link** (`/aceitar-convite?token=…`). A página pública
+`app/aceitar-convite` consome o token (nome+senha → aceite → login → onboarding). O menu do
+painel comum mostra "Administração" só para superusers.
+
 ## 15. Ingestão pronta para as APIs + scraping (Crawl4AI + Firecrawl)
 
 Todos os connectors estão **registrados** (`connectors/*`), com rotas/campos isolados em

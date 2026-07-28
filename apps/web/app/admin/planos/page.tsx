@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { BrandMark } from "@/components/AuthShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api, getToken } from "@/lib/api/client";
 import { formatBRL } from "@/lib/format";
@@ -56,9 +55,13 @@ export default function AdminPlanosPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[1400px] flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
-      <BrandMark />
-      <h1 className="page-title">Planos da plataforma</h1>
+    <>
+      <header>
+        <h1 className="page-title">Planos da plataforma</h1>
+        <p className="mt-1 text-sm text-ink-2">
+          Catálogo de planos atribuíveis aos usuários (em Usuários ou no convite).
+        </p>
+      </header>
 
       <form onSubmit={criar} className="card flex flex-wrap items-end gap-3 p-5">
         <label className="flex flex-col gap-1.5">
@@ -113,6 +116,6 @@ export default function AdminPlanosPage() {
           <li className="py-3.5 text-ink-3">Nenhum plano cadastrado ainda.</li>
         )}
       </ul>
-    </main>
+    </>
   );
 }

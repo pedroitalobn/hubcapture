@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { BrandMark } from "@/components/AuthShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api, getToken } from "@/lib/api/client";
 
@@ -84,8 +83,7 @@ export default function AdminConfigPage() {
   );
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[1400px] flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
-      <BrandMark />
+    <>
       <header>
         <h1 className="page-title">Configuração de providers</h1>
         <p className="mt-1 text-sm text-ink-2">
@@ -143,6 +141,6 @@ export default function AdminConfigPage() {
             ))}
         </section>
       ))}
-    </main>
+    </>
   );
 }

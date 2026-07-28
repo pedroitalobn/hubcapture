@@ -46,6 +46,7 @@ export default function PainelLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [perfil, setPerfil] = useState<Perfil | null>(null);
+  const [admin, setAdmin] = useState(false);
 
   useEffect(() => {
     if (!getToken()) {
@@ -53,8 +54,12 @@ export default function PainelLayout({
       return;
     }
     void (async () => {
-      const { data } = await api.GET("/api/v1/perfil");
+      const [{ data }, me] = await Promise.all([
+        api.GET("/api/v1/perfil"),
+        api.GET("/api/v1/users/me"),
+      ]);
       if (data) setPerfil(data as Perfil);
+      setAdmin(Boolean((me.data as { is_superuser?: boolean } | undefined)?.is_superuser));
     })();
   }, [router]);
 
@@ -123,6 +128,11 @@ export default function PainelLayout({
               </Link>
             );
           })}
+          {admin && (
+            <Link href="/admin/usuarios" className="nav-item">
+              Administração
+            </Link>
+          )}
         </nav>
 
         <button
