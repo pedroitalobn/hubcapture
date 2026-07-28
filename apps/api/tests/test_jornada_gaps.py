@@ -248,9 +248,7 @@ async def test_varredura_detecta_oportunidade(seed_user, seed_municipio, seed_re
 
 
 # ── busca em tempo real (live-search multi-fonte, best-effort) ──────────────
-async def test_live_search_usa_cache_fresco_e_reporta_erro(
-    seed_user, seed_municipio
-) -> None:
+async def test_live_search_usa_cache_fresco_e_reporta_erro(seed_user, seed_municipio) -> None:
     from src.services import consulta_avulsa as ca
 
     u = await seed_user("live@x.com")
@@ -259,13 +257,9 @@ async def test_live_search_usa_cache_fresco_e_reporta_erro(
     await _seed_proposta_completa("transferegov_ff", "LV1", "3550308")
 
     async with rls_session(u) as s:
-        rows, status = await ca.live_search(
-            s, usuario_id=u, fonte="transferegov_ff"
-        )
+        rows, status = await ca.live_search(s, usuario_id=u, fonte="transferegov_ff")
         assert [p.id_externo for p in rows] == ["LV1"]
-        assert status == [
-            {"fonte": "transferegov_ff", "municipio_ibge": "3550308", "status": "ok"}
-        ]
+        assert status == [{"fonte": "transferegov_ff", "municipio_ibge": "3550308", "status": "ok"}]
 
     # fonte desconhecida → status de erro, sem derrubar a busca
     async with rls_session(u) as s:
@@ -280,3 +274,22 @@ def test_fontes_alvo_prioriza_filtro_area_perfil() -> None:
     assert _fontes_alvo(None, "saude", None) == ["fns"]
     assert _fontes_alvo(None, None, ["fnde", "fpm"]) == ["fnde"]
     assert _fontes_alvo(None, None, None) == list(CAPTACAO_FONTES)
+
+
+# ── aba de acompanhamento: propostas favoritadas completas ──────────────────
+async def test_favoritos_propostas_completas(seed_user, seed_municipio) -> None:
+    from src.models.proposta import Proposta
+    from src.services import favoritos as fav_service
+
+    u = await seed_user("acomp@x.com")
+    await seed_municipio(u, "3550308")
+    await _seed_proposta_completa("transferegov_ff", "FAV1", "3550308")
+    await _seed_proposta_completa("transferegov_ff", "NAOFAV", "3550308")
+
+    async with rls_session(u) as s:
+        pid = (
+            await s.execute(select(Proposta.id).where(Proposta.id_externo == "FAV1"))
+        ).scalar_one()
+        await fav_service.adicionar(s, u, pid)
+        acompanhadas = await fav_service.listar_propostas(s, u)
+        assert [p.id_externo for p in acompanhadas] == ["FAV1"]

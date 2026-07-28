@@ -54,6 +54,18 @@ interface Alerta {
   id: string;
   lido: boolean;
 }
+interface Oportunidade {
+  id: string;
+  id_externo: string;
+  titulo?: string | null;
+  objeto?: string | null;
+  fonte: string;
+  municipio_nome?: string | null;
+  municipio_ibge?: string | null;
+  uf?: string | null;
+  valor_total?: string | null;
+  situacao?: string | null;
+}
 
 const FONTE_LABEL: Record<string, string> = {
   transferegov_ff: "TransfereGov FF",
@@ -89,6 +101,9 @@ function MeuPainel() {
   const [novidades, setNovidades] = useState<Novidades | null>(null);
   const [noticias, setNoticias] = useState<Noticia[]>([]);
   const [naoLidos, setNaoLidos] = useState(0);
+  const [oportunidades, setOportunidades] = useState<Oportunidade[]>([]);
+  const [buscandoOportunidades, setBuscandoOportunidades] = useState(true);
+  const [favoritas, setFavoritas] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const tentativas = useRef(0);
 
@@ -114,8 +129,45 @@ function MeuPainel() {
       if (not.data) setNoticias(not.data as Noticia[]);
       if (al.data) setNaoLidos((al.data as Alerta[]).length);
     })();
+    // Oportunidades DISPONÍVEIS para o território, em TEMPO REAL: a API
+    // consulta as fontes ao vivo (live-search) filtrando tipo=disponivel.
+    void (async () => {
+      const [ls, fav] = await Promise.all([
+        api.POST("/api/v1/proposals/live-search", {
+          body: { tipo: "disponivel" } as never,
+        }),
+        api.GET("/api/v1/favorites"),
+      ]);
+      if (ls.data)
+        setOportunidades(
+          ((ls.data as { propostas: Oportunidade[] }).propostas ?? []).slice(0, 6),
+        );
+      if (fav.data)
+        setFavoritas(
+          new Set(
+            (fav.data as { proposta_id: string }[]).map((f) => f.proposta_id),
+          ),
+        );
+      setBuscandoOportunidades(false);
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function alternarFavorita(id: string) {
+    if (favoritas.has(id)) {
+      await api.DELETE("/api/v1/favorites/{proposta_id}", {
+        params: { path: { proposta_id: id } },
+      });
+      setFavoritas((prev) => {
+        const s = new Set(prev);
+        s.delete(id);
+        return s;
+      });
+    } else {
+      await api.POST("/api/v1/favorites", { body: { proposta_id: id } });
+      setFavoritas((prev) => new Set(prev).add(id));
+    }
+  }
 
   // Recém-saído do onboarding: o 1º sync real roda em background na API —
   // re-consulta o feed a cada 8s (até ~2min) enquanto os dados chegam.

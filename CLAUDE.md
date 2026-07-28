@@ -738,3 +738,14 @@ real qual ferramenta o agente está consultando. Histórico em sessionStorage.
   A página `app/panel/funding` dispara a busca a CADA mudança de filtro (debounce 500ms,
   descarte de resposta antiga) e mostra o estado da coleta. Exportar PDF saiu da UI
   (endpoint continua na API).
+
+## 26. Meu painel com oportunidades ao vivo + aba Acompanhamento
+
+- **Meu painel** mostra "Oportunidades disponíveis para o seu território": chama
+  `POST /proposals/live-search {tipo: 'disponivel'}` no load (dados ao vivo das fontes,
+  pós-onboarding), lista top-6 com ★ para favoritar direto e link p/ Captação.
+- **Aba ★ Acompanhamento** (fixa) na Captação: lista as propostas FAVORITADAS completas
+  via `GET /favorites/proposals` (`services/favoritos.listar_propostas`, join sob RLS —
+  favorita fora do território não vaza). Favoritar em qualquer lugar (busca, painel,
+  detalhe) adiciona aqui; a estrela remove. No modo acompanhamento os filtros/live-search
+  ficam ocultos (a fonte é a lista de favoritas).
