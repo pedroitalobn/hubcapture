@@ -113,6 +113,31 @@ export async function baixarPdfProposta(id: string): Promise<void> {
 }
 
 /**
+ * Baixa um relatório CSV da API (GET autenticado → blob → download).
+ * Usado pelos botões "Baixar relatório" da captação e das emendas.
+ */
+export async function baixarCsv(
+  path: string,
+  params: Record<string, string | number | boolean | null | undefined>,
+  filename: string,
+): Promise<void> {
+  const qs = new URLSearchParams();
+  for (const [chave, valor] of Object.entries(params)) {
+    if (valor !== null && valor !== undefined && valor !== "") qs.set(chave, String(valor));
+  }
+  const resp = await fetch(`${API_ORIGIN}${path}?${qs.toString()}`, {
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+  });
+  if (!resp.ok) throw new Error("Falha ao gerar o relatório");
+  const url = URL.createObjectURL(await resp.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
  * Chat do Copiloto (SSE). Chama `onDelta` a cada token e resolve ao terminar.
  */
 export async function chatStream(

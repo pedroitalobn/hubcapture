@@ -860,6 +860,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/proposals/facets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Facetas Propostas
+         * @description Opções de cada filtro com contagem — alimenta os dropdowns da tela.
+         */
+        get: operations["facetas_propostas_api_v1_proposals_facets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/proposals/live-search": {
         parameters: {
             query?: never;
@@ -871,6 +891,46 @@ export interface paths {
         put?: never;
         /** Live Search Endpoint */
         post: operations["live_search_endpoint_api_v1_proposals_live_search_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/report.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Relatorio Propostas
+         * @description Baixar relatório: o mesmo recorte da tela, em CSV (';', abre no Excel).
+         */
+        get: operations["relatorio_propostas_api_v1_proposals_report_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumo Propostas
+         * @description Resumo consolidado: cards financeiros, série por ano, pipeline e vigentes.
+         */
+        get: operations["resumo_propostas_api_v1_proposals_summary_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -920,6 +980,47 @@ export interface paths {
         };
         /** Listar Repasses */
         get: operations["listar_repasses_api_v1_transfers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transfers/amendments/report.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Relatorio Emendas
+         * @description Exporta a lista de emendas filtrada (CSV ';', abre no Excel).
+         */
+        get: operations["relatorio_emendas_api_v1_transfers_amendments_report_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transfers/amendments/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumo Emendas
+         * @description Painel de emendas: cards empenhado/pago, evolução anual, distribuição por
+         *     modalidade e por área, ranking de parlamentares e a lista detalhada.
+         */
+        get: operations["resumo_emendas_api_v1_transfers_amendments_summary_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1334,6 +1435,33 @@ export interface components {
             /** Titulo */
             titulo: string;
         };
+        /**
+         * ConvenioVigente
+         * @description Convênio em execução com o percentual já desembolsado.
+         */
+        ConvenioVigente: {
+            /** Desembolsado */
+            desembolsado: string;
+            /** Dias Restantes */
+            dias_restantes?: number | null;
+            /** Fim Vigencia */
+            fim_vigencia?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Modalidade */
+            modalidade?: string | null;
+            /** Orgao Superior */
+            orgao_superior?: string | null;
+            /** Percentual Desembolso */
+            percentual_desembolso: number;
+            /** Titulo */
+            titulo?: string | null;
+            /** Valor Global */
+            valor_global: string;
+        };
         /** ConviteCreate */
         ConviteCreate: {
             /**
@@ -1426,12 +1554,77 @@ export interface components {
              */
             total: number;
         };
+        /**
+         * DistribuicaoItem
+         * @description Fatia de uma distribuição (por modalidade ou por área/função).
+         */
+        DistribuicaoItem: {
+            /** Chave */
+            chave: string;
+            /** Quantidade */
+            quantidade: number;
+            /** Valor */
+            valor: string;
+        };
+        /**
+         * EmendaItem
+         * @description Uma emenda que beneficiou o município, achatada para a tela.
+         */
+        EmendaItem: {
+            /** Ano */
+            ano?: string | null;
+            /** Area */
+            area?: string | null;
+            /** Codigo */
+            codigo: string;
+            /** Data Repasse */
+            data_repasse?: string | null;
+            /** Descricao */
+            descricao?: string | null;
+            /** Empenhado */
+            empenhado: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Modalidade */
+            modalidade?: string | null;
+            /** Municipio Nome */
+            municipio_nome?: string | null;
+            /** Numero */
+            numero?: string | null;
+            /** Orgao Superior */
+            orgao_superior?: string | null;
+            /** Pago */
+            pago: string;
+            /** Parlamentar */
+            parlamentar?: string | null;
+            /** Partido */
+            partido?: string | null;
+            /** Percentual Executado */
+            percentual_executado: number;
+            /** Uf */
+            uf?: string | null;
+        };
         /** ErrorModel */
         ErrorModel: {
             /** Detail */
             detail: string | {
                 [key: string]: string;
             };
+        };
+        /**
+         * FacetaOpcao
+         * @description Uma opção de filtro com o número de propostas no recorte atual.
+         */
+        FacetaOpcao: {
+            /** Rotulo */
+            rotulo: string;
+            /** Total */
+            total: number;
+            /** Valor */
+            valor: string;
         };
         /** FavoritoCreate */
         FavoritoCreate: {
@@ -1500,15 +1693,44 @@ export interface components {
          * @description Filtros da busca. Tudo opcional — sem município, usa os do perfil.
          */
         LiveSearchRequest: {
+            /** Ano */
+            ano?: string | null;
             /** Area */
             area?: string | null;
             /** Fonte */
             fonte?: string | null;
             /**
+             * Modalidade
+             * @description tipo de instrumento
+             */
+            modalidade?: string | null;
+            /**
              * Municipio Ibge
              * @description código IBGE
              */
             municipio_ibge?: string | null;
+            /**
+             * Natureza Juridica
+             * @description municipal | estadual_df | consorcio | empresa_publica | osc
+             */
+            natureza_juridica?: string | null;
+            /** Ordenar */
+            ordenar?: string | null;
+            /**
+             * Orgao
+             * @description órgão/ministério concedente
+             */
+            orgao?: string | null;
+            /**
+             * Q
+             * @description busca por programa, órgão ou código
+             */
+            q?: string | null;
+            /**
+             * Qualificacao
+             * @description tipo de transferência
+             */
+            qualificacao?: string | null;
             /** Situacao */
             situacao?: string | null;
             /** Tipo */
@@ -1520,6 +1742,7 @@ export interface components {
         };
         /** LiveSearchResponse */
         LiveSearchResponse: {
+            facetas: components["schemas"]["PropostasFacetas"];
             /** Fontes */
             fontes: components["schemas"]["FonteStatus"][];
             /** Propostas */
@@ -1865,6 +2088,32 @@ export interface components {
             /** Sync Disparado */
             sync_disparado: boolean;
         };
+        /**
+         * OpcoesEmendas
+         * @description Valores disponíveis para os filtros da tela (só o que existe).
+         */
+        OpcoesEmendas: {
+            /**
+             * Anos
+             * @default []
+             */
+            anos: string[];
+            /**
+             * Modalidades
+             * @default []
+             */
+            modalidades: string[];
+            /**
+             * Orgaos
+             * @default []
+             */
+            orgaos: string[];
+            /**
+             * Parlamentares
+             * @default []
+             */
+            parlamentares: string[];
+        };
         /** PastaCreate */
         PastaCreate: {
             /** Cor */
@@ -1938,6 +2187,18 @@ export interface components {
             nome?: string | null;
             /** Papel */
             papel?: string | null;
+        };
+        /**
+         * PipelineItem
+         * @description Etapa do pipeline de propostas (agrupado por situação da fonte).
+         */
+        PipelineItem: {
+            /** Quantidade */
+            quantidade: number;
+            /** Situacao */
+            situacao: string;
+            /** Valor */
+            valor: string;
         };
         /** PlanoCreate */
         PlanoCreate: {
@@ -2018,6 +2279,11 @@ export interface components {
             contrapartida?: string | null;
             /** Data Atualizacao Fonte */
             data_atualizacao_fonte?: string | null;
+            /**
+             * Dias Restantes
+             * @description Dias até o prazo final (negativo = vencido); None sem prazo.
+             */
+            readonly dias_restantes: number | null;
             /** Emenda */
             emenda?: string | null;
             /** Execucao */
@@ -2041,6 +2307,11 @@ export interface components {
             municipio_ibge?: string | null;
             /** Municipio Nome */
             municipio_nome?: string | null;
+            /**
+             * Natureza Juridica
+             * @description Slug da natureza jurídica elegível ('municipal', 'consorcio'…).
+             */
+            readonly natureza_juridica: string | null;
             /** Numero Proposta */
             numero_proposta?: string | null;
             /** Objeto */
@@ -2049,6 +2320,11 @@ export interface components {
             orgao_superior?: string | null;
             /** Pendencias */
             pendencias?: unknown[] | null;
+            /**
+             * Prazo Final
+             * @description Prazo mais próximo declarado (alimenta o contador do card).
+             */
+            readonly prazo_final: string | null;
             /** Prazos */
             prazos?: unknown[] | null;
             /** Proveniencia */
@@ -2072,6 +2348,68 @@ export interface components {
             url_origem?: string | null;
             /** Valor Total */
             valor_total?: string | null;
+        };
+        /**
+         * PropostasFacetas
+         * @description Opções por dimensão de filtro — o que existe no território consultado.
+         */
+        PropostasFacetas: {
+            /**
+             * Ano
+             * @default []
+             */
+            ano: components["schemas"]["FacetaOpcao"][];
+            /**
+             * Fonte
+             * @default []
+             */
+            fonte: components["schemas"]["FacetaOpcao"][];
+            /**
+             * Modalidade
+             * @default []
+             */
+            modalidade: components["schemas"]["FacetaOpcao"][];
+            /**
+             * Natureza Juridica
+             * @default []
+             */
+            natureza_juridica: components["schemas"]["FacetaOpcao"][];
+            /**
+             * Orgao
+             * @default []
+             */
+            orgao: components["schemas"]["FacetaOpcao"][];
+            /**
+             * Qualificacao
+             * @default []
+             */
+            qualificacao: components["schemas"]["FacetaOpcao"][];
+            /**
+             * Situacao
+             * @default []
+             */
+            situacao: components["schemas"]["FacetaOpcao"][];
+            /**
+             * Tipo
+             * @default []
+             */
+            tipo: components["schemas"]["FacetaOpcao"][];
+        };
+        /**
+         * RankingParlamentar
+         * @description Linha do ranking de parlamentares que destinaram recursos ao município.
+         */
+        RankingParlamentar: {
+            /** Emendas */
+            emendas: number;
+            /** Empenhado */
+            empenhado: string;
+            /** Pago */
+            pago: string;
+            /** Parlamentar */
+            parlamentar: string;
+            /** Partido */
+            partido?: string | null;
         };
         /** RefreshRequest */
         RefreshRequest: {
@@ -2135,6 +2473,78 @@ export interface components {
             /** Subtotal */
             subtotal: string;
         };
+        /**
+         * ResumoAno
+         * @description Barra do gráfico aprovado × desembolsado por ano.
+         */
+        ResumoAno: {
+            /** Ano */
+            ano: string;
+            /** Aprovado */
+            aprovado: string;
+            /** Desembolsado */
+            desembolsado: string;
+        };
+        /**
+         * ResumoCaptacao
+         * @description Resumo consolidado: cards, série anual, pipeline e convênios vigentes.
+         */
+        ResumoCaptacao: {
+            cards: components["schemas"]["ResumoCards"];
+            /** Convenios Vigentes */
+            convenios_vigentes: components["schemas"]["ConvenioVigente"][];
+            /** Pipeline */
+            pipeline: components["schemas"]["PipelineItem"][];
+            /** Por Ano */
+            por_ano: components["schemas"]["ResumoAno"][];
+        };
+        /**
+         * ResumoCards
+         * @description Cartões financeiros do topo do resumo.
+         */
+        ResumoCards: {
+            /** Convenios Em Execucao */
+            convenios_em_execucao: number;
+            /** Convenios Iniciados */
+            convenios_iniciados: number;
+            /** Oportunidades Abertas */
+            oportunidades_abertas: number;
+            /** Transferencias */
+            transferencias: number;
+            /** Valor A Utilizar */
+            valor_a_utilizar: string;
+            /** Valor Conveniado */
+            valor_conveniado: string;
+            /** Valor Desembolsado */
+            valor_desembolsado: string;
+            /** Valor Empenhado */
+            valor_empenhado: string;
+        };
+        /**
+         * ResumoEmendas
+         * @description Painel de emendas: cards, gráficos, ranking, lista e opções de filtro.
+         */
+        ResumoEmendas: {
+            /** Emendas */
+            emendas: number;
+            /** Empenhado */
+            empenhado: string;
+            /** Itens */
+            itens: components["schemas"]["EmendaItem"][];
+            opcoes: components["schemas"]["OpcoesEmendas"];
+            /** Pago */
+            pago: string;
+            /** Percentual Executado */
+            percentual_executado: number;
+            /** Por Ano */
+            por_ano: components["schemas"]["SerieAnoEmendas"][];
+            /** Por Area */
+            por_area: components["schemas"]["DistribuicaoItem"][];
+            /** Por Modalidade */
+            por_modalidade: components["schemas"]["DistribuicaoItem"][];
+            /** Ranking Parlamentares */
+            ranking_parlamentares: components["schemas"]["RankingParlamentar"][];
+        };
         /** SecaoResumo */
         SecaoResumo: {
             /** A Comprovar */
@@ -2147,6 +2557,18 @@ export interface components {
             secao: string;
             /** Total */
             total: number;
+        };
+        /**
+         * SerieAnoEmendas
+         * @description Ponto do gráfico de evolução anual (pago × empenhado).
+         */
+        SerieAnoEmendas: {
+            /** Ano */
+            ano: string;
+            /** Empenhado */
+            empenhado: string;
+            /** Pago */
+            pago: string;
         };
         /** SituacaoResumo */
         SituacaoResumo: {
@@ -4042,9 +4464,22 @@ export interface operations {
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
                 situacao?: string | null;
+                /** @description tipo de instrumento */
+                modalidade?: string | null;
+                /** @description órgão/ministério concedente */
+                orgao?: string | null;
+                /** @description municipal | estadual_df | consorcio | empresa_publica | osc */
+                natureza_juridica?: string | null;
+                /** @description tipo de transferência */
+                qualificacao?: string | null;
+                ano?: string | null;
+                /** @description busca por programa, órgão ou código */
+                q?: string | null;
                 valor_min?: number | string | null;
                 valor_max?: number | string | null;
                 tipo?: string | null;
+                /** @description mais recentes · prazo (próximo/distante) · nome A-Z · órgão A-Z · valor */
+                ordenar?: string | null;
             };
             header?: never;
             path?: never;
@@ -4103,6 +4538,56 @@ export interface operations {
             };
         };
     };
+    facetas_propostas_api_v1_proposals_facets_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                fonte?: string | null;
+                /** @description área de interesse (saude, educacao…) */
+                area?: string | null;
+                situacao?: string | null;
+                /** @description tipo de instrumento */
+                modalidade?: string | null;
+                /** @description órgão/ministério concedente */
+                orgao?: string | null;
+                /** @description municipal | estadual_df | consorcio | empresa_publica | osc */
+                natureza_juridica?: string | null;
+                /** @description tipo de transferência */
+                qualificacao?: string | null;
+                ano?: string | null;
+                /** @description busca por programa, órgão ou código */
+                q?: string | null;
+                valor_min?: number | string | null;
+                valor_max?: number | string | null;
+                tipo?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropostasFacetas"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     live_search_endpoint_api_v1_proposals_live_search_post: {
         parameters: {
             query?: never;
@@ -4123,6 +4608,108 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LiveSearchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    relatorio_propostas_api_v1_proposals_report_csv_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                fonte?: string | null;
+                /** @description área de interesse (saude, educacao…) */
+                area?: string | null;
+                situacao?: string | null;
+                /** @description tipo de instrumento */
+                modalidade?: string | null;
+                /** @description órgão/ministério concedente */
+                orgao?: string | null;
+                /** @description municipal | estadual_df | consorcio | empresa_publica | osc */
+                natureza_juridica?: string | null;
+                /** @description tipo de transferência */
+                qualificacao?: string | null;
+                ano?: string | null;
+                /** @description busca por programa, órgão ou código */
+                q?: string | null;
+                valor_min?: number | string | null;
+                valor_max?: number | string | null;
+                tipo?: string | null;
+                /** @description mais recentes · prazo (próximo/distante) · nome A-Z · órgão A-Z · valor */
+                ordenar?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resumo_propostas_api_v1_proposals_summary_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                fonte?: string | null;
+                /** @description área de interesse (saude, educacao…) */
+                area?: string | null;
+                situacao?: string | null;
+                /** @description tipo de instrumento */
+                modalidade?: string | null;
+                /** @description órgão/ministério concedente */
+                orgao?: string | null;
+                /** @description municipal | estadual_df | consorcio | empresa_publica | osc */
+                natureza_juridica?: string | null;
+                /** @description tipo de transferência */
+                qualificacao?: string | null;
+                ano?: string | null;
+                /** @description busca por programa, órgão ou código */
+                q?: string | null;
+                valor_min?: number | string | null;
+                valor_max?: number | string | null;
+                tipo?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumoCaptacao"];
                 };
             };
             /** @description Validation Error */
@@ -4206,6 +4793,13 @@ export interface operations {
                 fonte?: string | null;
                 inicio?: string | null;
                 fim?: string | null;
+                /** @description só repasses de emenda */
+                emenda?: boolean | null;
+                orgao?: string | null;
+                /** @description área/função orçamentária */
+                categoria?: string | null;
+                /** @description busca textual */
+                q?: string | null;
             };
             header?: never;
             path?: never;
@@ -4220,6 +4814,88 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RepasseRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    relatorio_emendas_api_v1_transfers_amendments_report_csv_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                inicio?: string | null;
+                fim?: string | null;
+                ano?: string | null;
+                /** @description individual | bancada | comissão */
+                modalidade?: string | null;
+                parlamentar?: string | null;
+                orgao?: string | null;
+                /** @description busca por objeto, área, órgão ou código */
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resumo_emendas_api_v1_transfers_amendments_summary_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                inicio?: string | null;
+                fim?: string | null;
+                ano?: string | null;
+                /** @description individual | bancada | comissão */
+                modalidade?: string | null;
+                parlamentar?: string | null;
+                orgao?: string | null;
+                /** @description busca por objeto, área, órgão ou código */
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumoEmendas"];
                 };
             };
             /** @description Validation Error */

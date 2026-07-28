@@ -78,3 +78,77 @@ class VisaoGeral(BaseModel):
     fim: date | None = None
     fontes: list[FonteResumo]
     feed: list[RepassesPorDia]
+
+
+# ── Emendas parlamentares (gestão de emendas) ───────────────────────────────
+
+
+class EmendaItem(BaseModel):
+    """Uma emenda que beneficiou o município, achatada para a tela."""
+
+    id: uuid.UUID
+    codigo: str
+    numero: str | None = None
+    parlamentar: str | None = None
+    partido: str | None = None
+    modalidade: str | None = None  # individual | bancada | comissão…
+    area: str | None = None  # função orçamentária
+    orgao_superior: str | None = None
+    ano: str | None = None
+    empenhado: Decimal
+    pago: Decimal
+    percentual_executado: float
+    data_repasse: date | None = None
+    descricao: str | None = None
+    municipio_nome: str | None = None
+    uf: str | None = None
+
+
+class SerieAnoEmendas(BaseModel):
+    """Ponto do gráfico de evolução anual (pago × empenhado)."""
+
+    ano: str
+    empenhado: Decimal
+    pago: Decimal
+
+
+class DistribuicaoItem(BaseModel):
+    """Fatia de uma distribuição (por modalidade ou por área/função)."""
+
+    chave: str
+    valor: Decimal
+    quantidade: int
+
+
+class RankingParlamentar(BaseModel):
+    """Linha do ranking de parlamentares que destinaram recursos ao município."""
+
+    parlamentar: str
+    partido: str | None = None
+    empenhado: Decimal
+    pago: Decimal
+    emendas: int
+
+
+class OpcoesEmendas(BaseModel):
+    """Valores disponíveis para os filtros da tela (só o que existe)."""
+
+    anos: list[str] = []
+    modalidades: list[str] = []
+    parlamentares: list[str] = []
+    orgaos: list[str] = []
+
+
+class ResumoEmendas(BaseModel):
+    """Painel de emendas: cards, gráficos, ranking, lista e opções de filtro."""
+
+    empenhado: Decimal
+    pago: Decimal
+    percentual_executado: float
+    emendas: int
+    por_ano: list[SerieAnoEmendas]
+    por_modalidade: list[DistribuicaoItem]
+    por_area: list[DistribuicaoItem]
+    ranking_parlamentares: list[RankingParlamentar]
+    itens: list[EmendaItem]
+    opcoes: OpcoesEmendas

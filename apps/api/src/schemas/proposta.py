@@ -74,9 +74,115 @@ class PropostaRead(BaseModel):
 
         return classificar_tipo(self.situacao)
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def natureza_juridica(self) -> str | None:
+        """Slug da natureza jurídica elegível ('municipal', 'consorcio'…)."""
+        from ..services.propostas import classificar_natureza_juridica
+
+        return classificar_natureza_juridica((self.execucao or {}).get("natureza_juridica"))
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def prazo_final(self) -> date | None:
+        """Prazo mais próximo declarado (alimenta o contador do card)."""
+        datas = []
+        for prazo in self.prazos or []:
+            try:
+                datas.append(date.fromisoformat(str((prazo or {}).get("data_limite"))[:10]))
+            except (TypeError, ValueError):
+                continue
+        return min(datas) if datas else None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def dias_restantes(self) -> int | None:
+        """Dias até o prazo final (negativo = vencido); None sem prazo."""
+        prazo = self.prazo_final
+        return (prazo - date.today()).days if prazo else None
+
 
 class PropostaPrazo(BaseModel):
     """Proposta com prazos vencendo na janela consultada (visão estruturada)."""
 
     proposta: PropostaRead
     prazos_na_janela: list[dict]
+
+
+# ── Filtros: opções dos dropdowns com contagem ──────────────────────────────
+
+
+class FacetaOpcao(BaseModel):
+    """Uma opção de filtro com o número de propostas no recorte atual."""
+
+    valor: str
+    rotulo: str
+    total: int
+
+
+class PropostasFacetas(BaseModel):
+    """Opções por dimensão de filtro — o que existe no território consultado."""
+
+    fonte: list[FacetaOpcao] = []
+    modalidade: list[FacetaOpcao] = []
+    orgao: list[FacetaOpcao] = []
+    situacao: list[FacetaOpcao] = []
+    natureza_juridica: list[FacetaOpcao] = []
+    qualificacao: list[FacetaOpcao] = []
+    ano: list[FacetaOpcao] = []
+    tipo: list[FacetaOpcao] = []
+
+
+# ── Resumo consolidado da captação ──────────────────────────────────────────
+
+
+class ResumoCards(BaseModel):
+    """Cartões financeiros do topo do resumo."""
+
+    valor_conveniado: Decimal
+    valor_desembolsado: Decimal
+    valor_empenhado: Decimal
+    valor_a_utilizar: Decimal
+    transferencias: int
+    convenios_iniciados: int
+    convenios_em_execucao: int
+    oportunidades_abertas: int
+
+
+class ResumoAno(BaseModel):
+    """Barra do gráfico aprovado × desembolsado por ano."""
+
+    ano: str
+    aprovado: Decimal
+    desembolsado: Decimal
+
+
+class PipelineItem(BaseModel):
+    """Etapa do pipeline de propostas (agrupado por situação da fonte)."""
+
+    situacao: str
+    quantidade: int
+    valor: Decimal
+
+
+class ConvenioVigente(BaseModel):
+    """Convênio em execução com o percentual já desembolsado."""
+
+    id: uuid.UUID
+    titulo: str | None = None
+    orgao_superior: str | None = None
+    modalidade: str | None = None
+    valor_global: Decimal
+    desembolsado: Decimal
+    percentual_desembolso: float
+    fim_vigencia: date | None = None
+    dias_restantes: int | None = None
+
+
+class ResumoCaptacao(BaseModel):
+    """Resumo consolidado: cards, série anual, pipeline e convênios vigentes."""
+
+    cards: ResumoCards
+    por_ano: list[ResumoAno]
+    pipeline: list[PipelineItem]
+    convenios_vigentes: list[ConvenioVigente]
