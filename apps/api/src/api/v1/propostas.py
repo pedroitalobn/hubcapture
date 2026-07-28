@@ -8,16 +8,14 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...schemas.proposta import PropostaPrazo, PropostaRead
+from ...schemas.proposta import PropostaPrazo, PropostaRead, PropostasResumo
 from ...services import pdf as pdf_service
 from ...services import propostas as propostas_service
 from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
 # Módulo desligável pelo painel admin (captação): desativado → eixo responde 404.
-router = APIRouter(
-    tags=["propostas"], dependencies=[Depends(require_modulo("captacao"))]
-)
+router = APIRouter(tags=["propostas"], dependencies=[Depends(require_modulo("captacao"))])
 
 
 @router.get("/proposals", response_model=list[PropostaRead])
@@ -29,6 +27,7 @@ async def listar_propostas(
     valor_min: Decimal | None = Query(default=None, ge=0),
     valor_max: Decimal | None = Query(default=None, ge=0),
     tipo: str | None = Query(default=None, pattern="^(cadastrada|disponivel)$"),
+    ano: int | None = Query(default=None, description="exercício; omitir = todos"),
     session: AsyncSession = Depends(get_rls_db),
 ) -> list[PropostaRead]:
     rows = await propostas_service.listar(
@@ -40,8 +39,33 @@ async def listar_propostas(
         valor_min=valor_min,
         valor_max=valor_max,
         tipo=tipo,
+        ano=ano,
     )
     return [PropostaRead.model_validate(r) for r in rows]
+
+
+# precisa vir antes de /proposals/{proposta_id}, senão 'summary' é lido como
+# UUID e o painel morre com 422.
+@router.get("/proposals/summary", response_model=PropostasResumo)
+async def resumo_propostas(
+    municipio: str | None = Query(default=None, description="código IBGE (7 dígitos)"),
+    fonte: str | None = Query(default=None),
+    area: str | None = Query(default=None),
+    situacao: str | None = Query(default=None),
+    tipo: str | None = Query(default=None, pattern="^(cadastrada|disponivel)$"),
+    ano: int | None = Query(default=None, description="exercício; omitir = todos"),
+    session: AsyncSession = Depends(get_rls_db),
+) -> PropostasResumo:
+    """KPIs da captação no exercício em foco + a quebra por ano (filtro)."""
+    return await propostas_service.resumo(
+        session,
+        municipio=municipio,
+        fonte=fonte,
+        area=area,
+        situacao=situacao,
+        tipo=tipo,
+        ano=ano,
+    )
 
 
 @router.get("/proposals/deadlines", response_model=list[PropostaPrazo])

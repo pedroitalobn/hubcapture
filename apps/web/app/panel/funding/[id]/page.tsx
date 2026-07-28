@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api/client";
+import { api, baixarPdfProposta } from "@/lib/api/client";
 
 type Prazo = { tipo?: string | null; data_limite?: string | null };
 type Pendencia = { descricao?: string | null; prazo?: string | null };
@@ -15,6 +15,8 @@ type Proposta = {
   numero_proposta?: string | null;
   titulo?: string | null;
   objeto?: string | null;
+  descricao?: string | null;
+  ano?: number | null;
   orgao_superior?: string | null;
   modalidade?: string | null;
   municipio_ibge?: string | null;
@@ -128,6 +130,14 @@ export default function PropostaDetalhePage() {
     })();
   }, [params.id]);
 
+  async function exportarPdf() {
+    try {
+      await baixarPdfProposta(params.id);
+    } catch {
+      setMsg("Não foi possível gerar o PDF agora.");
+    }
+  }
+
   async function alternarFavorito() {
     if (favorita) {
       await api.DELETE("/api/v1/favorites/{proposta_id}", {
@@ -192,6 +202,16 @@ export default function PropostaDetalhePage() {
           <button onClick={alternarFavorito} className="btn btn-ghost">
             {favorita ? "★ Favorita" : "☆ Favoritar"}
           </button>
+          {/* O PDF é EXPORTAÇÃO, não a forma de ver a proposta: esta página é
+              a visualização oficial. Por isso é ação secundária, aqui e não na
+              lista. */}
+          <button
+            onClick={() => void exportarPdf()}
+            className="btn btn-ghost btn-sm"
+            title="Exportar esta proposta em PDF"
+          >
+            ↓ Exportar PDF
+          </button>
         </div>
       </header>
 
@@ -207,6 +227,7 @@ export default function PropostaDetalhePage() {
         <Secao titulo="Dados gerais">
           <div className="grid grid-cols-2 gap-3">
             <Campo rotulo="Nº da proposta" valor={p.numero_proposta ?? p.id_externo} />
+            <Campo rotulo="Exercício" valor={p.ano ? String(p.ano) : null} />
             <Campo rotulo="Órgão superior" valor={p.orgao_superior} />
             <Campo rotulo="Modalidade" valor={p.modalidade} />
             <Campo rotulo="Emenda" valor={p.emenda} />
@@ -225,8 +246,9 @@ export default function PropostaDetalhePage() {
               </div>
             )}
           </div>
-          {p.objeto && (
-            <p className="mt-3 text-sm text-ink-2">{p.objeto}</p>
+          {p.objeto && <p className="mt-3 text-sm text-ink-2">{p.objeto}</p>}
+          {p.descricao && p.descricao !== p.objeto && (
+            <p className="mt-2 text-sm text-ink-3">{p.descricao}</p>
           )}
         </Secao>
 

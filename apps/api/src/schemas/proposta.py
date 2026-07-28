@@ -17,8 +17,10 @@ class PropostaCanonica(BaseModel):
     numero_proposta: str | None = None
     titulo: str | None = None
     objeto: str | None = None
+    descricao: str | None = None
     orgao_superior: str | None = None
     modalidade: str | None = None
+    ano: int | None = None
     municipio_ibge: str | None = None
     municipio_nome: str | None = None
     uf: str | None = None
@@ -47,8 +49,10 @@ class PropostaRead(BaseModel):
     numero_proposta: str | None = None
     titulo: str | None = None
     objeto: str | None = None
+    descricao: str | None = None
     orgao_superior: str | None = None
     modalidade: str | None = None
+    ano: int | None = None
     municipio_ibge: str | None = None
     municipio_nome: str | None = None
     uf: str | None = None
@@ -73,6 +77,26 @@ class PropostaRead(BaseModel):
         from ..services.propostas import classificar_tipo
 
         return classificar_tipo(self.situacao)
+
+
+class AnoResumo(BaseModel):
+    """Um exercício disponível no território do usuário (alimenta os filtros)."""
+
+    ano: int | None = None  # None = propostas sem exercício identificado
+    total: int = 0
+    valor_total: Decimal = Decimal(0)
+
+
+class PropostasResumo(BaseModel):
+    """KPIs da captação já recortados pelo ano em foco + os anos disponíveis."""
+
+    ano: int | None = None  # exercício em foco (None = todos)
+    total: int = 0
+    valor_total: Decimal = Decimal(0)
+    contrapartida_total: Decimal = Decimal(0)
+    municipios: int = 0
+    por_ano: list[AnoResumo] = []
+    propostas: list[PropostaRead] = []
 
 
 class PropostaPrazo(BaseModel):

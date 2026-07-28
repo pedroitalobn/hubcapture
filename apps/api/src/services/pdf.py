@@ -21,9 +21,22 @@ def gerar_pdf_proposta(p: Proposta) -> bytes:
         Paragraph(p.titulo or "(sem título)", styles["Heading2"]),
         Spacer(1, 12),
     ]
+    if p.objeto:
+        elems += [
+            Paragraph("Objeto", styles["Heading3"]),
+            Paragraph(p.objeto, styles["BodyText"]),
+            Spacer(1, 8),
+        ]
+    if p.descricao and p.descricao != p.objeto:
+        elems += [
+            Paragraph("Descrição", styles["Heading3"]),
+            Paragraph(p.descricao, styles["BodyText"]),
+            Spacer(1, 8),
+        ]
     linhas = [
         ("Fonte", p.fonte),
         ("Nº proposta", p.numero_proposta or p.id_externo),
+        ("Exercício", str(p.ano) if p.ano else "—"),
         ("Órgão", p.orgao_superior or "—"),
         ("Modalidade", p.modalidade or "—"),
         ("Município (IBGE)", p.municipio_ibge or "—"),

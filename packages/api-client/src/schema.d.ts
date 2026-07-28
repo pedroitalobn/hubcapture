@@ -877,6 +877,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/proposals/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumo Propostas
+         * @description KPIs da captação no exercício em foco + a quebra por ano (filtro).
+         */
+        get: operations["resumo_propostas_api_v1_proposals_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/proposals/{proposta_id}": {
         parameters: {
             query?: never;
@@ -1178,6 +1198,24 @@ export interface components {
             proposta_id?: string | null;
             /** Tipo */
             tipo?: string | null;
+        };
+        /**
+         * AnoResumo
+         * @description Um exercício disponível no território do usuário (alimenta os filtros).
+         */
+        AnoResumo: {
+            /** Ano */
+            ano?: number | null;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+            /**
+             * Valor Total
+             * @default 0
+             */
+            valor_total: string;
         };
         /** AtribuirPlano */
         AtribuirPlano: {
@@ -2012,12 +2050,16 @@ export interface components {
          * @description Representação da proposta devolvida pela API.
          */
         PropostaRead: {
+            /** Ano */
+            ano?: number | null;
             /** Cache Atualizado Em */
             cache_atualizado_em?: string | null;
             /** Contrapartida */
             contrapartida?: string | null;
             /** Data Atualizacao Fonte */
             data_atualizacao_fonte?: string | null;
+            /** Descricao */
+            descricao?: string | null;
             /** Emenda */
             emenda?: string | null;
             /** Execucao */
@@ -2072,6 +2114,44 @@ export interface components {
             url_origem?: string | null;
             /** Valor Total */
             valor_total?: string | null;
+        };
+        /**
+         * PropostasResumo
+         * @description KPIs da captação já recortados pelo ano em foco + os anos disponíveis.
+         */
+        PropostasResumo: {
+            /** Ano */
+            ano?: number | null;
+            /**
+             * Contrapartida Total
+             * @default 0
+             */
+            contrapartida_total: string;
+            /**
+             * Municipios
+             * @default 0
+             */
+            municipios: number;
+            /**
+             * Por Ano
+             * @default []
+             */
+            por_ano: components["schemas"]["AnoResumo"][];
+            /**
+             * Propostas
+             * @default []
+             */
+            propostas: components["schemas"]["PropostaRead"][];
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+            /**
+             * Valor Total
+             * @default 0
+             */
+            valor_total: string;
         };
         /** RefreshRequest */
         RefreshRequest: {
@@ -4045,6 +4125,8 @@ export interface operations {
                 valor_min?: number | string | null;
                 valor_max?: number | string | null;
                 tipo?: string | null;
+                /** @description exercício; omitir = todos */
+                ano?: number | null;
             };
             header?: never;
             path?: never;
@@ -4123,6 +4205,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LiveSearchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resumo_propostas_api_v1_proposals_summary_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                fonte?: string | null;
+                area?: string | null;
+                situacao?: string | null;
+                tipo?: string | null;
+                /** @description exercício; omitir = todos */
+                ano?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropostasResumo"];
                 };
             };
             /** @description Validation Error */

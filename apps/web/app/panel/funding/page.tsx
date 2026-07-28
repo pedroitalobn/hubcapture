@@ -9,6 +9,8 @@ type Proposta = {
   id_externo: string;
   titulo?: string | null;
   objeto?: string | null;
+  descricao?: string | null;
+  ano?: number | null;
   municipio_ibge?: string | null;
   municipio_nome?: string | null;
   uf?: string | null;
@@ -99,6 +101,14 @@ function num(v?: string | number | null): number {
   const n = Number(v);
   return Number.isNaN(n) ? 0 : n;
 }
+
+/** Exercício da proposta. A coluna `ano` vale para toda fonte; `execucao.ano` só
+ * existe no relatório do painel TransfereGov e fica como retaguarda. */
+function anoDe(p: Proposta): string {
+  return String(p.ano ?? p.execucao?.ano ?? "");
+}
+
+const ANO_CORRENTE = String(new Date().getFullYear());
 
 function abasIniciais(): Aba[] {
   if (typeof window !== "undefined") {
@@ -295,8 +305,7 @@ export default function CaptacaoPage() {
 
   const visiveis = useMemo(() => {
     let lista = acompanhando ? acompanhadas : propostas;
-    if (filtros.ano)
-      lista = lista.filter((p) => String(p.execucao?.ano ?? "") === filtros.ano);
+    if (filtros.ano) lista = lista.filter((p) => anoDe(p) === filtros.ano);
     if (filtros.soFavoritas) lista = lista.filter((p) => favoritos.has(p.id));
     if (filtros.pastaId) lista = lista.filter((p) => pastaPropostas.has(p.id));
     return lista;
@@ -306,13 +315,25 @@ export default function CaptacaoPage() {
     () =>
       Array.from(
         new Set(
-          (acompanhando ? acompanhadas : propostas)
-            .map((p) => String(p.execucao?.ano ?? ""))
-            .filter(Boolean),
+          (acompanhando ? acompanhadas : propostas).map(anoDe).filter(Boolean),
         ),
       ).sort((a, b) => b.localeCompare(a)),
     [propostas, acompanhadas, acompanhando],
   );
+
+  // O painel abre no exercício corrente. Se ele não tiver nada mas houver
+  // outros anos na busca, mostra o mais recente — dado na tela em vez de uma
+  // lista vazia. Roda só uma vez: depois disso o ano é escolha do usuário.
+  const anoDefinido = useRef(false);
+  useEffect(() => {
+    if (anoDefinido.current || acompanhando || buscando) return;
+    if (anos.length === 0 || filtros.ano) return;
+    anoDefinido.current = true;
+    setFiltros({ ano: anos.includes(ANO_CORRENTE) ? ANO_CORRENTE : anos[0] });
+    // setFiltros vem do estado de abas e é estável o bastante para este efeito
+    // de primeira carga; incluí-lo re-dispararia a cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anos, acompanhando, buscando, filtros.ano]);
 
   // agregados de EXECUÇÃO (TransfereGov): o que foi disponibilizado × usado
   const execucao = useMemo(() => {
@@ -666,9 +687,11 @@ export default function CaptacaoPage() {
                       >
                         {p.titulo ?? p.objeto ?? p.id_externo}
                       </Link>
-                      {p.resumo_ia && (
+                      {/* sem resumo de IA (provedor opcional), o objeto da
+                          fonte já diz do que se trata */}
+                      {(p.resumo_ia ?? p.objeto ?? p.descricao) && (
                         <p className="mt-0.5 line-clamp-2 max-w-md text-xs text-ink-3">
-                          {p.resumo_ia}
+                          {p.resumo_ia ?? p.objeto ?? p.descricao}
                         </p>
                       )}
                     </td>
