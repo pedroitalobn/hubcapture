@@ -20,14 +20,17 @@ from datetime import date
 from ..core.config import settings
 from ..scraping.scraper import get_scraper
 from ..services import config as config_service
-from ._http import get_json
+from . import _postgrest
+from ._http import ConnectorClientError, get_json
 from .base import RawRecord, register
 
-# ── Rota/campos a calibrar contra <base>/docs ───────────────────────────────
+# defaults; a rota/coluna REAIS são descobertas via OpenAPI do PostgREST
+# (override manual no painel: transferegov_voluntarias_endpoint / _ibge_field)
 ENDPOINT = "convenio"
-IBGE_FIELD = "codigo_ibge_municipio"  # coluna de IBGE do proponente/beneficiário
+IBGE_FIELD = "codigo_ibge_municipio"
 ID_FIELD = "numero_convenio"  # NR_CONVENIO — chave externa canônica
 PAGE_LIMIT = 500
+TABELAS_PREFERIDAS = ("convenio", "proposta", "instrumento")
 
 
 class TransferegovVoluntariasConnector:
@@ -36,15 +39,51 @@ class TransferegovVoluntariasConnector:
     def __init__(self, base_url: str | None = None) -> None:
         self.base_url = base_url or settings.transferegov_voluntarias_base_url
 
+    async def _endpoint_e_coluna(self, base: str) -> tuple[str, str]:
+        """Override do painel > OpenAPI do PostgREST > defaults."""
+        endpoint = await config_service.resolver("transferegov_voluntarias_endpoint")
+        coluna = await config_service.resolver("transferegov_voluntarias_ibge_field")
+        if endpoint and coluna:
+            return endpoint, coluna
+        descoberto = await _postgrest.descobrir(base, TABELAS_PREFERIDAS)
+        if descoberto:
+            return endpoint or descoberto[0], coluna or descoberto[1]
+        return endpoint or ENDPOINT, coluna or IBGE_FIELD
+
+    async def _consultar(
+        self, base: str, endpoint: str, coluna: str, ibge: str
+    ) -> list[dict]:
+        data = await get_json(
+            base, endpoint, {coluna: f"eq.{ibge}", "limit": str(PAGE_LIMIT)}
+        )
+        linhas = data if isinstance(data, list) else data.get("items", [])
+        if not linhas and len(ibge) == 7:
+            data = await get_json(
+                base, endpoint, {coluna: f"eq.{ibge[:6]}", "limit": str(PAGE_LIMIT)}
+            )
+            linhas = data if isinstance(data, list) else data.get("items", [])
+        return linhas
+
     async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
         base = await config_service.resolver("transferegov_voluntarias_base_url") or self.base_url
         try:
-            data = await get_json(
-                base,
-                ENDPOINT,
-                {IBGE_FIELD: f"eq.{municipio_ibge}", "limit": str(PAGE_LIMIT)},
-            )
-            linhas = data if isinstance(data, list) else data.get("items", [])
+            endpoint, coluna = await self._endpoint_e_coluna(base)
+            try:
+                linhas = await self._consultar(base, endpoint, coluna, municipio_ibge)
+            except ConnectorClientError:
+                linhas = []
+                for candidato in _postgrest.IBGE_CANDIDATES:
+                    if candidato == coluna:
+                        continue
+                    try:
+                        linhas = await self._consultar(
+                            base, endpoint, candidato, municipio_ibge
+                        )
+                        break
+                    except ConnectorClientError:
+                        continue
+                else:
+                    raise
             return [
                 RawRecord(
                     source_id=self.source_id,
