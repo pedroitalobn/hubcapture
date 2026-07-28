@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...schemas.proposta import PropostaRead
+from ...schemas.proposta import PropostaPrazo, PropostaRead
 from ...services import pdf as pdf_service
 from ...services import propostas as propostas_service
 from ...services.modulos import require_modulo
@@ -19,21 +20,44 @@ router = APIRouter(
 )
 
 
-@router.get("/propostas", response_model=list[PropostaRead])
+@router.get("/proposals", response_model=list[PropostaRead])
 async def listar_propostas(
     municipio: str | None = Query(default=None, description="código IBGE (7 dígitos)"),
     fonte: str | None = Query(default=None),
-    area: str | None = Query(default=None, description="reservado (áreas) — futuro"),
+    area: str | None = Query(default=None, description="área de interesse (saude, educacao…)"),
     situacao: str | None = Query(default=None),
+    valor_min: Decimal | None = Query(default=None, ge=0),
+    valor_max: Decimal | None = Query(default=None, ge=0),
+    tipo: str | None = Query(default=None, pattern="^(cadastrada|disponivel)$"),
     session: AsyncSession = Depends(get_rls_db),
 ) -> list[PropostaRead]:
     rows = await propostas_service.listar(
-        session, municipio=municipio, fonte=fonte, situacao=situacao
+        session,
+        municipio=municipio,
+        fonte=fonte,
+        situacao=situacao,
+        area=area,
+        valor_min=valor_min,
+        valor_max=valor_max,
+        tipo=tipo,
     )
     return [PropostaRead.model_validate(r) for r in rows]
 
 
-@router.get("/propostas/{proposta_id}", response_model=PropostaRead)
+@router.get("/proposals/deadlines", response_model=list[PropostaPrazo])
+async def propostas_por_prazo(
+    dias: int = Query(default=30, ge=1, le=365),
+    session: AsyncSession = Depends(get_rls_db),
+) -> list[PropostaPrazo]:
+    """Propostas com prazo vencendo na janela — 'quais vencem este mês?'."""
+    rows = await propostas_service.listar_por_prazo(session, dias=dias)
+    return [
+        PropostaPrazo(proposta=PropostaRead.model_validate(p), prazos_na_janela=prazos)
+        for p, prazos in rows
+    ]
+
+
+@router.get("/proposals/{proposta_id}", response_model=PropostaRead)
 async def obter_proposta(
     proposta_id: uuid.UUID,
     session: AsyncSession = Depends(get_rls_db),
@@ -44,7 +68,7 @@ async def obter_proposta(
     return PropostaRead.model_validate(row)
 
 
-@router.get("/propostas/{proposta_id}/pdf")
+@router.get("/proposals/{proposta_id}/pdf")
 async def exportar_pdf(
     proposta_id: uuid.UUID,
     session: AsyncSession = Depends(get_rls_db),

@@ -21,9 +21,7 @@ async def listar(session: AsyncSession, apenas_ativos: bool = True) -> list[Plan
 
 
 async def obter(session: AsyncSession, plano_id: uuid.UUID) -> Plano | None:
-    return (
-        await session.execute(select(Plano).where(Plano.id == plano_id))
-    ).scalar_one_or_none()
+    return (await session.execute(select(Plano).where(Plano.id == plano_id))).scalar_one_or_none()
 
 
 async def criar(session: AsyncSession, dados: PlanoCreate) -> Plano:

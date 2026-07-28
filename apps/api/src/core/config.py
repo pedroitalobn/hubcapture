@@ -19,9 +19,7 @@ class Settings(BaseSettings):
 
     # ── Banco ────────────────────────────────────────────────────────────────
     # Runtime da API: role de app NÃO-superuser (RLS vale). É esta que o app usa.
-    database_url: str = (
-        "postgresql+asyncpg://hubcapture_app:app_secret@localhost:5432/hubcapture"
-    )
+    database_url: str = "postgresql+asyncpg://hubcapture_app:app_secret@localhost:5432/hubcapture"
     # Migrations/owner: role dona das tabelas. Só para Alembic; nunca no runtime.
     database_migrator_url: str = (
         "postgresql+asyncpg://hubcapture:postgres_secret@localhost:5432/hubcapture"
@@ -44,37 +42,57 @@ class Settings(BaseSettings):
     cache_ttl_seconds: int = 21600  # 6h
 
     # ── Fontes ───────────────────────────────────────────────────────────────
-    transferegov_ff_base_url: str = (
-        "https://api.transferegov.gestao.gov.br/fundoafundo/"
-    )
+    transferegov_ff_base_url: str = "https://api.transferegov.gestao.gov.br/fundoafundo/"
+    transferegov_ff_ibge_field: str = ""  # coluna IBGE; vazio = autodescoberta (OpenAPI)
     # Recebidos (P1). URLs a calibrar contra as APIs/CSVs oficiais.
     fpm_base_url: str = "https://apidatalake.tesouro.gov.br/ords/transferencias/"
+    fpm_endpoint: str = ""  # rota no ORDS; vazio = autodescoberta (metadata-catalog)
     emendas_base_url: str = "https://api.portaldatransparencia.gov.br/api-de-dados/"
+    emendas_api_key: str = ""  # chave-api-dados (Portal da Transparência) — obrigatória
     # Demais fontes (prontas para receber as APIs — calibrar rota/campos).
-    transferegov_esp_base_url: str = (
-        "https://api.transferegov.gestao.gov.br/transferenciasespeciais/"
+    # API pública do TransfereGov (docs por módulo em <base>/<modulo>/docs).
+    transferegov_esp_base_url: str = "https://api-publica.transferegov.gestao.gov.br/especiais/"
+    transferegov_esp_endpoint: str = ""  # vazio = autodescoberta (OpenAPI)
+    transferegov_esp_ibge_field: str = ""
+    transferegov_voluntarias_base_url: str = (
+        "https://api-publica.transferegov.gestao.gov.br/voluntarias/"
     )
+    transferegov_voluntarias_endpoint: str = ""  # vazio = autodescoberta (OpenAPI)
+    transferegov_voluntarias_ibge_field: str = ""
     transferegov_disc_csv_url: str = "http://repositorio.dados.gov.br/seges/detru/"
     fns_consulta_url: str = "https://consultafns.saude.gov.br/"
     fnde_base_url: str = "https://www.fnde.gov.br/sigefweb/"
     serpro_base_url: str = "https://gateway.apiserpro.serpro.gov.br/"
+    # Painel público do SERPRO (Qlik, JS pesado) — extração via scraping headless.
+    # Visão Geral do TransfereGov: dados ricos que a API pública não expõe;
+    # coleta combinada = API primeiro, painel enriquece/faz fallback.
+    serpro_painel_url: str = (
+        "https://dd-publico.serpro.gov.br/extensions/painel/TransferegovbrVisaoGeral.html"
+    )
+    # Painel informativo — notícias oficiais (RSS do gov.br)
+    transferegov_noticias_url: str = "https://www.gov.br/transferegov/pt-br/noticias/noticias/RSS"
     # Conformidade fiscal (CAUC/CAPAG) — CSV do Tesouro Transparente
     siconfi_csv_url: str = "https://www.tesourotransparente.gov.br/ckan/dataset/cauc/"
     # Obras (execução) — SISMOB (saúde), SIMEC (educação), CAIXA/SIORB (infra)
     sismob_base_url: str = "https://sismob.saude.gov.br/api/"
     simec_base_url: str = "https://simec.mec.gov.br/api/"
     caixa_obras_base_url: str = "https://webp.caixa.gov.br/siorb/api/"
+    # IBGE Localidades — resolve nome do município → código IBGE (onboarding)
+    ibge_localidades_url: str = "https://servicodados.ibge.gov.br/api/v1/localidades/"
 
     # ── E-mail transacional (SMTP) — opcional, ligado pelo painel admin ─────
     app_base_url: str = "http://localhost:3000"  # base dos links de e-mail
 
-    # ── Scraping (Firecrawl) — coleta combinada / fallback ──────────────────
-    firecrawl_api_key: str = ""  # vazio = scraping desabilitado
+    # ── Scraping (Crawl4AI + Firecrawl) — coleta combinada / fallback ───────
+    firecrawl_api_key: str = ""  # vazio = Firecrawl desabilitado
     firecrawl_base_url: str = "https://api.firecrawl.dev"
+    crawl4ai_base_url: str = ""  # URL do servidor Crawl4AI (Docker); vazio = desabilitado
+    crawl4ai_api_token: str = ""  # token opcional do servidor Crawl4AI
+    scraping_provider: str = "auto"  # auto | crawl4ai | firecrawl (preferência)
 
     @property
     def scraping_enabled(self) -> bool:
-        return bool(self.firecrawl_api_key)
+        return bool(self.firecrawl_api_key or self.crawl4ai_base_url)
 
     # ── IA (LiteLLM) — resumo/chat/embeddings (opcionais) ───────────────────
     llm_api_key: str = ""  # vazio = resumo/chat IA desabilitado

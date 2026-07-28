@@ -1,8 +1,8 @@
 """Connector FNS — Fundo Nacional de Saúde (scraping como fonte primária).
 
 O portal de consultas do FNS não expõe API aberta documentada → coleta por
-scraping (Firecrawl) com extração estruturada. Requer FIRECRAWL_API_KEY; sem ela
-o connector degrada (levanta erro tratado pelo serviço → sync_runs).
+scraping (facade Crawl4AI/Firecrawl) com extração estruturada. Sem nenhum
+scraper configurado o connector degrada (erro tratado pelo serviço → sync_runs).
 """
 
 from __future__ import annotations
@@ -10,11 +10,11 @@ from __future__ import annotations
 from datetime import date
 
 from ..core.config import settings
-from ..scraping.firecrawl import get_firecrawl
+from ..scraping.scraper import get_scraper
 from ..services import config as config_service
 from .base import RawRecord, register
 
-# schema de extração (o que queremos que o Firecrawl estruture) — calibrar
+# schema de extração (o que queremos que o scraper estruture) — calibrar
 EXTRACT_SCHEMA = {
     "type": "object",
     "properties": {
@@ -43,10 +43,10 @@ class FnsConnector:
         self.base_url = base_url or settings.fns_consulta_url
 
     async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
-        fc = get_firecrawl()
+        scraper = get_scraper()
         base = await config_service.resolver("fns_consulta_url") or self.base_url
         url = f"{base}?ibge={municipio_ibge}"
-        dados = await fc.extract(url, EXTRACT_SCHEMA)  # levanta se não configurado
+        dados = await scraper.extract(url, EXTRACT_SCHEMA)  # levanta se não configurado
         itens = dados.get("repasses", []) if isinstance(dados, dict) else []
         return [
             RawRecord(
@@ -69,7 +69,7 @@ class FnsConnector:
         ]
 
     async def health_check(self) -> bool:
-        return await get_firecrawl().is_enabled()
+        return await get_scraper().is_enabled()
 
 
 register(FnsConnector())

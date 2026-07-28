@@ -26,9 +26,7 @@ async def _pid(session, fonte: str, ext: str):
     ).scalar_one()
 
 
-async def test_rag_similaridade_respeita_rls(
-    seed_user, seed_proposta, monkeypatch
-) -> None:
+async def test_rag_similaridade_respeita_rls(seed_user, seed_proposta, monkeypatch) -> None:
     u = await seed_user("r@r.com")
     await seed_proposta("fns", "A", "3550308", "UBS Atenção Primária")
     await seed_proposta("fns", "B", "3550308", "Merenda escolar")
@@ -90,8 +88,6 @@ async def test_embed_pendentes_popula(
     monkeypatch.setattr(embed_job, "embed", fake_embed)
     async with rls_session(u) as s:
         n = await embed_job.embed_pendentes(s)
-        total = (
-            await s.execute(select(func.count()).select_from(PropostaEmbedding))
-        ).scalar_one()
+        total = (await s.execute(select(func.count()).select_from(PropostaEmbedding))).scalar_one()
     assert n == 1
     assert total == 1

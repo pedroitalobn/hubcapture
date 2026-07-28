@@ -47,9 +47,7 @@ async def responder(contexto: str, pergunta: str, papel: str = "executivo") -> s
     return resp["choices"][0]["message"]["content"]
 
 
-async def stream(
-    contexto: str, pergunta: str, papel: str = "executivo"
-) -> AsyncIterator[str]:
+async def stream(contexto: str, pergunta: str, papel: str = "executivo") -> AsyncIterator[str]:
     api_key = await config_service.resolver("llm_api_key")
     if not api_key:
         yield _fallback(contexto)

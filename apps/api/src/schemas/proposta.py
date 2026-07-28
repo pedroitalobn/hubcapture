@@ -6,7 +6,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
 
 
 class PropostaCanonica(BaseModel):
@@ -32,6 +32,7 @@ class PropostaCanonica(BaseModel):
     data_atualizacao_fonte: date | None = None
     url_origem: str | None = None
     proveniencia: dict | None = None
+    execucao: dict | None = None
     hash_conteudo: str | None = None
 
 
@@ -61,5 +62,21 @@ class PropostaRead(BaseModel):
     data_atualizacao_fonte: date | None = None
     url_origem: str | None = None
     proveniencia: dict | None = None
+    execucao: dict | None = None
     resumo_ia: str | None = None
     cache_atualizado_em: datetime | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def tipo(self) -> str:
+        """Eixo da jornada: 'cadastrada' (já existe) ou 'disponivel' (oportunidade)."""
+        from ..services.propostas import classificar_tipo
+
+        return classificar_tipo(self.situacao)
+
+
+class PropostaPrazo(BaseModel):
+    """Proposta com prazos vencendo na janela consultada (visão estruturada)."""
+
+    proposta: PropostaRead
+    prazos_na_janela: list[dict]

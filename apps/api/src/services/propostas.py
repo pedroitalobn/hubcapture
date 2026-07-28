@@ -6,8 +6,10 @@ Nunca chamam connector. O fetch ao vivo mora no serviço de consulta-avulsa.
 
 from __future__ import annotations
 
+import unicodedata
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -36,8 +38,28 @@ _UPSERT_FIELDS = (
     "data_atualizacao_fonte",
     "url_origem",
     "proveniencia",
+    "execucao",
     "hash_conteudo",
 )
+
+
+# Eixo "QUE TIPO?" da jornada: uma proposta CADASTRADA já existe no sistema do
+# governo (convênio/plano em andamento); DISPONÍVEL é oportunidade aberta
+# (edital/programa recebendo propostas). Derivado da situação — de-para por
+# palavra-chave, sem coluna nova (calibrável aqui).
+_KW_DISPONIVEL = ("dispon", "divulga", "abert", "public", "recebendo", "edital")
+
+
+def _sem_acento(texto: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFD", texto) if not unicodedata.combining(c))
+
+
+def classificar_tipo(situacao: str | None) -> str:
+    """'disponivel' (oportunidade aberta) ou 'cadastrada' (proposta existente)."""
+    if not situacao:
+        return "cadastrada"
+    norm = _sem_acento(situacao).lower()
+    return "disponivel" if any(kw in norm for kw in _KW_DISPONIVEL) else "cadastrada"
 
 
 async def listar(
@@ -46,6 +68,10 @@ async def listar(
     municipio: str | None = None,
     fonte: str | None = None,
     situacao: str | None = None,
+    area: str | None = None,
+    valor_min: Decimal | None = None,
+    valor_max: Decimal | None = None,
+    tipo: str | None = None,
 ) -> list[Proposta]:
     stmt = select(Proposta)
     if municipio:
@@ -54,9 +80,54 @@ async def listar(
         stmt = stmt.where(Proposta.fonte == fonte)
     if situacao:
         stmt = stmt.where(Proposta.situacao == situacao)
+    if area:
+        from .perfil import AREA_FONTES
+
+        fontes_area = AREA_FONTES.get(area)
+        if fontes_area:
+            stmt = stmt.where(Proposta.fonte.in_(fontes_area))
+    if valor_min is not None:
+        stmt = stmt.where(Proposta.valor_total >= valor_min)
+    if valor_max is not None:
+        stmt = stmt.where(Proposta.valor_total <= valor_max)
     stmt = stmt.order_by(Proposta.cache_atualizado_em.desc().nullslast())
     result = await session.execute(stmt)
-    return list(result.scalars().all())
+    rows = list(result.scalars().all())
+    if tipo in ("cadastrada", "disponivel"):
+        rows = [p for p in rows if classificar_tipo(p.situacao) == tipo]
+    return rows
+
+
+def _prazos_na_janela(p: Proposta, inicio: date, fim: date) -> list[dict]:
+    """Prazos da proposta (jsonb [{tipo, data_limite}]) dentro da janela."""
+    dentro = []
+    for prazo in p.prazos or []:
+        bruto = (prazo or {}).get("data_limite")
+        try:
+            data_limite = date.fromisoformat(str(bruto)[:10])
+        except (TypeError, ValueError):
+            continue
+        if inicio <= data_limite <= fim:
+            dentro.append({**prazo, "data_limite": data_limite.isoformat()})
+    return dentro
+
+
+async def listar_por_prazo(
+    session: AsyncSession, *, dias: int = 30
+) -> list[tuple[Proposta, list[dict]]]:
+    """Propostas com prazo vencendo na janela [hoje, hoje+dias] — consulta
+    estruturada (não-RAG) que alimenta o painel e a resposta do chat."""
+    hoje = date.today()
+    fim = hoje + timedelta(days=dias)
+    stmt = select(Proposta).where(Proposta.prazos.isnot(None))
+    rows = (await session.execute(stmt)).scalars().all()
+    com_prazo = []
+    for p in rows:
+        na_janela = _prazos_na_janela(p, hoje, fim)
+        if na_janela:
+            com_prazo.append((p, na_janela))
+    com_prazo.sort(key=lambda item: min(pr["data_limite"] for pr in item[1]))
+    return com_prazo
 
 
 async def obter(session: AsyncSession, proposta_id: uuid.UUID) -> Proposta | None:

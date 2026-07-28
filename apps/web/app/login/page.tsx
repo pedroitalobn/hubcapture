@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { login } from "@/lib/api/client";
+import { AuthShell } from "@/components/AuthShell";
+import { api, login } from "@/lib/api/client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,7 +19,11 @@ export default function LoginPage() {
     setCarregando(true);
     try {
       await login(email, senha);
-      router.push("/painel");
+      // Sem território configurado → a porta de entrada é o onboarding
+      // conversacional (o perfil é o ponto de partida da navegação).
+      const { data } = await api.GET("/api/v1/profile");
+      const temTerritorio = ((data?.municipios as unknown[]) ?? []).length > 0;
+      router.push(temTerritorio ? "/panel" : "/onboarding");
     } catch (err) {
       setErro(err instanceof Error ? err.message : "Erro ao entrar");
     } finally {
@@ -27,49 +32,54 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
-      <div>
-        <h1 className="text-2xl font-bold">Entrar</h1>
-        <p className="text-sm text-gray-500">Hub Capture</p>
-      </div>
+    <AuthShell
+      image
+      title="Bem-vindo de volta"
+      subtitle="Entre para acompanhar o seu território."
+      footer={
+        <div className="flex items-center justify-between">
+          <span>
+            Novo por aqui?{" "}
+            <Link href="/signup" className="text-ink underline hover:no-underline">
+              Criar conta
+            </Link>
+          </span>
+          <Link href="/forgot-password" className="hover:text-ink">
+            Esqueci a senha
+          </Link>
+        </div>
+      }
+    >
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          E-mail
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">E-mail</span>
           <input
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input"
+            placeholder="voce@exemplo.gov.br"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Senha
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">Senha</span>
           <input
             type="password"
             required
+            autoComplete="current-password"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input"
+            placeholder="••••••••"
           />
         </label>
-        {erro && <p className="text-sm text-red-600">{erro}</p>}
-        <button
-          type="submit"
-          disabled={carregando}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
-        >
+        {erro && <p className="text-sm text-red-500">{erro}</p>}
+        <button type="submit" disabled={carregando} className="btn btn-primary mt-2">
           {carregando ? "Entrando…" : "Entrar"}
         </button>
       </form>
-      <div className="flex items-center justify-between text-sm text-gray-500">
-        <Link href="/cadastro" className="text-brand underline">
-          Criar conta
-        </Link>
-        <Link href="/esqueci-senha" className="underline">
-          Esqueci a senha
-        </Link>
-      </div>
-    </main>
+    </AuthShell>
   );
 }

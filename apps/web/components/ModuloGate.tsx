@@ -21,7 +21,7 @@ export function ModuloGate({
 
   useEffect(() => {
     void (async () => {
-      const { data } = await api.GET("/api/v1/perfil");
+      const { data } = await api.GET("/api/v1/profile");
       const modulos = (data as { modulos?: string[] } | undefined)?.modulos ?? [];
       setAtivo(modulos.includes(modulo));
     })();
@@ -31,13 +31,13 @@ export function ModuloGate({
   if (ativo) return <>{children}</>;
 
   return (
-    <div className="rounded-lg border border-dashed border-gray-300 p-6 text-sm dark:border-gray-700">
-      <p className="mb-2 font-medium">{titulo} está desativado.</p>
-      <p className="mb-3 text-gray-500">
+    <div className="card p-8 text-sm">
+      <p className="mb-2 text-base tracking-tight">{titulo} está desativado.</p>
+      <p className="mb-5 max-w-md leading-relaxed text-ink-2">
         Este módulo foi desligado pela administração da plataforma. Um
         administrador pode reativá-lo a qualquer momento.
       </p>
-      <Link href="/painel" className="text-brand underline">
+      <Link href="/panel" className="btn btn-primary">
         Voltar ao meu painel
       </Link>
     </div>

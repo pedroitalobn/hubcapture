@@ -28,9 +28,7 @@ async def test_usuario_por_telefone(seed_user) -> None:
 async def test_despachar_wpp_respeita_optin_e_alertas(
     seed_user, seed_municipio, seed_proposta, monkeypatch
 ) -> None:
-    uid = await seed_user(
-        "w@w.com", telefone_wpp="+5511900001111", optin_wpp=True
-    )
+    uid = await seed_user("w@w.com", telefone_wpp="+5511900001111", optin_wpp=True)
     await seed_municipio(uid, "3550308")
     await seed_proposta("fns", "P1", "3550308", "UBS")
 
@@ -48,9 +46,7 @@ async def test_despachar_wpp_respeita_optin_e_alertas(
         proposta_id = (await s.execute(select(Proposta.id))).scalar_one()
         s.add(Alerta(usuario_id=uid, proposta_id=proposta_id, tipo="status"))
         await s.flush()
-        usuario = (
-            await s.execute(select(Usuario).where(Usuario.id == uid))
-        ).scalar_one()
+        usuario = (await s.execute(select(Usuario).where(Usuario.id == uid))).scalar_one()
         n = await dispatch_alerts.despachar_wpp(s, usuario)
 
     assert n == 1
@@ -61,7 +57,5 @@ async def test_despachar_wpp_respeita_optin_e_alertas(
 async def test_despachar_wpp_sem_optin_nao_envia(seed_user) -> None:
     uid = await seed_user("no@no.com", telefone_wpp="+55110002222", optin_wpp=False)
     async with rls_session(uid) as s:
-        usuario = (
-            await s.execute(select(Usuario).where(Usuario.id == uid))
-        ).scalar_one()
+        usuario = (await s.execute(select(Usuario).where(Usuario.id == uid))).scalar_one()
         assert await dispatch_alerts.despachar_wpp(s, usuario) == 0

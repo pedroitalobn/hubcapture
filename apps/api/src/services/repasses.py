@@ -85,9 +85,7 @@ async def upsert(session: AsyncSession, canonico: RepasseCanonico) -> None:
     update_set = {k: getattr(stmt.excluded, k) for k in _UPSERT_FIELDS}
     update_set["cache_atualizado_em"] = now
     update_set["updated_at"] = now
-    stmt = stmt.on_conflict_do_update(
-        constraint="uq_repasses_fonte_id_externo", set_=update_set
-    )
+    stmt = stmt.on_conflict_do_update(constraint="uq_repasses_fonte_id_externo", set_=update_set)
     await session.execute(stmt)
 
 

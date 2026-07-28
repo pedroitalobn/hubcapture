@@ -19,9 +19,7 @@ def _formatar(alertas: list) -> str:
     return "Hub Capture — atualizações:\n" + "\n".join(linhas)
 
 
-async def despachar_wpp(
-    session: AsyncSession, usuario: Usuario
-) -> int:
+async def despachar_wpp(session: AsyncSession, usuario: Usuario) -> int:
     """Envia os alertas não lidos do usuário por WhatsApp. Retorna quantos alertas
     entraram na mensagem (0 se sem opt-in/telefone/credencial ou sem alertas)."""
     if not (usuario.optin_wpp and usuario.telefone_wpp):
@@ -33,16 +31,12 @@ async def despachar_wpp(
     return len(pendentes) if enviado else 0
 
 
-async def responder_pergunta_wpp(
-    telefone: str, resposta: str
-) -> bool:
+async def responder_pergunta_wpp(telefone: str, resposta: str) -> bool:
     """Encaminha a resposta do chat ao WhatsApp do usuário."""
     return await uniq.enviar(telefone, resposta)
 
 
 async def usuario_por_telefone(session: AsyncSession, telefone: str) -> Usuario | None:
     return (
-        await session.execute(
-            select(Usuario).where(Usuario.telefone_wpp == telefone)
-        )
+        await session.execute(select(Usuario).where(Usuario.telefone_wpp == telefone))
     ).scalar_one_or_none()

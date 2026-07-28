@@ -18,7 +18,7 @@ from ..deps import get_platform_db
 router = APIRouter(tags=["admin-modulos"])
 
 
-@router.get("/admin/modulos", response_model=list[ModuloItem])
+@router.get("/admin/modules", response_model=list[ModuloItem])
 async def listar_modulos(
     _admin: Usuario = Depends(current_superuser),
     session: AsyncSession = Depends(get_platform_db),
@@ -26,7 +26,7 @@ async def listar_modulos(
     return [ModuloItem(**m) for m in await service.listar(session)]
 
 
-@router.put("/admin/modulos", response_model=list[ModuloItem])
+@router.put("/admin/modules", response_model=list[ModuloItem])
 async def definir_modulo(
     body: ModuloSet,
     _admin: Usuario = Depends(current_superuser),
