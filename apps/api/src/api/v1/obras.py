@@ -20,7 +20,7 @@ class SyncObrasRequest(BaseModel):
     fontes: list[str] | None = None
 
 
-@router.get("/obras", response_model=list[ObraRead])
+@router.get("/works", response_model=list[ObraRead])
 async def listar_obras(
     municipio: str | None = Query(default=None, description="código IBGE (7 dígitos)"),
     fonte: str | None = Query(default=None),
@@ -33,7 +33,7 @@ async def listar_obras(
     return [ObraRead.model_validate(o) for o in rows]
 
 
-@router.get("/obras/resumo", response_model=ObrasResumo)
+@router.get("/works/summary", response_model=ObrasResumo)
 async def obras_resumo(
     municipio: str | None = Query(default=None, description="código IBGE (7 dígitos)"),
     session: AsyncSession = Depends(get_rls_db),
@@ -41,7 +41,7 @@ async def obras_resumo(
     return await service.resumo(session, municipio=municipio)
 
 
-@router.post("/obras/sync", response_model=dict)
+@router.post("/works/sync", response_model=dict)
 async def obras_sync(
     body: SyncObrasRequest,
     user: Usuario = Depends(current_active_user),

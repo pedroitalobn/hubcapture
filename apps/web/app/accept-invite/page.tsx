@@ -26,7 +26,7 @@ function AceitarForm() {
     setErro(null);
     setCarregando(true);
     try {
-      const { data, error } = await api.POST("/api/v1/auth/aceitar-convite", {
+      const { data, error } = await api.POST("/api/v1/auth/accept-invite", {
         body: { token, senha, nome: nome || null },
       });
       if (error || !data) {
@@ -46,7 +46,7 @@ function AceitarForm() {
     return (
       <p className="text-sm text-red-500">
         Link de convite inválido. Peça um novo convite ao administrador ou{" "}
-        <Link href="/cadastro" className="underline">
+        <Link href="/signup" className="underline">
           crie uma conta
         </Link>
         .

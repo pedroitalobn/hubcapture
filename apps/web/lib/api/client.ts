@@ -88,7 +88,7 @@ export async function garantirSessao(): Promise<string | null> {
   // refresh também venceu → sessão realmente encerrada
   clearTokens();
   const path = window.location.pathname;
-  if (path.startsWith("/painel") || path.startsWith("/admin")) {
+  if (path.startsWith("/panel") || path.startsWith("/admin")) {
     window.location.href = "/login";
   }
   return null;
@@ -99,7 +99,7 @@ export const api = createHubClient({ baseUrl: API_ORIGIN, getToken: garantirSess
 
 /** Baixa o PDF de uma proposta (GET autenticado → blob → download). */
 export async function baixarPdfProposta(id: string): Promise<void> {
-  const resp = await fetch(`${API_ORIGIN}/api/v1/propostas/${id}/pdf`, {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/proposals/${id}/pdf`, {
     headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
   });
   if (!resp.ok) throw new Error("Falha ao gerar PDF");
@@ -120,7 +120,7 @@ export async function chatStream(
   modo: "propostas" | "copiloto",
   onDelta: (t: string) => void,
 ): Promise<void> {
-  const resp = await fetch(`${API_ORIGIN}/api/v1/copiloto/chat`, {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/copilot/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -253,7 +253,7 @@ export async function islandStream(
   pergunta: string,
   onEvento: (e: IslandEvento) => void,
 ): Promise<void> {
-  const resp = await fetch(`${API_ORIGIN}/api/v1/copiloto/island`, {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/copilot/island`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

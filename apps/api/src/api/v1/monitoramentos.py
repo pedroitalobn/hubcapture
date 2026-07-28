@@ -25,7 +25,7 @@ from ..deps import get_rls_db
 router = APIRouter(tags=["monitoramentos"])
 
 
-@router.get("/monitoramentos/buscas", response_model=list[MonitoramentoBuscaRead])
+@router.get("/monitors/searches", response_model=list[MonitoramentoBuscaRead])
 async def listar_buscas(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
@@ -35,7 +35,7 @@ async def listar_buscas(
 
 
 @router.post(
-    "/monitoramentos/buscas",
+    "/monitors/searches",
     response_model=MonitoramentoBuscaRead,
     status_code=status.HTTP_201_CREATED,
 )
@@ -55,7 +55,7 @@ async def criar_busca(
     return MonitoramentoBuscaRead.model_validate(busca)
 
 
-@router.delete("/monitoramentos/buscas/{busca_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/monitors/searches/{busca_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remover_busca(
     busca_id: uuid.UUID,
     user: Usuario = Depends(current_active_user),
@@ -64,7 +64,7 @@ async def remover_busca(
     await service.desativar_busca(session, user.id, busca_id)
 
 
-@router.get("/monitoramentos", response_model=list[MonitoramentoRead])
+@router.get("/monitors", response_model=list[MonitoramentoRead])
 async def listar_monitoramentos(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
@@ -74,7 +74,7 @@ async def listar_monitoramentos(
 
 
 @router.post(
-    "/monitoramentos", response_model=MonitoramentoRead, status_code=status.HTTP_201_CREATED
+    "/monitors", response_model=MonitoramentoRead, status_code=status.HTTP_201_CREATED
 )
 async def criar_monitoramento(
     body: MonitoramentoCreate,
@@ -85,7 +85,7 @@ async def criar_monitoramento(
     return MonitoramentoRead.model_validate(mon)
 
 
-@router.delete("/monitoramentos/{monitoramento_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/monitors/{monitoramento_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remover_monitoramento(
     monitoramento_id: uuid.UUID,
     user: Usuario = Depends(current_active_user),

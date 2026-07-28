@@ -54,7 +54,7 @@ class ChatRequest(BaseModel):
     modo: str = "propostas"  # 'propostas' | 'copiloto'
 
 
-@router.post("/copiloto/chat")
+@router.post("/copilot/chat")
 async def copiloto_chat(
     body: ChatRequest,
     user: Usuario = Depends(current_active_user),
@@ -83,7 +83,7 @@ class IslandRequest(BaseModel):
     pergunta: str
 
 
-@router.post("/copiloto/island")
+@router.post("/copilot/island")
 async def copiloto_island(
     body: IslandRequest,
     user: Usuario = Depends(current_active_user),

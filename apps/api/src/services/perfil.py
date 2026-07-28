@@ -129,14 +129,14 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
             titulo="Captação",
             total=int(prop_n),
             destaque=f"{_brl(prop_valor)} em propostas" if prop_n else "sem propostas ainda",
-            href="/painel/captacao",
+            href="/panel/funding",
         ),
         DimensaoResumo(
             chave="recebidos",
             titulo="Recursos recebidos",
             total=int(rep_n),
             destaque=f"{_brl(rep_valor)} recebidos" if rep_n else "sem repasses ainda",
-            href="/painel/repasses",
+            href="/panel/transfers",
         ),
         DimensaoResumo(
             chave="conformidade",
@@ -145,7 +145,7 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
             destaque=(
                 f"{conf_pendentes} a comprovar" if conf_n else "sem dados fiscais ainda"
             ),
-            href="/painel/conformidade",
+            href="/panel/compliance",
         ),
         DimensaoResumo(
             chave="obras",
@@ -154,7 +154,7 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
             destaque=(
                 f"{obras_exec} em execução" if obras_n else "sem obras ainda"
             ),
-            href="/painel/obras",
+            href="/panel/works",
         ),
     ]
 
@@ -210,7 +210,7 @@ async def novidades(
             fonte=p.fonte,
             municipio_ibge=p.municipio_ibge,
             municipio_nome=p.municipio_nome,
-            href="/painel/captacao",
+            href="/panel/funding",
         )
         for p in propostas
     ] + [
@@ -223,7 +223,7 @@ async def novidades(
             fonte=r.fonte,
             municipio_ibge=r.municipio_ibge,
             municipio_nome=r.municipio_nome,
-            href="/painel/repasses",
+            href="/panel/transfers",
         )
         for r in repasses
     ]

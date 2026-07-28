@@ -22,7 +22,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/conhecimento": {
+    "/api/v1/admin/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Listar Convites */
+        get: operations["admin_listar_convites_api_v1_admin_invites_get"];
+        put?: never;
+        /** Admin Criar Convite */
+        post: operations["admin_criar_convite_api_v1_admin_invites_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/knowledge": {
         parameters: {
             query?: never;
             header?: never;
@@ -35,32 +53,14 @@ export interface paths {
          * Admin Add Conhecimento
          * @description Adiciona material à base de conhecimento do Copiloto.
          */
-        post: operations["admin_add_conhecimento_api_v1_admin_conhecimento_post"];
+        post: operations["admin_add_conhecimento_api_v1_admin_knowledge_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/convites": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Admin Listar Convites */
-        get: operations["admin_listar_convites_api_v1_admin_convites_get"];
-        put?: never;
-        /** Admin Criar Convite */
-        post: operations["admin_criar_convite_api_v1_admin_convites_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/fontes": {
+    "/api/v1/admin/sources": {
         parameters: {
             query?: never;
             header?: never;
@@ -68,7 +68,7 @@ export interface paths {
             cookie?: never;
         };
         /** Diagnostico Fontes */
-        get: operations["diagnostico_fontes_api_v1_admin_fontes_get"];
+        get: operations["diagnostico_fontes_api_v1_admin_sources_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -77,7 +77,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/usuarios": {
+    "/api/v1/admin/users": {
         parameters: {
             query?: never;
             header?: never;
@@ -85,17 +85,17 @@ export interface paths {
             cookie?: never;
         };
         /** Admin Listar Usuarios */
-        get: operations["admin_listar_usuarios_api_v1_admin_usuarios_get"];
+        get: operations["admin_listar_usuarios_api_v1_admin_users_get"];
         put?: never;
         /** Admin Criar Usuario */
-        post: operations["admin_criar_usuario_api_v1_admin_usuarios_post"];
+        post: operations["admin_criar_usuario_api_v1_admin_users_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/usuarios/{usuario_id}": {
+    "/api/v1/admin/users/{usuario_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -109,10 +109,10 @@ export interface paths {
         options?: never;
         head?: never;
         /** Admin Atualizar Usuario */
-        patch: operations["admin_atualizar_usuario_api_v1_admin_usuarios__usuario_id__patch"];
+        patch: operations["admin_atualizar_usuario_api_v1_admin_users__usuario_id__patch"];
         trace?: never;
     };
-    "/api/v1/admin/usuarios/{usuario_id}/plano": {
+    "/api/v1/admin/users/{usuario_id}/plan": {
         parameters: {
             query?: never;
             header?: never;
@@ -126,10 +126,10 @@ export interface paths {
         options?: never;
         head?: never;
         /** Admin Atribuir Plano */
-        patch: operations["admin_atribuir_plano_api_v1_admin_usuarios__usuario_id__plano_patch"];
+        patch: operations["admin_atribuir_plano_api_v1_admin_users__usuario_id__plan_patch"];
         trace?: never;
     };
-    "/api/v1/alertas": {
+    "/api/v1/alerts": {
         parameters: {
             query?: never;
             header?: never;
@@ -137,7 +137,7 @@ export interface paths {
             cookie?: never;
         };
         /** Listar Alertas */
-        get: operations["listar_alertas_api_v1_alertas_get"];
+        get: operations["listar_alertas_api_v1_alerts_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -146,7 +146,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/alertas/varredura": {
+    "/api/v1/alerts/scan": {
         parameters: {
             query?: never;
             header?: never;
@@ -160,14 +160,14 @@ export interface paths {
          * @description Roda a detecção de novas propostas (buscas) + oportunidades e despacha
          *     por email/WhatsApp conforme os canais. Retorna quantos alertas foram criados.
          */
-        post: operations["varredura_alertas_api_v1_alertas_varredura_post"];
+        post: operations["varredura_alertas_api_v1_alerts_scan_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/alertas/{alerta_id}/lido": {
+    "/api/v1/alerts/{alerta_id}/read": {
         parameters: {
             query?: never;
             header?: never;
@@ -177,14 +177,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Marcar Lido */
-        post: operations["marcar_lido_api_v1_alertas__alerta_id__lido_post"];
+        post: operations["marcar_lido_api_v1_alerts__alerta_id__read_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/aceitar-convite": {
+    "/api/v1/auth/accept-invite": {
         parameters: {
             query?: never;
             header?: never;
@@ -194,7 +194,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Aceitar Convite */
-        post: operations["aceitar_convite_api_v1_auth_aceitar_convite_post"];
+        post: operations["aceitar_convite_api_v1_auth_accept_invite_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -320,7 +320,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/conformidade": {
+    "/api/v1/compliance": {
         parameters: {
             query?: never;
             header?: never;
@@ -328,7 +328,7 @@ export interface paths {
             cookie?: never;
         };
         /** Conformidade Resumo */
-        get: operations["conformidade_resumo_api_v1_conformidade_get"];
+        get: operations["conformidade_resumo_api_v1_compliance_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -337,7 +337,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/conformidade/sync": {
+    "/api/v1/compliance/sync": {
         parameters: {
             query?: never;
             header?: never;
@@ -347,31 +347,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Conformidade Sync */
-        post: operations["conformidade_sync_api_v1_conformidade_sync_post"];
+        post: operations["conformidade_sync_api_v1_compliance_sync_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/consulta-avulsa": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Consulta Avulsa Endpoint */
-        post: operations["consulta_avulsa_endpoint_api_v1_consulta_avulsa_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/copiloto/chat": {
+    "/api/v1/copilot/chat": {
         parameters: {
             query?: never;
             header?: never;
@@ -381,14 +364,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Copiloto Chat */
-        post: operations["copiloto_chat_api_v1_copiloto_chat_post"];
+        post: operations["copiloto_chat_api_v1_copilot_chat_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/copiloto/island": {
+    "/api/v1/copilot/island": {
         parameters: {
             query?: never;
             header?: never;
@@ -403,14 +386,14 @@ export interface paths {
          *     com a sessão RLS do request viva; o stream só replaye os eventos coletados
          *     (mesma razão do RAG pré-stream acima).
          */
-        post: operations["copiloto_island_api_v1_copiloto_island_post"];
+        post: operations["copiloto_island_api_v1_copilot_island_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/favoritos": {
+    "/api/v1/favorites": {
         parameters: {
             query?: never;
             header?: never;
@@ -418,17 +401,17 @@ export interface paths {
             cookie?: never;
         };
         /** Listar Favoritos */
-        get: operations["listar_favoritos_api_v1_favoritos_get"];
+        get: operations["listar_favoritos_api_v1_favorites_get"];
         put?: never;
         /** Adicionar Favorito */
-        post: operations["adicionar_favorito_api_v1_favoritos_post"];
+        post: operations["adicionar_favorito_api_v1_favorites_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/favoritos/{proposta_id}": {
+    "/api/v1/favorites/{proposta_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -439,7 +422,77 @@ export interface paths {
         put?: never;
         post?: never;
         /** Remover Favorito */
-        delete: operations["remover_favorito_api_v1_favoritos__proposta_id__delete"];
+        delete: operations["remover_favorito_api_v1_favorites__proposta_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Pastas */
+        get: operations["listar_pastas_api_v1_folders_get"];
+        put?: never;
+        /** Criar Pasta */
+        post: operations["criar_pasta_api_v1_folders_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/folders/{pasta_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Atualizar Pasta */
+        patch: operations["atualizar_pasta_api_v1_folders__pasta_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/folders/{pasta_id}/proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Propostas Da Pasta */
+        get: operations["listar_propostas_da_pasta_api_v1_folders__pasta_id__proposals_get"];
+        put?: never;
+        /** Adicionar Proposta */
+        post: operations["adicionar_proposta_api_v1_folders__pasta_id__proposals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/folders/{pasta_id}/proposals/{proposta_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remover Proposta */
+        delete: operations["remover_proposta_api_v1_folders__pasta_id__proposals__proposta_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -462,7 +515,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/monitoramentos": {
+    "/api/v1/monitors": {
         parameters: {
             query?: never;
             header?: never;
@@ -470,17 +523,17 @@ export interface paths {
             cookie?: never;
         };
         /** Listar Monitoramentos */
-        get: operations["listar_monitoramentos_api_v1_monitoramentos_get"];
+        get: operations["listar_monitoramentos_api_v1_monitors_get"];
         put?: never;
         /** Criar Monitoramento */
-        post: operations["criar_monitoramento_api_v1_monitoramentos_post"];
+        post: operations["criar_monitoramento_api_v1_monitors_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/monitoramentos/buscas": {
+    "/api/v1/monitors/searches": {
         parameters: {
             query?: never;
             header?: never;
@@ -488,17 +541,17 @@ export interface paths {
             cookie?: never;
         };
         /** Listar Buscas */
-        get: operations["listar_buscas_api_v1_monitoramentos_buscas_get"];
+        get: operations["listar_buscas_api_v1_monitors_searches_get"];
         put?: never;
         /** Criar Busca */
-        post: operations["criar_busca_api_v1_monitoramentos_buscas_post"];
+        post: operations["criar_busca_api_v1_monitors_searches_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/monitoramentos/buscas/{busca_id}": {
+    "/api/v1/monitors/searches/{busca_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -509,13 +562,13 @@ export interface paths {
         put?: never;
         post?: never;
         /** Remover Busca */
-        delete: operations["remover_busca_api_v1_monitoramentos_buscas__busca_id__delete"];
+        delete: operations["remover_busca_api_v1_monitors_searches__busca_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/monitoramentos/{monitoramento_id}": {
+    "/api/v1/monitors/{monitoramento_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -526,13 +579,13 @@ export interface paths {
         put?: never;
         post?: never;
         /** Remover Monitoramento */
-        delete: operations["remover_monitoramento_api_v1_monitoramentos__monitoramento_id__delete"];
+        delete: operations["remover_monitoramento_api_v1_monitors__monitoramento_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/municipios": {
+    "/api/v1/municipalities": {
         parameters: {
             query?: never;
             header?: never;
@@ -540,7 +593,7 @@ export interface paths {
             cookie?: never;
         };
         /** Buscar Municipios */
-        get: operations["buscar_municipios_api_v1_municipios_get"];
+        get: operations["buscar_municipios_api_v1_municipalities_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -549,7 +602,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/noticias": {
+    "/api/v1/news": {
         parameters: {
             query?: never;
             header?: never;
@@ -557,60 +610,9 @@ export interface paths {
             cookie?: never;
         };
         /** Listar Noticias */
-        get: operations["listar_noticias_api_v1_noticias_get"];
+        get: operations["listar_noticias_api_v1_news_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/obras": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar Obras */
-        get: operations["listar_obras_api_v1_obras_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/obras/resumo": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Obras Resumo */
-        get: operations["obras_resumo_api_v1_obras_resumo_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/obras/sync": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Obras Sync */
-        post: operations["obras_sync_api_v1_obras_sync_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -634,131 +636,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/pastas": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar Pastas */
-        get: operations["listar_pastas_api_v1_pastas_get"];
-        put?: never;
-        /** Criar Pasta */
-        post: operations["criar_pasta_api_v1_pastas_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/pastas/{pasta_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Atualizar Pasta */
-        patch: operations["atualizar_pasta_api_v1_pastas__pasta_id__patch"];
-        trace?: never;
-    };
-    "/api/v1/pastas/{pasta_id}/propostas": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar Propostas Da Pasta */
-        get: operations["listar_propostas_da_pasta_api_v1_pastas__pasta_id__propostas_get"];
-        put?: never;
-        /** Adicionar Proposta */
-        post: operations["adicionar_proposta_api_v1_pastas__pasta_id__propostas_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/pastas/{pasta_id}/propostas/{proposta_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Remover Proposta */
-        delete: operations["remover_proposta_api_v1_pastas__pasta_id__propostas__proposta_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/perfil": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Perfil */
-        get: operations["get_perfil_api_v1_perfil_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/perfil/novidades": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Novidades Perfil
-         * @description Feed 'últimas novidades' do território, recortado pelo perfil do usuário.
-         */
-        get: operations["novidades_perfil_api_v1_perfil_novidades_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/perfil/visao-geral": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Visao Geral Perfil */
-        get: operations["visao_geral_perfil_api_v1_perfil_visao_geral_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/planos": {
+    "/api/v1/plans": {
         parameters: {
             query?: never;
             header?: never;
@@ -766,17 +644,17 @@ export interface paths {
             cookie?: never;
         };
         /** Listar Planos */
-        get: operations["listar_planos_api_v1_planos_get"];
+        get: operations["listar_planos_api_v1_plans_get"];
         put?: never;
         /** Criar Plano */
-        post: operations["criar_plano_api_v1_planos_post"];
+        post: operations["criar_plano_api_v1_plans_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/planos/{plano_id}": {
+    "/api/v1/plans/{plano_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -790,18 +668,18 @@ export interface paths {
         options?: never;
         head?: never;
         /** Atualizar Plano */
-        patch: operations["atualizar_plano_api_v1_planos__plano_id__patch"];
+        patch: operations["atualizar_plano_api_v1_plans__plano_id__patch"];
         trace?: never;
     };
-    "/api/v1/propostas": {
+    "/api/v1/profile": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Listar Propostas */
-        get: operations["listar_propostas_api_v1_propostas_get"];
+        /** Get Perfil */
+        get: operations["get_perfil_api_v1_profile_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -810,7 +688,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/propostas/prazos": {
+    "/api/v1/profile/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Novidades Perfil
+         * @description Feed 'últimas novidades' do território, recortado pelo perfil do usuário.
+         */
+        get: operations["novidades_perfil_api_v1_profile_feed_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Visao Geral Perfil */
+        get: operations["visao_geral_perfil_api_v1_profile_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Propostas */
+        get: operations["listar_propostas_api_v1_proposals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/deadlines": {
         parameters: {
             query?: never;
             header?: never;
@@ -821,7 +753,7 @@ export interface paths {
          * Propostas Por Prazo
          * @description Propostas com prazo vencendo na janela — 'quais vencem este mês?'.
          */
-        get: operations["propostas_por_prazo_api_v1_propostas_prazos_get"];
+        get: operations["propostas_por_prazo_api_v1_proposals_deadlines_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -830,7 +762,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/propostas/{proposta_id}": {
+    "/api/v1/proposals/live-search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Live Search Endpoint */
+        post: operations["live_search_endpoint_api_v1_proposals_live_search_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/{proposta_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -838,7 +787,7 @@ export interface paths {
             cookie?: never;
         };
         /** Obter Proposta */
-        get: operations["obter_proposta_api_v1_propostas__proposta_id__get"];
+        get: operations["obter_proposta_api_v1_proposals__proposta_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -847,7 +796,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/propostas/{proposta_id}/pdf": {
+    "/api/v1/proposals/{proposta_id}/pdf": {
         parameters: {
             query?: never;
             header?: never;
@@ -855,7 +804,7 @@ export interface paths {
             cookie?: never;
         };
         /** Exportar Pdf */
-        get: operations["exportar_pdf_api_v1_propostas__proposta_id__pdf_get"];
+        get: operations["exportar_pdf_api_v1_proposals__proposta_id__pdf_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -864,7 +813,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/repasses": {
+    "/api/v1/transfers": {
         parameters: {
             query?: never;
             header?: never;
@@ -872,7 +821,7 @@ export interface paths {
             cookie?: never;
         };
         /** Listar Repasses */
-        get: operations["listar_repasses_api_v1_repasses_get"];
+        get: operations["listar_repasses_api_v1_transfers_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -881,7 +830,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/repasses/sync": {
+    "/api/v1/transfers/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Visao Geral */
+        get: operations["visao_geral_api_v1_transfers_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transfers/sync": {
         parameters: {
             query?: never;
             header?: never;
@@ -891,24 +857,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Sync Repasses */
-        post: operations["sync_repasses_api_v1_repasses_sync_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/repasses/visao-geral": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Visao Geral */
-        get: operations["visao_geral_api_v1_repasses_visao_geral_get"];
-        put?: never;
-        post?: never;
+        post: operations["sync_repasses_api_v1_transfers_sync_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -963,6 +912,57 @@ export interface paths {
         put?: never;
         /** Uniq Inbound */
         post: operations["uniq_inbound_api_v1_webhooks_uniq_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/works": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Obras */
+        get: operations["listar_obras_api_v1_works_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/works/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obras Resumo */
+        get: operations["obras_resumo_api_v1_works_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/works/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Obras Sync */
+        post: operations["obras_sync_api_v1_works_sync_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1236,19 +1236,6 @@ export interface components {
             /** Titulo */
             titulo: string;
         };
-        /** ConsultaAvulsaRequest */
-        ConsultaAvulsaRequest: {
-            /**
-             * Fonte
-             * @default transferegov_ff
-             */
-            fonte: string;
-            /**
-             * Municipio Ibge
-             * @description código IBGE
-             */
-            municipio_ibge: string;
-        };
         /** ConviteCreate */
         ConviteCreate: {
             /**
@@ -1389,6 +1376,17 @@ export interface components {
             /** Total */
             total: string;
         };
+        /** FonteStatus */
+        FonteStatus: {
+            /** Erro */
+            erro?: string | null;
+            /** Fonte */
+            fonte: string;
+            /** Municipio Ibge */
+            municipio_ibge: string;
+            /** Status */
+            status: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1398,6 +1396,36 @@ export interface components {
         IslandRequest: {
             /** Pergunta */
             pergunta: string;
+        };
+        /**
+         * LiveSearchRequest
+         * @description Filtros da busca. Tudo opcional — sem município, usa os do perfil.
+         */
+        LiveSearchRequest: {
+            /** Area */
+            area?: string | null;
+            /** Fonte */
+            fonte?: string | null;
+            /**
+             * Municipio Ibge
+             * @description código IBGE
+             */
+            municipio_ibge?: string | null;
+            /** Situacao */
+            situacao?: string | null;
+            /** Tipo */
+            tipo?: string | null;
+            /** Valor Max */
+            valor_max?: number | string | null;
+            /** Valor Min */
+            valor_min?: number | string | null;
+        };
+        /** LiveSearchResponse */
+        LiveSearchResponse: {
+            /** Fontes */
+            fontes: components["schemas"]["FonteStatus"][];
+            /** Propostas */
+            propostas: components["schemas"]["PropostaRead"][];
         };
         /**
          * MonitoramentoBuscaCreate
@@ -2246,7 +2274,60 @@ export interface operations {
             };
         };
     };
-    admin_add_conhecimento_api_v1_admin_conhecimento_post: {
+    admin_listar_convites_api_v1_admin_invites_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteRead"][];
+                };
+            };
+        };
+    };
+    admin_criar_convite_api_v1_admin_invites_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConviteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_add_conhecimento_api_v1_admin_knowledge_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2281,60 +2362,7 @@ export interface operations {
             };
         };
     };
-    admin_listar_convites_api_v1_admin_convites_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConviteRead"][];
-                };
-            };
-        };
-    };
-    admin_criar_convite_api_v1_admin_convites_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConviteCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConviteRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    diagnostico_fontes_api_v1_admin_fontes_get: {
+    diagnostico_fontes_api_v1_admin_sources_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2354,7 +2382,7 @@ export interface operations {
             };
         };
     };
-    admin_listar_usuarios_api_v1_admin_usuarios_get: {
+    admin_listar_usuarios_api_v1_admin_users_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2374,7 +2402,7 @@ export interface operations {
             };
         };
     };
-    admin_criar_usuario_api_v1_admin_usuarios_post: {
+    admin_criar_usuario_api_v1_admin_users_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2407,7 +2435,7 @@ export interface operations {
             };
         };
     };
-    admin_atualizar_usuario_api_v1_admin_usuarios__usuario_id__patch: {
+    admin_atualizar_usuario_api_v1_admin_users__usuario_id__patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -2442,7 +2470,7 @@ export interface operations {
             };
         };
     };
-    admin_atribuir_plano_api_v1_admin_usuarios__usuario_id__plano_patch: {
+    admin_atribuir_plano_api_v1_admin_users__usuario_id__plan_patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -2475,7 +2503,7 @@ export interface operations {
             };
         };
     };
-    listar_alertas_api_v1_alertas_get: {
+    listar_alertas_api_v1_alerts_get: {
         parameters: {
             query?: {
                 nao_lidos?: boolean;
@@ -2506,7 +2534,7 @@ export interface operations {
             };
         };
     };
-    varredura_alertas_api_v1_alertas_varredura_post: {
+    varredura_alertas_api_v1_alerts_scan_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2528,7 +2556,7 @@ export interface operations {
             };
         };
     };
-    marcar_lido_api_v1_alertas__alerta_id__lido_post: {
+    marcar_lido_api_v1_alerts__alerta_id__read_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2557,7 +2585,7 @@ export interface operations {
             };
         };
     };
-    aceitar_convite_api_v1_auth_aceitar_convite_post: {
+    aceitar_convite_api_v1_auth_accept_invite_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2848,7 +2876,7 @@ export interface operations {
             };
         };
     };
-    conformidade_resumo_api_v1_conformidade_get: {
+    conformidade_resumo_api_v1_compliance_get: {
         parameters: {
             query?: {
                 /** @description código IBGE (7 dígitos) */
@@ -2880,7 +2908,7 @@ export interface operations {
             };
         };
     };
-    conformidade_sync_api_v1_conformidade_sync_post: {
+    conformidade_sync_api_v1_compliance_sync_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2915,40 +2943,7 @@ export interface operations {
             };
         };
     };
-    consulta_avulsa_endpoint_api_v1_consulta_avulsa_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConsultaAvulsaRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PropostaRead"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    copiloto_chat_api_v1_copiloto_chat_post: {
+    copiloto_chat_api_v1_copilot_chat_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2981,7 +2976,7 @@ export interface operations {
             };
         };
     };
-    copiloto_island_api_v1_copiloto_island_post: {
+    copiloto_island_api_v1_copilot_island_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3014,7 +3009,7 @@ export interface operations {
             };
         };
     };
-    listar_favoritos_api_v1_favoritos_get: {
+    listar_favoritos_api_v1_favorites_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3034,7 +3029,7 @@ export interface operations {
             };
         };
     };
-    adicionar_favorito_api_v1_favoritos_post: {
+    adicionar_favorito_api_v1_favorites_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3069,11 +3064,197 @@ export interface operations {
             };
         };
     };
-    remover_favorito_api_v1_favoritos__proposta_id__delete: {
+    remover_favorito_api_v1_favorites__proposta_id__delete: {
         parameters: {
             query?: never;
             header?: never;
             path: {
+                proposta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_pastas_api_v1_folders_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PastaRead"][];
+                };
+            };
+        };
+    };
+    criar_pasta_api_v1_folders_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PastaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PastaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    atualizar_pasta_api_v1_folders__pasta_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pasta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PastaUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PastaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_propostas_da_pasta_api_v1_folders__pasta_id__proposals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pasta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    adicionar_proposta_api_v1_folders__pasta_id__proposals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pasta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PastaPropostaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_proposta_api_v1_folders__pasta_id__proposals__proposta_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pasta_id: string;
                 proposta_id: string;
             };
             cookie?: never;
@@ -3118,7 +3299,7 @@ export interface operations {
             };
         };
     };
-    listar_monitoramentos_api_v1_monitoramentos_get: {
+    listar_monitoramentos_api_v1_monitors_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3138,7 +3319,7 @@ export interface operations {
             };
         };
     };
-    criar_monitoramento_api_v1_monitoramentos_post: {
+    criar_monitoramento_api_v1_monitors_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3171,7 +3352,7 @@ export interface operations {
             };
         };
     };
-    listar_buscas_api_v1_monitoramentos_buscas_get: {
+    listar_buscas_api_v1_monitors_searches_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3191,7 +3372,7 @@ export interface operations {
             };
         };
     };
-    criar_busca_api_v1_monitoramentos_buscas_post: {
+    criar_busca_api_v1_monitors_searches_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3224,7 +3405,7 @@ export interface operations {
             };
         };
     };
-    remover_busca_api_v1_monitoramentos_buscas__busca_id__delete: {
+    remover_busca_api_v1_monitors_searches__busca_id__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -3253,7 +3434,7 @@ export interface operations {
             };
         };
     };
-    remover_monitoramento_api_v1_monitoramentos__monitoramento_id__delete: {
+    remover_monitoramento_api_v1_monitors__monitoramento_id__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -3282,7 +3463,7 @@ export interface operations {
             };
         };
     };
-    buscar_municipios_api_v1_municipios_get: {
+    buscar_municipios_api_v1_municipalities_get: {
         parameters: {
             query: {
                 q: string;
@@ -3313,7 +3494,7 @@ export interface operations {
             };
         };
     };
-    listar_noticias_api_v1_noticias_get: {
+    listar_noticias_api_v1_news_get: {
         parameters: {
             query?: {
                 limite?: number;
@@ -3331,107 +3512,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NoticiaRead"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    listar_obras_api_v1_obras_get: {
-        parameters: {
-            query?: {
-                /** @description código IBGE (7 dígitos) */
-                municipio?: string | null;
-                fonte?: string | null;
-                situacao?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ObraRead"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    obras_resumo_api_v1_obras_resumo_get: {
-        parameters: {
-            query?: {
-                /** @description código IBGE (7 dígitos) */
-                municipio?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ObrasResumo"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    obras_sync_api_v1_obras_sync_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SyncObrasRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
                 };
             };
             /** @description Validation Error */
@@ -3478,253 +3558,7 @@ export interface operations {
             };
         };
     };
-    listar_pastas_api_v1_pastas_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PastaRead"][];
-                };
-            };
-        };
-    };
-    criar_pasta_api_v1_pastas_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PastaCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PastaRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    atualizar_pasta_api_v1_pastas__pasta_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pasta_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PastaUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PastaRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    listar_propostas_da_pasta_api_v1_pastas__pasta_id__propostas_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pasta_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": string[];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    adicionar_proposta_api_v1_pastas__pasta_id__propostas_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pasta_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PastaPropostaCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    remover_proposta_api_v1_pastas__pasta_id__propostas__proposta_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pasta_id: string;
-                proposta_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_perfil_api_v1_perfil_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PerfilRead"];
-                };
-            };
-        };
-    };
-    novidades_perfil_api_v1_perfil_novidades_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NovidadesPerfil"];
-                };
-            };
-        };
-    };
-    visao_geral_perfil_api_v1_perfil_visao_geral_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VisaoGeralPerfil"];
-                };
-            };
-        };
-    };
-    listar_planos_api_v1_planos_get: {
+    listar_planos_api_v1_plans_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3744,7 +3578,7 @@ export interface operations {
             };
         };
     };
-    criar_plano_api_v1_planos_post: {
+    criar_plano_api_v1_plans_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3777,7 +3611,7 @@ export interface operations {
             };
         };
     };
-    atualizar_plano_api_v1_planos__plano_id__patch: {
+    atualizar_plano_api_v1_plans__plano_id__patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -3812,7 +3646,67 @@ export interface operations {
             };
         };
     };
-    listar_propostas_api_v1_propostas_get: {
+    get_perfil_api_v1_profile_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PerfilRead"];
+                };
+            };
+        };
+    };
+    novidades_perfil_api_v1_profile_feed_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NovidadesPerfil"];
+                };
+            };
+        };
+    };
+    visao_geral_perfil_api_v1_profile_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisaoGeralPerfil"];
+                };
+            };
+        };
+    };
+    listar_propostas_api_v1_proposals_get: {
         parameters: {
             query?: {
                 /** @description código IBGE (7 dígitos) */
@@ -3851,7 +3745,7 @@ export interface operations {
             };
         };
     };
-    propostas_por_prazo_api_v1_propostas_prazos_get: {
+    propostas_por_prazo_api_v1_proposals_deadlines_get: {
         parameters: {
             query?: {
                 dias?: number;
@@ -3882,7 +3776,40 @@ export interface operations {
             };
         };
     };
-    obter_proposta_api_v1_propostas__proposta_id__get: {
+    live_search_endpoint_api_v1_proposals_live_search_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveSearchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveSearchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    obter_proposta_api_v1_proposals__proposta_id__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3913,7 +3840,7 @@ export interface operations {
             };
         };
     };
-    exportar_pdf_api_v1_propostas__proposta_id__pdf_get: {
+    exportar_pdf_api_v1_proposals__proposta_id__pdf_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3944,7 +3871,7 @@ export interface operations {
             };
         };
     };
-    listar_repasses_api_v1_repasses_get: {
+    listar_repasses_api_v1_transfers_get: {
         parameters: {
             query?: {
                 /** @description código IBGE (7 dígitos) */
@@ -3979,7 +3906,40 @@ export interface operations {
             };
         };
     };
-    sync_repasses_api_v1_repasses_sync_post: {
+    visao_geral_api_v1_transfers_overview_get: {
+        parameters: {
+            query?: {
+                municipio?: string | null;
+                inicio?: string | null;
+                fim?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisaoGeral"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_repasses_api_v1_transfers_sync_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -4001,39 +3961,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    visao_geral_api_v1_repasses_visao_geral_get: {
-        parameters: {
-            query?: {
-                municipio?: string | null;
-                inicio?: string | null;
-                fim?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VisaoGeral"];
                 };
             };
             /** @description Validation Error */
@@ -4300,6 +4227,107 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["UniqInbound"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_obras_api_v1_works_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                fonte?: string | null;
+                situacao?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObraRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    obras_resumo_api_v1_works_summary_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObrasResumo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    obras_sync_api_v1_works_sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncObrasRequest"];
             };
         };
         responses: {

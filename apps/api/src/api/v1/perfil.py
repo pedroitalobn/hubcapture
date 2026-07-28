@@ -19,7 +19,7 @@ from ..deps import get_rls_db
 router = APIRouter(tags=["perfil"])
 
 
-@router.get("/perfil", response_model=PerfilRead)
+@router.get("/profile", response_model=PerfilRead)
 async def get_perfil(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
@@ -27,7 +27,7 @@ async def get_perfil(
     return await service.get_perfil(session, user)
 
 
-@router.get("/perfil/visao-geral", response_model=VisaoGeralPerfil)
+@router.get("/profile/overview", response_model=VisaoGeralPerfil)
 async def visao_geral_perfil(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
@@ -35,7 +35,7 @@ async def visao_geral_perfil(
     return await service.visao_geral(session, user)
 
 
-@router.get("/perfil/novidades", response_model=NovidadesPerfil)
+@router.get("/profile/feed", response_model=NovidadesPerfil)
 async def novidades_perfil(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),

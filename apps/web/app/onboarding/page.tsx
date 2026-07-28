@@ -150,7 +150,7 @@ export default function OnboardingPage() {
       return;
     }
     const t = setTimeout(async () => {
-      const { data } = await api.GET("/api/v1/municipios", {
+      const { data } = await api.GET("/api/v1/municipalities", {
         params: { query: { q: busca.trim() } },
       });
       setSugestoes(((data ?? []) as MunicipioBusca[]).slice(0, 6));
@@ -295,7 +295,7 @@ export default function OnboardingPage() {
     }
     falar(
       ["Perfil salvo! Te levando para o seu painel — os dados chegam em instantes."],
-      () => router.push("/painel?sync=1"),
+      () => router.push("/panel?sync=1"),
     );
   }
 

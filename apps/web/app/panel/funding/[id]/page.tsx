@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, baixarPdfProposta } from "@/lib/api/client";
+import { api } from "@/lib/api/client";
 
 type Prazo = { tipo?: string | null; data_limite?: string | null };
 type Pendencia = { descricao?: string | null; prazo?: string | null };
@@ -82,7 +82,7 @@ export default function PropostaDetalhePage() {
 
   useEffect(() => {
     void (async () => {
-      const { data, error } = await api.GET("/api/v1/propostas/{proposta_id}", {
+      const { data, error } = await api.GET("/api/v1/proposals/{proposta_id}", {
         params: { path: { proposta_id: params.id } },
       });
       if (error) {
@@ -91,8 +91,8 @@ export default function PropostaDetalhePage() {
       }
       setP(data as Proposta);
       const [fav, mon] = await Promise.all([
-        api.GET("/api/v1/favoritos"),
-        api.GET("/api/v1/monitoramentos"),
+        api.GET("/api/v1/favorites"),
+        api.GET("/api/v1/monitors"),
       ]);
       if (fav.data)
         setFavorita(
@@ -111,17 +111,17 @@ export default function PropostaDetalhePage() {
 
   async function alternarFavorito() {
     if (favorita) {
-      await api.DELETE("/api/v1/favoritos/{proposta_id}", {
+      await api.DELETE("/api/v1/favorites/{proposta_id}", {
         params: { path: { proposta_id: params.id } },
       });
     } else {
-      await api.POST("/api/v1/favoritos", { body: { proposta_id: params.id } });
+      await api.POST("/api/v1/favorites", { body: { proposta_id: params.id } });
     }
     setFavorita(!favorita);
   }
 
   async function monitorar() {
-    const { error } = await api.POST("/api/v1/monitoramentos", {
+    const { error } = await api.POST("/api/v1/monitors", {
       body: { proposta_id: params.id, canais },
     });
     if (!error) {
@@ -136,7 +136,7 @@ export default function PropostaDetalhePage() {
     return (
       <>
         <p className="text-ink-2">{erro}</p>
-        <Link href="/painel/captacao" className="btn btn-ghost btn-sm">
+        <Link href="/panel/funding" className="btn btn-ghost btn-sm">
           ← Voltar à captação
         </Link>
       </>
@@ -149,7 +149,7 @@ export default function PropostaDetalhePage() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link
-            href="/painel/captacao"
+            href="/panel/funding"
             className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 hover:text-ink"
           >
             ← Captação
@@ -172,9 +172,6 @@ export default function PropostaDetalhePage() {
         <div className="flex gap-2">
           <button onClick={alternarFavorito} className="btn btn-ghost">
             {favorita ? "★ Favorita" : "☆ Favoritar"}
-          </button>
-          <button onClick={() => baixarPdfProposta(p.id)} className="btn btn-primary">
-            Exportar PDF
           </button>
         </div>
       </header>

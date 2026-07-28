@@ -36,8 +36,8 @@ export default function AdminUsuariosPage() {
 
   const carregar = useCallback(async () => {
     const [u, p] = await Promise.all([
-      api.GET("/api/v1/admin/usuarios", {}),
-      api.GET("/api/v1/planos", {}),
+      api.GET("/api/v1/admin/users", {}),
+      api.GET("/api/v1/plans", {}),
     ]);
     if (!u.error) setUsuarios((u.data as Usuario[]) ?? []);
     if (!p.error) setPlanos((p.data as Plano[]) ?? []);
@@ -54,7 +54,7 @@ export default function AdminUsuariosPage() {
       setMsg("Faça login como administrador.");
       return;
     }
-    const { error } = await api.POST("/api/v1/admin/usuarios", {
+    const { error } = await api.POST("/api/v1/admin/users", {
       body: {
         email,
         senha,
@@ -82,7 +82,7 @@ export default function AdminUsuariosPage() {
     id: string,
     patch: { papel?: string; is_superuser?: boolean; is_active?: boolean; plano_id?: string | null },
   ) {
-    const { error } = await api.PATCH("/api/v1/admin/usuarios/{usuario_id}", {
+    const { error } = await api.PATCH("/api/v1/admin/users/{usuario_id}", {
       params: { path: { usuario_id: id } },
       body: patch,
     });
