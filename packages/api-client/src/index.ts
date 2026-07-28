@@ -6,8 +6,16 @@ export type { paths } from "./schema";
 export interface HubClientOptions {
   /** Base URL da API v1, ex.: http://localhost:8000/api/v1 */
   baseUrl: string;
-  /** Retorna o access token atual (JWT) ou null. Injeta como Bearer. */
-  getToken?: () => string | null | undefined;
+  /**
+   * Retorna o access token atual (JWT) ou null. Injeta como Bearer.
+   * Pode ser assíncrono — permite renovar (refresh) um token expirado
+   * antes de cada request, em vez de deixar a chamada morrer em 401.
+   */
+  getToken?: () =>
+    | string
+    | null
+    | undefined
+    | Promise<string | null | undefined>;
 }
 
 /**
@@ -19,8 +27,8 @@ export function createHubClient({ baseUrl, getToken }: HubClientOptions) {
 
   if (getToken) {
     client.use({
-      onRequest({ request }) {
-        const token = getToken();
+      async onRequest({ request }) {
+        const token = await getToken();
         if (token) {
           request.headers.set("Authorization", `Bearer ${token}`);
         }
