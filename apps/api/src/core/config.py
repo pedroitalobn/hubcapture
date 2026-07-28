@@ -43,8 +43,10 @@ class Settings(BaseSettings):
 
     # ── Fontes ───────────────────────────────────────────────────────────────
     transferegov_ff_base_url: str = "https://api.transferegov.gestao.gov.br/fundoafundo/"
+    transferegov_ff_ibge_field: str = ""  # coluna IBGE; vazio = autodescoberta (OpenAPI)
     # Recebidos (P1). URLs a calibrar contra as APIs/CSVs oficiais.
     fpm_base_url: str = "https://apidatalake.tesouro.gov.br/ords/transferencias/"
+    fpm_endpoint: str = ""  # rota no ORDS; vazio = autodescoberta (metadata-catalog)
     emendas_base_url: str = "https://api.portaldatransparencia.gov.br/api-de-dados/"
     emendas_api_key: str = ""  # chave-api-dados (Portal da Transparência) — obrigatória
     # Demais fontes (prontas para receber as APIs — calibrar rota/campos).

@@ -749,3 +749,30 @@ real qual ferramenta o agente está consultando. Histórico em sessionStorage.
   favorita fora do território não vaza). Favoritar em qualquer lugar (busca, painel,
   detalhe) adiciona aqui; a estrela remove. No modo acompanhamento os filtros/live-search
   ficam ocultos (a fonte é a lista de favoritas).
+
+## 27. Connectors autocalibráveis (calibração contra as APIs vivas)
+
+Erros reais de produção mostraram que rotas/colunas oficiais divergem do chute
+estático. Os connectors críticos agora se AUTOCALIBRAM (com override manual no
+painel admin quando preciso):
+
+- **transferegov_ff**: a coluna de IBGE de `programa_beneficiario` é descoberta
+  em runtime — override `transferegov_ff_ibge_field` > OpenAPI do PostgREST
+  (Accept: application/openapi+json) > lista de candidatos (42703 → próximo);
+  resultado cacheado por base_url. Fallback de IBGE 6 dígitos. Se
+  `plano_acao`/`programa` recusarem a chave de ligação, degrada para o
+  beneficiário puro (o programa disponível ainda vira proposta).
+- **fpm**: rota descoberta via `metadata-catalog/` do ORDS + candidatos
+  (`tt/transferencias`…), override `fpm_endpoint`. Envia os dois estilos de
+  parâmetro (cod_ibge/ano e id_ente/an_exercicio) e SEMPRE refiltra no cliente
+  pelo IBGE — linha sem coluna de IBGE compatível é descartada (nunca ingere o
+  Brasil inteiro). Mapeamento de campos genérico (valor/data/descrição por
+  palavra-chave; FUNDEB/PASEP/retenção → natureza dedução).
+- **siconfi/CAUC**: se `siconfi_csv_url` é página de dataset CKAN, resolve o
+  recurso CSV real via `api/3/action/package_show` (preferindo 'cauc'; cache
+  1h); colunas achadas por palavra-chave; delimitador ;/, autodetectado.
+- **emendas**: o Portal da Transparência NÃO filtra por município — o connector
+  pagina o ano (`ano`+`pagina`, cap 20 páginas) e refiltra por
+  `localidadeDoGasto` com o nome do município resolvido via IBGE Localidades
+  (`services/municipios.nome_uf_por_ibge`), sem acento + UF. Segue exigindo
+  `emendas_api_key`.
