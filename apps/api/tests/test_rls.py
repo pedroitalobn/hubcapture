@@ -6,9 +6,7 @@ from src.db.session import SessionLocal, rls_session
 from src.services import propostas as svc
 
 
-async def test_rls_isola_propostas_por_tenant(
-    seed_user, seed_municipio, seed_proposta
-) -> None:
+async def test_rls_isola_propostas_por_tenant(seed_user, seed_municipio, seed_proposta) -> None:
     a = await seed_user("a@a.com")
     b = await seed_user("b@b.com")
     await seed_municipio(a, "2301109")
@@ -25,9 +23,7 @@ async def test_rls_isola_propostas_por_tenant(
         assert {r.id_externo for r in rows} == {"B1"}  # B só vê o dele
 
 
-async def test_sem_tenant_setado_nao_ve_nada(
-    seed_user, seed_municipio, seed_proposta
-) -> None:
+async def test_sem_tenant_setado_nao_ve_nada(seed_user, seed_municipio, seed_proposta) -> None:
     a = await seed_user("a@a.com")
     await seed_municipio(a, "2301109")
     await seed_proposta("transferegov_ff", "A1", "2301109")

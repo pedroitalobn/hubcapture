@@ -41,9 +41,7 @@ def test_normalize_repasse_mapeia_e_hash_deterministico() -> None:
     assert c.hash_conteudo != a.hash_conteudo  # mudança material → hash muda
 
 
-async def test_rls_isola_repasses_por_tenant(
-    seed_user, seed_municipio, seed_repasse
-) -> None:
+async def test_rls_isola_repasses_por_tenant(seed_user, seed_municipio, seed_repasse) -> None:
     a = await seed_user("a@a.com")
     b = await seed_user("b@b.com")
     await seed_municipio(a, "2301109")

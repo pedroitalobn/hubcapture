@@ -8,7 +8,7 @@ from .configuracao import Configuracao
 from .conformidade import Conformidade
 from .convite import Convite
 from .favorito import Favorito
-from .monitoramento import Monitoramento
+from .monitoramento import Monitoramento, MonitoramentoBusca
 from .municipio_interesse import MunicipioInteresse
 from .obra import Obra
 from .pasta import Pasta, PastaProposta
@@ -32,6 +32,7 @@ __all__ = [
     "Pasta",
     "PastaProposta",
     "Monitoramento",
+    "MonitoramentoBusca",
     "Alerta",
     "SyncRun",
     "AuditLog",

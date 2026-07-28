@@ -10,13 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...core.users import current_active_user
 from ...models.usuario import Usuario
 from ...schemas.curadoria import FavoritoCreate, FavoritoRead
+from ...schemas.proposta import PropostaRead
 from ...services import favoritos as service
 from ..deps import get_rls_db
 
 router = APIRouter(tags=["favoritos"])
 
 
-@router.get("/favoritos", response_model=list[FavoritoRead])
+@router.get("/favorites", response_model=list[FavoritoRead])
 async def listar_favoritos(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
@@ -25,7 +26,17 @@ async def listar_favoritos(
     return [FavoritoRead.model_validate(r) for r in rows]
 
 
-@router.post("/favoritos", status_code=status.HTTP_201_CREATED)
+@router.get("/favorites/proposals", response_model=list[PropostaRead])
+async def listar_propostas_favoritas(
+    user: Usuario = Depends(current_active_user),
+    session: AsyncSession = Depends(get_rls_db),
+) -> list[PropostaRead]:
+    """Aba de ACOMPANHAMENTO: as propostas favoritadas, completas."""
+    rows = await service.listar_propostas(session, user.id)
+    return [PropostaRead.model_validate(r) for r in rows]
+
+
+@router.post("/favorites", status_code=status.HTTP_201_CREATED)
 async def adicionar_favorito(
     body: FavoritoCreate,
     user: Usuario = Depends(current_active_user),
@@ -35,7 +46,7 @@ async def adicionar_favorito(
     return {"ok": True}
 
 
-@router.delete("/favoritos/{proposta_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/favorites/{proposta_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remover_favorito(
     proposta_id: uuid.UUID,
     user: Usuario = Depends(current_active_user),

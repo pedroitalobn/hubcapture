@@ -15,8 +15,11 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 
+# `alembic` e `uvicorn` vêm do .venv já montado na imagem (está no PATH). Não
+# use `uv run` aqui: ele re-sincroniza o ambiente a cada boot, reinstala as
+# dev-deps e recompila o bytecode — ~11s por start, com 502 na janela.
 echo "[entrypoint] aplicando migrations (alembic upgrade head)…"
-uv run alembic upgrade head
+alembic upgrade head
 
 echo "[entrypoint] subindo API (uvicorn)…"
-exec uv run uvicorn src.main:app --host 0.0.0.0 --port 8000
+exec uvicorn src.main:app --host 0.0.0.0 --port 8000

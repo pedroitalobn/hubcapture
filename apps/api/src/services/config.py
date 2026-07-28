@@ -21,40 +21,90 @@ from ..models.configuracao import Configuracao
 
 
 # Catálogo de chaves configuráveis pelo painel. `default` vem do Settings (.env).
-def _c(chave: str, label: str, categoria: str, secreto: bool) -> dict:
-    return {"chave": chave, "label": label, "categoria": categoria, "secreto": secreto}
+# `provider` agrupa as chaves por provider na UI (Firecrawl, Crawl4AI, LLM…);
+# None = chave agrupada só pela categoria (fontes de dados, e-mail…).
+def _c(
+    chave: str,
+    label: str,
+    categoria: str,
+    secreto: bool,
+    provider: str | None = None,
+) -> dict:
+    return {
+        "chave": chave,
+        "label": label,
+        "categoria": categoria,
+        "secreto": secreto,
+        "provider": provider,
+    }
 
 
 CATALOGO: list[dict] = [
-    _c("firecrawl_api_key", "Firecrawl API Key", "scraping", True),
-    _c("firecrawl_base_url", "Firecrawl base URL", "scraping", False),
-    _c("llm_api_key", "LLM API Key (genérica/legado)", "ia", True),
-    _c("llm_model_resumo", "Modelo LLM (resumo)", "ia", False),
-    _c("llm_model_chat", "Modelo LLM (chat)", "ia", False),
+    _c("firecrawl_api_key", "Firecrawl API Key", "scraping", True, "firecrawl"),
+    _c("firecrawl_base_url", "Firecrawl base URL", "scraping", False, "firecrawl"),
+    _c("crawl4ai_base_url", "Crawl4AI servidor URL (Docker)", "scraping", False, "crawl4ai"),
+    _c("crawl4ai_api_token", "Crawl4AI API token", "scraping", True, "crawl4ai"),
+    _c(
+        "scraping_provider",
+        "Scraper preferido (auto|crawl4ai|firecrawl)",
+        "scraping",
+        False,
+        "scraping",
+    ),
+    _c("llm_api_key", "LLM API Key (genérica/legado)", "ia", True, "llm"),
+    _c("llm_model_resumo", "Modelo LLM (resumo)", "ia", False, "llm"),
+    _c("llm_model_chat", "Modelo LLM (chat)", "ia", False, "llm"),
     # Chaves por provedor de LLM (registry em services/llm_providers.py)
-    _c("llm_anthropic_api_key", "Anthropic (Claude) API Key", "ia", True),
-    _c("llm_openai_api_key", "OpenAI (GPT) API Key", "ia", True),
-    _c("llm_gemini_api_key", "Google (Gemini) API Key", "ia", True),
-    _c("llm_deepseek_api_key", "DeepSeek API Key", "ia", True),
-    _c("llm_grok_api_key", "xAI (Grok) API Key", "ia", True),
-    _c("llm_kimi_api_key", "Moonshot (Kimi) API Key", "ia", True),
-    _c("llm_qwen_api_key", "Alibaba (Qwen) API Key", "ia", True),
-    _c("llm_glm_api_key", "Z.ai (GLM) API Key", "ia", True),
-    _c("embedding_api_key", "Embeddings API Key", "ia", True),
-    _c("embedding_model", "Modelo de embeddings", "ia", False),
+    _c("llm_anthropic_api_key", "Anthropic (Claude) API Key", "ia", True, "llm"),
+    _c("llm_openai_api_key", "OpenAI (GPT) API Key", "ia", True, "llm"),
+    _c("llm_gemini_api_key", "Google (Gemini) API Key", "ia", True, "llm"),
+    _c("llm_deepseek_api_key", "DeepSeek API Key", "ia", True, "llm"),
+    _c("llm_grok_api_key", "xAI (Grok) API Key", "ia", True, "llm"),
+    _c("llm_kimi_api_key", "Moonshot (Kimi) API Key", "ia", True, "llm"),
+    _c("llm_qwen_api_key", "Alibaba (Qwen) API Key", "ia", True, "llm"),
+    _c("llm_glm_api_key", "Z.ai (GLM) API Key", "ia", True, "llm"),
+    _c("embedding_api_key", "Embeddings API Key", "ia", True, "embeddings"),
+    _c("embedding_model", "Modelo de embeddings", "ia", False, "embeddings"),
     _c("transferegov_ff_base_url", "TransfereGov FF base URL", "fonte", False),
+    _c(
+        "transferegov_ff_ibge_field",
+        "TransfereGov FF coluna de IBGE (autodescoberta se vazio)",
+        "fonte",
+        False,
+    ),
     _c("transferegov_esp_base_url", "TransfereGov Especiais base URL", "fonte", False),
+    _c(
+        "transferegov_voluntarias_base_url",
+        "TransfereGov Voluntárias base URL (api-publica)",
+        "fonte",
+        False,
+    ),
     _c("transferegov_disc_csv_url", "TransfereGov Discricionárias CSV", "fonte", False),
     _c("fns_consulta_url", "FNS consulta URL", "fonte", False),
     _c("fnde_base_url", "FNDE base URL", "fonte", False),
     _c("serpro_base_url", "SERPRO base URL", "fonte", False),
     _c("serpro_token", "SERPRO token", "fonte", True),
+    _c("serpro_painel_url", "SERPRO painel público (dd-publico, scraping)", "fonte", False),
+    _c(
+        "transferegov_noticias_url",
+        "TransfereGov notícias RSS (painel informativo)",
+        "fonte",
+        False,
+    ),
     _c("fpm_base_url", "FPM base URL", "fonte", False),
+    _c("fpm_endpoint", "FPM rota no ORDS (autodescoberta se vazio)", "fonte", False),
     _c("emendas_base_url", "Emendas base URL", "fonte", False),
+    _c(
+        "emendas_api_key",
+        "Emendas — chave-api-dados (Portal da Transparência)",
+        "fonte",
+        True,
+    ),
     _c("siconfi_csv_url", "Siconfi/CAUC CSV (Tesouro)", "fonte", False),
     _c("sismob_base_url", "SISMOB base URL (obras saúde)", "fonte", False),
     _c("simec_base_url", "SIMEC base URL (obras educação)", "fonte", False),
     _c("caixa_obras_base_url", "CAIXA/SIORB base URL (obras infra)", "fonte", False),
+    _c("ibge_localidades_url", "IBGE Localidades base URL (busca de municípios)", "fonte", False),
     _c("uniq_api_key", "Uniq API Key (WhatsApp)", "whatsapp", True),
     _c("uniq_base_url", "Uniq base URL", "whatsapp", False),
     _c("uniq_webhook_token", "Uniq webhook token", "whatsapp", True),
@@ -140,13 +190,20 @@ async def listar_catalogo(session: AsyncSession) -> list[dict]:
         row = rows.get(chave)
         efetivo = await get_valor(session, chave)
         configurado = efetivo not in (None, "")
+        if row and row.valor is not None:
+            origem = "banco"  # gravado pelo painel
+        elif configurado:
+            origem = "env"  # fallback do .env/Settings
+        else:
+            origem = "padrao"  # nada definido
         item = {
             "chave": chave,
             "label": meta["label"],
             "categoria": meta["categoria"],
+            "provider": meta.get("provider"),
             "secreto": meta["secreto"],
             "configurado": configurado,
-            "origem": "banco" if row and row.valor is not None else "padrao",
+            "origem": origem,
         }
         if meta["secreto"]:
             item["valor"] = mascarar(efetivo) if configurado else None

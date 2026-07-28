@@ -30,9 +30,7 @@ async def _seed_pref(usuario_id, areas: list[str]) -> None:
         )
 
 
-async def test_perfil_reflete_territorio_e_areas(
-    seed_user, seed_municipio
-) -> None:
+async def test_perfil_reflete_territorio_e_areas(seed_user, seed_municipio) -> None:
     u = await seed_user("perfil@a.com", papel="parlamentar")
     await seed_municipio(u, "3550308")
     await _seed_pref(u, ["saude", "educacao"])

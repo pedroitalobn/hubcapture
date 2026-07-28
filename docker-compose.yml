@@ -5,6 +5,11 @@
 # rede interna e são expostos ao proxy via `expose` — no painel do Dokploy você
 # aponta o domínio para web:3000 (e, se quiser API pública, para api:8000).
 #
+# O Traefik do Dokploy roda na rede Docker EXTERNA `dokploy-network`. Os serviços
+# com domínio (web/api) precisam estar nela, senão o proxy não os alcança e o
+# domínio responde 502 Bad Gateway. Eles ficam nas DUAS redes: `default` (falar
+# com postgres/redis) + `dokploy-network` (ser alcançado pelo proxy).
+#
 # Para rodar LOCALMENTE com portas publicadas, use `docker compose up` (sem -f):
 # o docker-compose.override.yml (ao lado) publica 3000/8000/5432. O Dokploy roda
 # com `-f ./docker-compose.yml`, então o override é ignorado no deploy.
@@ -49,6 +54,24 @@ services:
       DATABASE_MIGRATOR_URL: postgresql+asyncpg://${POSTGRES_USER:-hubcapture}:${POSTGRES_PASSWORD:-postgres_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
     expose:
       - "8000"
+    # O boot leva ~11s (espera o Postgres, roda alembic, compila bytecode) e o
+    # uvicorn só escuta no fim. Sem healthcheck o container já conta como "no ar"
+    # assim que sobe, e o Traefik encaminha pra uma porta morta → 502 Bad Gateway
+    # em toda janela de redeploy. Com o healthcheck o estado só vira healthy
+    # quando /health responde de fato.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=3).status==200 else 1)\"",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - default
+      - dokploy-network
     restart: unless-stopped
 
   web:
@@ -56,14 +79,19 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        # NEXT_PUBLIC_* é embutido no build; aponte para o domínio PÚBLICO da API
-        # (no Dokploy, o domínio que você deu ao serviço api). Default = dev local.
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        # Vazio (default) = same-origin: o navegador chama /api/v1/* no domínio
+        # da web e o Next repassa à API via rede interna (API_INTERNAL_URL).
+        # Só defina NEXT_PUBLIC_API_URL se a API tiver domínio público próprio.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+        API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}
     container_name: hubcapture-web
     depends_on:
       - api
     expose:
       - "3000"
+    networks:
+      - default
+      - dokploy-network
     restart: unless-stopped
 
   # Fila para ARQ (sync pesado, retries, alertas) — declarado p/ as fases seguintes.
@@ -82,9 +110,18 @@ services:
       - "5678"
     environment:
       N8N_SECURE_COOKIE: "false"
+    networks:
+      - default
+      - dokploy-network
     profiles:
       - orchestration
     restart: unless-stopped
 
 volumes:
   pgdata:
+
+networks:
+  # rede do proxy do Dokploy (criada pelo próprio Dokploy no servidor).
+  # Em dev local o docker-compose.override.yml a redefine como não-externa.
+  dokploy-network:
+    external: true

@@ -212,6 +212,16 @@ async def listar_modelos(provider_id: str, api_key: str) -> dict:
         }
 
 
+async def configurado() -> bool:
+    """True se QUALQUER provedor tem chave (ou a genérica legada) — IA ligada."""
+    if await config_service.resolver("llm_api_key"):
+        return True
+    for p in PROVIDERS:
+        if await config_service.resolver(chave_config(p.id)):
+            return True
+    return False
+
+
 async def params_para(chave_modelo: str, modelo_default: str) -> dict | None:
     """Parâmetros p/ litellm.acompletion a partir da config runtime.
 

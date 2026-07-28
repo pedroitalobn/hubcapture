@@ -251,9 +251,16 @@
             "title": "Payload"
           },
           "proposta_id": {
-            "format": "uuid",
-            "title": "Proposta Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposta Id"
           },
           "tipo": {
             "anyOf": [
@@ -269,7 +276,6 @@
         },
         "required": [
           "id",
-          "proposta_id",
           "lido",
           "created_at"
         ],
@@ -451,6 +457,17 @@
           "origem": {
             "title": "Origem",
             "type": "string"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
           },
           "secreto": {
             "title": "Secreto",
@@ -722,27 +739,6 @@
         "title": "ConhecimentoCreate",
         "type": "object"
       },
-      "ConsultaAvulsaRequest": {
-        "properties": {
-          "fonte": {
-            "default": "transferegov_ff",
-            "title": "Fonte",
-            "type": "string"
-          },
-          "municipio_ibge": {
-            "description": "código IBGE",
-            "maxLength": 7,
-            "minLength": 7,
-            "title": "Municipio Ibge",
-            "type": "string"
-          }
-        },
-        "required": [
-          "municipio_ibge"
-        ],
-        "title": "ConsultaAvulsaRequest",
-        "type": "object"
-      },
       "ConviteCreate": {
         "properties": {
           "email": {
@@ -855,6 +851,41 @@
         "title": "ConviteRead",
         "type": "object"
       },
+      "DiagnosticoFontes": {
+        "description": "Estado real da ingestão: fontes ao vivo + providers de scraping/IA.",
+        "properties": {
+          "crawl4ai_configurado": {
+            "default": false,
+            "title": "Crawl4Ai Configurado",
+            "type": "boolean"
+          },
+          "emendas_api_key_configurada": {
+            "default": false,
+            "title": "Emendas Api Key Configurada",
+            "type": "boolean"
+          },
+          "firecrawl_configurado": {
+            "default": false,
+            "title": "Firecrawl Configurado",
+            "type": "boolean"
+          },
+          "fontes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FonteDiagnostico"
+            },
+            "title": "Fontes",
+            "type": "array"
+          },
+          "llm_configurado": {
+            "default": false,
+            "title": "Llm Configurado",
+            "type": "boolean"
+          }
+        },
+        "title": "DiagnosticoFontes",
+        "type": "object"
+      },
       "DimensaoResumo": {
         "description": "Um eixo do ciclo (captação/recebidos/conformidade/obras) para o perfil.",
         "properties": {
@@ -952,6 +983,34 @@
         "title": "FavoritoRead",
         "type": "object"
       },
+      "FonteDiagnostico": {
+        "properties": {
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          },
+          "saudavel": {
+            "title": "Saudavel",
+            "type": "boolean"
+          },
+          "ultima_coleta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UltimaColeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "fonte",
+          "saudavel"
+        ],
+        "title": "FonteDiagnostico",
+        "type": "object"
+      },
       "FonteResumo": {
         "description": "Card por fonte no dashboard (ícone/valor/nº de movimentações).",
         "properties": {
@@ -977,6 +1036,40 @@
         "title": "FonteResumo",
         "type": "object"
       },
+      "FonteStatus": {
+        "properties": {
+          "erro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erro"
+          },
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "title": "Municipio Ibge",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fonte",
+          "municipio_ibge",
+          "status"
+        ],
+        "title": "FonteStatus",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -988,6 +1081,141 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "IslandRequest": {
+        "properties": {
+          "pergunta": {
+            "title": "Pergunta",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pergunta"
+        ],
+        "title": "IslandRequest",
+        "type": "object"
+      },
+      "LiveSearchRequest": {
+        "description": "Filtros da busca. Tudo opcional — sem município, usa os do perfil.",
+        "properties": {
+          "area": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
+          },
+          "fonte": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fonte"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "maxLength": 7,
+                "minLength": 7,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "código IBGE",
+            "title": "Municipio Ibge"
+          },
+          "situacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Situacao"
+          },
+          "tipo": {
+            "anyOf": [
+              {
+                "pattern": "^(cadastrada|disponivel)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo"
+          },
+          "valor_max": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Max"
+          },
+          "valor_min": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Min"
+          }
+        },
+        "title": "LiveSearchRequest",
+        "type": "object"
+      },
+      "LiveSearchResponse": {
+        "properties": {
+          "fontes": {
+            "items": {
+              "$ref": "#/components/schemas/FonteStatus"
+            },
+            "title": "Fontes",
+            "type": "array"
+          },
+          "propostas": {
+            "items": {
+              "$ref": "#/components/schemas/PropostaRead"
+            },
+            "title": "Propostas",
+            "type": "array"
+          }
+        },
+        "required": [
+          "propostas",
+          "fontes"
+        ],
+        "title": "LiveSearchResponse",
         "type": "object"
       },
       "LlmChaveIn": {
@@ -1094,6 +1322,132 @@
         "title": "LlmProviderOut",
         "type": "object"
       },
+      "MonitoramentoBuscaCreate": {
+        "description": "Monitorar FUTURAS propostas de um município (opcionalmente por área/fonte).",
+        "properties": {
+          "area": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
+          },
+          "canais": {
+            "default": [
+              "painel"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "title": "Canais",
+            "type": "array"
+          },
+          "fonte": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fonte"
+          },
+          "municipio_ibge": {
+            "maxLength": 7,
+            "minLength": 7,
+            "title": "Municipio Ibge",
+            "type": "string"
+          }
+        },
+        "required": [
+          "municipio_ibge"
+        ],
+        "title": "MonitoramentoBuscaCreate",
+        "type": "object"
+      },
+      "MonitoramentoBuscaRead": {
+        "properties": {
+          "area": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
+          },
+          "ativo": {
+            "title": "Ativo",
+            "type": "boolean"
+          },
+          "canais": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canais"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "fonte": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fonte"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "title": "Municipio Ibge",
+            "type": "string"
+          },
+          "ultimo_alerta_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ultimo Alerta Em"
+          }
+        },
+        "required": [
+          "id",
+          "municipio_ibge",
+          "ativo",
+          "created_at"
+        ],
+        "title": "MonitoramentoBuscaRead",
+        "type": "object"
+      },
       "MonitoramentoCreate": {
         "properties": {
           "canais": {
@@ -1161,6 +1515,36 @@
           "created_at"
         ],
         "title": "MonitoramentoRead",
+        "type": "object"
+      },
+      "MunicipioBusca": {
+        "description": "Resultado da busca IBGE (nome → código) usada no onboarding conversacional.",
+        "properties": {
+          "ibge": {
+            "title": "Ibge",
+            "type": "string"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          }
+        },
+        "required": [
+          "ibge",
+          "nome"
+        ],
+        "title": "MunicipioBusca",
         "type": "object"
       },
       "MunicipioIn": {
@@ -1238,6 +1622,155 @@
           "modo"
         ],
         "title": "MunicipioPerfil",
+        "type": "object"
+      },
+      "NoticiaRead": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "resumo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resumo"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "titulo",
+          "url"
+        ],
+        "title": "NoticiaRead",
+        "type": "object"
+      },
+      "NovidadeItem": {
+        "description": "Uma novidade do território — proposta/verba recém-atualizada no cache.",
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          },
+          "href": {
+            "title": "Href",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Ibge"
+          },
+          "municipio_nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Nome"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          },
+          "valor": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor"
+          }
+        },
+        "required": [
+          "tipo",
+          "titulo",
+          "fonte",
+          "href"
+        ],
+        "title": "NovidadeItem",
+        "type": "object"
+      },
+      "NovidadesPerfil": {
+        "description": "Feed 'últimas novidades' do Meu painel, recortado pelo perfil (RLS).",
+        "properties": {
+          "itens": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/NovidadeItem"
+            },
+            "title": "Itens",
+            "type": "array"
+          },
+          "sync_runs": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SyncRunStatus"
+            },
+            "title": "Sync Runs",
+            "type": "array"
+          }
+        },
+        "title": "NovidadesPerfil",
         "type": "object"
       },
       "ObraRead": {
@@ -1531,6 +2064,16 @@
             "title": "Areas",
             "type": "array"
           },
+          "canais_alerta": {
+            "default": [
+              "painel"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "title": "Canais Alerta",
+            "type": "array"
+          },
           "disparar_sync": {
             "default": false,
             "title": "Disparar Sync",
@@ -1556,6 +2099,17 @@
             "title": "Municipios",
             "type": "array"
           },
+          "optin_wpp": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optin Wpp"
+          },
           "papel": {
             "anyOf": [
               {
@@ -1566,6 +2120,17 @@
               }
             ],
             "title": "Papel"
+          },
+          "telefone_wpp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefone Wpp"
           }
         },
         "required": [
@@ -1951,6 +2516,28 @@
         "title": "PlanoUpdate",
         "type": "object"
       },
+      "PropostaPrazo": {
+        "description": "Proposta com prazos vencendo na janela consultada (visão estruturada).",
+        "properties": {
+          "prazos_na_janela": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Prazos Na Janela",
+            "type": "array"
+          },
+          "proposta": {
+            "$ref": "#/components/schemas/PropostaRead"
+          }
+        },
+        "required": [
+          "proposta",
+          "prazos_na_janela"
+        ],
+        "title": "PropostaPrazo",
+        "type": "object"
+      },
       "PropostaRead": {
         "description": "Representação da proposta devolvida pela API.",
         "properties": {
@@ -2000,6 +2587,18 @@
               }
             ],
             "title": "Emenda"
+          },
+          "execucao": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execucao"
           },
           "fonte": {
             "title": "Fonte",
@@ -2149,6 +2748,12 @@
             ],
             "title": "Situacao"
           },
+          "tipo": {
+            "description": "Eixo da jornada: 'cadastrada' (já existe) ou 'disponivel' (oportunidade).",
+            "readOnly": true,
+            "title": "Tipo",
+            "type": "string"
+          },
           "titulo": {
             "anyOf": [
               {
@@ -2198,7 +2803,8 @@
         "required": [
           "id",
           "fonte",
-          "id_externo"
+          "id_externo",
+          "tipo"
         ],
         "title": "PropostaRead",
         "type": "object"
@@ -2545,6 +3151,58 @@
         "title": "SyncRepassesRequest",
         "type": "object"
       },
+      "SyncRunStatus": {
+        "description": "Última execução de coleta por fonte — o painel mostra o estado honesto.",
+        "properties": {
+          "finalizado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalizado Em"
+          },
+          "fonte": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fonte"
+          },
+          "registros": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registros"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "title": "SyncRunStatus",
+        "type": "object"
+      },
       "TokenPair": {
         "properties": {
           "access_token": {
@@ -2566,6 +3224,56 @@
           "refresh_token"
         ],
         "title": "TokenPair",
+        "type": "object"
+      },
+      "UltimaColeta": {
+        "properties": {
+          "erro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erro"
+          },
+          "finalizado_em": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalizado Em"
+          },
+          "registros": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registros"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "title": "UltimaColeta",
         "type": "object"
       },
       "UniqInbound": {
@@ -3291,58 +3999,9 @@
         ]
       }
     },
-    "/api/v1/admin/conhecimento": {
-      "post": {
-        "description": "Adiciona material à base de conhecimento do Copiloto.",
-        "operationId": "admin_add_conhecimento_api_v1_admin_conhecimento_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ConhecimentoCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Admin Add Conhecimento Api V1 Admin Conhecimento Post",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Admin Add Conhecimento",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/v1/admin/convites": {
+    "/api/v1/admin/invites": {
       "get": {
-        "operationId": "admin_listar_convites_api_v1_admin_convites_get",
+        "operationId": "admin_listar_convites_api_v1_admin_invites_get",
         "responses": {
           "200": {
             "content": {
@@ -3351,7 +4010,7 @@
                   "items": {
                     "$ref": "#/components/schemas/ConviteRead"
                   },
-                  "title": "Response Admin Listar Convites Api V1 Admin Convites Get",
+                  "title": "Response Admin Listar Convites Api V1 Admin Invites Get",
                   "type": "array"
                 }
               }
@@ -3370,7 +4029,7 @@
         ]
       },
       "post": {
-        "operationId": "admin_criar_convite_api_v1_admin_convites_post",
+        "operationId": "admin_criar_convite_api_v1_admin_invites_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3414,9 +4073,84 @@
         ]
       }
     },
-    "/api/v1/admin/usuarios": {
+    "/api/v1/admin/knowledge": {
+      "post": {
+        "description": "Adiciona material à base de conhecimento do Copiloto.",
+        "operationId": "admin_add_conhecimento_api_v1_admin_knowledge_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConhecimentoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Admin Add Conhecimento Api V1 Admin Knowledge Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Admin Add Conhecimento",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/sources": {
       "get": {
-        "operationId": "admin_listar_usuarios_api_v1_admin_usuarios_get",
+        "operationId": "diagnostico_fontes_api_v1_admin_sources_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticoFontes"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Diagnostico Fontes",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "operationId": "admin_listar_usuarios_api_v1_admin_users_get",
         "responses": {
           "200": {
             "content": {
@@ -3425,7 +4159,7 @@
                   "items": {
                     "$ref": "#/components/schemas/AdminUsuarioRead"
                   },
-                  "title": "Response Admin Listar Usuarios Api V1 Admin Usuarios Get",
+                  "title": "Response Admin Listar Usuarios Api V1 Admin Users Get",
                   "type": "array"
                 }
               }
@@ -3444,7 +4178,7 @@
         ]
       },
       "post": {
-        "operationId": "admin_criar_usuario_api_v1_admin_usuarios_post",
+        "operationId": "admin_criar_usuario_api_v1_admin_users_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3488,9 +4222,9 @@
         ]
       }
     },
-    "/api/v1/admin/usuarios/{usuario_id}": {
+    "/api/v1/admin/users/{usuario_id}": {
       "patch": {
-        "operationId": "admin_atualizar_usuario_api_v1_admin_usuarios__usuario_id__patch",
+        "operationId": "admin_atualizar_usuario_api_v1_admin_users__usuario_id__patch",
         "parameters": [
           {
             "in": "path",
@@ -3546,9 +4280,9 @@
         ]
       }
     },
-    "/api/v1/admin/usuarios/{usuario_id}/plano": {
+    "/api/v1/admin/users/{usuario_id}/plan": {
       "patch": {
-        "operationId": "admin_atribuir_plano_api_v1_admin_usuarios__usuario_id__plano_patch",
+        "operationId": "admin_atribuir_plano_api_v1_admin_users__usuario_id__plan_patch",
         "parameters": [
           {
             "in": "path",
@@ -3597,9 +4331,9 @@
         ]
       }
     },
-    "/api/v1/alertas": {
+    "/api/v1/alerts": {
       "get": {
-        "operationId": "listar_alertas_api_v1_alertas_get",
+        "operationId": "listar_alertas_api_v1_alerts_get",
         "parameters": [
           {
             "in": "query",
@@ -3620,7 +4354,7 @@
                   "items": {
                     "$ref": "#/components/schemas/AlertaRead"
                   },
-                  "title": "Response Listar Alertas Api V1 Alertas Get",
+                  "title": "Response Listar Alertas Api V1 Alerts Get",
                   "type": "array"
                 }
               }
@@ -3649,9 +4383,38 @@
         ]
       }
     },
-    "/api/v1/alertas/{alerta_id}/lido": {
+    "/api/v1/alerts/scan": {
       "post": {
-        "operationId": "marcar_lido_api_v1_alertas__alerta_id__lido_post",
+        "description": "Roda a detecção de novas propostas (buscas) + oportunidades e despacha\npor email/WhatsApp conforme os canais. Retorna quantos alertas foram criados.",
+        "operationId": "varredura_alertas_api_v1_alerts_scan_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Varredura Alertas Api V1 Alerts Scan Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Varredura Alertas",
+        "tags": [
+          "alertas"
+        ]
+      }
+    },
+    "/api/v1/alerts/{alerta_id}/read": {
+      "post": {
+        "operationId": "marcar_lido_api_v1_alerts__alerta_id__read_post",
         "parameters": [
           {
             "in": "path",
@@ -3690,9 +4453,9 @@
         ]
       }
     },
-    "/api/v1/auth/aceitar-convite": {
+    "/api/v1/auth/accept-invite": {
       "post": {
-        "operationId": "aceitar_convite_api_v1_auth_aceitar_convite_post",
+        "operationId": "aceitar_convite_api_v1_auth_accept_invite_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4090,9 +4853,9 @@
         ]
       }
     },
-    "/api/v1/conformidade": {
+    "/api/v1/compliance": {
       "get": {
-        "operationId": "conformidade_resumo_api_v1_conformidade_get",
+        "operationId": "conformidade_resumo_api_v1_compliance_get",
         "parameters": [
           {
             "description": "código IBGE (7 dígitos)",
@@ -4146,9 +4909,9 @@
         ]
       }
     },
-    "/api/v1/conformidade/sync": {
+    "/api/v1/compliance/sync": {
       "post": {
-        "operationId": "conformidade_sync_api_v1_conformidade_sync_post",
+        "operationId": "conformidade_sync_api_v1_compliance_sync_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4165,7 +4928,7 @@
               "application/json": {
                 "schema": {
                   "additionalProperties": true,
-                  "title": "Response Conformidade Sync Api V1 Conformidade Sync Post",
+                  "title": "Response Conformidade Sync Api V1 Compliance Sync Post",
                   "type": "object"
                 }
               }
@@ -4194,59 +4957,9 @@
         ]
       }
     },
-    "/api/v1/consulta-avulsa": {
+    "/api/v1/copilot/chat": {
       "post": {
-        "operationId": "consulta_avulsa_endpoint_api_v1_consulta_avulsa_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ConsultaAvulsaRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/PropostaRead"
-                  },
-                  "title": "Response Consulta Avulsa Endpoint Api V1 Consulta Avulsa Post",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Consulta Avulsa Endpoint",
-        "tags": [
-          "consulta-avulsa"
-        ]
-      }
-    },
-    "/api/v1/copiloto/chat": {
-      "post": {
-        "operationId": "copiloto_chat_api_v1_copiloto_chat_post",
+        "operationId": "copiloto_chat_api_v1_copilot_chat_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4288,9 +5001,54 @@
         ]
       }
     },
-    "/api/v1/favoritos": {
+    "/api/v1/copilot/island": {
+      "post": {
+        "description": "Agente do Dynamic Island (tool calling). O loop de ferramentas roda AQUI,\ncom a sessão RLS do request viva; o stream só replaye os eventos coletados\n(mesma razão do RAG pré-stream acima).",
+        "operationId": "copiloto_island_api_v1_copilot_island_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IslandRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Copiloto Island",
+        "tags": [
+          "copiloto"
+        ]
+      }
+    },
+    "/api/v1/favorites": {
       "get": {
-        "operationId": "listar_favoritos_api_v1_favoritos_get",
+        "operationId": "listar_favoritos_api_v1_favorites_get",
         "responses": {
           "200": {
             "content": {
@@ -4299,7 +5057,7 @@
                   "items": {
                     "$ref": "#/components/schemas/FavoritoRead"
                   },
-                  "title": "Response Listar Favoritos Api V1 Favoritos Get",
+                  "title": "Response Listar Favoritos Api V1 Favorites Get",
                   "type": "array"
                 }
               }
@@ -4318,7 +5076,7 @@
         ]
       },
       "post": {
-        "operationId": "adicionar_favorito_api_v1_favoritos_post",
+        "operationId": "adicionar_favorito_api_v1_favorites_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4335,7 +5093,7 @@
               "application/json": {
                 "schema": {
                   "additionalProperties": true,
-                  "title": "Response Adicionar Favorito Api V1 Favoritos Post",
+                  "title": "Response Adicionar Favorito Api V1 Favorites Post",
                   "type": "object"
                 }
               }
@@ -4364,9 +5122,40 @@
         ]
       }
     },
-    "/api/v1/favoritos/{proposta_id}": {
+    "/api/v1/favorites/proposals": {
+      "get": {
+        "description": "Aba de ACOMPANHAMENTO: as propostas favoritadas, completas.",
+        "operationId": "listar_propostas_favoritas_api_v1_favorites_proposals_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PropostaRead"
+                  },
+                  "title": "Response Listar Propostas Favoritas Api V1 Favorites Proposals Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Propostas Favoritas",
+        "tags": [
+          "favoritos"
+        ]
+      }
+    },
+    "/api/v1/favorites/{proposta_id}": {
       "delete": {
-        "operationId": "remover_favorito_api_v1_favoritos__proposta_id__delete",
+        "operationId": "remover_favorito_api_v1_favorites__proposta_id__delete",
         "parameters": [
           {
             "in": "path",
@@ -4405,352 +5194,9 @@
         ]
       }
     },
-    "/api/v1/me": {
+    "/api/v1/folders": {
       "get": {
-        "operationId": "me_api_v1_me_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserRead"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Me",
-        "tags": [
-          "auth",
-          "me"
-        ]
-      }
-    },
-    "/api/v1/monitoramentos": {
-      "get": {
-        "operationId": "listar_monitoramentos_api_v1_monitoramentos_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/MonitoramentoRead"
-                  },
-                  "title": "Response Listar Monitoramentos Api V1 Monitoramentos Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Listar Monitoramentos",
-        "tags": [
-          "monitoramentos"
-        ]
-      },
-      "post": {
-        "operationId": "criar_monitoramento_api_v1_monitoramentos_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MonitoramentoCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MonitoramentoRead"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Criar Monitoramento",
-        "tags": [
-          "monitoramentos"
-        ]
-      }
-    },
-    "/api/v1/obras": {
-      "get": {
-        "operationId": "listar_obras_api_v1_obras_get",
-        "parameters": [
-          {
-            "description": "código IBGE (7 dígitos)",
-            "in": "query",
-            "name": "municipio",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "código IBGE (7 dígitos)",
-              "title": "Municipio"
-            }
-          },
-          {
-            "in": "query",
-            "name": "fonte",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Fonte"
-            }
-          },
-          {
-            "in": "query",
-            "name": "situacao",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Situacao"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ObraRead"
-                  },
-                  "title": "Response Listar Obras Api V1 Obras Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Listar Obras",
-        "tags": [
-          "obras"
-        ]
-      }
-    },
-    "/api/v1/obras/resumo": {
-      "get": {
-        "operationId": "obras_resumo_api_v1_obras_resumo_get",
-        "parameters": [
-          {
-            "description": "código IBGE (7 dígitos)",
-            "in": "query",
-            "name": "municipio",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "código IBGE (7 dígitos)",
-              "title": "Municipio"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObrasResumo"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Obras Resumo",
-        "tags": [
-          "obras"
-        ]
-      }
-    },
-    "/api/v1/obras/sync": {
-      "post": {
-        "operationId": "obras_sync_api_v1_obras_sync_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SyncObrasRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Obras Sync Api V1 Obras Sync Post",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Obras Sync",
-        "tags": [
-          "obras"
-        ]
-      }
-    },
-    "/api/v1/onboarding": {
-      "post": {
-        "operationId": "onboarding_api_v1_onboarding_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OnboardingRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OnboardingResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Onboarding",
-        "tags": [
-          "onboarding"
-        ]
-      }
-    },
-    "/api/v1/pastas": {
-      "get": {
-        "operationId": "listar_pastas_api_v1_pastas_get",
+        "operationId": "listar_pastas_api_v1_folders_get",
         "responses": {
           "200": {
             "content": {
@@ -4759,7 +5205,7 @@
                   "items": {
                     "$ref": "#/components/schemas/PastaRead"
                   },
-                  "title": "Response Listar Pastas Api V1 Pastas Get",
+                  "title": "Response Listar Pastas Api V1 Folders Get",
                   "type": "array"
                 }
               }
@@ -4778,7 +5224,7 @@
         ]
       },
       "post": {
-        "operationId": "criar_pasta_api_v1_pastas_post",
+        "operationId": "criar_pasta_api_v1_folders_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4822,9 +5268,9 @@
         ]
       }
     },
-    "/api/v1/pastas/{pasta_id}": {
+    "/api/v1/folders/{pasta_id}": {
       "patch": {
-        "operationId": "atualizar_pasta_api_v1_pastas__pasta_id__patch",
+        "operationId": "atualizar_pasta_api_v1_folders__pasta_id__patch",
         "parameters": [
           {
             "in": "path",
@@ -4880,9 +5326,60 @@
         ]
       }
     },
-    "/api/v1/pastas/{pasta_id}/propostas": {
+    "/api/v1/folders/{pasta_id}/proposals": {
+      "get": {
+        "operationId": "listar_propostas_da_pasta_api_v1_folders__pasta_id__proposals_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pasta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pasta Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "title": "Response Listar Propostas Da Pasta Api V1 Folders  Pasta Id  Proposals Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Propostas Da Pasta",
+        "tags": [
+          "pastas"
+        ]
+      },
       "post": {
-        "operationId": "adicionar_proposta_api_v1_pastas__pasta_id__propostas_post",
+        "operationId": "adicionar_proposta_api_v1_folders__pasta_id__proposals_post",
         "parameters": [
           {
             "in": "path",
@@ -4911,7 +5408,7 @@
               "application/json": {
                 "schema": {
                   "additionalProperties": true,
-                  "title": "Response Adicionar Proposta Api V1 Pastas  Pasta Id  Propostas Post",
+                  "title": "Response Adicionar Proposta Api V1 Folders  Pasta Id  Proposals Post",
                   "type": "object"
                 }
               }
@@ -4940,9 +5437,9 @@
         ]
       }
     },
-    "/api/v1/pastas/{pasta_id}/propostas/{proposta_id}": {
+    "/api/v1/folders/{pasta_id}/proposals/{proposta_id}": {
       "delete": {
-        "operationId": "remover_proposta_api_v1_pastas__pasta_id__propostas__proposta_id__delete",
+        "operationId": "remover_proposta_api_v1_folders__pasta_id__proposals__proposta_id__delete",
         "parameters": [
           {
             "in": "path",
@@ -4991,15 +5488,15 @@
         ]
       }
     },
-    "/api/v1/perfil": {
+    "/api/v1/me": {
       "get": {
-        "operationId": "get_perfil_api_v1_perfil_get",
+        "operationId": "me_api_v1_me_get",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PerfilRead"
+                  "$ref": "#/components/schemas/UserRead"
                 }
               }
             },
@@ -5011,21 +5508,26 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "Get Perfil",
+        "summary": "Me",
         "tags": [
-          "perfil"
+          "auth",
+          "me"
         ]
       }
     },
-    "/api/v1/perfil/visao-geral": {
+    "/api/v1/monitors": {
       "get": {
-        "operationId": "visao_geral_perfil_api_v1_perfil_visao_geral_get",
+        "operationId": "listar_monitoramentos_api_v1_monitors_get",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/VisaoGeralPerfil"
+                  "items": {
+                    "$ref": "#/components/schemas/MonitoramentoRead"
+                  },
+                  "title": "Response Listar Monitoramentos Api V1 Monitors Get",
+                  "type": "array"
                 }
               }
             },
@@ -5037,15 +5539,368 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "Visao Geral Perfil",
+        "summary": "Listar Monitoramentos",
         "tags": [
-          "perfil"
+          "monitoramentos"
+        ]
+      },
+      "post": {
+        "operationId": "criar_monitoramento_api_v1_monitors_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitoramentoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitoramentoRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Criar Monitoramento",
+        "tags": [
+          "monitoramentos"
         ]
       }
     },
-    "/api/v1/planos": {
+    "/api/v1/monitors/searches": {
       "get": {
-        "operationId": "listar_planos_api_v1_planos_get",
+        "operationId": "listar_buscas_api_v1_monitors_searches_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MonitoramentoBuscaRead"
+                  },
+                  "title": "Response Listar Buscas Api V1 Monitors Searches Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Buscas",
+        "tags": [
+          "monitoramentos"
+        ]
+      },
+      "post": {
+        "operationId": "criar_busca_api_v1_monitors_searches_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitoramentoBuscaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitoramentoBuscaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Criar Busca",
+        "tags": [
+          "monitoramentos"
+        ]
+      }
+    },
+    "/api/v1/monitors/searches/{busca_id}": {
+      "delete": {
+        "operationId": "remover_busca_api_v1_monitors_searches__busca_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "busca_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Busca Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Remover Busca",
+        "tags": [
+          "monitoramentos"
+        ]
+      }
+    },
+    "/api/v1/monitors/{monitoramento_id}": {
+      "delete": {
+        "operationId": "remover_monitoramento_api_v1_monitors__monitoramento_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "monitoramento_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Monitoramento Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Remover Monitoramento",
+        "tags": [
+          "monitoramentos"
+        ]
+      }
+    },
+    "/api/v1/municipalities": {
+      "get": {
+        "operationId": "buscar_municipios_api_v1_municipalities_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 2,
+              "title": "Q",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MunicipioBusca"
+                  },
+                  "title": "Response Buscar Municipios Api V1 Municipalities Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Buscar Municipios",
+        "tags": [
+          "municipios"
+        ]
+      }
+    },
+    "/api/v1/news": {
+      "get": {
+        "operationId": "listar_noticias_api_v1_news_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limite",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limite",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/NoticiaRead"
+                  },
+                  "title": "Response Listar Noticias Api V1 News Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Noticias",
+        "tags": [
+          "noticias"
+        ]
+      }
+    },
+    "/api/v1/onboarding": {
+      "post": {
+        "operationId": "onboarding_api_v1_onboarding_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Onboarding",
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/plans": {
+      "get": {
+        "operationId": "listar_planos_api_v1_plans_get",
         "responses": {
           "200": {
             "content": {
@@ -5054,7 +5909,7 @@
                   "items": {
                     "$ref": "#/components/schemas/PlanoRead"
                   },
-                  "title": "Response Listar Planos Api V1 Planos Get",
+                  "title": "Response Listar Planos Api V1 Plans Get",
                   "type": "array"
                 }
               }
@@ -5068,7 +5923,7 @@
         ]
       },
       "post": {
-        "operationId": "criar_plano_api_v1_planos_post",
+        "operationId": "criar_plano_api_v1_plans_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5112,9 +5967,9 @@
         ]
       }
     },
-    "/api/v1/planos/{plano_id}": {
+    "/api/v1/plans/{plano_id}": {
       "patch": {
-        "operationId": "atualizar_plano_api_v1_planos__plano_id__patch",
+        "operationId": "atualizar_plano_api_v1_plans__plano_id__patch",
         "parameters": [
           {
             "in": "path",
@@ -5170,9 +6025,88 @@
         ]
       }
     },
-    "/api/v1/propostas": {
+    "/api/v1/profile": {
       "get": {
-        "operationId": "listar_propostas_api_v1_propostas_get",
+        "operationId": "get_perfil_api_v1_profile_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerfilRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Perfil",
+        "tags": [
+          "perfil"
+        ]
+      }
+    },
+    "/api/v1/profile/feed": {
+      "get": {
+        "description": "Feed 'últimas novidades' do território, recortado pelo perfil do usuário.",
+        "operationId": "novidades_perfil_api_v1_profile_feed_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NovidadesPerfil"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Novidades Perfil",
+        "tags": [
+          "perfil"
+        ]
+      }
+    },
+    "/api/v1/profile/overview": {
+      "get": {
+        "operationId": "visao_geral_perfil_api_v1_profile_overview_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisaoGeralPerfil"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Visao Geral Perfil",
+        "tags": [
+          "perfil"
+        ]
+      }
+    },
+    "/api/v1/proposals": {
+      "get": {
+        "operationId": "listar_propostas_api_v1_proposals_get",
         "parameters": [
           {
             "description": "código IBGE (7 dígitos)",
@@ -5209,7 +6143,7 @@
             }
           },
           {
-            "description": "reservado (áreas) — futuro",
+            "description": "área de interesse (saude, educacao…)",
             "in": "query",
             "name": "area",
             "required": false,
@@ -5222,7 +6156,7 @@
                   "type": "null"
                 }
               ],
-              "description": "reservado (áreas) — futuro",
+              "description": "área de interesse (saude, educacao…)",
               "title": "Area"
             }
           },
@@ -5241,6 +6175,65 @@
               ],
               "title": "Situacao"
             }
+          },
+          {
+            "in": "query",
+            "name": "valor_min",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Valor Min"
+            }
+          },
+          {
+            "in": "query",
+            "name": "valor_max",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Valor Max"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tipo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(cadastrada|disponivel)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tipo"
+            }
           }
         ],
         "responses": {
@@ -5251,7 +6244,7 @@
                   "items": {
                     "$ref": "#/components/schemas/PropostaRead"
                   },
-                  "title": "Response Listar Propostas Api V1 Propostas Get",
+                  "title": "Response Listar Propostas Api V1 Proposals Get",
                   "type": "array"
                 }
               }
@@ -5280,9 +6273,110 @@
         ]
       }
     },
-    "/api/v1/propostas/{proposta_id}": {
+    "/api/v1/proposals/deadlines": {
       "get": {
-        "operationId": "obter_proposta_api_v1_propostas__proposta_id__get",
+        "description": "Propostas com prazo vencendo na janela — 'quais vencem este mês?'.",
+        "operationId": "propostas_por_prazo_api_v1_proposals_deadlines_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "dias",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 365,
+              "minimum": 1,
+              "title": "Dias",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PropostaPrazo"
+                  },
+                  "title": "Response Propostas Por Prazo Api V1 Proposals Deadlines Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Propostas Por Prazo",
+        "tags": [
+          "propostas"
+        ]
+      }
+    },
+    "/api/v1/proposals/live-search": {
+      "post": {
+        "operationId": "live_search_endpoint_api_v1_proposals_live_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveSearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Live Search Endpoint",
+        "tags": [
+          "proposals"
+        ]
+      }
+    },
+    "/api/v1/proposals/{proposta_id}": {
+      "get": {
+        "operationId": "obter_proposta_api_v1_proposals__proposta_id__get",
         "parameters": [
           {
             "in": "path",
@@ -5328,9 +6422,9 @@
         ]
       }
     },
-    "/api/v1/propostas/{proposta_id}/pdf": {
+    "/api/v1/proposals/{proposta_id}/pdf": {
       "get": {
-        "operationId": "exportar_pdf_api_v1_propostas__proposta_id__pdf_get",
+        "operationId": "exportar_pdf_api_v1_proposals__proposta_id__pdf_get",
         "parameters": [
           {
             "in": "path",
@@ -5374,9 +6468,9 @@
         ]
       }
     },
-    "/api/v1/repasses": {
+    "/api/v1/transfers": {
       "get": {
-        "operationId": "listar_repasses_api_v1_repasses_get",
+        "operationId": "listar_repasses_api_v1_transfers_get",
         "parameters": [
           {
             "description": "código IBGE (7 dígitos)",
@@ -5455,7 +6549,7 @@
                   "items": {
                     "$ref": "#/components/schemas/RepasseRead"
                   },
-                  "title": "Response Listar Repasses Api V1 Repasses Get",
+                  "title": "Response Listar Repasses Api V1 Transfers Get",
                   "type": "array"
                 }
               }
@@ -5484,57 +6578,9 @@
         ]
       }
     },
-    "/api/v1/repasses/sync": {
-      "post": {
-        "operationId": "sync_repasses_api_v1_repasses_sync_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SyncRepassesRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Sync Repasses Api V1 Repasses Sync Post",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Sync Repasses",
-        "tags": [
-          "repasses"
-        ]
-      }
-    },
-    "/api/v1/repasses/visao-geral": {
+    "/api/v1/transfers/overview": {
       "get": {
-        "operationId": "visao_geral_api_v1_repasses_visao_geral_get",
+        "operationId": "visao_geral_api_v1_transfers_overview_get",
         "parameters": [
           {
             "in": "query",
@@ -5615,6 +6661,54 @@
           }
         ],
         "summary": "Visao Geral",
+        "tags": [
+          "repasses"
+        ]
+      }
+    },
+    "/api/v1/transfers/sync": {
+      "post": {
+        "operationId": "sync_repasses_api_v1_transfers_sync_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncRepassesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Sync Repasses Api V1 Transfers Sync Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Sync Repasses",
         "tags": [
           "repasses"
         ]
@@ -5957,6 +7051,202 @@
         "summary": "Uniq Inbound",
         "tags": [
           "webhooks"
+        ]
+      }
+    },
+    "/api/v1/works": {
+      "get": {
+        "operationId": "listar_obras_api_v1_works_get",
+        "parameters": [
+          {
+            "description": "código IBGE (7 dígitos)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "código IBGE (7 dígitos)",
+              "title": "Municipio"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fonte"
+            }
+          },
+          {
+            "in": "query",
+            "name": "situacao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Situacao"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ObraRead"
+                  },
+                  "title": "Response Listar Obras Api V1 Works Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Obras",
+        "tags": [
+          "obras"
+        ]
+      }
+    },
+    "/api/v1/works/summary": {
+      "get": {
+        "operationId": "obras_resumo_api_v1_works_summary_get",
+        "parameters": [
+          {
+            "description": "código IBGE (7 dígitos)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "código IBGE (7 dígitos)",
+              "title": "Municipio"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObrasResumo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Obras Resumo",
+        "tags": [
+          "obras"
+        ]
+      }
+    },
+    "/api/v1/works/sync": {
+      "post": {
+        "operationId": "obras_sync_api_v1_works_sync_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncObrasRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Obras Sync Api V1 Works Sync Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Obras Sync",
+        "tags": [
+          "obras"
         ]
       }
     },

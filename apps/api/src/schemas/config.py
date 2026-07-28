@@ -9,9 +9,10 @@ class ConfigItem(BaseModel):
     chave: str
     label: str
     categoria: str
+    provider: str | None = None  # agrupamento por provider na UI (firecrawl, llm…)
     secreto: bool
     configurado: bool
-    origem: str  # 'banco' | 'padrao'
+    origem: str  # 'banco' (painel) | 'env' (fallback .env) | 'padrao' (não definido)
     valor: str | None = None  # segredos vêm mascarados
 
 
@@ -47,3 +48,27 @@ class ConhecimentoCreate(BaseModel):
     conteudo: str
     categoria: str | None = None
     tags: list[str] | None = None
+
+
+# ── Diagnóstico de fontes (admin) ──────────────────────────────────────────
+class UltimaColeta(BaseModel):
+    status: str | None = None  # 'ok' | 'degradado' | 'erro'
+    registros: int | None = None
+    finalizado_em: str | None = None
+    erro: str | None = None
+
+
+class FonteDiagnostico(BaseModel):
+    fonte: str
+    saudavel: bool  # health_check ao vivo (com timeout)
+    ultima_coleta: UltimaColeta | None = None
+
+
+class DiagnosticoFontes(BaseModel):
+    """Estado real da ingestão: fontes ao vivo + providers de scraping/IA."""
+
+    fontes: list[FonteDiagnostico] = []
+    firecrawl_configurado: bool = False
+    crawl4ai_configurado: bool = False
+    llm_configurado: bool = False
+    emendas_api_key_configurada: bool = False

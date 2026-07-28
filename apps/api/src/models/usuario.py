@@ -23,9 +23,7 @@ PAPEIS = ("parlamentar", "executivo", "equipe")
 class Usuario(SQLAlchemyBaseUserTableUUID, Base):
     __tablename__ = "usuarios"
     __table_args__ = (
-        CheckConstraint(
-            "papel in ('parlamentar','executivo','equipe')", name="ck_usuarios_papel"
-        ),
+        CheckConstraint("papel in ('parlamentar','executivo','equipe')", name="ck_usuarios_papel"),
     )
 
     # renomeia a coluna herdada `hashed_password` -> `senha_hash`
@@ -40,9 +38,7 @@ class Usuario(SQLAlchemyBaseUserTableUUID, Base):
     telefone_wpp: Mapped[str | None] = mapped_column(String(20), nullable=True)
     optin_wpp: Mapped[bool] = mapped_column(default=False)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), onupdate=func.now(), nullable=True
     )

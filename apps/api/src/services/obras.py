@@ -76,9 +76,7 @@ async def upsert(session: AsyncSession, canonica: ObraCanonica) -> None:
     update_set = {k: getattr(stmt.excluded, k) for k in _UPSERT_FIELDS}
     update_set["cache_atualizado_em"] = now
     update_set["updated_at"] = now
-    stmt = stmt.on_conflict_do_update(
-        constraint="uq_obras_fonte_id_externo", set_=update_set
-    )
+    stmt = stmt.on_conflict_do_update(constraint="uq_obras_fonte_id_externo", set_=update_set)
     await session.execute(stmt)
 
 
@@ -100,9 +98,7 @@ async def resumo(session: AsyncSession, *, municipio: str | None = None) -> Obra
         SituacaoResumo(
             situacao=sit,
             total=len(itens),
-            valor_investimento=sum(
-                (o.valor_investimento or Decimal(0) for o in itens), Decimal(0)
-            ),
+            valor_investimento=sum((o.valor_investimento or Decimal(0) for o in itens), Decimal(0)),
         )
         for sit, itens in sorted(por_situacao.items())
     ]
@@ -135,9 +131,7 @@ async def sync_municipio(
         .values(usuario_id=usuario_id, ibge=municipio_ibge, modo="avulso")
         .on_conflict_do_nothing(constraint="uq_municipios_usuario_ibge")
     )
-    session.add(
-        AuditLog(usuario_id=usuario_id, acao="sync_obras", entidade=municipio_ibge)
-    )
+    session.add(AuditLog(usuario_id=usuario_id, acao="sync_obras", entidade=municipio_ibge))
 
     total = 0
     for fonte in fontes or list(FONTES_PADRAO):
@@ -146,8 +140,13 @@ async def sync_municipio(
             registros = await get_connector(fonte).collect(municipio_ibge, since=_since())
         except Exception as exc:
             await registrar_sync(
-                usuario_id=usuario_id, fonte=fonte, tipo="avulso", status="erro",
-                registros=0, iniciado_em=iniciado, finalizado_em=datetime.now(UTC),
+                usuario_id=usuario_id,
+                fonte=fonte,
+                tipo="avulso",
+                status="erro",
+                registros=0,
+                iniciado_em=iniciado,
+                finalizado_em=datetime.now(UTC),
                 erro=f"{type(exc).__name__}: {exc}"[:2000],
             )
             continue
@@ -157,8 +156,13 @@ async def sync_municipio(
             n += 1
         total += n
         await registrar_sync(
-            usuario_id=usuario_id, fonte=fonte, tipo="avulso", status="ok",
-            registros=n, iniciado_em=iniciado, finalizado_em=datetime.now(UTC),
+            usuario_id=usuario_id,
+            fonte=fonte,
+            tipo="avulso",
+            status="ok",
+            registros=n,
+            iniciado_em=iniciado,
+            finalizado_em=datetime.now(UTC),
         )
     return total
 

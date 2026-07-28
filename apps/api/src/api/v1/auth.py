@@ -60,6 +60,11 @@ async def login(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="LOGIN_BAD_CREDENTIALS",
         )
+    # auto-reparo: se este e-mail é o ADMIN_EMAIL do ambiente e o bootstrap do
+    # startup falhou/não rodou, promove a superuser agora (idempotente)
+    from ...core.bootstrap import promover_se_admin_env
+
+    await promover_se_admin_env(user)
     access = await get_jwt_strategy().write_token(user)
     refresh = await get_refresh_strategy().write_token(user)
     return TokenPair(access_token=access, refresh_token=refresh)

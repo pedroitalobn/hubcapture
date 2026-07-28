@@ -27,9 +27,7 @@ async def listar(
     return list(result.scalars().all())
 
 
-async def marcar_lido(
-    session: AsyncSession, usuario_id: uuid.UUID, alerta_id: uuid.UUID
-) -> None:
+async def marcar_lido(session: AsyncSession, usuario_id: uuid.UUID, alerta_id: uuid.UUID) -> None:
     await session.execute(
         update(Alerta)
         .where(Alerta.id == alerta_id, Alerta.usuario_id == usuario_id)
@@ -47,9 +45,7 @@ async def gerar_se_monitorado(
     """Cria um alerta se o usuário monitora a proposta; senão retorna None."""
     if not await mon_service.esta_monitorando(session, usuario_id, proposta_id):
         return None
-    alerta = Alerta(
-        usuario_id=usuario_id, proposta_id=proposta_id, tipo=tipo, payload=payload
-    )
+    alerta = Alerta(usuario_id=usuario_id, proposta_id=proposta_id, tipo=tipo, payload=payload)
     session.add(alerta)
     await session.flush()
     return alerta
