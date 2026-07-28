@@ -55,49 +55,54 @@ export default function AdminPlanosPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-6 py-8">
-      <h1 className="text-gradient text-2xl font-bold">Planos da plataforma</h1>
+    <>
+      <header>
+        <h1 className="page-title">Planos da plataforma</h1>
+        <p className="mt-1 text-sm text-ink-2">
+          Catálogo de planos atribuíveis aos usuários (em Usuários ou no convite).
+        </p>
+      </header>
 
-      <form onSubmit={criar} className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          Nome
+      <form onSubmit={criar} className="card flex flex-wrap items-end gap-3 p-5">
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">Nome</span>
           <input
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             required
-            className="input-glass px-3.5 py-2.5"
+            className="input w-44"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Slug
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">Slug</span>
           <input
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
             required
-            className="input-glass px-3.5 py-2.5"
+            className="input w-36"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Preço/mês
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">Preço/mês</span>
           <input
             value={preco}
             onChange={(e) => setPreco(e.target.value)}
             placeholder="99.90"
-            className="input-glass w-28 px-3.5 py-2.5"
+            className="input w-28"
           />
         </label>
-        <button type="submit" className="btn-primary px-5 py-2.5">
+        <button type="submit" className="btn btn-primary">
           Criar plano
         </button>
       </form>
-      {msg && <p className="text-sm text-red-400">{msg}</p>}
+      {msg && <p className="text-sm text-red-500">{msg}</p>}
 
-      <ul className="flex flex-col divide-y divide-white/5">
+      <ul className="card flex flex-col divide-y divide-hairline px-5">
         {planos.map((p) => (
-          <li key={p.id} className="flex items-center justify-between py-3">
+          <li key={p.id} className="flex items-center justify-between py-3.5">
             <div>
-              <span className="font-medium">{p.nome}</span>{" "}
-              <span className="text-xs text-gray-500">/{p.slug}</span>
+              <span className="tracking-tight">{p.nome}</span>{" "}
+              <span className="text-xs text-ink-3">/{p.slug}</span>
             </div>
             <div className="flex items-center gap-3">
               <span className="tabular-nums">{formatBRL(p.preco_mensal)}/mês</span>
@@ -108,9 +113,9 @@ export default function AdminPlanosPage() {
           </li>
         ))}
         {planos.length === 0 && (
-          <li className="py-3 text-gray-500">Nenhum plano cadastrado ainda.</li>
+          <li className="py-3.5 text-ink-3">Nenhum plano cadastrado ainda.</li>
         )}
       </ul>
-    </main>
+    </>
   );
 }

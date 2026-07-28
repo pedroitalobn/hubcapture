@@ -9,6 +9,7 @@ Nenhuma consulta é feita "por fonte": o recorte é sempre o perfil.
 
 from __future__ import annotations
 
+from datetime import date
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -20,13 +21,30 @@ from ..models.obra import Obra
 from ..models.preferencias import PreferenciasUsuario
 from ..models.proposta import Proposta
 from ..models.repasse import Repasse
+from ..models.sync_run import SyncRun
 from ..models.usuario import Usuario
 from ..schemas.perfil import (
     DimensaoResumo,
     MunicipioPerfil,
+    NovidadeItem,
+    NovidadesPerfil,
     PerfilRead,
+    SyncRunStatus,
     VisaoGeralPerfil,
 )
+
+# Áreas de interesse → fontes que as servem. Usado só como RECORTE do feed de
+# novidades (a navegação continua profile-centric; fonte nunca vira aba).
+AREA_FONTES: dict[str, set[str]] = {
+    "saude": {"fns", "sismob"},
+    "educacao": {"fnde", "simec"},
+    "infraestrutura": {"caixa", "transferegov_esp"},
+    "assistencia_social": {"transferegov_ff"},
+    "cultura": {"transferegov_voluntarias"},
+    "esporte": {"transferegov_voluntarias"},
+    "meio_ambiente": {"transferegov_voluntarias"},
+    "agricultura": {"transferegov_voluntarias"},
+}
 
 
 def _brl(v: Decimal | None) -> str:
@@ -146,3 +164,90 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
         areas=list(pref.areas or []) if pref else [],
         dimensoes=dimensoes,
     )
+
+
+def _fontes_do_perfil(pref: PreferenciasUsuario | None) -> set[str]:
+    """Recorte de fontes do feed: as escolhidas no onboarding + as das áreas."""
+    if pref is None:
+        return set()
+    fontes = set(pref.fontes or [])
+    for area in pref.areas or []:
+        fontes |= AREA_FONTES.get(area, set())
+    return fontes
+
+
+async def novidades(
+    session: AsyncSession, usuario: Usuario, *, limite: int = 20
+) -> NovidadesPerfil:
+    """Últimas novidades do território: propostas (captação) e verbas (recebidos).
+
+    O RLS já recorta pelo(s) município(s) do usuário; aqui aplicamos o recorte
+    fino do perfil (fontes escolhidas + fontes das áreas de interesse) e
+    intercalamos os dois eixos por data, mais recente primeiro.
+    """
+    pref = await _preferencias(session, usuario.id)
+    fontes = _fontes_do_perfil(pref)
+
+    stmt_p = select(Proposta).order_by(
+        Proposta.cache_atualizado_em.desc().nullslast()
+    )
+    stmt_r = select(Repasse).order_by(Repasse.data_repasse.desc().nullslast())
+    if fontes:
+        stmt_p = stmt_p.where(Proposta.fonte.in_(fontes))
+        stmt_r = stmt_r.where(Repasse.fonte.in_(fontes))
+
+    propostas = (await session.execute(stmt_p.limit(limite))).scalars().all()
+    repasses = (await session.execute(stmt_r.limit(limite))).scalars().all()
+
+    itens = [
+        NovidadeItem(
+            tipo="captacao",
+            titulo=p.titulo or p.objeto or f"Proposta {p.numero_proposta or p.id_externo}",
+            descricao=p.situacao or p.movimentacao,
+            valor=p.valor_total,
+            data=p.data_atualizacao_fonte
+            or (p.cache_atualizado_em.date() if p.cache_atualizado_em else None),
+            fonte=p.fonte,
+            municipio_ibge=p.municipio_ibge,
+            municipio_nome=p.municipio_nome,
+            href="/painel/captacao",
+        )
+        for p in propostas
+    ] + [
+        NovidadeItem(
+            tipo="recebido",
+            titulo=r.descricao or r.categoria or "Repasse recebido",
+            descricao=r.orgao_superior,
+            valor=r.valor,
+            data=r.data_repasse,
+            fonte=r.fonte,
+            municipio_ibge=r.municipio_ibge,
+            municipio_nome=r.municipio_nome,
+            href="/painel/repasses",
+        )
+        for r in repasses
+    ]
+    itens = sorted(itens, key=lambda i: i.data or date.min, reverse=True)[:limite]
+
+    # Estado honesto da coleta: últimas execuções por fonte deste usuário.
+    runs = (
+        (
+            await session.execute(
+                select(SyncRun)
+                .where(SyncRun.usuario_id == usuario.id)
+                .order_by(SyncRun.iniciado_em.desc().nullslast())
+                .limit(12)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    vistos: set[str] = set()
+    sync_runs: list[SyncRunStatus] = []
+    for run in runs:
+        if run.fonte in vistos:
+            continue  # só a execução mais recente de cada fonte
+        vistos.add(run.fonte or "")
+        sync_runs.append(SyncRunStatus.model_validate(run))
+
+    return NovidadesPerfil(itens=itens, sync_runs=sync_runs)

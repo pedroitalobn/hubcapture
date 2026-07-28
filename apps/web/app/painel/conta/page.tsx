@@ -71,68 +71,65 @@ export default function ContaPage() {
   return (
     <>
       <header>
-        <h1 className="text-gradient text-2xl font-bold">Minha conta</h1>
-        <p className="text-sm text-gray-500">{email}</p>
+        <h1 className="page-title">Minha conta</h1>
+        <p className="mt-1 text-sm text-ink-2">{email}</p>
       </header>
 
-      {msg && <p className="text-sm text-gray-600 dark:text-gray-400">{msg}</p>}
+      {msg && <p className="text-sm text-ink-2">{msg}</p>}
 
-      <form onSubmit={salvarPerfil} className="flex max-w-md flex-col gap-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+      <form onSubmit={salvarPerfil} className="card flex max-w-md flex-col gap-4 p-6">
+        <h2 className="label-mono">
           Perfil
         </h2>
-        <label className="flex flex-col gap-1 text-sm">
-          Nome
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">Nome</span>
           <input
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            className="input-glass px-3.5 py-2.5"
+            className="input"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Telefone (WhatsApp)
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">Telefone (WhatsApp)</span>
           <input
             value={telefone}
             onChange={(e) => setTelefone(e.target.value)}
             placeholder="+5511999999999"
-            className="input-glass px-3.5 py-2.5"
+            className="input"
           />
         </label>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-sm text-ink-2">
           <input
             type="checkbox"
             checked={optin}
             onChange={(e) => setOptin(e.target.checked)}
+            className="accent-brand"
           />
           Receber alertas por WhatsApp
         </label>
-        <button
-          type="submit"
-          disabled={salvando}
-          className="btn-primary self-start px-5 py-2.5"
-        >
+        <button type="submit" disabled={salvando} className="btn btn-primary self-start">
           Salvar perfil
         </button>
       </form>
 
-      <form onSubmit={trocarSenha} className="flex max-w-md flex-col gap-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+      <form onSubmit={trocarSenha} className="card flex max-w-md flex-col gap-4 p-6">
+        <h2 className="label-mono">
           Trocar senha
         </h2>
-        <label className="flex flex-col gap-1 text-sm">
-          Nova senha
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">Nova senha</span>
           <input
             type="password"
             minLength={8}
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
-            className="input-glass px-3.5 py-2.5"
+            className="input"
           />
         </label>
         <button
           type="submit"
           disabled={salvando || !senha}
-          className="btn-primary self-start px-5 py-2.5"
+          className="btn btn-primary self-start"
         >
           Alterar senha
         </button>

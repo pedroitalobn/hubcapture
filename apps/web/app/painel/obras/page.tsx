@@ -64,7 +64,7 @@ function MiniMapa({ obras }: { obras: Obra[] }) {
   const geo = obras.filter((o) => o.latitude && o.longitude);
   if (geo.length === 0) {
     return (
-      <div className="flex h-48 items-center justify-center glass-card border-dashed text-sm text-gray-500 dark:border-gray-700">
+      <div className="flex h-48 items-center justify-center rounded-2xl border border-dashed border-hairline text-sm text-ink-3">
         Sem coordenadas para plotar no mapa.
       </div>
     );
@@ -76,23 +76,23 @@ function MiniMapa({ obras }: { obras: Obra[] }) {
   const spanLa = maxLa - minLa || 1;
   const spanLo = maxLo - minLo || 1;
   return (
-    <div className="glass-card relative h-64 overflow-hidden">
+    <div className="card relative h-64 overflow-hidden bg-surface-2">
       {geo.map((o) => {
         const x = ((Number(o.longitude) - minLo) / spanLo) * 92 + 4;
         const y = 96 - ((Number(o.latitude) - minLa) / spanLa) * 92;
         const tone = SIT_TONE[o.situacao ?? ""] ?? "neutral";
         const dot: Record<string, string> = {
           info: "bg-blue-500",
-          warning: "bg-amber-500",
+          warning: "bg-brand",
           success: "bg-green-500",
           danger: "bg-red-500",
-          neutral: "bg-gray-400",
+          neutral: "bg-ink-3",
         };
         return (
           <span
             key={o.id}
             title={`${o.nome ?? o.objeto ?? "Obra"} — ${SIT_LABEL[o.situacao ?? ""] ?? o.situacao ?? ""}`}
-            className={`absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white dark:ring-gray-900 ${dot[tone]}`}
+            className={`absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-md ring-2 ring-surface ${dot[tone]}`}
             style={{ left: `${x}%`, top: `${y}%` }}
           />
         );
@@ -155,37 +155,37 @@ export default function ObrasPage() {
   return (
     <>
       <header>
-        <h1 className="text-gradient text-2xl font-bold">Obras</h1>
-        <p className="text-sm text-gray-500">
+        <h1 className="page-title">Obras</h1>
+        <p className="mt-1 text-sm text-ink-2">
           Execução no seu território (SISMOB · SIMEC · CAIXA).
         </p>
       </header>
 
-      <form onSubmit={sincronizar} className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          Sincronizar município (IBGE, 7 dígitos)
+      <form onSubmit={sincronizar} className="card flex flex-wrap items-end gap-3 p-5">
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">Sincronizar município (IBGE, 7 dígitos)</span>
           <input
             value={ibge}
             onChange={(e) => setIbge(e.target.value)}
             placeholder="3550308"
             maxLength={7}
-            className="input-glass px-3.5 py-2.5"
+            className="input w-48"
           />
         </label>
         <button
           type="submit"
           disabled={sinc || ibge.length !== 7}
-          className="btn-primary px-5 py-2.5"
+          className="btn btn-primary"
         >
           {sinc ? "Sincronizando…" : "Buscar nas fontes"}
         </button>
       </form>
-      {msg && <p className="text-sm text-gray-600 dark:text-gray-400">{msg}</p>}
+      {msg && <p className="text-sm text-ink-2">{msg}</p>}
 
       {loading ? (
         <SkeletonCards />
       ) : (data?.total ?? 0) === 0 ? (
-        <p className="text-gray-500">
+        <p className="text-ink-3">
           Sem obras no cache ainda. Sincronize um município acima.
         </p>
       ) : (
@@ -207,14 +207,14 @@ export default function ObrasPage() {
             <FilterChips options={chips} selected={sit} onSelect={setSit} />
           )}
 
-          <ul className="flex flex-col divide-y divide-white/5">
+          <ul className="card flex flex-col divide-y divide-hairline px-5">
             {obras.map((o) => (
-              <li key={o.id} className="flex items-start justify-between gap-3 py-3 text-sm">
+              <li key={o.id} className="flex items-start justify-between gap-3 py-3.5 text-sm">
                 <span className="min-w-0">
-                  <span className="block truncate font-medium">
+                  <span className="block truncate tracking-tight">
                     {o.nome ?? o.objeto ?? "Obra"}
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-ink-3">
                     {FONTE_LABEL[o.fonte] ?? o.fonte}
                     {o.percentual_execucao
                       ? ` · ${Number(o.percentual_execucao).toFixed(0)}% executado`

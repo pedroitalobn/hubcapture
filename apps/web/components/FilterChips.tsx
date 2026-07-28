@@ -44,19 +44,10 @@ function Chip({
   count?: number;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className={`chip px-3 py-1 text-sm ${active ? "chip-active" : ""}`}
-    >
+    <button onClick={onClick} className={`chip ${active ? "chip-active" : ""}`}>
       {label}
       {count !== undefined && (
-        <span
-          className={`rounded-full px-1.5 text-xs ${
-            active ? "bg-white/20" : "bg-white/10"
-          }`}
-        >
-          {count}
-        </span>
+        <span className="tabular-nums opacity-60">{count}</span>
       )}
     </button>
   );

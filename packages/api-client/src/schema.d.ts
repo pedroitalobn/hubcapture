@@ -60,6 +60,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/fontes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Diagnostico Fontes */
+        get: operations["diagnostico_fontes_api_v1_admin_fontes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/usuarios": {
         parameters: {
             query?: never;
@@ -123,6 +140,27 @@ export interface paths {
         get: operations["listar_alertas_api_v1_alertas_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alertas/varredura": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Varredura Alertas
+         * @description Roda a detecção de novas propostas (buscas) + oportunidades e despacha
+         *     por email/WhatsApp conforme os canais. Retorna quantos alertas foram criados.
+         */
+        post: operations["varredura_alertas_api_v1_alertas_varredura_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -350,6 +388,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/copiloto/island": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Copiloto Island
+         * @description Agente do Dynamic Island (tool calling). O loop de ferramentas roda AQUI,
+         *     com a sessão RLS do request viva; o stream só replaye os eventos coletados
+         *     (mesma razão do RAG pré-stream acima).
+         */
+        post: operations["copiloto_island_api_v1_copiloto_island_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/favoritos": {
         parameters: {
             query?: never;
@@ -414,6 +474,92 @@ export interface paths {
         put?: never;
         /** Criar Monitoramento */
         post: operations["criar_monitoramento_api_v1_monitoramentos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoramentos/buscas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Buscas */
+        get: operations["listar_buscas_api_v1_monitoramentos_buscas_get"];
+        put?: never;
+        /** Criar Busca */
+        post: operations["criar_busca_api_v1_monitoramentos_buscas_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoramentos/buscas/{busca_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remover Busca */
+        delete: operations["remover_busca_api_v1_monitoramentos_buscas__busca_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoramentos/{monitoramento_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remover Monitoramento */
+        delete: operations["remover_monitoramento_api_v1_monitoramentos__monitoramento_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/municipios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Buscar Municipios */
+        get: operations["buscar_municipios_api_v1_municipios_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/noticias": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Noticias */
+        get: operations["listar_noticias_api_v1_noticias_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -530,7 +676,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Listar Propostas Da Pasta */
+        get: operations["listar_propostas_da_pasta_api_v1_pastas__pasta_id__propostas_get"];
         put?: never;
         /** Adicionar Proposta */
         post: operations["adicionar_proposta_api_v1_pastas__pasta_id__propostas_post"];
@@ -566,6 +713,26 @@ export interface paths {
         };
         /** Get Perfil */
         get: operations["get_perfil_api_v1_perfil_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/perfil/novidades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Novidades Perfil
+         * @description Feed 'últimas novidades' do território, recortado pelo perfil do usuário.
+         */
+        get: operations["novidades_perfil_api_v1_perfil_novidades_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -635,6 +802,26 @@ export interface paths {
         };
         /** Listar Propostas */
         get: operations["listar_propostas_api_v1_propostas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/propostas/prazos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Propostas Por Prazo
+         * @description Propostas com prazo vencendo na janela — 'quais vencem este mês?'.
+         */
+        get: operations["propostas_por_prazo_api_v1_propostas_prazos_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -889,11 +1076,8 @@ export interface components {
             payload?: {
                 [key: string]: unknown;
             } | null;
-            /**
-             * Proposta Id
-             * Format: uuid
-             */
-            proposta_id: string;
+            /** Proposta Id */
+            proposta_id?: string | null;
             /** Tipo */
             tipo?: string | null;
         };
@@ -976,6 +1160,8 @@ export interface components {
             label: string;
             /** Origem */
             origem: string;
+            /** Provider */
+            provider?: string | null;
             /** Secreto */
             secreto: boolean;
             /** Valor */
@@ -1106,6 +1292,37 @@ export interface components {
             token: string;
         };
         /**
+         * DiagnosticoFontes
+         * @description Estado real da ingestão: fontes ao vivo + providers de scraping/IA.
+         */
+        DiagnosticoFontes: {
+            /**
+             * Crawl4Ai Configurado
+             * @default false
+             */
+            crawl4ai_configurado: boolean;
+            /**
+             * Emendas Api Key Configurada
+             * @default false
+             */
+            emendas_api_key_configurada: boolean;
+            /**
+             * Firecrawl Configurado
+             * @default false
+             */
+            firecrawl_configurado: boolean;
+            /**
+             * Fontes
+             * @default []
+             */
+            fontes: components["schemas"]["FonteDiagnostico"][];
+            /**
+             * Llm Configurado
+             * @default false
+             */
+            llm_configurado: boolean;
+        };
+        /**
          * DimensaoResumo
          * @description Um eixo do ciclo (captação/recebidos/conformidade/obras) para o perfil.
          */
@@ -1152,6 +1369,14 @@ export interface components {
              */
             proposta_id: string;
         };
+        /** FonteDiagnostico */
+        FonteDiagnostico: {
+            /** Fonte */
+            fonte: string;
+            /** Saudavel */
+            saudavel: boolean;
+            ultima_coleta?: components["schemas"]["UltimaColeta"] | null;
+        };
         /**
          * FonteResumo
          * @description Card por fonte no dashboard (ícone/valor/nº de movimentações).
@@ -1168,6 +1393,55 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** IslandRequest */
+        IslandRequest: {
+            /** Pergunta */
+            pergunta: string;
+        };
+        /**
+         * MonitoramentoBuscaCreate
+         * @description Monitorar FUTURAS propostas de um município (opcionalmente por área/fonte).
+         */
+        MonitoramentoBuscaCreate: {
+            /** Area */
+            area?: string | null;
+            /**
+             * Canais
+             * @default [
+             *       "painel"
+             *     ]
+             */
+            canais: string[];
+            /** Fonte */
+            fonte?: string | null;
+            /** Municipio Ibge */
+            municipio_ibge: string;
+        };
+        /** MonitoramentoBuscaRead */
+        MonitoramentoBuscaRead: {
+            /** Area */
+            area?: string | null;
+            /** Ativo */
+            ativo: boolean;
+            /** Canais */
+            canais?: string[] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Fonte */
+            fonte?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Municipio Ibge */
+            municipio_ibge: string;
+            /** Ultimo Alerta Em */
+            ultimo_alerta_em?: string | null;
         };
         /** MonitoramentoCreate */
         MonitoramentoCreate: {
@@ -1206,6 +1480,18 @@ export interface components {
              */
             proposta_id: string;
         };
+        /**
+         * MunicipioBusca
+         * @description Resultado da busca IBGE (nome → código) usada no onboarding conversacional.
+         */
+        MunicipioBusca: {
+            /** Ibge */
+            ibge: string;
+            /** Nome */
+            nome: string;
+            /** Uf */
+            uf?: string | null;
+        };
         /** MunicipioIn */
         MunicipioIn: {
             /** Ibge */
@@ -1225,6 +1511,57 @@ export interface components {
             nome?: string | null;
             /** Uf */
             uf?: string | null;
+        };
+        /** NoticiaRead */
+        NoticiaRead: {
+            /** Data */
+            data?: string | null;
+            /** Resumo */
+            resumo?: string | null;
+            /** Titulo */
+            titulo: string;
+            /** Url */
+            url: string;
+        };
+        /**
+         * NovidadeItem
+         * @description Uma novidade do território — proposta/verba recém-atualizada no cache.
+         */
+        NovidadeItem: {
+            /** Data */
+            data?: string | null;
+            /** Descricao */
+            descricao?: string | null;
+            /** Fonte */
+            fonte: string;
+            /** Href */
+            href: string;
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Municipio Nome */
+            municipio_nome?: string | null;
+            /** Tipo */
+            tipo: string;
+            /** Titulo */
+            titulo: string;
+            /** Valor */
+            valor?: string | null;
+        };
+        /**
+         * NovidadesPerfil
+         * @description Feed 'últimas novidades' do Meu painel, recortado pelo perfil (RLS).
+         */
+        NovidadesPerfil: {
+            /**
+             * Itens
+             * @default []
+             */
+            itens: components["schemas"]["NovidadeItem"][];
+            /**
+             * Sync Runs
+             * @default []
+             */
+            sync_runs: components["schemas"]["SyncRunStatus"][];
         };
         /** ObraRead */
         ObraRead: {
@@ -1304,6 +1641,13 @@ export interface components {
              */
             areas: string[];
             /**
+             * Canais Alerta
+             * @default [
+             *       "painel"
+             *     ]
+             */
+            canais_alerta: string[];
+            /**
              * Disparar Sync
              * @default false
              */
@@ -1320,8 +1664,12 @@ export interface components {
             monitorar_ativo: boolean;
             /** Municipios */
             municipios: components["schemas"]["MunicipioIn"][];
+            /** Optin Wpp */
+            optin_wpp?: boolean | null;
             /** Papel */
             papel?: string | null;
+            /** Telefone Wpp */
+            telefone_wpp?: string | null;
         };
         /** OnboardingResponse */
         OnboardingResponse: {
@@ -1457,6 +1805,17 @@ export interface components {
             preco_mensal?: number | string | null;
         };
         /**
+         * PropostaPrazo
+         * @description Proposta com prazos vencendo na janela consultada (visão estruturada).
+         */
+        PropostaPrazo: {
+            /** Prazos Na Janela */
+            prazos_na_janela: {
+                [key: string]: unknown;
+            }[];
+            proposta: components["schemas"]["PropostaRead"];
+        };
+        /**
          * PropostaRead
          * @description Representação da proposta devolvida pela API.
          */
@@ -1504,6 +1863,11 @@ export interface components {
             resumo_ia?: string | null;
             /** Situacao */
             situacao?: string | null;
+            /**
+             * Tipo
+             * @description Eixo da jornada: 'cadastrada' (já existe) ou 'disponivel' (oportunidade).
+             */
+            readonly tipo: string;
             /** Titulo */
             titulo?: string | null;
             /** Uf */
@@ -1616,6 +1980,20 @@ export interface components {
             /** Municipio Ibge */
             municipio_ibge: string;
         };
+        /**
+         * SyncRunStatus
+         * @description Última execução de coleta por fonte — o painel mostra o estado honesto.
+         */
+        SyncRunStatus: {
+            /** Finalizado Em */
+            finalizado_em?: string | null;
+            /** Fonte */
+            fonte?: string | null;
+            /** Registros */
+            registros?: number | null;
+            /** Status */
+            status?: string | null;
+        };
         /** TokenPair */
         TokenPair: {
             /** Access Token */
@@ -1627,6 +2005,17 @@ export interface components {
              * @default bearer
              */
             token_type: string;
+        };
+        /** UltimaColeta */
+        UltimaColeta: {
+            /** Erro */
+            erro?: string | null;
+            /** Finalizado Em */
+            finalizado_em?: string | null;
+            /** Registros */
+            registros?: number | null;
+            /** Status */
+            status?: string | null;
         };
         /** UniqInbound */
         UniqInbound: {
@@ -1945,6 +2334,26 @@ export interface operations {
             };
         };
     };
+    diagnostico_fontes_api_v1_admin_fontes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiagnosticoFontes"];
+                };
+            };
+        };
+    };
     admin_listar_usuarios_api_v1_admin_usuarios_get: {
         parameters: {
             query?: never;
@@ -2093,6 +2502,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    varredura_alertas_api_v1_alertas_varredura_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -2550,6 +2981,39 @@ export interface operations {
             };
         };
     };
+    copiloto_island_api_v1_copiloto_island_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IslandRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listar_favoritos_api_v1_favoritos_get: {
         parameters: {
             query?: never;
@@ -2694,6 +3158,179 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MonitoramentoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_buscas_api_v1_monitoramentos_buscas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoramentoBuscaRead"][];
+                };
+            };
+        };
+    };
+    criar_busca_api_v1_monitoramentos_buscas_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonitoramentoBuscaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoramentoBuscaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_busca_api_v1_monitoramentos_buscas__busca_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                busca_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_monitoramento_api_v1_monitoramentos__monitoramento_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                monitoramento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    buscar_municipios_api_v1_municipios_get: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MunicipioBusca"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_noticias_api_v1_noticias_get: {
+        parameters: {
+            query?: {
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticiaRead"][];
                 };
             };
             /** @description Validation Error */
@@ -2929,6 +3566,37 @@ export interface operations {
             };
         };
     };
+    listar_propostas_da_pasta_api_v1_pastas__pasta_id__propostas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pasta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     adicionar_proposta_api_v1_pastas__pasta_id__propostas_post: {
         parameters: {
             query?: never;
@@ -3012,6 +3680,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PerfilRead"];
+                };
+            };
+        };
+    };
+    novidades_perfil_api_v1_perfil_novidades_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NovidadesPerfil"];
                 };
             };
         };
@@ -3130,9 +3818,12 @@ export interface operations {
                 /** @description código IBGE (7 dígitos) */
                 municipio?: string | null;
                 fonte?: string | null;
-                /** @description reservado (áreas) — futuro */
+                /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
                 situacao?: string | null;
+                valor_min?: number | string | null;
+                valor_max?: number | string | null;
+                tipo?: string | null;
             };
             header?: never;
             path?: never;
@@ -3147,6 +3838,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PropostaRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    propostas_por_prazo_api_v1_propostas_prazos_get: {
+        parameters: {
+            query?: {
+                dias?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropostaPrazo"][];
                 };
             };
             /** @description Validation Error */

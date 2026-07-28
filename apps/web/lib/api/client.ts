@@ -3,8 +3,10 @@
 import { createHubClient } from "@hub/api-client";
 
 // Origem da API (sem /api/v1). Os paths do client tipado já carregam /api/v1.
-export const API_ORIGIN =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Vazio = same-origin: o navegador chama /api/v1/* no próprio domínio da web e
+// o rewrite do next.config.mjs repassa para a API pela rede interna. Definir
+// NEXT_PUBLIC_API_URL só se a API tiver domínio público próprio.
+export const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL || "";
 
 const TOKEN_KEY = "hub_access_token";
 const REFRESH_KEY = "hub_refresh_token";
@@ -169,5 +171,46 @@ export async function atualizarPerfil(patch: {
     throw new Error(
       typeof detail === "string" ? detail : "Não foi possível salvar",
     );
+  }
+}
+
+/** Evento do agente do Dynamic Island: ferramenta em uso ou texto da resposta. */
+export type IslandEvento = { tool?: string; delta?: string };
+
+/**
+ * Copiloto do Dynamic Island (SSE) — agente com tool calling no backend.
+ * Emite {tool} quando o agente consulta uma ferramenta e {delta} com a resposta.
+ */
+export async function islandStream(
+  pergunta: string,
+  onEvento: (e: IslandEvento) => void,
+): Promise<void> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/copiloto/island`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken() ?? ""}`,
+    },
+    body: JSON.stringify({ pergunta }),
+  });
+  if (!resp.body) return;
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const linhas = buffer.split("\n\n");
+    buffer = linhas.pop() ?? "";
+    for (const linha of linhas) {
+      const m = linha.replace(/^data: /, "").trim();
+      if (!m || m === "[DONE]") continue;
+      try {
+        onEvento(JSON.parse(m) as IslandEvento);
+      } catch {
+        /* ignora linhas não-JSON */
+      }
+    }
   }
 }

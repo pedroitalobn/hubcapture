@@ -16,7 +16,6 @@ export function presetToInicio(preset: RangePreset): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Controle segmentado de período, em vidro (estilo visionOS). */
 export function DateRangePresets({
   value,
   onChange,
@@ -25,15 +24,13 @@ export function DateRangePresets({
   onChange: (p: RangePreset) => void;
 }) {
   return (
-    <div className="glass-card inline-flex gap-1 rounded-full! p-1">
+    <div className="segmented">
       {PRESETS.map((p) => (
         <button
           key={p.value}
           onClick={() => onChange(p.value)}
-          className={`pressable rounded-full px-3 py-1.5 text-sm transition ${
-            value === p.value
-              ? "bg-white/12 font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_2px_10px_rgba(99,102,241,.25)]"
-              : "text-gray-400 hover:bg-white/5 hover:text-gray-200"
+          className={`segmented-item ${
+            value === p.value ? "segmented-item-active" : ""
           }`}
         >
           {p.label}

@@ -5,15 +5,17 @@ export type BadgeTone =
   | "danger"
   | "info";
 
-const TONES: Record<BadgeTone, string> = {
-  neutral: "border-white/10 bg-white/5 text-gray-300",
-  success: "border-emerald-400/25 bg-emerald-400/10 text-emerald-300",
-  warning: "border-amber-400/25 bg-amber-400/10 text-amber-300",
-  danger: "border-red-400/25 bg-red-400/10 text-red-300",
-  info: "border-sky-400/25 bg-sky-400/10 text-sky-300",
+/* Disciplina monocromática: o badge é sempre outline + mono; a semântica
+   vem do dot de 6px (lime = ok; tons rebaixados p/ alerta/erro). */
+const DOT: Record<BadgeTone, string> = {
+  neutral: "bg-ink-3",
+  success: "bg-lime",
+  warning: "bg-[#c9a24b]",
+  danger: "bg-[#b5533c]",
+  info: "bg-graphite",
 };
 
-/** Badge de status semântico e colorido (PAGO, Crédito, Dedução, Emenda…). */
+/** Badge de status: pill hairline com dot semântico + label mono. */
 export function StatusBadge({
   children,
   tone = "neutral",
@@ -22,10 +24,8 @@ export function StatusBadge({
   tone?: BadgeTone;
 }) {
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium backdrop-blur-sm ${TONES[tone]}`}
-    >
-      <span className="glow-dot h-1.5 w-1.5" />
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[-0.02em] text-ink-2">
+      <span className={`h-1.5 w-1.5 rounded-full ${DOT[tone]}`} aria-hidden />
       {children}
     </span>
   );

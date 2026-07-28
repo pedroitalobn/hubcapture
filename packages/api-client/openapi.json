@@ -251,9 +251,16 @@
             "title": "Payload"
           },
           "proposta_id": {
-            "format": "uuid",
-            "title": "Proposta Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposta Id"
           },
           "tipo": {
             "anyOf": [
@@ -269,7 +276,6 @@
         },
         "required": [
           "id",
-          "proposta_id",
           "lido",
           "created_at"
         ],
@@ -451,6 +457,17 @@
           "origem": {
             "title": "Origem",
             "type": "string"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
           },
           "secreto": {
             "title": "Secreto",
@@ -855,6 +872,41 @@
         "title": "ConviteRead",
         "type": "object"
       },
+      "DiagnosticoFontes": {
+        "description": "Estado real da ingestão: fontes ao vivo + providers de scraping/IA.",
+        "properties": {
+          "crawl4ai_configurado": {
+            "default": false,
+            "title": "Crawl4Ai Configurado",
+            "type": "boolean"
+          },
+          "emendas_api_key_configurada": {
+            "default": false,
+            "title": "Emendas Api Key Configurada",
+            "type": "boolean"
+          },
+          "firecrawl_configurado": {
+            "default": false,
+            "title": "Firecrawl Configurado",
+            "type": "boolean"
+          },
+          "fontes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FonteDiagnostico"
+            },
+            "title": "Fontes",
+            "type": "array"
+          },
+          "llm_configurado": {
+            "default": false,
+            "title": "Llm Configurado",
+            "type": "boolean"
+          }
+        },
+        "title": "DiagnosticoFontes",
+        "type": "object"
+      },
       "DimensaoResumo": {
         "description": "Um eixo do ciclo (captação/recebidos/conformidade/obras) para o perfil.",
         "properties": {
@@ -952,6 +1004,34 @@
         "title": "FavoritoRead",
         "type": "object"
       },
+      "FonteDiagnostico": {
+        "properties": {
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          },
+          "saudavel": {
+            "title": "Saudavel",
+            "type": "boolean"
+          },
+          "ultima_coleta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UltimaColeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "fonte",
+          "saudavel"
+        ],
+        "title": "FonteDiagnostico",
+        "type": "object"
+      },
       "FonteResumo": {
         "description": "Card por fonte no dashboard (ícone/valor/nº de movimentações).",
         "properties": {
@@ -988,6 +1068,145 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "IslandRequest": {
+        "properties": {
+          "pergunta": {
+            "title": "Pergunta",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pergunta"
+        ],
+        "title": "IslandRequest",
+        "type": "object"
+      },
+      "MonitoramentoBuscaCreate": {
+        "description": "Monitorar FUTURAS propostas de um município (opcionalmente por área/fonte).",
+        "properties": {
+          "area": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
+          },
+          "canais": {
+            "default": [
+              "painel"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "title": "Canais",
+            "type": "array"
+          },
+          "fonte": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fonte"
+          },
+          "municipio_ibge": {
+            "maxLength": 7,
+            "minLength": 7,
+            "title": "Municipio Ibge",
+            "type": "string"
+          }
+        },
+        "required": [
+          "municipio_ibge"
+        ],
+        "title": "MonitoramentoBuscaCreate",
+        "type": "object"
+      },
+      "MonitoramentoBuscaRead": {
+        "properties": {
+          "area": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
+          },
+          "ativo": {
+            "title": "Ativo",
+            "type": "boolean"
+          },
+          "canais": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canais"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "fonte": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fonte"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "title": "Municipio Ibge",
+            "type": "string"
+          },
+          "ultimo_alerta_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ultimo Alerta Em"
+          }
+        },
+        "required": [
+          "id",
+          "municipio_ibge",
+          "ativo",
+          "created_at"
+        ],
+        "title": "MonitoramentoBuscaRead",
         "type": "object"
       },
       "MonitoramentoCreate": {
@@ -1057,6 +1276,36 @@
           "created_at"
         ],
         "title": "MonitoramentoRead",
+        "type": "object"
+      },
+      "MunicipioBusca": {
+        "description": "Resultado da busca IBGE (nome → código) usada no onboarding conversacional.",
+        "properties": {
+          "ibge": {
+            "title": "Ibge",
+            "type": "string"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          }
+        },
+        "required": [
+          "ibge",
+          "nome"
+        ],
+        "title": "MunicipioBusca",
         "type": "object"
       },
       "MunicipioIn": {
@@ -1134,6 +1383,155 @@
           "modo"
         ],
         "title": "MunicipioPerfil",
+        "type": "object"
+      },
+      "NoticiaRead": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "resumo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resumo"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "titulo",
+          "url"
+        ],
+        "title": "NoticiaRead",
+        "type": "object"
+      },
+      "NovidadeItem": {
+        "description": "Uma novidade do território — proposta/verba recém-atualizada no cache.",
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          },
+          "href": {
+            "title": "Href",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Ibge"
+          },
+          "municipio_nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Nome"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          },
+          "valor": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor"
+          }
+        },
+        "required": [
+          "tipo",
+          "titulo",
+          "fonte",
+          "href"
+        ],
+        "title": "NovidadeItem",
+        "type": "object"
+      },
+      "NovidadesPerfil": {
+        "description": "Feed 'últimas novidades' do Meu painel, recortado pelo perfil (RLS).",
+        "properties": {
+          "itens": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/NovidadeItem"
+            },
+            "title": "Itens",
+            "type": "array"
+          },
+          "sync_runs": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SyncRunStatus"
+            },
+            "title": "Sync Runs",
+            "type": "array"
+          }
+        },
+        "title": "NovidadesPerfil",
         "type": "object"
       },
       "ObraRead": {
@@ -1427,6 +1825,16 @@
             "title": "Areas",
             "type": "array"
           },
+          "canais_alerta": {
+            "default": [
+              "painel"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "title": "Canais Alerta",
+            "type": "array"
+          },
           "disparar_sync": {
             "default": false,
             "title": "Disparar Sync",
@@ -1452,6 +1860,17 @@
             "title": "Municipios",
             "type": "array"
           },
+          "optin_wpp": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optin Wpp"
+          },
           "papel": {
             "anyOf": [
               {
@@ -1462,6 +1881,17 @@
               }
             ],
             "title": "Papel"
+          },
+          "telefone_wpp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefone Wpp"
           }
         },
         "required": [
@@ -1847,6 +2277,28 @@
         "title": "PlanoUpdate",
         "type": "object"
       },
+      "PropostaPrazo": {
+        "description": "Proposta com prazos vencendo na janela consultada (visão estruturada).",
+        "properties": {
+          "prazos_na_janela": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Prazos Na Janela",
+            "type": "array"
+          },
+          "proposta": {
+            "$ref": "#/components/schemas/PropostaRead"
+          }
+        },
+        "required": [
+          "proposta",
+          "prazos_na_janela"
+        ],
+        "title": "PropostaPrazo",
+        "type": "object"
+      },
       "PropostaRead": {
         "description": "Representação da proposta devolvida pela API.",
         "properties": {
@@ -2045,6 +2497,12 @@
             ],
             "title": "Situacao"
           },
+          "tipo": {
+            "description": "Eixo da jornada: 'cadastrada' (já existe) ou 'disponivel' (oportunidade).",
+            "readOnly": true,
+            "title": "Tipo",
+            "type": "string"
+          },
           "titulo": {
             "anyOf": [
               {
@@ -2094,7 +2552,8 @@
         "required": [
           "id",
           "fonte",
-          "id_externo"
+          "id_externo",
+          "tipo"
         ],
         "title": "PropostaRead",
         "type": "object"
@@ -2441,6 +2900,58 @@
         "title": "SyncRepassesRequest",
         "type": "object"
       },
+      "SyncRunStatus": {
+        "description": "Última execução de coleta por fonte — o painel mostra o estado honesto.",
+        "properties": {
+          "finalizado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalizado Em"
+          },
+          "fonte": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fonte"
+          },
+          "registros": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registros"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "title": "SyncRunStatus",
+        "type": "object"
+      },
       "TokenPair": {
         "properties": {
           "access_token": {
@@ -2462,6 +2973,56 @@
           "refresh_token"
         ],
         "title": "TokenPair",
+        "type": "object"
+      },
+      "UltimaColeta": {
+        "properties": {
+          "erro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erro"
+          },
+          "finalizado_em": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalizado Em"
+          },
+          "registros": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registros"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "title": "UltimaColeta",
         "type": "object"
       },
       "UniqInbound": {
@@ -3173,6 +3734,32 @@
         ]
       }
     },
+    "/api/v1/admin/fontes": {
+      "get": {
+        "operationId": "diagnostico_fontes_api_v1_admin_fontes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticoFontes"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Diagnostico Fontes",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/usuarios": {
       "get": {
         "operationId": "admin_listar_usuarios_api_v1_admin_usuarios_get",
@@ -3403,6 +3990,35 @@
           }
         ],
         "summary": "Listar Alertas",
+        "tags": [
+          "alertas"
+        ]
+      }
+    },
+    "/api/v1/alertas/varredura": {
+      "post": {
+        "description": "Roda a detecção de novas propostas (buscas) + oportunidades e despacha\npor email/WhatsApp conforme os canais. Retorna quantos alertas foram criados.",
+        "operationId": "varredura_alertas_api_v1_alertas_varredura_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Varredura Alertas Api V1 Alertas Varredura Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Varredura Alertas",
         "tags": [
           "alertas"
         ]
@@ -4047,6 +4663,51 @@
         ]
       }
     },
+    "/api/v1/copiloto/island": {
+      "post": {
+        "description": "Agente do Dynamic Island (tool calling). O loop de ferramentas roda AQUI,\ncom a sessão RLS do request viva; o stream só replaye os eventos coletados\n(mesma razão do RAG pré-stream acima).",
+        "operationId": "copiloto_island_api_v1_copiloto_island_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IslandRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Copiloto Island",
+        "tags": [
+          "copiloto"
+        ]
+      }
+    },
     "/api/v1/favoritos": {
       "get": {
         "operationId": "listar_favoritos_api_v1_favoritos_get",
@@ -4262,6 +4923,269 @@
         "summary": "Criar Monitoramento",
         "tags": [
           "monitoramentos"
+        ]
+      }
+    },
+    "/api/v1/monitoramentos/buscas": {
+      "get": {
+        "operationId": "listar_buscas_api_v1_monitoramentos_buscas_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MonitoramentoBuscaRead"
+                  },
+                  "title": "Response Listar Buscas Api V1 Monitoramentos Buscas Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Buscas",
+        "tags": [
+          "monitoramentos"
+        ]
+      },
+      "post": {
+        "operationId": "criar_busca_api_v1_monitoramentos_buscas_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitoramentoBuscaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitoramentoBuscaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Criar Busca",
+        "tags": [
+          "monitoramentos"
+        ]
+      }
+    },
+    "/api/v1/monitoramentos/buscas/{busca_id}": {
+      "delete": {
+        "operationId": "remover_busca_api_v1_monitoramentos_buscas__busca_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "busca_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Busca Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Remover Busca",
+        "tags": [
+          "monitoramentos"
+        ]
+      }
+    },
+    "/api/v1/monitoramentos/{monitoramento_id}": {
+      "delete": {
+        "operationId": "remover_monitoramento_api_v1_monitoramentos__monitoramento_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "monitoramento_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Monitoramento Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Remover Monitoramento",
+        "tags": [
+          "monitoramentos"
+        ]
+      }
+    },
+    "/api/v1/municipios": {
+      "get": {
+        "operationId": "buscar_municipios_api_v1_municipios_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 2,
+              "title": "Q",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MunicipioBusca"
+                  },
+                  "title": "Response Buscar Municipios Api V1 Municipios Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Buscar Municipios",
+        "tags": [
+          "municipios"
+        ]
+      }
+    },
+    "/api/v1/noticias": {
+      "get": {
+        "operationId": "listar_noticias_api_v1_noticias_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limite",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limite",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/NoticiaRead"
+                  },
+                  "title": "Response Listar Noticias Api V1 Noticias Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Noticias",
+        "tags": [
+          "noticias"
         ]
       }
     },
@@ -4640,6 +5564,57 @@
       }
     },
     "/api/v1/pastas/{pasta_id}/propostas": {
+      "get": {
+        "operationId": "listar_propostas_da_pasta_api_v1_pastas__pasta_id__propostas_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pasta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pasta Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "title": "Response Listar Propostas Da Pasta Api V1 Pastas  Pasta Id  Propostas Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Propostas Da Pasta",
+        "tags": [
+          "pastas"
+        ]
+      },
       "post": {
         "operationId": "adicionar_proposta_api_v1_pastas__pasta_id__propostas_post",
         "parameters": [
@@ -4771,6 +5746,33 @@
           }
         ],
         "summary": "Get Perfil",
+        "tags": [
+          "perfil"
+        ]
+      }
+    },
+    "/api/v1/perfil/novidades": {
+      "get": {
+        "description": "Feed 'últimas novidades' do território, recortado pelo perfil do usuário.",
+        "operationId": "novidades_perfil_api_v1_perfil_novidades_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NovidadesPerfil"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Novidades Perfil",
         "tags": [
           "perfil"
         ]
@@ -4968,7 +5970,7 @@
             }
           },
           {
-            "description": "reservado (áreas) — futuro",
+            "description": "área de interesse (saude, educacao…)",
             "in": "query",
             "name": "area",
             "required": false,
@@ -4981,7 +5983,7 @@
                   "type": "null"
                 }
               ],
-              "description": "reservado (áreas) — futuro",
+              "description": "área de interesse (saude, educacao…)",
               "title": "Area"
             }
           },
@@ -4999,6 +6001,65 @@
                 }
               ],
               "title": "Situacao"
+            }
+          },
+          {
+            "in": "query",
+            "name": "valor_min",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Valor Min"
+            }
+          },
+          {
+            "in": "query",
+            "name": "valor_max",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Valor Max"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tipo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(cadastrada|disponivel)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tipo"
             }
           }
         ],
@@ -5034,6 +6095,61 @@
           }
         ],
         "summary": "Listar Propostas",
+        "tags": [
+          "propostas"
+        ]
+      }
+    },
+    "/api/v1/propostas/prazos": {
+      "get": {
+        "description": "Propostas com prazo vencendo na janela — 'quais vencem este mês?'.",
+        "operationId": "propostas_por_prazo_api_v1_propostas_prazos_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "dias",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 365,
+              "minimum": 1,
+              "title": "Dias",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PropostaPrazo"
+                  },
+                  "title": "Response Propostas Por Prazo Api V1 Propostas Prazos Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Propostas Por Prazo",
         "tags": [
           "propostas"
         ]

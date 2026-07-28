@@ -289,11 +289,12 @@ class Connector(Protocol):
 
 Fontes e endpoints reais:
 - `transferegov_ff` → `https://api.transferegov.gestao.gov.br/fundoafundo/` (PostgREST: `?campo=eq.valor`). ✅ responde.
-- `transferegov_esp` → `.../transferenciasespeciais/`. ⚠️ instável → merge/fallback com scraping obrigatório.
-- `transferegov_disc` → **sem API**; CSV diário em `http://repositorio.dados.gov.br/seges/detru/`. Loader agendado.
-- `fns` → scraping (Crawl4AI) do portal de consultas. Fonte primária por scraping.
+- `transferegov_esp` → **API pública** `https://api-publica.transferegov.gestao.gov.br/especiais/` (docs em `<base>/docs`) + fallback scraping.
+- `transferegov_voluntarias` → **API pública** `https://api-publica.transferegov.gestao.gov.br/voluntarias/` (convênios/discricionárias on-line) + fallback scraping.
+- `transferegov_disc` → CSV diário em `http://repositorio.dados.gov.br/seges/detru/`. Loader agendado.
+- `fns` → scraping (facade Crawl4AI/Firecrawl) do portal de consultas. Fonte primária por scraping.
 - `fnde` → API + scraping (merge).
-- `serpro` → API direta, usada para enrichment/cruzamento.
+- `serpro` → painel público `https://dd-publico.serpro.gov.br/extensions/painel/painel.html` (Qlik, JS pesado → extração via scraping headless) + API gateway (token) p/ enrichment/cruzamento.
 
 ---
 
@@ -451,14 +452,30 @@ Endpoints: `GET /planos` (público) · `POST/PATCH /planos` (admin) · `POST /ad
 `POST /auth/aceitar-convite` (público). Criação de usuário passa pelo UserManager
 (hash de senha). Dependency `current_superuser` em `core/users.py`.
 
-## 15. Ingestão pronta para as APIs + Firecrawl
+**Web (painel de administração unificado):** `app/admin/layout.tsx` é o shell com guard de
+superuser (`/users/me` → redirect se não-admin) e navegação Usuários · Convites · Planos ·
+Providers & Config. Usuários: criar + editar inline papel/plano/admin/ativo
+(`PATCH /admin/usuarios/{id}` com `plano_id`). Convites: criar com papel/plano/validade,
+listar com status e **copiar link** (`/aceitar-convite?token=…`). A página pública
+`app/aceitar-convite` consome o token (nome+senha → aceite → login → onboarding). O menu do
+painel comum mostra "Administração" só para superusers.
+
+## 15. Ingestão pronta para as APIs + scraping (Crawl4AI + Firecrawl)
 
 Todos os connectors estão **registrados** (`connectors/*`), com rotas/campos isolados em
-constantes (ponto de calibração): transferegov_ff/esp/disc(CSV)/fns/fnde/serpro + fpm/emendas.
-Retry/backoff compartilhado em `connectors/_http.py`. **Firecrawl** (`scraping/firecrawl.py`)
-faz o scraping da coleta combinada/fallback (`scrape` + `extract` estruturado); desabilita sem
-`FIRECRAWL_API_KEY`. Resumo por IA em `ai/resumo.py` (LiteLLM, import preguiçoso; desabilita
-sem `LLM_API_KEY`). Para ativar uma fonte real: preencher a URL/credencial no `.env`, calibrar
+constantes (ponto de calibração): transferegov_ff/esp/voluntarias/disc(CSV)/fns/fnde/serpro +
+fpm/emendas. Retry/backoff compartilhado em `connectors/_http.py`.
+
+**Scraping em facade** (`scraping/scraper.py::get_scraper`): os connectors nunca chamam um
+provider direto. Providers: **Crawl4AI** (`scraping/crawl4ai.py`, servidor Docker self-hosted —
+`crawl4ai_base_url` + token opcional) e **Firecrawl** (`scraping/firecrawl.py`,
+`firecrawl_api_key`). Ordem por `scraping_provider` (`auto` = Crawl4AI primeiro, Firecrawl
+fallback); provider sem credencial fica fora da rodada; nenhum configurado →
+`ScraperNotConfigured` (registrado em `sync_runs`). O resultado carrega `_scraper` e a
+proveniência marca `scrape` nos campos vindos de scraping.
+
+Resumo por IA em `ai/resumo.py` (LiteLLM, import preguiçoso; desabilita sem `LLM_API_KEY`).
+Para ativar uma fonte real: preencher a URL/credencial no painel admin (ou `.env`), calibrar
 os nomes de campo do connector e (se scraping) o schema de extração.
 
 ## 16. Painel admin de configuração (credenciais dos providers via API)
@@ -468,7 +485,12 @@ Tabela `configuracoes` (platform-level, sem RLS); segredos **cifrados em repouso
 chave de `CONFIG_SECRET_KEY`) e **mascarados** na leitura. Catálogo de chaves em
 `services/config.py::CATALOGO` (Firecrawl, LLM, base URLs/tokens das fontes).
 
-- Endpoints (admin `is_superuser`): `GET /admin/config` (lista mascarada) · `PUT /admin/config` (`{chave, valor}`).
+- Endpoints (admin `is_superuser`): `GET /admin/config` (lista mascarada) · `PUT /admin/config` (`{chave, valor}`) ·
+  `GET /admin/fontes` (**diagnóstico**: health_check ao vivo de todos os connectors em paralelo
+  com timeout + última coleta por fonte de `sync_runs` + estado de Firecrawl/Crawl4AI/LLM/chave
+  de emendas — página `app/admin/fontes`). A API de emendas (Portal da Transparência) EXIGE a
+  chave `chave-api-dados` (`emendas_api_key`, cadastro gratuito); sem ela o connector falha com
+  mensagem clara em `sync_runs`.
 - `services/config.resolver(chave)` é a fonte de verdade em runtime (DB decifrado > default `.env`).
   Firecrawl (`scraping/firecrawl.py`), o resumo IA (`ai/resumo.py`) e **todos os connectors**
   (base URL no `collect`) consultam o resolver. Plugar uma credencial no painel ativa o provider
@@ -514,6 +536,32 @@ espinha da UI.
   é o **Meu painel** (cards por dimensão vindos de `/perfil/visao-geral`). A antiga lista de propostas
   virou `app/painel/captacao`. Sem território → CTA para o onboarding (o perfil é o ponto de partida).
 - Adicionar fonte continua sendo só um novo connector; **nunca** vira uma aba nova na navegação.
+
+## 19b. Onboarding conversacional + primeiro sync real (decisão travada)
+
+A porta de entrada do app é o **onboarding conversacional**: após login/cadastro sem
+território, o usuário cai em `/onboarding`, onde o Copiloto pergunta em chat guiado —
+papel → município(s) (busca por nome via IBGE) → áreas de interesse → fontes (pré-marcadas
+pelas áreas) → confirmação. Nada de formulário em página; a conversa é o wizard.
+
+- **Busca de municípios** — `services/municipios.py` + `GET /municipios?q=` (IBGE
+  Localidades, cache em memória 24h, chave `ibge_localidades_url` no painel). Degrada
+  para lista vazia; o front aceita código IBGE de 7 dígitos digitado direto.
+- **Primeiro sync (dados reais)** — ao confirmar, `POST /onboarding` grava o perfil e
+  agenda `services/primeiro_sync.executar` cobrindo as 4 dimensões (captação via
+  consulta-avulsa, recebidos por fonte, conformidade, obras por área), cada fonte
+  best-effort com incidente em `sync_runs`. ATENÇÃO: o agendamento é
+  `asyncio.create_task` (`primeiro_sync.agendar`) — **nunca** `BackgroundTasks`, que
+  executa antes do teardown/commit da sessão RLS do request e trava o perfil atrás do
+  sync (lock em `municipios_interesse`/`usuarios`).
+- **Feed de novidades** — `GET /perfil/novidades` (schemas em `schemas/perfil.py`):
+  últimas propostas + repasses do território, recortados pelas fontes do perfil e pelas
+  fontes derivadas das áreas (`services/perfil.py::AREA_FONTES`), intercalados por data,
+  mais o estado honesto da coleta (última execução por fonte em `sync_runs`). O Meu
+  painel (`app/painel/page.tsx`) mostra o feed e, vindo do onboarding (`?sync=1`), faz
+  polling ~8s até os primeiros dados chegarem.
+- **Login** (`app/login`) → `GET /perfil`: sem município → `/onboarding`; com território →
+  `/painel`. O cadastro segue direto para o onboarding.
 
 ## 20. Obras (execução — SISMOB/SIMEC/CAIXA) — P3
 
@@ -584,8 +632,11 @@ Stack completo sobe com um comando; o superadmin é criado no boot.
   Subir: `docker compose up -d --build`.
 - **Portas / proxy**: o compose de deploy usa `expose` (NÃO publica portas no host)
   — em plataformas com proxy (Dokploy/Traefik) portas fixas colidem. No painel aponte
-  o domínio para `web:3000` (e `api:8000` se quiser API pública) e defina
-  `NEXT_PUBLIC_API_URL` = domínio público da API (build arg). Para dev local,
+  o domínio para `web:3000`. A web faz **proxy same-origin** da API: o navegador chama
+  `/api/v1/*` no domínio da web e o rewrite do `next.config.mjs` repassa à API pela rede
+  interna (`API_INTERNAL_URL`, default `http://api:8000`) — a API não precisa de domínio
+  público. Só defina `NEXT_PUBLIC_API_URL` (build arg) se quiser expor a API num domínio
+  próprio e o front chamá-la direto. Para dev local,
   `docker-compose.override.yml` publica 3000/8000/5432 e é auto-carregado por
   `docker compose up` (o Dokploy roda com `-f`, ignorando o override).
 - **Dockerfiles**: `apps/api/Dockerfile` (uv sync; `docker-entrypoint.sh` espera o
@@ -600,3 +651,67 @@ Stack completo sobe com um comando; o superadmin é criado no boot.
   alterna papel/admin/ativo inline. Backend: `GET /admin/usuarios`,
   `POST /admin/usuarios` (agora aceita `is_superuser`), `PATCH /admin/usuarios/{id}`
   (papel/is_superuser/is_active/plano). Env `ADMIN_EMAIL`/`ADMIN_PASSWORD`/`APP_BASE_URL`.
+
+## 23. Jornada completa do fluxograma — gaps fechados (v1)
+
+Fecha os gaps entre o fluxograma de jornada (5 etapas) e o produto:
+
+- **Eixo "QUE TIPO?" (cadastrada × disponível)**: derivado da `situacao` por de-para de
+  palavras-chave em `services/propostas.py::classificar_tipo` (sem coluna nova; calibrável).
+  Exposto como campo computado `tipo` no `PropostaRead` e filtro `?tipo=` em `GET /propostas`.
+- **Filtros de granularidade**: `GET /propostas` aceita `valor_min/valor_max/area/tipo`
+  (área → fontes via `AREA_FONTES`). `GET /propostas/prazos?dias=` responde "o que vence
+  na janela" (parse do jsonb `prazos`); o copiloto injeta esse contexto estruturado quando a
+  pergunta menciona prazo/vencimento (`api/v1/copiloto.py::_contexto_prazos`).
+- **Monitoramento de FUTURAS propostas**: tabela `monitoramentos_busca` (migration
+  `b1f2c3d4e5a6`, RLS por-tenant) — vigia município (+área/fonte opcional) com `canais`
+  (painel/email/wpp) e cursor `ultimo_alerta_em`. Endpoints
+  `GET/POST/DELETE /monitoramentos/buscas`. O onboarding cria uma busca por município
+  quando `monitorar_ativo`.
+- **Varredura + alerta de oportunidade** (`services/oportunidades.py`, endpoint
+  `POST /alertas/varredura`): (1) `nova_proposta` — propostas que entraram no cache após o
+  cursor das buscas ativas; (2) `oportunidade` — o alerta do fluxograma "recursos
+  disponíveis com propostas não cadastradas" (repasses da fonte X no município sem nenhuma
+  proposta da fonte X; `alertas.proposta_id` agora é nullable; dedupe por alerta não-lido).
+  Despacho best-effort por e-mail (template `alertas_resumo`) e WhatsApp (Uniq) conforme canais.
+- **Onboarding com passo "ativar avisos"**: `OnboardingRequest` ganhou
+  `telefone_wpp/optin_wpp/canais_alerta`; o chat de onboarding pergunta canais e WhatsApp
+  antes da confirmação.
+- **Enforcement de planos (3 tiers × municípios)**: `limites.municipios_max` do plano é
+  validado no onboarding (`LimitePlanoExcedido` → 403 `LIMITE_PLANO_MUNICIPIOS`).
+- **Painel informativo**: `services/noticias.py` (RSS gov.br, cache 1h, degrada p/ vazio),
+  `GET /noticias`, chave `transferegov_noticias_url` no painel admin. Widget no Meu painel.
+- **SERPRO painel**: default de `serpro_painel_url` aponta para
+  `TransferegovbrVisaoGeral.html` (dados ricos via scraping headless; API pública primeiro,
+  painel enriquece/faz fallback — coleta combinada da seção 5).
+- **Web**: captação com abas locais (várias frentes), chips cadastrada/disponíveis, filtros
+  (fonte/área/situação/valor), favoritar ★, pastas (criar/atribuir/filtrar), resumo IA na
+  lista; página de detalhe `app/painel/captacao/[id]` em seções (dados gerais, valores,
+  situação, prazos, pendências, proveniência) com monitorar/PDF; central
+  `app/painel/alertas` (varredura, marcar lido, monitorar futuras propostas) no menu;
+  card de alertas não lidos + notícias no Meu painel.
+
+## 24. Copiloto em Dynamic Island (tool calling)
+
+O Copiloto ganhou uma presença PERSISTENTE: um **Dynamic Island** flutuante
+(`components/DynamicIsland.tsx`, montado em `app/painel/layout.tsx`) que acompanha o
+usuário em TODAS as telas do painel após o onboarding (só aparece com território
+configurado). Fechado é uma cápsula discreta; expandido vira chat, mostrando em tempo
+real qual ferramenta o agente está consultando. Histórico em sessionStorage.
+
+- **Backend** — `ai/agent.py`: agente LLM com **tool calling** (LiteLLM, formato
+  OpenAI tools, até 4 rodadas). Ferramentas = serviços do Hub na MESMA sessão RLS do
+  request: `repasses_visao_geral`, `propostas_listar`, `propostas_prazos`,
+  `conformidade_resumo`, `obras_resumo`, `noticias_transferegov`,
+  `pesquisar_propostas` (RAG). O agente só enxerga o território do tenant por
+  construção; executor com erro devolve `{"erro": ...}` e nunca derruba o loop.
+- **Degradação** — sem `llm_api_key`, roteador por palavra-chave
+  (`escolher_tool_fallback`, ordem de prioridade em `_PRIORIDADE_FALLBACK`) executa a
+  ferramenta mais provável e formata resposta legível (`_formatar_fallback`) — o
+  island continua útil sem credencial.
+- **Endpoint** — `POST /copiloto/island` (SSE): o loop de tools roda ANTES do stream
+  (sessão RLS do request precisa estar viva); eventos `{"tool": nome}` e
+  `{"delta": texto}`. Client web: `islandStream` em `lib/api/client.ts`.
+- Adicionar ferramenta = nova entrada em `ai/agent.py::TOOLS` (descrição + JSON
+  schema + executor + gatilhos de fallback); o front mostra o chip automaticamente
+  (rotule em `DynamicIsland.tsx::TOOL_CHIP`).

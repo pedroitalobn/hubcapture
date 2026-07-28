@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" preserveAspectRatio="xMidYMid slice">
+  <!-- Mapa do Brasil em contornos topográficos sobre fundo texturizado
+       com feixes de luz — placeholder on-brand até o login-hero.jpg -->
+  <rect width="900" height="1200" fill="#222f30"/>
+
+  <defs>
+    <!-- traçado simplificado do contorno do Brasil -->
+    <path id="br" d="M489 249
+      L501 293 518 324 544 347 615 364 657 373 714 386 770 415 776 460
+      739 511 714 545 705 572 693 635 673 696 608 720 576 723 552 755
+      542 810 484 871 460 896 389 837 453 781 423 730 384 699 379 660
+      389 633 375 601 340 558 258 519 170 511 113 448 180 398 178 313
+      229 296 290 286 348 235 Z"/>
+
+    <!-- glow ambiente atrás do mapa -->
+    <radialGradient id="glow" cx="0.5" cy="0.46" r="0.55">
+      <stop offset="0" stop-color="#cef79e" stop-opacity="0.10"/>
+      <stop offset="0.6" stop-color="#cef79e" stop-opacity="0.035"/>
+      <stop offset="1" stop-color="#cef79e" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- feixe de luz (ray) com fade nas pontas -->
+    <linearGradient id="ray" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cef79e" stop-opacity="0.16"/>
+      <stop offset="0.55" stop-color="#cef79e" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#cef79e" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- textura: micro-grade de pontos -->
+    <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="0.9" fill="#cef79e" fill-opacity="0.05"/>
+    </pattern>
+  </defs>
+
+  <!-- textura de pontos cobrindo o canvas -->
+  <rect width="900" height="1200" fill="url(#dots)"/>
+
+  <!-- linhas de relevo fluindo ao fundo (das versões anteriores) -->
+  <g fill="none" stroke="#cef79e" stroke-width="1">
+    <path stroke-opacity="0.10" d="M-40 980 C 140 900, 210 1010, 380 940 S 700 860, 950 930"/>
+    <path stroke-opacity="0.08" d="M-40 1050 C 160 970, 240 1080, 420 1010 S 720 930, 950 1000"/>
+    <path stroke-opacity="0.06" d="M-40 1120 C 180 1050, 270 1150, 460 1080 S 740 1000, 950 1070"/>
+    <path stroke-opacity="0.10" d="M-40 190 C 120 120, 260 220, 430 150 S 760 80, 950 160"/>
+    <path stroke-opacity="0.07" d="M-40 130 C 140 60, 280 160, 460 90 S 780 20, 950 100"/>
+    <path stroke-opacity="0.08" d="M85 -40 C 145 200, 55 420, 175 640 S 225 1000, 135 1240"/>
+    <path stroke-opacity="0.06" d="M800 -40 C 740 240, 860 460, 760 700 S 730 1020, 820 1240"/>
+  </g>
+
+  <!-- feixes de luz varrendo da diagonal superior direita -->
+  <g transform="rotate(24 760 -40)">
+    <rect x="700" y="-80" width="120" height="820" fill="url(#ray)"/>
+    <rect x="560" y="-80" width="56" height="700" fill="url(#ray)" opacity="0.8"/>
+    <rect x="860" y="-80" width="34" height="620" fill="url(#ray)" opacity="0.7"/>
+    <rect x="450" y="-80" width="20" height="560" fill="url(#ray)" opacity="0.5"/>
+  </g>
+
+  <!-- glow central -->
+  <rect width="900" height="1200" fill="url(#glow)"/>
+
+  <!-- graticule sutil -->
+  <g stroke="#cef79e" stroke-width="0.5" stroke-opacity="0.06">
+    <path d="M0 300h900M0 450h900M0 600h900M0 750h900M0 900h900"/>
+    <path d="M150 0v1200M300 0v1200M450 0v1200M600 0v1200M750 0v1200"/>
+  </g>
+
+  <!-- curvas de nível: o contorno do Brasil em offsets concêntricos -->
+  <g fill="none" stroke="#cef79e" stroke-linejoin="round">
+    <use href="#br" stroke-width="1.6" stroke-opacity="0.9"/>
+    <use href="#br" stroke-width="1.1" stroke-opacity="0.48"
+      transform="translate(450 555) scale(0.90) translate(-450 -555)"/>
+    <use href="#br" stroke-width="1" stroke-opacity="0.30"
+      transform="translate(450 555) scale(0.79) translate(-450 -555)"/>
+    <use href="#br" stroke-width="0.9" stroke-opacity="0.18"
+      transform="translate(450 555) scale(0.68) translate(-450 -555)"/>
+    <use href="#br" stroke-width="0.8" stroke-opacity="0.09"
+      transform="translate(450 555) scale(0.56) translate(-450 -555)"/>
+    <!-- eco externo, bem fraco, para dar profundidade -->
+    <use href="#br" stroke-width="0.8" stroke-opacity="0.07"
+      transform="translate(450 555) scale(1.12) translate(-450 -555)"/>
+  </g>
+
+  <!-- pontos de cidade -->
+  <g fill="#cef79e">
+    <circle cx="554" cy="592" r="4" fill-opacity="0.95"/>   <!-- Brasília -->
+    <circle cx="576" cy="716" r="2.8" fill-opacity="0.75"/> <!-- São Paulo -->
+    <circle cx="348" cy="376" r="2.8" fill-opacity="0.7"/>  <!-- Manaus -->
+    <circle cx="768" cy="462" r="2.6" fill-opacity="0.7"/>  <!-- Recife -->
+    <circle cx="712" cy="545" r="2.4" fill-opacity="0.6"/>  <!-- Salvador -->
+    <circle cx="498" cy="834" r="2.4" fill-opacity="0.6"/>  <!-- Porto Alegre -->
+    <circle cx="544" cy="349" r="2.4" fill-opacity="0.6"/>  <!-- Belém -->
+    <circle cx="712" cy="388" r="2.2" fill-opacity="0.55"/> <!-- Fortaleza -->
+    <circle cx="608" cy="718" r="2" fill-opacity="0.5"/>    <!-- Rio -->
+  </g>
+
+  <!-- partículas soltas no fundo -->
+  <g fill="#cef79e">
+    <circle cx="120" cy="210" r="1.4" fill-opacity="0.35"/>
+    <circle cx="820" cy="150" r="1.6" fill-opacity="0.4"/>
+    <circle cx="90" cy="900" r="1.4" fill-opacity="0.3"/>
+    <circle cx="840" cy="1010" r="1.4" fill-opacity="0.3"/>
+    <circle cx="250" cy="80" r="1.2" fill-opacity="0.3"/>
+    <circle cx="660" cy="1120" r="1.2" fill-opacity="0.3"/>
+    <circle cx="430" cy="120" r="1.2" fill-opacity="0.25"/>
+    <circle cx="180" cy="1080" r="1.2" fill-opacity="0.25"/>
+  </g>
+
+  <!-- anel de foco em Brasília -->
+  <g fill="none" stroke="#cef79e">
+    <circle cx="554" cy="592" r="14" stroke-opacity="0.4"/>
+    <circle cx="554" cy="592" r="26" stroke-opacity="0.18"/>
+    <circle cx="554" cy="592" r="42" stroke-opacity="0.08"/>
+  </g>
+</svg>

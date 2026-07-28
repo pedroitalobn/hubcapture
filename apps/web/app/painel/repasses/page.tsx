@@ -109,31 +109,31 @@ export default function RepassesPage() {
   return (
     <>
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Recursos recebidos</h1>
+        <h1 className="page-title">Recursos recebidos</h1>
         <DateRangePresets value={preset} onChange={setPreset} />
       </header>
 
-      <form onSubmit={sincronizar} className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          Sincronizar município (IBGE, 7 dígitos)
+      <form onSubmit={sincronizar} className="card flex flex-wrap items-end gap-3 p-5">
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">Sincronizar município (IBGE, 7 dígitos)</span>
           <input
             value={ibge}
             onChange={(e) => setIbge(e.target.value)}
             placeholder="3550308"
             maxLength={7}
-            className="input-glass px-3.5 py-2.5"
+            className="input w-48"
           />
         </label>
         <button
           type="submit"
           disabled={sincronizando || ibge.length !== 7}
-          className="btn-primary px-5 py-2.5"
+          className="btn btn-primary"
         >
           {sincronizando ? "Sincronizando…" : "Buscar nas fontes"}
         </button>
       </form>
 
-      {msg && <p className="text-sm text-gray-600 dark:text-gray-400">{msg}</p>}
+      {msg && <p className="text-sm text-ink-2">{msg}</p>}
 
       {loading ? (
         <SkeletonCards />

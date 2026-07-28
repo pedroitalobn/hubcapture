@@ -70,7 +70,7 @@ def compute_hash(data: dict[str, Any]) -> str:
 
 
 def normalize(record: RawRecord) -> PropostaCanonica:
-    """Mapeia um RawRecord do transferegov_ff para o schema canônico."""
+    """Mapeia um RawRecord (plano de ação, convênio ou painel) p/ o schema canônico."""
     raw = record.raw
     plano = raw.get("plano_acao", raw) if isinstance(raw, dict) else {}
     programa = raw.get("programa", {}) if isinstance(raw, dict) else {}
@@ -80,37 +80,68 @@ def normalize(record: RawRecord) -> PropostaCanonica:
         "fonte": record.source_id,
         "id_externo": record.id_externo,
         "numero_proposta": _first(
-            plano.get("numero_plano_acao"), plano.get("numero_proposta")
+            plano.get("numero_plano_acao"),
+            plano.get("numero_proposta"),
+            plano.get("numero_convenio"),  # voluntárias (convênio)
+            plano.get("numero"),  # painel SERPRO
         ),
-        "titulo": _first(programa.get("nome_programa"), plano.get("nome")),
-        "objeto": _first(programa.get("objeto"), plano.get("objeto")),
+        "titulo": _first(programa.get("nome_programa"), plano.get("nome"), plano.get("programa")),
+        "objeto": _first(
+            programa.get("objeto"),
+            plano.get("objeto"),
+            plano.get("objeto_convenio"),
+            plano.get("objeto_proposta"),
+        ),
         "orgao_superior": _first(
             programa.get("nome_orgao_superior_programa"),
             programa.get("nome_orgao_superior"),
+            plano.get("nome_orgao_superior"),
+            plano.get("orgao"),
         ),
-        "modalidade": _first(programa.get("modalidade"), "Fundo a Fundo"),
+        "modalidade": _first(
+            raw.get("modalidade") if isinstance(raw, dict) else None,
+            programa.get("modalidade"),
+            plano.get("modalidade"),
+            "Fundo a Fundo",
+        ),
         "municipio_ibge": _first(
             record.municipio_ibge, benef.get("codigo_ibge"), plano.get("codigo_ibge")
         ),
         "municipio_nome": _first(benef.get("nome_municipio"), benef.get("municipio")),
-        "uf": _first(benef.get("sigla_uf"), benef.get("uf")),
+        "uf": _first(benef.get("sigla_uf"), benef.get("uf"), plano.get("uf")),
         "valor_total": _to_decimal(
-            _first(plano.get("valor_total"), plano.get("valor_repasse_emenda_parlamentar"))
+            _first(
+                plano.get("valor_total"),
+                plano.get("valor_repasse_emenda_parlamentar"),
+                plano.get("valor_global"),  # voluntárias (convênio)
+                plano.get("valor"),
+            )
         ),
-        "contrapartida": _to_decimal(plano.get("valor_contrapartida")),
-        "situacao": _first(plano.get("situacao"), plano.get("situacao_plano_acao")),
+        "contrapartida": _to_decimal(
+            _first(plano.get("valor_contrapartida"), plano.get("vl_contrapartida"))
+        ),
+        "situacao": _first(
+            plano.get("situacao"),
+            plano.get("situacao_plano_acao"),
+            plano.get("situacao_convenio"),
+        ),
         "emenda": _first(plano.get("numero_emenda"), plano.get("emenda")),
         "prazos": None,
         "pendencias": None,
         "movimentacao": None,
         "data_atualizacao_fonte": _to_date(
-            _first(plano.get("data_atualizacao"), plano.get("ano_plano_acao"))
+            _first(
+                plano.get("data_atualizacao"),
+                plano.get("data"),
+                plano.get("ano_plano_acao"),
+            )
         ),
         "url_origem": None,
     }
 
-    # proveniência: no Sprint 1 tudo vem da API
-    proveniencia = {k: "api" for k, v in fields.items() if v is not None}
+    # proveniência por-campo: registros vindos de scraper marcam 'scrape'
+    origem = "scrape" if record.endpoint in ("scrape", "firecrawl", "crawl4ai") else "api"
+    proveniencia = {k: origem for k, v in fields.items() if v is not None}
     proveniencia["_fonte"] = record.source_id
     fields["proveniencia"] = proveniencia
     fields["hash_conteudo"] = compute_hash(fields)

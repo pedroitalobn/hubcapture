@@ -4,9 +4,15 @@ FROM node:20-alpine AS builder
 RUN corepack enable
 WORKDIR /repo
 
-# NEXT_PUBLIC_* é embutido no bundle no build → precisa existir aqui.
-ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+# NEXT_PUBLIC_* é embutido no bundle no build. Vazio (default) = same-origin:
+# o navegador chama /api/v1/* no domínio da web e o rewrite do next.config.mjs
+# repassa para a API pela rede interna. Só defina se a API tiver domínio público.
+ARG NEXT_PUBLIC_API_URL=""
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+# destino interno do rewrite (congelado no build pelo standalone) — no compose
+# o host da API é "api"; sobrescreva se a web rodar fora do compose.
+ARG API_INTERNAL_URL=http://api:8000
+ENV API_INTERNAL_URL=${API_INTERNAL_URL}
 
 # manifestos primeiro (camada de deps cacheável) — inclui packages/config,
 # que fornece @hub/config/tsconfig.base.json herdado pelo tsconfig da web.
