@@ -843,3 +843,44 @@ lançar o Hub só com o que está maduro e reativar o resto quando a fonte estiv
   de `app/panel/layout.tsx` filtra os itens por `perfil.modulos`;
   `components/ModuloGate.tsx` cobre o acesso direto por URL às telas de eixo desligado
   (explica em vez de mostrar tela vazia).
+
+## 26b. Filtros de captação (benchmark) + resumo + emendas parlamentares
+
+Paridade de FILTROS com as plataformas concorrentes de captação, sem abrir mão da
+navegação profile-centric (§19): as fontes continuam sendo detalhe de ingestão — o que
+mudou é a granularidade do recorte sobre o território.
+
+- **Dimensões de filtro da captação** (`services/propostas.py`): busca livre `q`
+  (programa/órgão/código, ilike sobre título/objeto/órgão/modalidade/id/nº), `modalidade`
+  (tipo de instrumento), `orgao`, `situacao`, `natureza_juridica`, `qualificacao`, `ano`,
+  `tipo` (§23), faixa de valor e `ordenar`
+  (`recentes|prazo|prazo_distante|nome|orgao|valor`). SQL para o que é coluna; jsonb/
+  derivados (natureza, qualificação, ano, tipo) filtram em Python — o recorte já é do
+  território pelo RLS, então o conjunto é pequeno.
+- **Natureza jurídica** = quem pode propor. `classificar_natureza_juridica` faz de-para
+  por palavra-chave de `execucao.natureza_juridica` (texto livre da fonte) para os slugs
+  `estadual_df|municipal|consorcio|empresa_publica|osc|outros` — calibrável em
+  `_KW_NATUREZA`. **Qualificação** mapeia `execucao.tipo_transferencia`.
+- **Facetas** — `GET /proposals/facets` devolve, por dimensão, as opções que EXISTEM no
+  recorte com contagem; a contagem de cada dimensão ignora o filtro dela mesma (senão o
+  dropdown ficaria preso na opção escolhida). `POST /proposals/live-search` já embute as
+  facetas na resposta (evita 2ª chamada a cada tecla).
+- **Resumo** — `GET /proposals/summary`: cards (valor conveniado/desembolsado/empenhado/
+  a utilizar, convênios iniciados e em execução, oportunidades abertas), série
+  aprovado × desembolsado por ano, pipeline por situação e convênios vigentes com % de
+  desembolso. Web: `app/panel/funding/summary`.
+- **Relatório** — `GET /proposals/report.csv` e `GET /transfers/amendments/report.csv`
+  (CSV `;` + BOM, abre no Excel) exportam exatamente o recorte da tela.
+- **Emendas parlamentares** — lente sobre os repasses com `emenda=True`, não uma aba de
+  fonte: `GET /transfers/amendments/summary` (cards empenhado/pago e % executado, evolução
+  anual, distribuição por modalidade e por área/função, ranking de parlamentares, lista
+  detalhada e `opcoes` dos filtros). Filtros: modalidade, ano, parlamentar, órgão, busca.
+  O connector `emendas` passou a guardar em `detalhe` o que a tela precisa (parlamentar,
+  partido, `tipoEmenda`, função/subfunção, ano, empenhado/liquidado/pago). Web:
+  `app/panel/transfers/amendments`. As opções dos dropdowns vêm do universo do território
+  (sem os filtros aplicados) — escolher um parlamentar não esvazia a lista.
+- **Web (captação)** — barra com busca, chips de natureza jurídica, chips
+  cadastrada/disponível, dropdowns por faceta (modalidade/órgão/qualificação/situação/
+  ano/fonte), ordenação, **filtros ativos** com remoção individual e "limpar tudo", e
+  "Baixar relatório". `PropostaRead` ganhou os computados `natureza_juridica`,
+  `prazo_final` e `dias_restantes` (contador de prazo na lista).

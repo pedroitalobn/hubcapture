@@ -165,10 +165,7 @@ async def live_search(
     municipio: str | None = None,
     fonte: str | None = None,
     area: str | None = None,
-    situacao: str | None = None,
-    valor_min=None,
-    valor_max=None,
-    tipo: str | None = None,
+    **filtros,
 ):
     """Coleta ao vivo nas fontes relevantes e devolve (propostas, status_fontes)."""
     from ..models.preferencias import PreferenciasUsuario
@@ -211,13 +208,6 @@ async def live_search(
                 )
 
     rows = await propostas_service.listar(
-        session,
-        municipio=municipio,
-        fonte=fonte,
-        situacao=situacao,
-        area=area,
-        valor_min=valor_min,
-        valor_max=valor_max,
-        tipo=tipo,
+        session, municipio=municipio, fonte=fonte, area=area, **filtros
     )
     return rows, status_fontes

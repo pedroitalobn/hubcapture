@@ -17,8 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.users import current_active_user
 from ...models.usuario import Usuario
-from ...schemas.proposta import PropostaRead
+from ...schemas.proposta import PropostaRead, PropostasFacetas
 from ...services import consulta_avulsa as service
+from ...services import propostas as propostas_service
 from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
@@ -37,9 +38,20 @@ class LiveSearchRequest(BaseModel):
     fonte: str | None = None
     area: str | None = None
     situacao: str | None = None
+    modalidade: str | None = Field(default=None, description="tipo de instrumento")
+    orgao: str | None = Field(default=None, description="órgão/ministério concedente")
+    natureza_juridica: str | None = Field(
+        default=None, description="municipal | estadual_df | consorcio | empresa_publica | osc"
+    )
+    qualificacao: str | None = Field(default=None, description="tipo de transferência")
+    ano: str | None = Field(default=None, max_length=4)
+    q: str | None = Field(default=None, description="busca por programa, órgão ou código")
     valor_min: Decimal | None = Field(default=None, ge=0)
     valor_max: Decimal | None = Field(default=None, ge=0)
     tipo: str | None = Field(default=None, pattern="^(cadastrada|disponivel)$")
+    ordenar: str | None = Field(
+        default=None, pattern="^(recentes|prazo|prazo_distante|nome|orgao|valor)$"
+    )
 
 
 class FonteStatus(BaseModel):
@@ -52,6 +64,8 @@ class FonteStatus(BaseModel):
 class LiveSearchResponse(BaseModel):
     propostas: list[PropostaRead]
     fontes: list[FonteStatus]
+    # opções dos dropdowns já do recorte recém-coletado (evita 2ª chamada)
+    facetas: PropostasFacetas
 
 
 @router.post("/proposals/live-search", response_model=LiveSearchResponse)
@@ -60,18 +74,28 @@ async def live_search_endpoint(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> LiveSearchResponse:
+    filtros = body.model_dump(exclude={"municipio_ibge"})
     rows, status_fontes = await service.live_search(
+        session, usuario_id=user.id, municipio=body.municipio_ibge, **filtros
+    )
+    facetas = await propostas_service.facetas(
         session,
-        usuario_id=user.id,
         municipio=body.municipio_ibge,
-        fonte=body.fonte,
         area=body.area,
-        situacao=body.situacao,
+        q=body.q,
         valor_min=body.valor_min,
         valor_max=body.valor_max,
+        fonte=body.fonte,
+        situacao=body.situacao,
+        modalidade=body.modalidade,
+        orgao=body.orgao,
+        natureza_juridica=body.natureza_juridica,
+        qualificacao=body.qualificacao,
+        ano=body.ano,
         tipo=body.tipo,
     )
     return LiveSearchResponse(
         propostas=[PropostaRead.model_validate(r) for r in rows],
         fontes=[FonteStatus(**s) for s in status_fontes],
+        facetas=PropostasFacetas.model_validate(facetas),
     )

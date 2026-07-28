@@ -739,6 +739,94 @@
         "title": "ConhecimentoCreate",
         "type": "object"
       },
+      "ConvenioVigente": {
+        "description": "Convênio em execução com o percentual já desembolsado.",
+        "properties": {
+          "desembolsado": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Desembolsado",
+            "type": "string"
+          },
+          "dias_restantes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dias Restantes"
+          },
+          "fim_vigencia": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fim Vigencia"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "modalidade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modalidade"
+          },
+          "orgao_superior": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgao Superior"
+          },
+          "percentual_desembolso": {
+            "title": "Percentual Desembolso",
+            "type": "number"
+          },
+          "titulo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Titulo"
+          },
+          "valor_global": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Global",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "valor_global",
+          "desembolsado",
+          "percentual_desembolso"
+        ],
+        "title": "ConvenioVigente",
+        "type": "object"
+      },
       "ConviteCreate": {
         "properties": {
           "email": {
@@ -926,6 +1014,190 @@
         "title": "DimensaoResumo",
         "type": "object"
       },
+      "DistribuicaoItem": {
+        "description": "Fatia de uma distribuição (por modalidade ou por área/função).",
+        "properties": {
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "quantidade": {
+            "title": "Quantidade",
+            "type": "integer"
+          },
+          "valor": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chave",
+          "valor",
+          "quantidade"
+        ],
+        "title": "DistribuicaoItem",
+        "type": "object"
+      },
+      "EmendaItem": {
+        "description": "Uma emenda que beneficiou o município, achatada para a tela.",
+        "properties": {
+          "ano": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ano"
+          },
+          "area": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
+          },
+          "codigo": {
+            "title": "Codigo",
+            "type": "string"
+          },
+          "data_repasse": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Repasse"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "empenhado": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Empenhado",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "modalidade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modalidade"
+          },
+          "municipio_nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Nome"
+          },
+          "numero": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero"
+          },
+          "orgao_superior": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgao Superior"
+          },
+          "pago": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Pago",
+            "type": "string"
+          },
+          "parlamentar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parlamentar"
+          },
+          "partido": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partido"
+          },
+          "percentual_executado": {
+            "title": "Percentual Executado",
+            "type": "number"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          }
+        },
+        "required": [
+          "id",
+          "codigo",
+          "empenhado",
+          "pago",
+          "percentual_executado"
+        ],
+        "title": "EmendaItem",
+        "type": "object"
+      },
       "ErrorModel": {
         "properties": {
           "detail": {
@@ -947,6 +1219,30 @@
           "detail"
         ],
         "title": "ErrorModel",
+        "type": "object"
+      },
+      "FacetaOpcao": {
+        "description": "Uma opção de filtro com o número de propostas no recorte atual.",
+        "properties": {
+          "rotulo": {
+            "title": "Rotulo",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "valor": {
+            "title": "Valor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "valor",
+          "rotulo",
+          "total"
+        ],
+        "title": "FacetaOpcao",
         "type": "object"
       },
       "FavoritoCreate": {
@@ -1099,6 +1395,18 @@
       "LiveSearchRequest": {
         "description": "Filtros da busca. Tudo opcional — sem município, usa os do perfil.",
         "properties": {
+          "ano": {
+            "anyOf": [
+              {
+                "maxLength": 4,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ano"
+          },
           "area": {
             "anyOf": [
               {
@@ -1121,6 +1429,18 @@
             ],
             "title": "Fonte"
           },
+          "modalidade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "tipo de instrumento",
+            "title": "Modalidade"
+          },
           "municipio_ibge": {
             "anyOf": [
               {
@@ -1134,6 +1454,66 @@
             ],
             "description": "código IBGE",
             "title": "Municipio Ibge"
+          },
+          "natureza_juridica": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "municipal | estadual_df | consorcio | empresa_publica | osc",
+            "title": "Natureza Juridica"
+          },
+          "ordenar": {
+            "anyOf": [
+              {
+                "pattern": "^(recentes|prazo|prazo_distante|nome|orgao|valor)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ordenar"
+          },
+          "orgao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "órgão/ministério concedente",
+            "title": "Orgao"
+          },
+          "q": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "busca por programa, órgão ou código",
+            "title": "Q"
+          },
+          "qualificacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "tipo de transferência",
+            "title": "Qualificacao"
           },
           "situacao": {
             "anyOf": [
@@ -1196,6 +1576,9 @@
       },
       "LiveSearchResponse": {
         "properties": {
+          "facetas": {
+            "$ref": "#/components/schemas/PropostasFacetas"
+          },
           "fontes": {
             "items": {
               "$ref": "#/components/schemas/FonteStatus"
@@ -1213,7 +1596,8 @@
         },
         "required": [
           "propostas",
-          "fontes"
+          "fontes",
+          "facetas"
         ],
         "title": "LiveSearchResponse",
         "type": "object"
@@ -2214,6 +2598,45 @@
         "title": "OnboardingResponse",
         "type": "object"
       },
+      "OpcoesEmendas": {
+        "description": "Valores disponíveis para os filtros da tela (só o que existe).",
+        "properties": {
+          "anos": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Anos",
+            "type": "array"
+          },
+          "modalidades": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Modalidades",
+            "type": "array"
+          },
+          "orgaos": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Orgaos",
+            "type": "array"
+          },
+          "parlamentares": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Parlamentares",
+            "type": "array"
+          }
+        },
+        "title": "OpcoesEmendas",
+        "type": "object"
+      },
       "PastaCreate": {
         "properties": {
           "cor": {
@@ -2384,6 +2807,31 @@
           }
         },
         "title": "PerfilRead",
+        "type": "object"
+      },
+      "PipelineItem": {
+        "description": "Etapa do pipeline de propostas (agrupado por situação da fonte).",
+        "properties": {
+          "quantidade": {
+            "title": "Quantidade",
+            "type": "integer"
+          },
+          "situacao": {
+            "title": "Situacao",
+            "type": "string"
+          },
+          "valor": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "situacao",
+          "quantidade",
+          "valor"
+        ],
+        "title": "PipelineItem",
         "type": "object"
       },
       "PlanoCreate": {
@@ -2642,6 +3090,19 @@
             ],
             "title": "Data Atualizacao Fonte"
           },
+          "dias_restantes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Dias até o prazo final (negativo = vencido); None sem prazo.",
+            "readOnly": true,
+            "title": "Dias Restantes"
+          },
           "emenda": {
             "anyOf": [
               {
@@ -2722,6 +3183,19 @@
             ],
             "title": "Municipio Nome"
           },
+          "natureza_juridica": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Slug da natureza jurídica elegível ('municipal', 'consorcio'…).",
+            "readOnly": true,
+            "title": "Natureza Juridica"
+          },
           "numero_proposta": {
             "anyOf": [
               {
@@ -2766,6 +3240,20 @@
               }
             ],
             "title": "Pendencias"
+          },
+          "prazo_final": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Prazo mais próximo declarado (alimenta o contador do card).",
+            "readOnly": true,
+            "title": "Prazo Final"
           },
           "prazos": {
             "anyOf": [
@@ -2869,9 +3357,125 @@
           "id",
           "fonte",
           "id_externo",
-          "tipo"
+          "tipo",
+          "natureza_juridica",
+          "prazo_final",
+          "dias_restantes"
         ],
         "title": "PropostaRead",
+        "type": "object"
+      },
+      "PropostasFacetas": {
+        "description": "Opções por dimensão de filtro — o que existe no território consultado.",
+        "properties": {
+          "ano": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FacetaOpcao"
+            },
+            "title": "Ano",
+            "type": "array"
+          },
+          "fonte": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FacetaOpcao"
+            },
+            "title": "Fonte",
+            "type": "array"
+          },
+          "modalidade": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FacetaOpcao"
+            },
+            "title": "Modalidade",
+            "type": "array"
+          },
+          "natureza_juridica": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FacetaOpcao"
+            },
+            "title": "Natureza Juridica",
+            "type": "array"
+          },
+          "orgao": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FacetaOpcao"
+            },
+            "title": "Orgao",
+            "type": "array"
+          },
+          "qualificacao": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FacetaOpcao"
+            },
+            "title": "Qualificacao",
+            "type": "array"
+          },
+          "situacao": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FacetaOpcao"
+            },
+            "title": "Situacao",
+            "type": "array"
+          },
+          "tipo": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FacetaOpcao"
+            },
+            "title": "Tipo",
+            "type": "array"
+          }
+        },
+        "title": "PropostasFacetas",
+        "type": "object"
+      },
+      "RankingParlamentar": {
+        "description": "Linha do ranking de parlamentares que destinaram recursos ao município.",
+        "properties": {
+          "emendas": {
+            "title": "Emendas",
+            "type": "integer"
+          },
+          "empenhado": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Empenhado",
+            "type": "string"
+          },
+          "pago": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Pago",
+            "type": "string"
+          },
+          "parlamentar": {
+            "title": "Parlamentar",
+            "type": "string"
+          },
+          "partido": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partido"
+          }
+        },
+        "required": [
+          "parlamentar",
+          "empenhado",
+          "pago",
+          "emendas"
+        ],
+        "title": "RankingParlamentar",
         "type": "object"
       },
       "RefreshRequest": {
@@ -3086,6 +3690,197 @@
         "title": "RepassesPorDia",
         "type": "object"
       },
+      "ResumoAno": {
+        "description": "Barra do gráfico aprovado × desembolsado por ano.",
+        "properties": {
+          "ano": {
+            "title": "Ano",
+            "type": "string"
+          },
+          "aprovado": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Aprovado",
+            "type": "string"
+          },
+          "desembolsado": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Desembolsado",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ano",
+          "aprovado",
+          "desembolsado"
+        ],
+        "title": "ResumoAno",
+        "type": "object"
+      },
+      "ResumoCaptacao": {
+        "description": "Resumo consolidado: cards, série anual, pipeline e convênios vigentes.",
+        "properties": {
+          "cards": {
+            "$ref": "#/components/schemas/ResumoCards"
+          },
+          "convenios_vigentes": {
+            "items": {
+              "$ref": "#/components/schemas/ConvenioVigente"
+            },
+            "title": "Convenios Vigentes",
+            "type": "array"
+          },
+          "pipeline": {
+            "items": {
+              "$ref": "#/components/schemas/PipelineItem"
+            },
+            "title": "Pipeline",
+            "type": "array"
+          },
+          "por_ano": {
+            "items": {
+              "$ref": "#/components/schemas/ResumoAno"
+            },
+            "title": "Por Ano",
+            "type": "array"
+          }
+        },
+        "required": [
+          "cards",
+          "por_ano",
+          "pipeline",
+          "convenios_vigentes"
+        ],
+        "title": "ResumoCaptacao",
+        "type": "object"
+      },
+      "ResumoCards": {
+        "description": "Cartões financeiros do topo do resumo.",
+        "properties": {
+          "convenios_em_execucao": {
+            "title": "Convenios Em Execucao",
+            "type": "integer"
+          },
+          "convenios_iniciados": {
+            "title": "Convenios Iniciados",
+            "type": "integer"
+          },
+          "oportunidades_abertas": {
+            "title": "Oportunidades Abertas",
+            "type": "integer"
+          },
+          "transferencias": {
+            "title": "Transferencias",
+            "type": "integer"
+          },
+          "valor_a_utilizar": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor A Utilizar",
+            "type": "string"
+          },
+          "valor_conveniado": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Conveniado",
+            "type": "string"
+          },
+          "valor_desembolsado": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Desembolsado",
+            "type": "string"
+          },
+          "valor_empenhado": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Empenhado",
+            "type": "string"
+          }
+        },
+        "required": [
+          "valor_conveniado",
+          "valor_desembolsado",
+          "valor_empenhado",
+          "valor_a_utilizar",
+          "transferencias",
+          "convenios_iniciados",
+          "convenios_em_execucao",
+          "oportunidades_abertas"
+        ],
+        "title": "ResumoCards",
+        "type": "object"
+      },
+      "ResumoEmendas": {
+        "description": "Painel de emendas: cards, gráficos, ranking, lista e opções de filtro.",
+        "properties": {
+          "emendas": {
+            "title": "Emendas",
+            "type": "integer"
+          },
+          "empenhado": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Empenhado",
+            "type": "string"
+          },
+          "itens": {
+            "items": {
+              "$ref": "#/components/schemas/EmendaItem"
+            },
+            "title": "Itens",
+            "type": "array"
+          },
+          "opcoes": {
+            "$ref": "#/components/schemas/OpcoesEmendas"
+          },
+          "pago": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Pago",
+            "type": "string"
+          },
+          "percentual_executado": {
+            "title": "Percentual Executado",
+            "type": "number"
+          },
+          "por_ano": {
+            "items": {
+              "$ref": "#/components/schemas/SerieAnoEmendas"
+            },
+            "title": "Por Ano",
+            "type": "array"
+          },
+          "por_area": {
+            "items": {
+              "$ref": "#/components/schemas/DistribuicaoItem"
+            },
+            "title": "Por Area",
+            "type": "array"
+          },
+          "por_modalidade": {
+            "items": {
+              "$ref": "#/components/schemas/DistribuicaoItem"
+            },
+            "title": "Por Modalidade",
+            "type": "array"
+          },
+          "ranking_parlamentares": {
+            "items": {
+              "$ref": "#/components/schemas/RankingParlamentar"
+            },
+            "title": "Ranking Parlamentares",
+            "type": "array"
+          }
+        },
+        "required": [
+          "empenhado",
+          "pago",
+          "percentual_executado",
+          "emendas",
+          "por_ano",
+          "por_modalidade",
+          "por_area",
+          "ranking_parlamentares",
+          "itens",
+          "opcoes"
+        ],
+        "title": "ResumoEmendas",
+        "type": "object"
+      },
       "SecaoResumo": {
         "properties": {
           "a_comprovar": {
@@ -3117,6 +3912,32 @@
           "desativados"
         ],
         "title": "SecaoResumo",
+        "type": "object"
+      },
+      "SerieAnoEmendas": {
+        "description": "Ponto do gráfico de evolução anual (pago × empenhado).",
+        "properties": {
+          "ano": {
+            "title": "Ano",
+            "type": "string"
+          },
+          "empenhado": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Empenhado",
+            "type": "string"
+          },
+          "pago": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Pago",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ano",
+          "empenhado",
+          "pago"
+        ],
+        "title": "SerieAnoEmendas",
         "type": "object"
       },
       "SituacaoResumo": {
@@ -6320,6 +7141,113 @@
             }
           },
           {
+            "description": "tipo de instrumento",
+            "in": "query",
+            "name": "modalidade",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "tipo de instrumento",
+              "title": "Modalidade"
+            }
+          },
+          {
+            "description": "órgão/ministério concedente",
+            "in": "query",
+            "name": "orgao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "órgão/ministério concedente",
+              "title": "Orgao"
+            }
+          },
+          {
+            "description": "municipal | estadual_df | consorcio | empresa_publica | osc",
+            "in": "query",
+            "name": "natureza_juridica",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "municipal | estadual_df | consorcio | empresa_publica | osc",
+              "title": "Natureza Juridica"
+            }
+          },
+          {
+            "description": "tipo de transferência",
+            "in": "query",
+            "name": "qualificacao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "tipo de transferência",
+              "title": "Qualificacao"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ano",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 4,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ano"
+            }
+          },
+          {
+            "description": "busca por programa, órgão ou código",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "busca por programa, órgão ou código",
+              "title": "Q"
+            }
+          },
+          {
             "in": "query",
             "name": "valor_min",
             "required": false,
@@ -6376,6 +7304,25 @@
                 }
               ],
               "title": "Tipo"
+            }
+          },
+          {
+            "description": "mais recentes · prazo (próximo/distante) · nome A-Z · órgão A-Z · valor",
+            "in": "query",
+            "name": "ordenar",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(recentes|prazo|prazo_distante|nome|orgao|valor)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "mais recentes · prazo (próximo/distante) · nome A-Z · órgão A-Z · valor",
+              "title": "Ordenar"
             }
           }
         ],
@@ -6471,6 +7418,279 @@
         ]
       }
     },
+    "/api/v1/proposals/facets": {
+      "get": {
+        "description": "Opções de cada filtro com contagem — alimenta os dropdowns da tela.",
+        "operationId": "facetas_propostas_api_v1_proposals_facets_get",
+        "parameters": [
+          {
+            "description": "código IBGE (7 dígitos)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "código IBGE (7 dígitos)",
+              "title": "Municipio"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fonte"
+            }
+          },
+          {
+            "description": "área de interesse (saude, educacao…)",
+            "in": "query",
+            "name": "area",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "área de interesse (saude, educacao…)",
+              "title": "Area"
+            }
+          },
+          {
+            "in": "query",
+            "name": "situacao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Situacao"
+            }
+          },
+          {
+            "description": "tipo de instrumento",
+            "in": "query",
+            "name": "modalidade",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "tipo de instrumento",
+              "title": "Modalidade"
+            }
+          },
+          {
+            "description": "órgão/ministério concedente",
+            "in": "query",
+            "name": "orgao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "órgão/ministério concedente",
+              "title": "Orgao"
+            }
+          },
+          {
+            "description": "municipal | estadual_df | consorcio | empresa_publica | osc",
+            "in": "query",
+            "name": "natureza_juridica",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "municipal | estadual_df | consorcio | empresa_publica | osc",
+              "title": "Natureza Juridica"
+            }
+          },
+          {
+            "description": "tipo de transferência",
+            "in": "query",
+            "name": "qualificacao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "tipo de transferência",
+              "title": "Qualificacao"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ano",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 4,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ano"
+            }
+          },
+          {
+            "description": "busca por programa, órgão ou código",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "busca por programa, órgão ou código",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "valor_min",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Valor Min"
+            }
+          },
+          {
+            "in": "query",
+            "name": "valor_max",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Valor Max"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tipo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(cadastrada|disponivel)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tipo"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropostasFacetas"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Facetas Propostas",
+        "tags": [
+          "propostas"
+        ]
+      }
+    },
     "/api/v1/proposals/live-search": {
       "post": {
         "operationId": "live_search_endpoint_api_v1_proposals_live_search_post",
@@ -6514,6 +7734,569 @@
         "summary": "Live Search Endpoint",
         "tags": [
           "proposals"
+        ]
+      }
+    },
+    "/api/v1/proposals/report.csv": {
+      "get": {
+        "description": "Baixar relatório: o mesmo recorte da tela, em CSV (';', abre no Excel).",
+        "operationId": "relatorio_propostas_api_v1_proposals_report_csv_get",
+        "parameters": [
+          {
+            "description": "código IBGE (7 dígitos)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "código IBGE (7 dígitos)",
+              "title": "Municipio"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fonte"
+            }
+          },
+          {
+            "description": "área de interesse (saude, educacao…)",
+            "in": "query",
+            "name": "area",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "área de interesse (saude, educacao…)",
+              "title": "Area"
+            }
+          },
+          {
+            "in": "query",
+            "name": "situacao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Situacao"
+            }
+          },
+          {
+            "description": "tipo de instrumento",
+            "in": "query",
+            "name": "modalidade",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "tipo de instrumento",
+              "title": "Modalidade"
+            }
+          },
+          {
+            "description": "órgão/ministério concedente",
+            "in": "query",
+            "name": "orgao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "órgão/ministério concedente",
+              "title": "Orgao"
+            }
+          },
+          {
+            "description": "municipal | estadual_df | consorcio | empresa_publica | osc",
+            "in": "query",
+            "name": "natureza_juridica",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "municipal | estadual_df | consorcio | empresa_publica | osc",
+              "title": "Natureza Juridica"
+            }
+          },
+          {
+            "description": "tipo de transferência",
+            "in": "query",
+            "name": "qualificacao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "tipo de transferência",
+              "title": "Qualificacao"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ano",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 4,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ano"
+            }
+          },
+          {
+            "description": "busca por programa, órgão ou código",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "busca por programa, órgão ou código",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "valor_min",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Valor Min"
+            }
+          },
+          {
+            "in": "query",
+            "name": "valor_max",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Valor Max"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tipo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(cadastrada|disponivel)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tipo"
+            }
+          },
+          {
+            "description": "mais recentes · prazo (próximo/distante) · nome A-Z · órgão A-Z · valor",
+            "in": "query",
+            "name": "ordenar",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(recentes|prazo|prazo_distante|nome|orgao|valor)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "mais recentes · prazo (próximo/distante) · nome A-Z · órgão A-Z · valor",
+              "title": "Ordenar"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Relatorio Propostas",
+        "tags": [
+          "propostas"
+        ]
+      }
+    },
+    "/api/v1/proposals/summary": {
+      "get": {
+        "description": "Resumo consolidado: cards financeiros, série por ano, pipeline e vigentes.",
+        "operationId": "resumo_propostas_api_v1_proposals_summary_get",
+        "parameters": [
+          {
+            "description": "código IBGE (7 dígitos)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "código IBGE (7 dígitos)",
+              "title": "Municipio"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fonte"
+            }
+          },
+          {
+            "description": "área de interesse (saude, educacao…)",
+            "in": "query",
+            "name": "area",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "área de interesse (saude, educacao…)",
+              "title": "Area"
+            }
+          },
+          {
+            "in": "query",
+            "name": "situacao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Situacao"
+            }
+          },
+          {
+            "description": "tipo de instrumento",
+            "in": "query",
+            "name": "modalidade",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "tipo de instrumento",
+              "title": "Modalidade"
+            }
+          },
+          {
+            "description": "órgão/ministério concedente",
+            "in": "query",
+            "name": "orgao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "órgão/ministério concedente",
+              "title": "Orgao"
+            }
+          },
+          {
+            "description": "municipal | estadual_df | consorcio | empresa_publica | osc",
+            "in": "query",
+            "name": "natureza_juridica",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "municipal | estadual_df | consorcio | empresa_publica | osc",
+              "title": "Natureza Juridica"
+            }
+          },
+          {
+            "description": "tipo de transferência",
+            "in": "query",
+            "name": "qualificacao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "tipo de transferência",
+              "title": "Qualificacao"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ano",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 4,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ano"
+            }
+          },
+          {
+            "description": "busca por programa, órgão ou código",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "busca por programa, órgão ou código",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "valor_min",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Valor Min"
+            }
+          },
+          {
+            "in": "query",
+            "name": "valor_max",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Valor Max"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tipo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(cadastrada|disponivel)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tipo"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumoCaptacao"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Resumo Propostas",
+        "tags": [
+          "propostas"
         ]
       }
     },
@@ -6682,6 +8465,76 @@
               ],
               "title": "Fim"
             }
+          },
+          {
+            "description": "só repasses de emenda",
+            "in": "query",
+            "name": "emenda",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "só repasses de emenda",
+              "title": "Emenda"
+            }
+          },
+          {
+            "in": "query",
+            "name": "orgao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Orgao"
+            }
+          },
+          {
+            "description": "área/função orçamentária",
+            "in": "query",
+            "name": "categoria",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "área/função orçamentária",
+              "title": "Categoria"
+            }
+          },
+          {
+            "description": "busca textual",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "busca textual",
+              "title": "Q"
+            }
           }
         ],
         "responses": {
@@ -6716,6 +8569,356 @@
           }
         ],
         "summary": "Listar Repasses",
+        "tags": [
+          "repasses"
+        ]
+      }
+    },
+    "/api/v1/transfers/amendments/report.csv": {
+      "get": {
+        "description": "Exporta a lista de emendas filtrada (CSV ';', abre no Excel).",
+        "operationId": "relatorio_emendas_api_v1_transfers_amendments_report_csv_get",
+        "parameters": [
+          {
+            "description": "código IBGE (7 dígitos)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "código IBGE (7 dígitos)",
+              "title": "Municipio"
+            }
+          },
+          {
+            "in": "query",
+            "name": "inicio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Inicio"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fim",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fim"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ano",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 4,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ano"
+            }
+          },
+          {
+            "description": "individual | bancada | comissão",
+            "in": "query",
+            "name": "modalidade",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "individual | bancada | comissão",
+              "title": "Modalidade"
+            }
+          },
+          {
+            "in": "query",
+            "name": "parlamentar",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parlamentar"
+            }
+          },
+          {
+            "in": "query",
+            "name": "orgao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Orgao"
+            }
+          },
+          {
+            "description": "busca por objeto, área, órgão ou código",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "busca por objeto, área, órgão ou código",
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Relatorio Emendas",
+        "tags": [
+          "repasses"
+        ]
+      }
+    },
+    "/api/v1/transfers/amendments/summary": {
+      "get": {
+        "description": "Painel de emendas: cards empenhado/pago, evolução anual, distribuição por\nmodalidade e por área, ranking de parlamentares e a lista detalhada.",
+        "operationId": "resumo_emendas_api_v1_transfers_amendments_summary_get",
+        "parameters": [
+          {
+            "description": "código IBGE (7 dígitos)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "código IBGE (7 dígitos)",
+              "title": "Municipio"
+            }
+          },
+          {
+            "in": "query",
+            "name": "inicio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Inicio"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fim",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fim"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ano",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 4,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ano"
+            }
+          },
+          {
+            "description": "individual | bancada | comissão",
+            "in": "query",
+            "name": "modalidade",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "individual | bancada | comissão",
+              "title": "Modalidade"
+            }
+          },
+          {
+            "in": "query",
+            "name": "parlamentar",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parlamentar"
+            }
+          },
+          {
+            "in": "query",
+            "name": "orgao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Orgao"
+            }
+          },
+          {
+            "description": "busca por objeto, área, órgão ou código",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "busca por objeto, área, órgão ou código",
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumoEmendas"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Resumo Emendas",
         "tags": [
           "repasses"
         ]

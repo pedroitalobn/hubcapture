@@ -95,7 +95,8 @@ class EmendasConnector:
         do_municipio = [r for r in linhas if _da_localidade(r, nome, uf)]
         records: list[RawRecord] = []
         for row in do_municipio:
-            id_ext = str(row.get("codigoEmenda") or row.get("id"))
+            ano = str(row.get("ano") or since.year)
+            id_ext = str(row.get("codigoEmenda") or f"{row.get('id')}-{ano}")
             records.append(
                 RawRecord(
                     source_id=self.source_id,
@@ -106,12 +107,27 @@ class EmendasConnector:
                         "data_repasse": row.get("dataPagamento"),
                         "descricao": row.get("objeto") or row.get("funcao"),
                         "categoria": row.get("funcao"),
-                        "orgao_superior": row.get("orgao"),
+                        "orgao_superior": row.get("orgao") or row.get("nomeOrgao"),
                         "natureza": "repasse",
                         "valor": row.get("valorPago"),
                         "documento": row.get("numeroEmenda"),
                         "emenda": True,
-                        "detalhe": {"autor": row.get("nomeAutor")},
+                        # o detalhe alimenta os filtros e o ranking da tela de
+                        # emendas (parlamentar, modalidade, área, execução)
+                        "detalhe": {
+                            "autor": row.get("nomeAutor") or row.get("autor"),
+                            "parlamentar": row.get("nomeAutor") or row.get("autor"),
+                            "partido": row.get("siglaPartido") or row.get("partido"),
+                            "modalidade": row.get("tipoEmenda"),
+                            "funcao": row.get("funcao"),
+                            "subfuncao": row.get("subfuncao"),
+                            "ano": ano,
+                            "codigo_emenda": row.get("codigoEmenda"),
+                            "localidade": row.get("localidadeDoGasto"),
+                            "valor_empenhado": row.get("valorEmpenhado"),
+                            "valor_liquidado": row.get("valorLiquidado"),
+                            "valor_pago": row.get("valorPago"),
+                        },
                     },
                 )
             )
