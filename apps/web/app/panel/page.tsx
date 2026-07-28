@@ -94,8 +94,8 @@ function MeuPainel() {
 
   async function carregar() {
     const [{ data: vg }, { data: nov }] = await Promise.all([
-      api.GET("/api/v1/perfil/visao-geral"),
-      api.GET("/api/v1/perfil/novidades"),
+      api.GET("/api/v1/profile/overview"),
+      api.GET("/api/v1/profile/feed"),
     ]);
     if (vg) setData(vg as VisaoGeral);
     if (nov) setNovidades(nov as Novidades);
@@ -108,8 +108,8 @@ function MeuPainel() {
     // painel informativo (notícias oficiais) + alertas não lidos — best-effort
     void (async () => {
       const [not, al] = await Promise.all([
-        api.GET("/api/v1/noticias", { params: { query: { limite: 5 } } }),
-        api.GET("/api/v1/alertas", { params: { query: { nao_lidos: true } } }),
+        api.GET("/api/v1/news", { params: { query: { limite: 5 } } }),
+        api.GET("/api/v1/alerts", { params: { query: { nao_lidos: true } } }),
       ]);
       if (not.data) setNoticias(not.data as Noticia[]);
       if (al.data) setNaoLidos((al.data as Alerta[]).length);
@@ -147,7 +147,7 @@ function MeuPainel() {
 
       {naoLidos > 0 && (
         <Link
-          href="/painel/alertas"
+          href="/panel/alerts"
           className="card card-hover flex items-center justify-between p-4 text-sm"
         >
           <span>

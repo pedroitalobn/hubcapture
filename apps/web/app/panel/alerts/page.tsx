@@ -69,11 +69,11 @@ export default function AlertasPage() {
 
   const carregar = useCallback(async () => {
     const [al, bu, pe] = await Promise.all([
-      api.GET("/api/v1/alertas", {
+      api.GET("/api/v1/alerts", {
         params: { query: { nao_lidos: soNaoLidos } },
       }),
-      api.GET("/api/v1/monitoramentos/buscas"),
-      api.GET("/api/v1/perfil"),
+      api.GET("/api/v1/monitors/searches"),
+      api.GET("/api/v1/profile"),
     ]);
     if (al.data) setAlertas(al.data as Alerta[]);
     if (bu.data) setBuscas((bu.data as Busca[]).filter((b) => b.ativo));
@@ -90,7 +90,7 @@ export default function AlertasPage() {
   // varredura ao abrir: detecta novas propostas + oportunidades e despacha
   useEffect(() => {
     void (async () => {
-      await api.POST("/api/v1/alertas/varredura");
+      await api.POST("/api/v1/alerts/scan");
       await carregar();
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -98,7 +98,7 @@ export default function AlertasPage() {
 
   async function varrer() {
     setVarrendo(true);
-    const { data } = await api.POST("/api/v1/alertas/varredura");
+    const { data } = await api.POST("/api/v1/alerts/scan");
     const n = (data as { alertas_criados?: number } | undefined)?.alertas_criados ?? 0;
     setMsg(
       n > 0
@@ -110,7 +110,7 @@ export default function AlertasPage() {
   }
 
   async function marcarLido(id: string) {
-    await api.POST("/api/v1/alertas/{alerta_id}/lido", {
+    await api.POST("/api/v1/alerts/{alerta_id}/read", {
       params: { path: { alerta_id: id } },
     });
     await carregar();
@@ -120,7 +120,7 @@ export default function AlertasPage() {
     e.preventDefault();
     const ibge = novoIbge || municipios[0]?.ibge;
     if (!ibge) return;
-    const { error } = await api.POST("/api/v1/monitoramentos/buscas", {
+    const { error } = await api.POST("/api/v1/monitors/searches", {
       body: {
         municipio_ibge: ibge,
         area: novaArea || null,
@@ -135,7 +135,7 @@ export default function AlertasPage() {
   }
 
   async function removerBusca(id: string) {
-    await api.DELETE("/api/v1/monitoramentos/buscas/{busca_id}", {
+    await api.DELETE("/api/v1/monitors/searches/{busca_id}", {
       params: { path: { busca_id: id } },
     });
     await carregar();
@@ -306,7 +306,7 @@ export default function AlertasPage() {
               <div className="flex gap-2">
                 {a.proposta_id && (
                   <Link
-                    href={`/painel/captacao/${a.proposta_id}`}
+                    href={`/panel/funding/${a.proposta_id}`}
                     className="btn btn-ghost btn-sm"
                   >
                     Abrir proposta

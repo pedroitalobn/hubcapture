@@ -51,7 +51,7 @@ export default function AdminFontesPage() {
 
   const carregar = useCallback(async () => {
     setCarregando(true);
-    const { data } = await api.GET("/api/v1/admin/fontes", {});
+    const { data } = await api.GET("/api/v1/admin/sources", {});
     if (data) setDiag(data as Diagnostico);
     setCarregando(false);
   }, []);

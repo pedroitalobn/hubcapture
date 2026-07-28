@@ -49,7 +49,7 @@ async def criar_convite(
         from ..services import config as config_service
 
         base = (await config_service.resolver("app_base_url")) or settings.app_base_url
-        url = f"{base}/aceitar-convite?token={convite.token}"
+        url = f"{base}/accept-invite?token={convite.token}"
         assunto, txt, html = templates.convite(url, convite.papel)
         await email_service.enviar(convite.email, assunto, txt, html)
     except Exception:  # noqa: BLE001 — falha de e-mail não invalida o convite

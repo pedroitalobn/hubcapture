@@ -16,7 +16,7 @@ from ..deps import get_rls_db
 router = APIRouter(tags=["propostas"])
 
 
-@router.get("/propostas", response_model=list[PropostaRead])
+@router.get("/proposals", response_model=list[PropostaRead])
 async def listar_propostas(
     municipio: str | None = Query(default=None, description="código IBGE (7 dígitos)"),
     fonte: str | None = Query(default=None),
@@ -40,7 +40,7 @@ async def listar_propostas(
     return [PropostaRead.model_validate(r) for r in rows]
 
 
-@router.get("/propostas/prazos", response_model=list[PropostaPrazo])
+@router.get("/proposals/deadlines", response_model=list[PropostaPrazo])
 async def propostas_por_prazo(
     dias: int = Query(default=30, ge=1, le=365),
     session: AsyncSession = Depends(get_rls_db),
@@ -53,7 +53,7 @@ async def propostas_por_prazo(
     ]
 
 
-@router.get("/propostas/{proposta_id}", response_model=PropostaRead)
+@router.get("/proposals/{proposta_id}", response_model=PropostaRead)
 async def obter_proposta(
     proposta_id: uuid.UUID,
     session: AsyncSession = Depends(get_rls_db),
@@ -64,7 +64,7 @@ async def obter_proposta(
     return PropostaRead.model_validate(row)
 
 
-@router.get("/propostas/{proposta_id}/pdf")
+@router.get("/proposals/{proposta_id}/pdf")
 async def exportar_pdf(
     proposta_id: uuid.UUID,
     session: AsyncSession = Depends(get_rls_db),

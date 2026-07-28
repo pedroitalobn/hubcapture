@@ -17,7 +17,7 @@ from ..deps import get_rls_db
 router = APIRouter(tags=["alertas"])
 
 
-@router.post("/alertas/varredura")
+@router.post("/alerts/scan")
 async def varredura_alertas(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
@@ -28,7 +28,7 @@ async def varredura_alertas(
     return {"alertas_criados": criados}
 
 
-@router.get("/alertas", response_model=list[AlertaRead])
+@router.get("/alerts", response_model=list[AlertaRead])
 async def listar_alertas(
     nao_lidos: bool = Query(default=False),
     user: Usuario = Depends(current_active_user),
@@ -38,7 +38,7 @@ async def listar_alertas(
     return [AlertaRead.model_validate(r) for r in rows]
 
 
-@router.post("/alertas/{alerta_id}/lido", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/alerts/{alerta_id}/read", status_code=status.HTTP_204_NO_CONTENT)
 async def marcar_lido(
     alerta_id: uuid.UUID,
     user: Usuario = Depends(current_active_user),

@@ -12,7 +12,7 @@ from ...services import municipios as service
 router = APIRouter(tags=["municipios"])
 
 
-@router.get("/municipios", response_model=list[MunicipioBusca])
+@router.get("/municipalities", response_model=list[MunicipioBusca])
 async def buscar_municipios(
     q: str = Query(min_length=2, max_length=80),
     _user: Usuario = Depends(current_active_user),

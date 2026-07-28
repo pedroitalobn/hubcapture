@@ -1,6 +1,6 @@
 """Diagnóstico de fontes (admin) — responde "as APIs estão funcionais?".
 
-`GET /admin/fontes` roda o `health_check()` de TODOS os connectors ao vivo (em
+`GET /admin/sources` roda o `health_check()` de TODOS os connectors ao vivo (em
 paralelo, com timeout individual) e junta a última execução de coleta por fonte
 (`sync_runs`) + o estado dos providers de scraping/IA. É o raio-X da ingestão
 em produção: o admin vê na hora qual fonte responde, qual falha e o que falta
@@ -37,7 +37,7 @@ async def _health(fonte: str) -> bool:
         return False
 
 
-@router.get("/admin/fontes", response_model=DiagnosticoFontes)
+@router.get("/admin/sources", response_model=DiagnosticoFontes)
 async def diagnostico_fontes(
     _admin: Usuario = Depends(current_superuser),
     session: AsyncSession = Depends(get_platform_db),

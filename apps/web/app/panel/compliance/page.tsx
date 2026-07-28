@@ -51,7 +51,7 @@ export default function ConformidadePage() {
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const { data: d, error } = await api.GET("/api/v1/conformidade", {
+    const { data: d, error } = await api.GET("/api/v1/compliance", {
       params: { query: {} },
     });
     if (!error) setData(d as Resumo);
@@ -66,7 +66,7 @@ export default function ConformidadePage() {
     e.preventDefault();
     setMsg(null);
     setSinc(true);
-    const { error } = await api.POST("/api/v1/conformidade/sync", {
+    const { error } = await api.POST("/api/v1/compliance/sync", {
       body: { municipio_ibge: ibge },
     });
     setMsg(

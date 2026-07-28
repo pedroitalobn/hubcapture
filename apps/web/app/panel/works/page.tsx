@@ -111,7 +111,7 @@ export default function ObrasPage() {
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const { data: d, error } = await api.GET("/api/v1/obras/resumo", {
+    const { data: d, error } = await api.GET("/api/v1/works/summary", {
       params: { query: {} },
     });
     if (!error) setData(d as Resumo);
@@ -126,7 +126,7 @@ export default function ObrasPage() {
     e.preventDefault();
     setMsg(null);
     setSinc(true);
-    const { data: r, error } = await api.POST("/api/v1/obras/sync", {
+    const { data: r, error } = await api.POST("/api/v1/works/sync", {
       body: { municipio_ibge: ibge },
     });
     const gravados = (r as { gravados?: number } | undefined)?.gravados ?? 0;

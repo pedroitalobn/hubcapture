@@ -40,8 +40,8 @@ export default function AdminConvitesPage() {
 
   const carregar = useCallback(async () => {
     const [c, p] = await Promise.all([
-      api.GET("/api/v1/admin/convites", {}),
-      api.GET("/api/v1/planos", {}),
+      api.GET("/api/v1/admin/invites", {}),
+      api.GET("/api/v1/plans", {}),
     ]);
     if (!c.error) setConvites((c.data as Convite[]) ?? []);
     if (!p.error) setPlanos((p.data as Plano[]) ?? []);
@@ -58,7 +58,7 @@ export default function AdminConvitesPage() {
       setMsg("Faça login como administrador.");
       return;
     }
-    const { error } = await api.POST("/api/v1/admin/convites", {
+    const { error } = await api.POST("/api/v1/admin/invites", {
       body: {
         email,
         papel: papel || null,
@@ -78,7 +78,7 @@ export default function AdminConvitesPage() {
   }
 
   function linkConvite(token: string): string {
-    return `${window.location.origin}/aceitar-convite?token=${token}`;
+    return `${window.location.origin}/accept-invite?token=${token}`;
   }
 
   async function copiar(token: string) {
