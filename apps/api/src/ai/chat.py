@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 
-from ..services import config as config_service
+from ..services import llm_providers
 
 SYSTEM = (
     "Você é o assistente do Hub Capture, especialista em transferências e repasses "
@@ -33,34 +33,29 @@ def _fallback(contexto: str) -> str:
 
 
 async def responder(contexto: str, pergunta: str, papel: str = "executivo") -> str:
-    api_key = await config_service.resolver("llm_api_key")
-    if not api_key:
+    params = await llm_providers.params_para("llm_model_chat", "claude-sonnet-5")
+    if params is None:
         return _fallback(contexto)
-    modelo = await config_service.resolver("llm_model_chat") or "claude-sonnet-5"
     try:
         import litellm
     except ImportError:
         return _fallback(contexto)
-    resp = await litellm.acompletion(
-        model=modelo, api_key=api_key, messages=_mensagens(contexto, pergunta, papel)
-    )
+    resp = await litellm.acompletion(**params, messages=_mensagens(contexto, pergunta, papel))
     return resp["choices"][0]["message"]["content"]
 
 
 async def stream(contexto: str, pergunta: str, papel: str = "executivo") -> AsyncIterator[str]:
-    api_key = await config_service.resolver("llm_api_key")
-    if not api_key:
+    params = await llm_providers.params_para("llm_model_chat", "claude-sonnet-5")
+    if params is None:
         yield _fallback(contexto)
         return
-    modelo = await config_service.resolver("llm_model_chat") or "claude-sonnet-5"
     try:
         import litellm
     except ImportError:
         yield _fallback(contexto)
         return
     resposta = await litellm.acompletion(
-        model=modelo,
-        api_key=api_key,
+        **params,
         messages=_mensagens(contexto, pergunta, papel),
         stream=True,
     )

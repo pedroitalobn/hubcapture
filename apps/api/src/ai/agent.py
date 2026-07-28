@@ -5,8 +5,9 @@ O LLM não recebe um contexto pré-montado: ele DECIDE quais ferramentas chamar
 cada executor roda na MESMA sessão RLS do usuário — o agente só enxerga o
 território do tenant, por construção.
 
-Degradação: sem `llm_api_key`, um roteador por palavra-chave escolhe a
-ferramenta mais provável e devolve o dado formatado (o island continua útil).
+Degradação: sem nenhuma chave de LLM no painel, um roteador por palavra-chave
+escolhe a ferramenta mais provável e devolve o dado formatado (o island continua
+útil).
 
 `executar()` produz eventos p/ SSE: {"tool": nome} a cada chamada de ferramenta
 e {"delta": texto} com a resposta. O loop de tools roda ANTES do streaming da
@@ -24,12 +25,11 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.usuario import Usuario
-from ..services import config as config_service
 from ..services import conformidade as conformidade_service
+from ..services import llm_providers, rag
 from ..services import noticias as noticias_service
 from ..services import obras as obras_service
 from ..services import propostas as propostas_service
-from ..services import rag
 from ..services import repasses as repasses_service
 
 MAX_RODADAS = 4
@@ -340,14 +340,14 @@ async def executar(
     session: AsyncSession, usuario: Usuario, pergunta: str
 ) -> AsyncIterator[dict[str, Any]]:
     """Loop do agente. Eventos: {'tool': nome} e {'delta': texto}."""
-    api_key = await config_service.resolver("llm_api_key")
-    if api_key:
+    params = await llm_providers.params_para("llm_model_chat", "claude-sonnet-5")
+    if params is not None:
         try:
             import litellm  # noqa: F401
         except ImportError:
-            api_key = None
+            params = None
 
-    if not api_key:
+    if params is None:
         nome = escolher_tool_fallback(pergunta)
         yield {"tool": nome}
         dado = await _executar_tool(session, usuario, nome, {})
@@ -356,7 +356,6 @@ async def executar(
 
     import litellm
 
-    modelo = await config_service.resolver("llm_model_chat") or "claude-sonnet-5"
     hoje = date.today().isoformat()
     mensagens: list[dict] = [
         {
@@ -367,9 +366,7 @@ async def executar(
     ]
 
     for _ in range(MAX_RODADAS):
-        resp = await litellm.acompletion(
-            model=modelo, api_key=api_key, messages=mensagens, tools=_tools_openai()
-        )
+        resp = await litellm.acompletion(**params, messages=mensagens, tools=_tools_openai())
         msg = resp["choices"][0]["message"]
         tool_calls = msg.get("tool_calls") or []
         if not tool_calls:
@@ -395,5 +392,5 @@ async def executar(
             )
 
     # estourou as rodadas: força resposta final sem tools
-    resp = await litellm.acompletion(model=modelo, api_key=api_key, messages=mensagens)
+    resp = await litellm.acompletion(**params, messages=mensagens)
     yield {"delta": resp["choices"][0]["message"].get("content") or ""}
