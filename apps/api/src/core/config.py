@@ -57,8 +57,14 @@ class Settings(BaseSettings):
     fns_consulta_url: str = "https://consultafns.saude.gov.br/"
     fnde_base_url: str = "https://www.fnde.gov.br/sigefweb/"
     serpro_base_url: str = "https://gateway.apiserpro.serpro.gov.br/"
-    # Painel público do SERPRO (Qlik, JS pesado) — extração via scraping headless
-    serpro_painel_url: str = "https://dd-publico.serpro.gov.br/extensions/painel/painel.html"
+    # Painel público do SERPRO (Qlik, JS pesado) — extração via scraping headless.
+    # Visão Geral do TransfereGov: dados ricos que a API pública não expõe;
+    # coleta combinada = API primeiro, painel enriquece/faz fallback.
+    serpro_painel_url: str = (
+        "https://dd-publico.serpro.gov.br/extensions/painel/TransferegovbrVisaoGeral.html"
+    )
+    # Painel informativo — notícias oficiais (RSS do gov.br)
+    transferegov_noticias_url: str = "https://www.gov.br/transferegov/pt-br/noticias/noticias/RSS"
     # Conformidade fiscal (CAUC/CAPAG) — CSV do Tesouro Transparente
     siconfi_csv_url: str = "https://www.tesourotransparente.gov.br/ckan/dataset/cauc/"
     # Obras (execução) — SISMOB (saúde), SIMEC (educação), CAIXA/SIORB (infra)

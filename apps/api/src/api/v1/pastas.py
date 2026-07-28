@@ -59,6 +59,16 @@ async def atualizar_pasta(
     return PastaRead.model_validate(pasta)
 
 
+@router.get("/pastas/{pasta_id}/propostas", response_model=list[uuid.UUID])
+async def listar_propostas_da_pasta(
+    pasta_id: uuid.UUID,
+    user: Usuario = Depends(current_active_user),
+    session: AsyncSession = Depends(get_rls_db),
+) -> list[uuid.UUID]:
+    await _get_pasta_ou_404(session, user, pasta_id)
+    return await service.propostas_da_pasta(session, pasta_id)
+
+
 @router.post("/pastas/{pasta_id}/propostas", status_code=status.HTTP_201_CREATED)
 async def adicionar_proposta(
     pasta_id: uuid.UUID,

@@ -651,3 +651,42 @@ Stack completo sobe com um comando; o superadmin é criado no boot.
   alterna papel/admin/ativo inline. Backend: `GET /admin/usuarios`,
   `POST /admin/usuarios` (agora aceita `is_superuser`), `PATCH /admin/usuarios/{id}`
   (papel/is_superuser/is_active/plano). Env `ADMIN_EMAIL`/`ADMIN_PASSWORD`/`APP_BASE_URL`.
+
+## 23. Jornada completa do fluxograma — gaps fechados (v1)
+
+Fecha os gaps entre o fluxograma de jornada (5 etapas) e o produto:
+
+- **Eixo "QUE TIPO?" (cadastrada × disponível)**: derivado da `situacao` por de-para de
+  palavras-chave em `services/propostas.py::classificar_tipo` (sem coluna nova; calibrável).
+  Exposto como campo computado `tipo` no `PropostaRead` e filtro `?tipo=` em `GET /propostas`.
+- **Filtros de granularidade**: `GET /propostas` aceita `valor_min/valor_max/area/tipo`
+  (área → fontes via `AREA_FONTES`). `GET /propostas/prazos?dias=` responde "o que vence
+  na janela" (parse do jsonb `prazos`); o copiloto injeta esse contexto estruturado quando a
+  pergunta menciona prazo/vencimento (`api/v1/copiloto.py::_contexto_prazos`).
+- **Monitoramento de FUTURAS propostas**: tabela `monitoramentos_busca` (migration
+  `b1f2c3d4e5a6`, RLS por-tenant) — vigia município (+área/fonte opcional) com `canais`
+  (painel/email/wpp) e cursor `ultimo_alerta_em`. Endpoints
+  `GET/POST/DELETE /monitoramentos/buscas`. O onboarding cria uma busca por município
+  quando `monitorar_ativo`.
+- **Varredura + alerta de oportunidade** (`services/oportunidades.py`, endpoint
+  `POST /alertas/varredura`): (1) `nova_proposta` — propostas que entraram no cache após o
+  cursor das buscas ativas; (2) `oportunidade` — o alerta do fluxograma "recursos
+  disponíveis com propostas não cadastradas" (repasses da fonte X no município sem nenhuma
+  proposta da fonte X; `alertas.proposta_id` agora é nullable; dedupe por alerta não-lido).
+  Despacho best-effort por e-mail (template `alertas_resumo`) e WhatsApp (Uniq) conforme canais.
+- **Onboarding com passo "ativar avisos"**: `OnboardingRequest` ganhou
+  `telefone_wpp/optin_wpp/canais_alerta`; o chat de onboarding pergunta canais e WhatsApp
+  antes da confirmação.
+- **Enforcement de planos (3 tiers × municípios)**: `limites.municipios_max` do plano é
+  validado no onboarding (`LimitePlanoExcedido` → 403 `LIMITE_PLANO_MUNICIPIOS`).
+- **Painel informativo**: `services/noticias.py` (RSS gov.br, cache 1h, degrada p/ vazio),
+  `GET /noticias`, chave `transferegov_noticias_url` no painel admin. Widget no Meu painel.
+- **SERPRO painel**: default de `serpro_painel_url` aponta para
+  `TransferegovbrVisaoGeral.html` (dados ricos via scraping headless; API pública primeiro,
+  painel enriquece/faz fallback — coleta combinada da seção 5).
+- **Web**: captação com abas locais (várias frentes), chips cadastrada/disponíveis, filtros
+  (fonte/área/situação/valor), favoritar ★, pastas (criar/atribuir/filtrar), resumo IA na
+  lista; página de detalhe `app/painel/captacao/[id]` em seções (dados gerais, valores,
+  situação, prazos, pendências, proveniência) com monitorar/PDF; central
+  `app/painel/alertas` (varredura, marcar lido, monitorar futuras propostas) no menu;
+  card de alertas não lidos + notícias no Meu painel.

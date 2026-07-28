@@ -26,7 +26,7 @@ from src.db.session import engine as _app_engine
 _owner_engine = create_async_engine(settings.database_migrator_url, poolclass=NullPool)
 
 _TABLES = (
-    "alertas, monitoramentos, favoritos, pasta_propostas, pastas, audit_log, "
+    "alertas, monitoramentos, monitoramentos_busca, favoritos, pasta_propostas, pastas, audit_log, "
     "sync_runs, proposta_embeddings, propostas, repasses, conformidades, obras, "
     "municipios_interesse, preferencias_usuario, convites, usuarios, planos, "
     "configuracoes, base_conhecimento"
@@ -59,8 +59,13 @@ async def seed_user() -> Callable[..., Awaitable[uuid.UUID]]:
                     "is_superuser, is_verified, papel, telefone_wpp, optin_wpp) "
                     "VALUES (:id,'x',:email,true,false,false,:papel,:tel,:optin)"
                 ),
-                {"id": uid, "email": email, "papel": papel,
-                 "tel": telefone_wpp, "optin": optin_wpp},
+                {
+                    "id": uid,
+                    "email": email,
+                    "papel": papel,
+                    "tel": telefone_wpp,
+                    "optin": optin_wpp,
+                },
             )
         return uid
 
@@ -106,8 +111,14 @@ async def seed_repasse() -> Callable[..., Awaitable[None]]:
                     "natureza, data_repasse, emenda, cache_atualizado_em) "
                     "VALUES (:f,:e,:ibge,:v,:n,:d,false, now())"
                 ),
-                {"f": fonte, "e": id_externo, "ibge": ibge, "v": valor,
-                 "n": natureza, "d": date.fromisoformat(data_repasse)},
+                {
+                    "f": fonte,
+                    "e": id_externo,
+                    "ibge": ibge,
+                    "v": valor,
+                    "n": natureza,
+                    "d": date.fromisoformat(data_repasse),
+                },
             )
 
     return _seed

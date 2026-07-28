@@ -70,6 +70,12 @@ CATALOGO: list[dict] = [
     _c("serpro_base_url", "SERPRO base URL", "fonte", False),
     _c("serpro_token", "SERPRO token", "fonte", True),
     _c("serpro_painel_url", "SERPRO painel público (dd-publico, scraping)", "fonte", False),
+    _c(
+        "transferegov_noticias_url",
+        "TransfereGov notícias RSS (painel informativo)",
+        "fonte",
+        False,
+    ),
     _c("fpm_base_url", "FPM base URL", "fonte", False),
     _c("emendas_base_url", "Emendas base URL", "fonte", False),
     _c(

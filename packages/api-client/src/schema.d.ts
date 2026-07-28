@@ -146,6 +146,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/alertas/varredura": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Varredura Alertas
+         * @description Roda a detecção de novas propostas (buscas) + oportunidades e despacha
+         *     por email/WhatsApp conforme os canais. Retorna quantos alertas foram criados.
+         */
+        post: operations["varredura_alertas_api_v1_alertas_varredura_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/alertas/{alerta_id}/lido": {
         parameters: {
             query?: never;
@@ -437,6 +458,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/monitoramentos/buscas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Buscas */
+        get: operations["listar_buscas_api_v1_monitoramentos_buscas_get"];
+        put?: never;
+        /** Criar Busca */
+        post: operations["criar_busca_api_v1_monitoramentos_buscas_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoramentos/buscas/{busca_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remover Busca */
+        delete: operations["remover_busca_api_v1_monitoramentos_buscas__busca_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoramentos/{monitoramento_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remover Monitoramento */
+        delete: operations["remover_monitoramento_api_v1_monitoramentos__monitoramento_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/municipios": {
         parameters: {
             query?: never;
@@ -446,6 +519,23 @@ export interface paths {
         };
         /** Buscar Municipios */
         get: operations["buscar_municipios_api_v1_municipios_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/noticias": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Noticias */
+        get: operations["listar_noticias_api_v1_noticias_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -564,7 +654,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Listar Propostas Da Pasta */
+        get: operations["listar_propostas_da_pasta_api_v1_pastas__pasta_id__propostas_get"];
         put?: never;
         /** Adicionar Proposta */
         post: operations["adicionar_proposta_api_v1_pastas__pasta_id__propostas_post"];
@@ -689,6 +780,26 @@ export interface paths {
         };
         /** Listar Propostas */
         get: operations["listar_propostas_api_v1_propostas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/propostas/prazos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Propostas Por Prazo
+         * @description Propostas com prazo vencendo na janela — 'quais vencem este mês?'.
+         */
+        get: operations["propostas_por_prazo_api_v1_propostas_prazos_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -943,11 +1054,8 @@ export interface components {
             payload?: {
                 [key: string]: unknown;
             } | null;
-            /**
-             * Proposta Id
-             * Format: uuid
-             */
-            proposta_id: string;
+            /** Proposta Id */
+            proposta_id?: string | null;
             /** Tipo */
             tipo?: string | null;
         };
@@ -1264,6 +1372,50 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /**
+         * MonitoramentoBuscaCreate
+         * @description Monitorar FUTURAS propostas de um município (opcionalmente por área/fonte).
+         */
+        MonitoramentoBuscaCreate: {
+            /** Area */
+            area?: string | null;
+            /**
+             * Canais
+             * @default [
+             *       "painel"
+             *     ]
+             */
+            canais: string[];
+            /** Fonte */
+            fonte?: string | null;
+            /** Municipio Ibge */
+            municipio_ibge: string;
+        };
+        /** MonitoramentoBuscaRead */
+        MonitoramentoBuscaRead: {
+            /** Area */
+            area?: string | null;
+            /** Ativo */
+            ativo: boolean;
+            /** Canais */
+            canais?: string[] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Fonte */
+            fonte?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Municipio Ibge */
+            municipio_ibge: string;
+            /** Ultimo Alerta Em */
+            ultimo_alerta_em?: string | null;
+        };
         /** MonitoramentoCreate */
         MonitoramentoCreate: {
             /**
@@ -1332,6 +1484,17 @@ export interface components {
             nome?: string | null;
             /** Uf */
             uf?: string | null;
+        };
+        /** NoticiaRead */
+        NoticiaRead: {
+            /** Data */
+            data?: string | null;
+            /** Resumo */
+            resumo?: string | null;
+            /** Titulo */
+            titulo: string;
+            /** Url */
+            url: string;
         };
         /**
          * NovidadeItem
@@ -1451,6 +1614,13 @@ export interface components {
              */
             areas: string[];
             /**
+             * Canais Alerta
+             * @default [
+             *       "painel"
+             *     ]
+             */
+            canais_alerta: string[];
+            /**
              * Disparar Sync
              * @default false
              */
@@ -1467,8 +1637,12 @@ export interface components {
             monitorar_ativo: boolean;
             /** Municipios */
             municipios: components["schemas"]["MunicipioIn"][];
+            /** Optin Wpp */
+            optin_wpp?: boolean | null;
             /** Papel */
             papel?: string | null;
+            /** Telefone Wpp */
+            telefone_wpp?: string | null;
         };
         /** OnboardingResponse */
         OnboardingResponse: {
@@ -1604,6 +1778,17 @@ export interface components {
             preco_mensal?: number | string | null;
         };
         /**
+         * PropostaPrazo
+         * @description Proposta com prazos vencendo na janela consultada (visão estruturada).
+         */
+        PropostaPrazo: {
+            /** Prazos Na Janela */
+            prazos_na_janela: {
+                [key: string]: unknown;
+            }[];
+            proposta: components["schemas"]["PropostaRead"];
+        };
+        /**
          * PropostaRead
          * @description Representação da proposta devolvida pela API.
          */
@@ -1651,6 +1836,11 @@ export interface components {
             resumo_ia?: string | null;
             /** Situacao */
             situacao?: string | null;
+            /**
+             * Tipo
+             * @description Eixo da jornada: 'cadastrada' (já existe) ou 'disponivel' (oportunidade).
+             */
+            readonly tipo: string;
             /** Titulo */
             titulo?: string | null;
             /** Uf */
@@ -2289,6 +2479,28 @@ export interface operations {
             };
         };
     };
+    varredura_alertas_api_v1_alertas_varredura_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     marcar_lido_api_v1_alertas__alerta_id__lido_post: {
         parameters: {
             query?: never;
@@ -2899,6 +3111,117 @@ export interface operations {
             };
         };
     };
+    listar_buscas_api_v1_monitoramentos_buscas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoramentoBuscaRead"][];
+                };
+            };
+        };
+    };
+    criar_busca_api_v1_monitoramentos_buscas_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonitoramentoBuscaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoramentoBuscaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_busca_api_v1_monitoramentos_buscas__busca_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                busca_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_monitoramento_api_v1_monitoramentos__monitoramento_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                monitoramento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     buscar_municipios_api_v1_municipios_get: {
         parameters: {
             query: {
@@ -2917,6 +3240,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MunicipioBusca"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_noticias_api_v1_noticias_get: {
+        parameters: {
+            query?: {
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticiaRead"][];
                 };
             };
             /** @description Validation Error */
@@ -3152,6 +3506,37 @@ export interface operations {
             };
         };
     };
+    listar_propostas_da_pasta_api_v1_pastas__pasta_id__propostas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pasta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     adicionar_proposta_api_v1_pastas__pasta_id__propostas_post: {
         parameters: {
             query?: never;
@@ -3373,9 +3758,12 @@ export interface operations {
                 /** @description código IBGE (7 dígitos) */
                 municipio?: string | null;
                 fonte?: string | null;
-                /** @description reservado (áreas) — futuro */
+                /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
                 situacao?: string | null;
+                valor_min?: number | string | null;
+                valor_max?: number | string | null;
+                tipo?: string | null;
             };
             header?: never;
             path?: never;
@@ -3390,6 +3778,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PropostaRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    propostas_por_prazo_api_v1_propostas_prazos_get: {
+        parameters: {
+            query?: {
+                dias?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropostaPrazo"][];
                 };
             };
             /** @description Validation Error */
