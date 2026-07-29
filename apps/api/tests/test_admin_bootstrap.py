@@ -114,3 +114,57 @@ async def test_promover_ignora_email_diferente(monkeypatch, seed_user) -> None:
         user = (await s.execute(select(Usuario).where(Usuario.id == uid))).scalar_one()
         assert not await bootstrap.promover_se_admin_env(user)
         assert not user.is_superuser
+
+
+# ── guarda de segredo padrão no boot ────────────────────────────────────────
+def test_boot_aborta_com_segredo_padrao_em_dominio_publico() -> None:
+    import pytest
+
+    from src.core.config import Settings
+    from src.core.seguranca_boot import verificar_segredos
+
+    prod = Settings(
+        app_base_url="https://hub.exemplo.gov.br",
+        jwt_secret="troque-este-segredo-em-producao",
+        jwt_refresh_secret="troque-este-segredo-de-refresh",
+    )
+    with pytest.raises(RuntimeError, match="BOOT ABORTADO"):
+        verificar_segredos(prod)
+
+
+def test_boot_permite_segredo_padrao_no_dev_local() -> None:
+    from src.core.config import Settings
+    from src.core.seguranca_boot import verificar_segredos
+
+    dev = Settings(
+        app_base_url="http://localhost:3000",
+        jwt_secret="troque-este-segredo-em-producao",
+        jwt_refresh_secret="troque-este-segredo-de-refresh",
+    )
+    verificar_segredos(dev)  # só avisa, não levanta
+
+
+def test_boot_ok_com_segredos_fortes() -> None:
+    from src.core.config import Settings
+    from src.core.seguranca_boot import segredos_fracos, verificar_segredos
+
+    prod = Settings(
+        app_base_url="https://hub.exemplo.gov.br",
+        jwt_secret="a" * 48,
+        jwt_refresh_secret="b" * 48,
+    )
+    assert segredos_fracos(prod) == []
+    verificar_segredos(prod)
+
+
+def test_valvula_consciente_libera_homologacao() -> None:
+    from src.core.config import Settings
+    from src.core.seguranca_boot import verificar_segredos
+
+    homolog = Settings(
+        app_base_url="https://homolog.exemplo.gov.br",
+        jwt_secret="troque-este-segredo-em-producao",
+        jwt_refresh_secret="troque-este-segredo-de-refresh",
+        permitir_segredo_padrao=True,
+    )
+    verificar_segredos(homolog)  # liberado com aviso

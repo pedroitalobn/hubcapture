@@ -17,6 +17,12 @@ from .core.config import settings
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    # Segurança primeiro: em produção, segredo de token padrão aborta o boot
+    # (falha alta e explícita é melhor que sessão forjável em silêncio).
+    from .core.seguranca_boot import verificar_segredos
+
+    verificar_segredos(settings)
+
     # Bootstrap do superadmin inicial (ADMIN_EMAIL/ADMIN_PASSWORD). Best-effort:
     # falha aqui (ex.: banco ainda subindo) não impede a API de servir.
     try:

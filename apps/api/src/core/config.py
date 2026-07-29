@@ -27,8 +27,13 @@ class Settings(BaseSettings):
     db_echo: bool = False
 
     # ── Auth / JWT ───────────────────────────────────────────────────────────
+    # ATENÇÃO: estes padrões são só para o dev local. Em produção o boot é
+    # ABORTADO se continuarem (ver core/seguranca_boot.py) — quem lê o repo
+    # conseguiria forjar token de qualquer usuário.
     jwt_secret: str = "troque-este-segredo-em-producao"
     jwt_refresh_secret: str = "troque-este-segredo-de-refresh"
+    # válvula consciente p/ homologação atrás de domínio (mantém o aviso no log)
+    permitir_segredo_padrao: bool = False
     access_token_ttl: int = 900  # 15 min
     refresh_token_ttl: int = 1209600  # 14 dias
 
