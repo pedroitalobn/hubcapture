@@ -33,6 +33,7 @@ interface Novidade {
   fonte: string;
   municipio_nome?: string | null;
   href: string;
+  proposta_id?: string | null;
 }
 interface SyncRunStatus {
   fonte?: string | null;
@@ -293,10 +294,32 @@ function MeuPainel() {
             ) : (
               <ol className="card stagger divide-y divide-hairline p-0">
                 {itens.map((n, i) => (
-                  <li key={i}>
+                  <li
+                    key={i}
+                    className="flex items-center gap-2 pr-3 transition-colors hover:bg-surface-2"
+                  >
+                    {/* favoritar direto do painel (só propostas de captação) */}
+                    {n.proposta_id && (
+                      <button
+                        onClick={() => void alternarFavorita(n.proposta_id!)}
+                        aria-label="Favoritar"
+                        title={
+                          favoritas.has(n.proposta_id)
+                            ? "Desfavoritar"
+                            : "Favoritar esta proposta"
+                        }
+                        className={`shrink-0 pl-4 text-lg ${
+                          favoritas.has(n.proposta_id)
+                            ? "text-amber-500"
+                            : "text-ink-3 hover:text-amber-500"
+                        }`}
+                      >
+                        {favoritas.has(n.proposta_id) ? "★" : "☆"}
+                      </button>
+                    )}
                     <Link
                       href={n.href}
-                      className="flex flex-col gap-1 px-5 py-4 transition-colors hover:bg-surface-2 sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-1 flex-col gap-1 px-2 py-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm text-ink">{n.titulo}</p>

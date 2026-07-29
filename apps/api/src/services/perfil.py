@@ -223,6 +223,7 @@ async def novidades(
             municipio_nome=p.municipio_nome,
             # detalhe da proposta (antes ia pra lista da Captação e "sumia")
             href=f"/panel/funding/{p.id}",
+            proposta_id=str(p.id),
         )
         for p in propostas
     ] + [

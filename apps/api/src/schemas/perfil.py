@@ -74,6 +74,8 @@ class NovidadeItem(BaseModel):
     municipio_ibge: str | None = None
     municipio_nome: str | None = None
     href: str
+    # id da proposta (só p/ tipo 'captacao') — permite favoritar direto do painel
+    proposta_id: str | None = None
 
 
 class SyncRunStatus(BaseModel):
