@@ -573,9 +573,9 @@ export default function CaptacaoPage() {
           className={`inline-flex items-center rounded-t-lg border border-b-0 border-hairline px-3 py-1.5 text-sm ${
             acompanhando ? "bg-surface-2 font-medium" : "text-ink-2"
           }`}
-          title="Propostas favoritadas que você acompanha"
+          title="As propostas que você favoritou para acompanhar"
         >
-          ★ Acompanhamento
+          ★ Minhas Propostas
         </button>
         <button onClick={novaAba} className="btn btn-ghost btn-sm" title="Nova aba">
           + aba

@@ -46,11 +46,60 @@ type Proposta = {
     data_fim_vigencia?: string | null;
     tipo_transferencia?: string | null;
   } | null;
+  // registro-fonte COMPLETO (todos os campos do site de origem)
+  dados_fonte?: Record<string, unknown> | null;
 };
 
 function num(v?: string | number | null): number {
   const n = Number(v);
   return Number.isNaN(n) ? 0 : n;
+}
+
+// rótulo legível a partir da chave crua da fonte (ex.: valor_total_repasse_plano_acao
+// → "Valor total repasse"). Remove os sufixos de tabela e capitaliza.
+function humanizar(chave: string): string {
+  const limpa = chave
+    .replace(/_(plano_acao|programa|especial|convenio|beneficiario|proposta)$/g, "")
+    .replace(/_/g, " ")
+    .trim();
+  return limpa.charAt(0).toUpperCase() + limpa.slice(1);
+}
+
+function valorLegivel(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  if (typeof v === "object") return JSON.stringify(v);
+  return String(v);
+}
+
+// Renderiza TODOS os campos do registro-fonte. `dados_fonte` costuma vir agrupado
+// ({plano_acao:{...}, programa:{...}}); se um valor for objeto, vira subgrupo.
+function DadosCompletos({ dados }: { dados: Record<string, unknown> }) {
+  const grupos = Object.entries(dados).filter(
+    ([, v]) => v && typeof v === "object" && !Array.isArray(v),
+  );
+  const soltos = Object.entries(dados).filter(
+    ([, v]) => !(v && typeof v === "object" && !Array.isArray(v)),
+  );
+  const bloco = (titulo: string | null, obj: Record<string, unknown>) => {
+    const entradas = Object.entries(obj).filter(([, v]) => v !== null && v !== "");
+    if (entradas.length === 0) return null;
+    return (
+      <div key={titulo ?? "raiz"} className="mb-4 last:mb-0">
+        {titulo && <p className="field-label mb-2 font-medium">{humanizar(titulo)}</p>}
+        <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+          {entradas.map(([k, v]) => (
+            <Campo key={k} rotulo={humanizar(k)} valor={valorLegivel(v)} />
+          ))}
+        </div>
+      </div>
+    );
+  };
+  return (
+    <>
+      {soltos.length > 0 && bloco(null, Object.fromEntries(soltos))}
+      {grupos.map(([g, obj]) => bloco(g, obj as Record<string, unknown>))}
+    </>
+  );
 }
 
 function formatBRL(v?: string | null): string {
@@ -362,6 +411,16 @@ export default function PropostaDetalhePage() {
             </div>
           )}
         </Secao>
+
+        {p.dados_fonte && Object.keys(p.dados_fonte).length > 0 && (
+          <Secao titulo="Dados completos da fonte">
+            <p className="field-label mb-3 text-ink-3">
+              Todos os campos como vêm da origem — a mesma informação que você veria
+              direto no site oficial.
+            </p>
+            <DadosCompletos dados={p.dados_fonte} />
+          </Secao>
+        )}
       </div>
 
       {p.proveniencia && Object.keys(p.proveniencia).length > 0 && (

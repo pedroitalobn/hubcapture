@@ -59,6 +59,9 @@ class Proposta(Base):
     # execução financeira (TransfereGov): valor_global/empenhado/liberado/pago,
     # saldo_conta, ano, vigência — o "quanto foi disponibilizado e não usado"
     execucao: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # Registro-fonte COMPLETO (RawRecord.raw): todos os campos do site de origem,
+    # para o detalhe exibir "tudo" sem depender do subconjunto curado acima.
+    dados_fonte: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     resumo_ia: Mapped[str | None] = mapped_column(Text, nullable=True)
     hash_conteudo: Mapped[str | None] = mapped_column(String(64), nullable=True)
 

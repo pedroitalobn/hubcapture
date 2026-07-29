@@ -39,6 +39,7 @@ _UPSERT_FIELDS = (
     "url_origem",
     "proveniencia",
     "execucao",
+    "dados_fonte",
     "hash_conteudo",
 )
 
