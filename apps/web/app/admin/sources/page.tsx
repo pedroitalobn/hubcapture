@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Skeleton } from "@/components/Skeleton";
-import { api } from "@/lib/api/client";
+import { api, zerarPropostas } from "@/lib/api/client";
 
 interface UltimaColeta {
   status?: string | null;
@@ -48,12 +48,35 @@ function dataBr(iso?: string | null): string {
 export default function AdminFontesPage() {
   const [diag, setDiag] = useState<Diagnostico | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [zerando, setZerando] = useState(false);
+  const [msgLimpeza, setMsgLimpeza] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
     const { data } = await api.GET("/api/v1/admin/sources", {});
     if (data) setDiag(data as Diagnostico);
     setCarregando(false);
+  }, []);
+
+  const zerar = useCallback(async () => {
+    if (
+      !window.confirm(
+        "Zerar TODAS as propostas do sistema?\n\nIsso apaga também favoritos, " +
+          "pastas, monitoramentos e alertas ligados a elas. Use só para " +
+          "recomeçar a coleta do zero durante a validação. Não dá para desfazer.",
+      )
+    )
+      return;
+    setZerando(true);
+    setMsgLimpeza(null);
+    try {
+      const { removidas } = await zerarPropostas();
+      setMsgLimpeza(`✓ ${removidas} proposta(s) removida(s). Recarregue a Captação para coletar de novo.`);
+    } catch (e) {
+      setMsgLimpeza(`Falha: ${e instanceof Error ? e.message : "erro desconhecido"}`);
+    } finally {
+      setZerando(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -100,6 +123,29 @@ export default function AdminFontesPage() {
           {carregando ? "Testando…" : "Testar novamente"}
         </button>
       </header>
+
+      {/* Zona de manutenção — ferramenta de VALIDAÇÃO (destrutiva) */}
+      <section className="card anim-fade-up border border-red-500/30 bg-red-500/5 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-medium text-red-500">Zona de manutenção</h2>
+            <p className="mt-0.5 text-xs text-ink-2">
+              Zerar todas as propostas para recomeçar a coleta do zero durante a
+              validação. Apaga também favoritos, pastas e monitoramentos ligados.
+            </p>
+          </div>
+          <button
+            onClick={zerar}
+            disabled={zerando}
+            className="btn border border-red-500/50 text-red-500 hover:bg-red-500/10"
+          >
+            {zerando ? "Zerando…" : "Zerar todas as propostas"}
+          </button>
+        </div>
+        {msgLimpeza && (
+          <p className="mt-3 text-xs text-ink-2">{msgLimpeza}</p>
+        )}
+      </section>
 
       {carregando && !diag ? (
         <div className="flex flex-col gap-3">

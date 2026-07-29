@@ -98,6 +98,20 @@ export async function garantirSessao(): Promise<string | null> {
 export const api = createHubClient({ baseUrl: API_ORIGIN, getToken: garantirSessao });
 
 /** Baixa o PDF de uma proposta (GET autenticado → blob → download). */
+/**
+ * Zera TODAS as propostas do sistema (admin/superuser) — uso: validação da
+ * coleta. Fetch cru autenticado (a rota é temporária e não está no client
+ * tipado). As FKs são CASCADE: favoritos/pastas/monitoramentos somem junto.
+ */
+export async function zerarPropostas(): Promise<{ removidas: number }> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/admin/proposals`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+  });
+  if (!resp.ok) throw new Error(`Falha ao zerar propostas (HTTP ${resp.status})`);
+  return resp.json();
+}
+
 export async function baixarPdfProposta(id: string): Promise<void> {
   const resp = await fetch(`${API_ORIGIN}/api/v1/proposals/${id}/pdf`, {
     headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
