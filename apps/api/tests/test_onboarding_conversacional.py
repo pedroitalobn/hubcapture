@@ -107,9 +107,7 @@ async def test_novidades_sem_preferencias_mostra_tudo_do_territorio(
 
 
 def test_primeiro_sync_seleciona_fontes_pelo_perfil() -> None:
-    assert primeiro_sync._fontes_captacao(["fpm", "transferegov_ff"]) == [
-        "transferegov_ff"
-    ]
+    assert primeiro_sync._fontes_captacao(["fpm", "transferegov_ff"]) == ["transferegov_ff"]
     assert primeiro_sync._fontes_captacao([]) == ["transferegov_ff"]
     assert primeiro_sync._fontes_recebidos(["fns", "fpm"]) == ["fpm", "fns"]
     assert primeiro_sync._fontes_recebidos([]) == ["fpm", "emendas"]

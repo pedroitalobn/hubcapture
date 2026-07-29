@@ -10,9 +10,11 @@ from ...core.users import current_active_user
 from ...models.usuario import Usuario
 from ...schemas.obra import ObraRead, ObrasResumo
 from ...services import obras as service
+from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
-router = APIRouter(tags=["obras"])
+# Módulo desligável pelo painel admin: desativado → todo o eixo responde 404.
+router = APIRouter(tags=["obras"], dependencies=[Depends(require_modulo("obras"))])
 
 
 class SyncObrasRequest(BaseModel):
@@ -27,9 +29,7 @@ async def listar_obras(
     situacao: str | None = Query(default=None),
     session: AsyncSession = Depends(get_rls_db),
 ) -> list[ObraRead]:
-    rows = await service.listar(
-        session, municipio=municipio, fonte=fonte, situacao=situacao
-    )
+    rows = await service.listar(session, municipio=municipio, fonte=fonte, situacao=situacao)
     return [ObraRead.model_validate(o) for o in rows]
 
 
@@ -50,7 +50,9 @@ async def obras_sync(
     # sync_municipio é best-effort por fonte (registra erro em sync_runs e segue);
     # não lança em falha de fonte — devolve quantos registros gravou.
     n = await service.sync_municipio(
-        session, usuario_id=user.id, municipio_ibge=body.municipio_ibge,
+        session,
+        usuario_id=user.id,
+        municipio_ibge=body.municipio_ibge,
         fontes=body.fontes,
     )
     return {"gravados": n}

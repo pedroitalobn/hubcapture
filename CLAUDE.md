@@ -495,7 +495,16 @@ chave de `CONFIG_SECRET_KEY`) e **mascarados** na leitura. Catálogo de chaves e
   Firecrawl (`scraping/firecrawl.py`), o resumo IA (`ai/resumo.py`) e **todos os connectors**
   (base URL no `collect`) consultam o resolver. Plugar uma credencial no painel ativa o provider
   sem redeploy.
-- Web: `app/admin/config` (agrupado por categoria; segredos em campo password, mascarados).
+- Web: `app/admin/config` — **menu lateral por categoria** (IA · Scraping · Fontes · WhatsApp ·
+  E-mail); cada categoria mostra os provedores **ativos** e um fluxo "Adicionar provedor" para os
+  inativos (segredos em campo password, mascarados).
+- **LLMs multi-provedor** (`services/llm_providers.py`): registry cobrindo Anthropic, OpenAI,
+  Gemini, DeepSeek, Grok (xAI), Kimi (Moonshot), Qwen (Alibaba) e GLM (Z.ai), cada um com sua
+  chave (`llm_<id>_api_key`). Ao colar a API key (`PUT /admin/config/llm/{id}/chave`) os modelos
+  do provedor são listados **ao vivo** do endpoint `/models` da fonte (fallback curado se falhar)
+  — menor fricção. Modelos escolhidos são salvos como `<provider>/<modelo>` em
+  `llm_model_chat`/`llm_model_resumo`; `params_para()` resolve p/ LiteLLM (prefixo nativo ou
+  rota OpenAI-compatible + `api_base`). Valor sem prefixo conhecido = caminho legado (`llm_api_key`).
 
 ## 17. Camada de IA + WhatsApp + PDF (v1)
 
@@ -768,6 +777,12 @@ painel admin quando preciso):
   pelo IBGE — linha sem coluna de IBGE compatível é descartada (nunca ingere o
   Brasil inteiro). Mapeamento de campos genérico (valor/data/descrição por
   palavra-chave; FUNDEB/PASEP/retenção → natureza dedução).
+- **transferegov_esp / transferegov_voluntarias**: mesmo padrão do ff via
+  helper compartilhado `connectors/_postgrest.py` — descoberta de ROTA e coluna
+  de IBGE pelo OpenAPI do módulo (tabelas preferidas: plano_acao/convenio…),
+  overrides `transferegov_esp_endpoint|_ibge_field` e
+  `transferegov_voluntarias_endpoint|_ibge_field`, candidatos de coluna em 42703
+  e fallback IBGE 6 dígitos; scraping segue como fallback quando a API cai.
 - **siconfi/CAUC**: se `siconfi_csv_url` é página de dataset CKAN, resolve o
   recurso CSV real via `api/3/action/package_show` (preferindo 'cauc'; cache
   1h); colunas achadas por palavra-chave; delimitador ;/, autodetectado.
@@ -776,3 +791,96 @@ painel admin quando preciso):
   `localidadeDoGasto` com o nome do município resolvido via IBGE Localidades
   (`services/municipios.nome_uf_por_ibge`), sem acento + UF. Segue exigindo
   `emendas_api_key`.
+
+## 28. Execução financeira do TransfereGov (empenhado por município/ano)
+
+O relatório da Visão Geral do TransfereGov (22 colunas) agora é cidadão de
+primeira classe — o gestor vê "quanto foi disponibilizado (EMPENHADO) ao meu
+município e ainda não foi utilizado":
+
+- **`propostas.execucao`** (jsonb, migration `c7d8e9f0a1b2`): valor_global/
+  empenhado/liberado/pago, saldo_conta, ano, tipo_transferencia,
+  ente_recebedor, natureza_juridica, datas de assinatura/vigência. Entra no
+  hash de mudança (empenho novo → alerta) e no upsert. Fim de vigência vira
+  prazo estruturado (alimenta /proposals/deadlines e o copiloto).
+- **Normalizador** (`_montar_execucao`): aceita snake_case e os cabeçalhos do
+  relatório ("Valor Empenhado", "Saldo em Conta"…), sem acento.
+- **Fontes**: serpro (schema de extração calibrado às 22 colunas do painel) e
+  transferegov_disc (CSV nacional SIconv/detru com mapeamento por
+  palavra-chave + cache em memória 1h; incluído em CAPTACAO_FONTES).
+- **Web Captação**: cards agregados (Transferências · Valor global · Empenhado ·
+  **Empenhado a utilizar** [destaque] · Pago · Saldo em conta), filtro por ANO,
+  colunas Valor global/Empenhado (com ponto verde quando há verba parada).
+- **Web detalhe**: seção "Execução financeira — TransfereGov" com barra de
+  progresso empilhada (pago ⊂ liberado ⊂ empenhado sobre o global), os 6
+  valores, vigências e ente recebedor.
+
+## 29. Módulos da plataforma — ligar/desligar eixos pelo painel admin
+
+Cada eixo do produto (as lentes do menu profile-centric da seção 19) é um **módulo**
+que o admin liga/desliga em **runtime**, sem redeploy e sem remover código. Serve para
+lançar o Hub só com o que está maduro e reativar o resto quando a fonte estiver calibrada.
+
+**Estado inicial (decisão de produto):** `captacao`, `recebidos` e `copiloto` **ativos**;
+`conformidade` e `obras` **desativados** — a implementação continua no repositório
+(connectors, migrations, serviços, telas), apenas não é exposta.
+
+- **Registro** — `services/modulos.py::MODULOS` (chave, label, descrição, `padrao`).
+  O estado vive na tabela `configuracoes` (platform-level) sob a chave `modulo_<chave>`
+  com valor `on`/`off`; sem linha no banco vale o `padrao` do registro (nenhuma migration
+  necessária). Adicionar um módulo = mais uma entrada nesse registro.
+- **Guard de API** — `services/modulos.require_modulo(chave)` é dependency de router:
+  módulo desligado → **404 `MODULO_DESATIVADO: <chave>`** em todo o eixo. Aplicado em
+  `proposals` (captacao), `transfers` (recebidos), `compliance`, `works` e `copilot`.
+  O guard roda ANTES da autenticação (dependency de router), então o eixo simplesmente
+  não existe enquanto desligado.
+- **Endpoints admin** (`is_superuser`): `GET /admin/modules` (catálogo + estado efetivo)
+  e `PUT /admin/modules` (`{chave, ativo}`). Router `api/v1/admin_modulos.py`.
+- **Perfil** — `GET /profile` passa a devolver `modulos` (lista dos ativos) e
+  `GET /profile/overview` só agrega/retorna as dimensões dos módulos ativos (módulo
+  desligado nem é consultado no banco).
+- **Web** — `app/admin/modules` (toggle por módulo, no shell admin da seção 24); o menu
+  de `app/panel/layout.tsx` filtra os itens por `perfil.modulos`;
+  `components/ModuloGate.tsx` cobre o acesso direto por URL às telas de eixo desligado
+  (explica em vez de mostrar tela vazia).
+
+## 26b. Filtros de captação (benchmark) + resumo + emendas parlamentares
+
+Paridade de FILTROS com as plataformas concorrentes de captação, sem abrir mão da
+navegação profile-centric (§19): as fontes continuam sendo detalhe de ingestão — o que
+mudou é a granularidade do recorte sobre o território.
+
+- **Dimensões de filtro da captação** (`services/propostas.py`): busca livre `q`
+  (programa/órgão/código, ilike sobre título/objeto/órgão/modalidade/id/nº), `modalidade`
+  (tipo de instrumento), `orgao`, `situacao`, `natureza_juridica`, `qualificacao`, `ano`,
+  `tipo` (§23), faixa de valor e `ordenar`
+  (`recentes|prazo|prazo_distante|nome|orgao|valor`). SQL para o que é coluna; jsonb/
+  derivados (natureza, qualificação, ano, tipo) filtram em Python — o recorte já é do
+  território pelo RLS, então o conjunto é pequeno.
+- **Natureza jurídica** = quem pode propor. `classificar_natureza_juridica` faz de-para
+  por palavra-chave de `execucao.natureza_juridica` (texto livre da fonte) para os slugs
+  `estadual_df|municipal|consorcio|empresa_publica|osc|outros` — calibrável em
+  `_KW_NATUREZA`. **Qualificação** mapeia `execucao.tipo_transferencia`.
+- **Facetas** — `GET /proposals/facets` devolve, por dimensão, as opções que EXISTEM no
+  recorte com contagem; a contagem de cada dimensão ignora o filtro dela mesma (senão o
+  dropdown ficaria preso na opção escolhida). `POST /proposals/live-search` já embute as
+  facetas na resposta (evita 2ª chamada a cada tecla).
+- **Resumo** — `GET /proposals/summary`: cards (valor conveniado/desembolsado/empenhado/
+  a utilizar, convênios iniciados e em execução, oportunidades abertas), série
+  aprovado × desembolsado por ano, pipeline por situação e convênios vigentes com % de
+  desembolso. Web: `app/panel/funding/summary`.
+- **Relatório** — `GET /proposals/report.csv` e `GET /transfers/amendments/report.csv`
+  (CSV `;` + BOM, abre no Excel) exportam exatamente o recorte da tela.
+- **Emendas parlamentares** — lente sobre os repasses com `emenda=True`, não uma aba de
+  fonte: `GET /transfers/amendments/summary` (cards empenhado/pago e % executado, evolução
+  anual, distribuição por modalidade e por área/função, ranking de parlamentares, lista
+  detalhada e `opcoes` dos filtros). Filtros: modalidade, ano, parlamentar, órgão, busca.
+  O connector `emendas` passou a guardar em `detalhe` o que a tela precisa (parlamentar,
+  partido, `tipoEmenda`, função/subfunção, ano, empenhado/liquidado/pago). Web:
+  `app/panel/transfers/amendments`. As opções dos dropdowns vêm do universo do território
+  (sem os filtros aplicados) — escolher um parlamentar não esvazia a lista.
+- **Web (captação)** — barra com busca, chips de natureza jurídica, chips
+  cadastrada/disponível, dropdowns por faceta (modalidade/órgão/qualificação/situação/
+  ano/fonte), ordenação, **filtros ativos** com remoção individual e "limpar tudo", e
+  "Baixar relatório". `PropostaRead` ganhou os computados `natureza_juridica`,
+  `prazo_final` e `dias_restantes` (contador de prazo na lista).

@@ -51,9 +51,18 @@ CATALOGO: list[dict] = [
         False,
         "scraping",
     ),
-    _c("llm_api_key", "LLM API Key", "ia", True, "llm"),
+    _c("llm_api_key", "LLM API Key (genérica/legado)", "ia", True, "llm"),
     _c("llm_model_resumo", "Modelo LLM (resumo)", "ia", False, "llm"),
     _c("llm_model_chat", "Modelo LLM (chat)", "ia", False, "llm"),
+    # Chaves por provedor de LLM (registry em services/llm_providers.py)
+    _c("llm_anthropic_api_key", "Anthropic (Claude) API Key", "ia", True, "llm"),
+    _c("llm_openai_api_key", "OpenAI (GPT) API Key", "ia", True, "llm"),
+    _c("llm_gemini_api_key", "Google (Gemini) API Key", "ia", True, "llm"),
+    _c("llm_deepseek_api_key", "DeepSeek API Key", "ia", True, "llm"),
+    _c("llm_grok_api_key", "xAI (Grok) API Key", "ia", True, "llm"),
+    _c("llm_kimi_api_key", "Moonshot (Kimi) API Key", "ia", True, "llm"),
+    _c("llm_qwen_api_key", "Alibaba (Qwen) API Key", "ia", True, "llm"),
+    _c("llm_glm_api_key", "Z.ai (GLM) API Key", "ia", True, "llm"),
     _c("embedding_api_key", "Embeddings API Key", "ia", True, "embeddings"),
     _c("embedding_model", "Modelo de embeddings", "ia", False, "embeddings"),
     _c("transferegov_ff_base_url", "TransfereGov FF base URL", "fonte", False),
@@ -65,12 +74,36 @@ CATALOGO: list[dict] = [
     ),
     _c("transferegov_esp_base_url", "TransfereGov Especiais base URL", "fonte", False),
     _c(
+        "transferegov_esp_endpoint",
+        "TransfereGov Especiais rota (autodescoberta se vazio)",
+        "fonte",
+        False,
+    ),
+    _c(
+        "transferegov_esp_ibge_field",
+        "TransfereGov Especiais coluna de IBGE (autodescoberta se vazio)",
+        "fonte",
+        False,
+    ),
+    _c(
         "transferegov_voluntarias_base_url",
         "TransfereGov Voluntárias base URL (api-publica)",
         "fonte",
         False,
     ),
     _c("transferegov_disc_csv_url", "TransfereGov Discricionárias CSV", "fonte", False),
+    _c(
+        "transferegov_voluntarias_endpoint",
+        "TransfereGov Voluntárias rota (autodescoberta se vazio)",
+        "fonte",
+        False,
+    ),
+    _c(
+        "transferegov_voluntarias_ibge_field",
+        "TransfereGov Voluntárias coluna de IBGE (autodescoberta se vazio)",
+        "fonte",
+        False,
+    ),
     _c("fns_consulta_url", "FNS consulta URL", "fonte", False),
     _c("fnde_base_url", "FNDE base URL", "fonte", False),
     _c("serpro_base_url", "SERPRO base URL", "fonte", False),
@@ -125,7 +158,7 @@ def _default(chave: str) -> str | None:
     return val or None
 
 
-def _mascarar(valor: str) -> str:
+def mascarar(valor: str) -> str:
     return "••••" + valor[-4:] if len(valor) >= 4 else "••••"
 
 
@@ -197,7 +230,7 @@ async def listar_catalogo(session: AsyncSession) -> list[dict]:
             "origem": origem,
         }
         if meta["secreto"]:
-            item["valor"] = _mascarar(efetivo) if configurado else None
+            item["valor"] = mascarar(efetivo) if configurado else None
         else:
             item["valor"] = efetivo
         saida.append(item)

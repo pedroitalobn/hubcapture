@@ -21,6 +21,7 @@ from ...models.sync_run import SyncRun
 from ...models.usuario import Usuario
 from ...schemas.config import DiagnosticoFontes, FonteDiagnostico, UltimaColeta
 from ...services import config as config_service
+from ...services import llm_providers
 from ..deps import get_platform_db
 
 router = APIRouter(tags=["admin"])
@@ -30,9 +31,7 @@ HEALTH_TIMEOUT = 10.0  # s por fonte — fonte pendurada não trava o diagnósti
 
 async def _health(fonte: str) -> bool:
     try:
-        return await asyncio.wait_for(
-            get_connector(fonte).health_check(), timeout=HEALTH_TIMEOUT
-        )
+        return await asyncio.wait_for(get_connector(fonte).health_check(), timeout=HEALTH_TIMEOUT)
     except Exception:
         return False
 
@@ -73,8 +72,6 @@ async def diagnostico_fontes(
         ],
         firecrawl_configurado=bool(await config_service.resolver("firecrawl_api_key")),
         crawl4ai_configurado=bool(await config_service.resolver("crawl4ai_base_url")),
-        llm_configurado=bool(await config_service.resolver("llm_api_key")),
-        emendas_api_key_configurada=bool(
-            await config_service.resolver("emendas_api_key")
-        ),
+        llm_configurado=await llm_providers.configurado(),
+        emendas_api_key_configurada=bool(await config_service.resolver("emendas_api_key")),
     )

@@ -21,9 +21,13 @@ from ...models.usuario import Usuario
 from ...services import copiloto as copiloto_service
 from ...services import propostas as propostas_service
 from ...services import rag
+from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
-router = APIRouter(tags=["copiloto"])
+# Módulo desligável pelo painel admin: desativado → todo o eixo responde 404.
+router = APIRouter(
+    tags=["copiloto"], dependencies=[Depends(require_modulo("copiloto"))]
+)
 
 # Perguntas sobre prazo ("quais propostas vencem este mês?") têm resposta
 # estruturada — o RAG por similaridade não garante recall em datas, então a

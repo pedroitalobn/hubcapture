@@ -71,9 +71,7 @@ async def upsert(session: AsyncSession, canonica: ConformidadeCanonica) -> None:
     await session.execute(stmt)
 
 
-async def resumo(
-    session: AsyncSession, *, municipio: str | None = None
-) -> ConformidadeResumo:
+async def resumo(session: AsyncSession, *, municipio: str | None = None) -> ConformidadeResumo:
     """KPIs do CAUC (por status/seção) + rating CAPAG."""
     rows = await listar(session, municipio=municipio)
     cauc = [r for r in rows if r.tipo == "cauc"]
@@ -116,11 +114,7 @@ async def sync_municipio(
         .values(usuario_id=usuario_id, ibge=municipio_ibge, modo="avulso")
         .on_conflict_do_nothing(constraint="uq_municipios_usuario_ibge")
     )
-    session.add(
-        AuditLog(
-            usuario_id=usuario_id, acao="sync_conformidade", entidade=municipio_ibge
-        )
-    )
+    session.add(AuditLog(usuario_id=usuario_id, acao="sync_conformidade", entidade=municipio_ibge))
     iniciado = datetime.now(UTC)
     try:
         registros = await get_connector("siconfi").collect(municipio_ibge, since=_since())
@@ -130,14 +124,24 @@ async def sync_municipio(
             n += 1
     except Exception as exc:
         await registrar_sync(
-            usuario_id=usuario_id, fonte="siconfi", tipo="avulso", status="erro",
-            registros=0, iniciado_em=iniciado, finalizado_em=datetime.now(UTC),
+            usuario_id=usuario_id,
+            fonte="siconfi",
+            tipo="avulso",
+            status="erro",
+            registros=0,
+            iniciado_em=iniciado,
+            finalizado_em=datetime.now(UTC),
             erro=f"{type(exc).__name__}: {exc}"[:2000],
         )
         raise
     await registrar_sync(
-        usuario_id=usuario_id, fonte="siconfi", tipo="avulso", status="ok",
-        registros=n, iniciado_em=iniciado, finalizado_em=datetime.now(UTC),
+        usuario_id=usuario_id,
+        fonte="siconfi",
+        tipo="avulso",
+        status="ok",
+        registros=n,
+        iniciado_em=iniciado,
+        finalizado_em=datetime.now(UTC),
     )
     return n
 

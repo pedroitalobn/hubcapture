@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DateRangePresets, presetToInicio, type RangePreset } from "@/components/DateRangePresets";
 import { Feed } from "@/components/Feed";
@@ -110,7 +111,12 @@ export default function RepassesPage() {
     <>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="page-title">Recursos recebidos</h1>
-        <DateRangePresets value={preset} onChange={setPreset} />
+        <div className="flex items-center gap-3">
+          <Link href="/panel/transfers/amendments" className="btn btn-ghost btn-sm">
+            Emendas →
+          </Link>
+          <DateRangePresets value={preset} onChange={setPreset} />
+        </div>
       </header>
 
       <form onSubmit={sincronizar} className="card flex flex-wrap items-end gap-3 p-5">

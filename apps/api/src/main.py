@@ -58,6 +58,7 @@ def register_routers() -> None:
         admin,
         admin_config,
         admin_fontes,
+        admin_modulos,
         alertas,
         auth,
         conformidade,
@@ -96,6 +97,7 @@ def register_routers() -> None:
         admin,
         admin_config,
         admin_fontes,
+        admin_modulos,
         copiloto,
         webhooks,
     ):

@@ -135,15 +135,14 @@ CAPTACAO_FONTES: tuple[str, ...] = (
     "transferegov_ff",
     "transferegov_esp",
     "transferegov_voluntarias",
+    "transferegov_disc",
     "fns",
     "fnde",
     "serpro",
 )
 
 
-def _fontes_alvo(
-    fonte: str | None, area: str | None, fontes_perfil: list[str] | None
-) -> list[str]:
+def _fontes_alvo(fonte: str | None, area: str | None, fontes_perfil: list[str] | None) -> list[str]:
     if fonte:
         return [fonte]
     if area:
@@ -166,10 +165,7 @@ async def live_search(
     municipio: str | None = None,
     fonte: str | None = None,
     area: str | None = None,
-    situacao: str | None = None,
-    valor_min=None,
-    valor_max=None,
-    tipo: str | None = None,
+    **filtros,
 ):
     """Coleta ao vivo nas fontes relevantes e devolve (propostas, status_fontes)."""
     from ..models.preferencias import PreferenciasUsuario
@@ -190,9 +186,7 @@ async def live_search(
         )
     pref = (
         await session.execute(
-            select(PreferenciasUsuario).where(
-                PreferenciasUsuario.usuario_id == usuario_id
-            )
+            select(PreferenciasUsuario).where(PreferenciasUsuario.usuario_id == usuario_id)
         )
     ).scalar_one_or_none()
     fontes = _fontes_alvo(fonte, area, list(pref.fontes or []) if pref else None)
@@ -201,12 +195,8 @@ async def live_search(
     for ibge in ibges:
         for f in fontes:
             try:
-                await consulta_avulsa(
-                    session, usuario_id=usuario_id, municipio_ibge=ibge, fonte=f
-                )
-                status_fontes.append(
-                    {"fonte": f, "municipio_ibge": ibge, "status": "ok"}
-                )
+                await consulta_avulsa(session, usuario_id=usuario_id, municipio_ibge=ibge, fonte=f)
+                status_fontes.append({"fonte": f, "municipio_ibge": ibge, "status": "ok"})
             except Exception as exc:  # registrado em sync_runs pela consulta_avulsa
                 status_fontes.append(
                     {
@@ -218,13 +208,6 @@ async def live_search(
                 )
 
     rows = await propostas_service.listar(
-        session,
-        municipio=municipio,
-        fonte=fonte,
-        situacao=situacao,
-        area=area,
-        valor_min=valor_min,
-        valor_max=valor_max,
-        tipo=tipo,
+        session, municipio=municipio, fonte=fonte, area=area, **filtros
     )
     return rows, status_fontes

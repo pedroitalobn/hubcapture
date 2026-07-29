@@ -153,3 +153,77 @@ def test_siconfi_status_e_colunas_tolerantes() -> None:
     assert _col(row, "ibge") == "3550308"
     assert _col(row, "descricao", "requisito") == "CND"
     assert _status(str(_col(row, "situa"))) == "comprovado"
+
+
+# ── especiais/voluntárias: descoberta de endpoint+coluna via OpenAPI ────────
+def test_postgrest_escolher_endpoint_e_coluna() -> None:
+    from src.connectors._postgrest import escolher_endpoint_e_coluna
+
+    defs = {
+        "programa": {"properties": {"id_programa": {}, "nome": {}}},
+        "plano_acao": {
+            "properties": {"id_plano_acao": {}, "codigo_ibge_beneficiario": {}}
+        },
+    }
+    assert escolher_endpoint_e_coluna(defs, ("plano_acao",)) == (
+        "plano_acao",
+        "codigo_ibge_beneficiario",
+    )
+    # tabela preferida sem coluna de IBGE → cai para qualquer tabela que tenha
+    defs2 = {
+        "convenio": {"properties": {"numero_convenio": {}, "cd_municipio_ibge": {}}},
+        "zz_outra": {"properties": {"x": {}}},
+    }
+    assert escolher_endpoint_e_coluna(defs2, ("proposta",)) == (
+        "convenio",
+        "cd_municipio_ibge",
+    )
+    assert escolher_endpoint_e_coluna({"t": {"properties": {"x": {}}}}, ("t",)) is None
+
+
+async def test_esp_collect_com_descoberta(monkeypatch) -> None:
+    from src.connectors import transferegov_esp as esp_mod
+
+    async def sem_config(_chave):
+        return None
+
+    async def fake_descobrir(base, preferidas):
+        return ("plano_acao_especial", "cd_municipio_ibge")
+
+    async def fake_get_json(base, endpoint, params, headers=None):
+        assert endpoint == "plano_acao_especial"
+        if params.get("cd_municipio_ibge") == "eq.3550308":
+            return [{"id_plano_acao": "PA1", "cd_municipio_ibge": "3550308"}]
+        return []
+
+    monkeypatch.setattr(esp_mod.config_service, "resolver", sem_config)
+    monkeypatch.setattr(esp_mod._postgrest, "descobrir", fake_descobrir)
+    monkeypatch.setattr(esp_mod, "get_json", fake_get_json)
+    conn = esp_mod.TransferegovEspConnector(base_url="http://esp/")
+    records = await conn.collect("3550308", since=date(2026, 1, 1))
+    assert [r.id_externo for r in records] == ["PA1"]
+
+
+async def test_voluntarias_fallback_candidatos_de_coluna(monkeypatch) -> None:
+    """Coluna descoberta é recusada (42703) → tenta os candidatos e acha."""
+    from src.connectors import transferegov_voluntarias as vol_mod
+
+    async def sem_config(_chave):
+        return None
+
+    async def fake_descobrir(base, preferidas):
+        return ("convenio", "coluna_errada")
+
+    async def fake_get_json(base, endpoint, params, headers=None):
+        if "coluna_errada" in params:
+            raise ConnectorClientError("42703")
+        if params.get("codigo_ibge") == "eq.3550308":
+            return [{"numero_convenio": "CV1"}]
+        raise ConnectorClientError("42703")
+
+    monkeypatch.setattr(vol_mod.config_service, "resolver", sem_config)
+    monkeypatch.setattr(vol_mod._postgrest, "descobrir", fake_descobrir)
+    monkeypatch.setattr(vol_mod, "get_json", fake_get_json)
+    conn = vol_mod.TransferegovVoluntariasConnector(base_url="http://vol/")
+    records = await conn.collect("3550308", since=date(2026, 1, 1))
+    assert [r.id_externo for r in records] == ["CV1"]

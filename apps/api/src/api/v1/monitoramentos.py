@@ -73,9 +73,7 @@ async def listar_monitoramentos(
     return [MonitoramentoRead.model_validate(r) for r in rows]
 
 
-@router.post(
-    "/monitors", response_model=MonitoramentoRead, status_code=status.HTTP_201_CREATED
-)
+@router.post("/monitors", response_model=MonitoramentoRead, status_code=status.HTTP_201_CREATED)
 async def criar_monitoramento(
     body: MonitoramentoCreate,
     user: Usuario = Depends(current_active_user),

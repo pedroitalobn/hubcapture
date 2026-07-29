@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy import select
 
 from src.ai import agent
-from src.db.session import rls_session
+from src.db.session import SessionLocal, rls_session
 from src.models.usuario import Usuario
 
 
@@ -20,12 +20,32 @@ def test_roteador_fallback_por_palavra_chave() -> None:
 
 
 def test_tools_no_formato_openai() -> None:
-    tools = agent._tools_openai()
+    tools = agent._tools_openai(agent.TOOLS)
     assert len(tools) == len(agent.TOOLS)
     for t in tools:
         assert t["type"] == "function"
         assert t["function"]["name"] in agent.TOOLS
         assert t["function"]["parameters"]["type"] == "object"
+
+
+async def test_tools_ativas_respeita_modulos_desligados() -> None:
+    """Com conformidade/obras desativados (padrão), o copiloto não expõe — nem
+    executa — as ferramentas desses eixos."""
+    async with SessionLocal() as s:
+        tools = await agent.tools_ativas(s)
+    assert "conformidade_resumo" not in tools and "obras_resumo" not in tools
+    assert "repasses_visao_geral" in tools and "noticias_transferegov" in tools
+    # o roteador de fallback também só considera as ativas
+    assert agent.escolher_tool_fallback("obras paralisadas?", tools) != "obras_resumo"
+
+
+async def test_executar_tool_recusa_modulo_desligado(seed_user, seed_municipio) -> None:
+    u = await seed_user("islandmod@x.com")
+    await seed_municipio(u, "3550308")
+    async with rls_session(u) as s:
+        usuario = (await s.execute(select(Usuario).where(Usuario.id == u))).scalar_one()
+        erro = await agent._executar_tool(s, usuario, "obras_resumo", {})
+    assert erro["erro"] == "MODULO_DESATIVADO: obras"
 
 
 async def test_executar_fallback_repasses_sob_rls(seed_user, seed_municipio, seed_repasse) -> None:

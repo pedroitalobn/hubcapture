@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api } from "@/lib/api/client";
+import { api, baixarCsv } from "@/lib/api/client";
 
 type Proposta = {
   id: string;
   id_externo: string;
+  numero_proposta?: string | null;
   titulo?: string | null;
   objeto?: string | null;
+  orgao_superior?: string | null;
+  modalidade?: string | null;
   municipio_ibge?: string | null;
   municipio_nome?: string | null;
   uf?: string | null;
@@ -16,7 +19,18 @@ type Proposta = {
   situacao?: string | null;
   fonte: string;
   tipo?: string;
+  natureza_juridica?: string | null;
+  prazo_final?: string | null;
+  dias_restantes?: number | null;
   resumo_ia?: string | null;
+  execucao?: {
+    valor_global?: string | null;
+    valor_empenhado?: string | null;
+    valor_liberado?: string | null;
+    valor_pago?: string | null;
+    saldo_conta?: string | null;
+    ano?: string | number | null;
+  } | null;
 };
 
 type FonteStatus = {
@@ -26,15 +40,34 @@ type FonteStatus = {
   erro?: string | null;
 };
 
+type Opcao = { valor: string; rotulo: string; total: number };
+type Facetas = {
+  fonte?: Opcao[];
+  modalidade?: Opcao[];
+  orgao?: Opcao[];
+  situacao?: Opcao[];
+  natureza_juridica?: Opcao[];
+  qualificacao?: Opcao[];
+  ano?: Opcao[];
+  tipo?: Opcao[];
+};
+
 type Pasta = { id: string; nome: string; cor?: string | null };
 type MunicipioPerfil = { ibge: string; nome?: string | null; uf?: string | null };
 
 type Filtros = {
   municipio: string;
+  ano: string;
   tipo: "" | "cadastrada" | "disponivel";
   fonte: string;
   area: string;
   situacao: string;
+  q: string;
+  modalidade: string;
+  orgao: string;
+  naturezaJuridica: string;
+  qualificacao: string;
+  ordenar: string;
   valorMin: string;
   valorMax: string;
   soFavoritas: boolean;
@@ -45,10 +78,17 @@ type Aba = { id: string; nome: string; filtros: Filtros };
 
 const FILTROS_VAZIOS: Filtros = {
   municipio: "",
+  ano: "",
   tipo: "",
   fonte: "",
   area: "",
   situacao: "",
+  q: "",
+  modalidade: "",
+  orgao: "",
+  naturezaJuridica: "",
+  qualificacao: "",
+  ordenar: "recentes",
   valorMin: "",
   valorMax: "",
   soFavoritas: false,
@@ -66,13 +106,24 @@ const AREAS = [
   "agricultura",
 ];
 
-const FONTES = [
-  "transferegov_ff",
-  "transferegov_esp",
-  "transferegov_voluntarias",
-  "fns",
-  "fnde",
-  "serpro",
+// Quem pode propor — os botões de natureza jurídica elegível. Os slugs vêm do
+// classificador do backend (`services/propostas.classificar_natureza_juridica`).
+const NATUREZAS: [string, string][] = [
+  ["", "Todas"],
+  ["estadual_df", "Adm. Pública Estadual/DF"],
+  ["municipal", "Adm. Pública Municipal"],
+  ["consorcio", "Consórcio Público"],
+  ["empresa_publica", "Empresa pública / economia mista"],
+  ["osc", "Organização da Sociedade Civil"],
+];
+
+const ORDENACOES: [string, string][] = [
+  ["recentes", "Mais recentes"],
+  ["prazo", "Prazo (mais próximo)"],
+  ["prazo_distante", "Prazo (mais distante)"],
+  ["nome", "Nome A-Z"],
+  ["orgao", "Órgão A-Z"],
+  ["valor", "Maior valor"],
 ];
 
 const ABAS_KEY = "hub_captacao_abas";
@@ -83,6 +134,11 @@ function formatBRL(v?: string | null): string {
   const n = Number(v);
   if (Number.isNaN(n)) return v;
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function num(v?: string | number | null): number {
+  const n = Number(v);
+  return Number.isNaN(n) ? 0 : n;
 }
 
 function abasIniciais(): Aba[] {
@@ -104,9 +160,45 @@ function abasIniciais(): Aba[] {
   return [{ id: "aba-1", nome: "Geral", filtros: { ...FILTROS_VAZIOS } }];
 }
 
+/** Dropdown alimentado por faceta: só mostra o que EXISTE no recorte, com contagem. */
+function SelectFaceta({
+  rotulo,
+  valor,
+  opcoes,
+  largura,
+  aoMudar,
+}: {
+  rotulo: string;
+  valor: string;
+  opcoes?: Opcao[];
+  largura: string;
+  aoMudar: (v: string) => void;
+}) {
+  const lista = opcoes ?? [];
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="field-label">{rotulo}</span>
+      <select
+        value={valor}
+        onChange={(e) => aoMudar(e.target.value)}
+        disabled={lista.length === 0 && !valor}
+        className={`input ${largura} disabled:opacity-50`}
+      >
+        <option value="">todas</option>
+        {lista.map((o) => (
+          <option key={o.valor} value={o.valor}>
+            {o.rotulo} ({o.total})
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export default function CaptacaoPage() {
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [fontesStatus, setFontesStatus] = useState<FonteStatus[]>([]);
+  const [facetas, setFacetas] = useState<Facetas>({});
   const [buscando, setBuscando] = useState(true);
   const [favoritos, setFavoritos] = useState<Set<string>>(new Set());
   const [pastas, setPastas] = useState<Pasta[]>([]);
@@ -150,6 +242,13 @@ export default function CaptacaoPage() {
         fonte: filtros.fonte || null,
         area: filtros.area || null,
         situacao: filtros.situacao || null,
+        modalidade: filtros.modalidade || null,
+        orgao: filtros.orgao || null,
+        natureza_juridica: filtros.naturezaJuridica || null,
+        qualificacao: filtros.qualificacao || null,
+        ano: filtros.ano || null,
+        q: filtros.q || null,
+        ordenar: filtros.ordenar || null,
         valor_min: filtros.valorMin || null,
         valor_max: filtros.valorMax || null,
         tipo: filtros.tipo || null,
@@ -159,9 +258,14 @@ export default function CaptacaoPage() {
     if (error) {
       setMsg("Falha na busca em tempo real. Tente novamente.");
     } else if (data) {
-      const resp = data as { propostas: Proposta[]; fontes: FonteStatus[] };
+      const resp = data as {
+        propostas: Proposta[];
+        fontes: FonteStatus[];
+        facetas?: Facetas;
+      };
       setPropostas(resp.propostas ?? []);
       setFontesStatus(resp.fontes ?? []);
+      setFacetas(resp.facetas ?? {});
       setMsg(null);
     }
     setBuscando(false);
@@ -278,6 +382,8 @@ export default function CaptacaoPage() {
     setMsg("Proposta adicionada à pasta.");
   }
 
+  // filtros de curadoria (favoritas/pasta) são do usuário, não da fonte —
+  // ficam no cliente; todo o resto viaja para a API na busca ao vivo.
   const visiveis = useMemo(() => {
     let lista = acompanhando ? acompanhadas : propostas;
     if (filtros.soFavoritas) lista = lista.filter((p) => favoritos.has(p.id));
@@ -285,13 +391,134 @@ export default function CaptacaoPage() {
     return lista;
   }, [propostas, acompanhadas, acompanhando, filtros.soFavoritas, filtros.pastaId, favoritos, pastaPropostas]);
 
-  const situacoes = useMemo(
-    () =>
-      Array.from(
-        new Set(propostas.map((p) => p.situacao).filter(Boolean) as string[]),
-      ).sort(),
-    [propostas],
-  );
+  /** Contador ao lado do rótulo de um chip (vazio quando a opção é "Todas"). */
+  function contarFaceta(dim: keyof Facetas, valor: string) {
+    if (!valor) return null;
+    const total = (facetas[dim] ?? []).find((o) => o.valor === valor)?.total;
+    return total ? <span className="ml-1 opacity-60 tabular-nums">{total}</span> : null;
+  }
+
+  /** Chips de "filtros ativos" — cada um se remove ao clicar. */
+  const ativos = useMemo(() => {
+    const rotuloDe = (dim: keyof Facetas, valor: string) =>
+      (facetas[dim] ?? []).find((o) => o.valor === valor)?.rotulo ?? valor;
+    const lista: { chave: string; rotulo: string; limpar: Partial<Filtros> }[] = [];
+    if (filtros.q) lista.push({ chave: "q", rotulo: `"${filtros.q}"`, limpar: { q: "" } });
+    if (filtros.tipo)
+      lista.push({
+        chave: "tipo",
+        rotulo: filtros.tipo === "disponivel" ? "Disponíveis" : "Cadastradas",
+        limpar: { tipo: "" },
+      });
+    if (filtros.naturezaJuridica)
+      lista.push({
+        chave: "natureza",
+        rotulo: NATUREZAS.find(([v]) => v === filtros.naturezaJuridica)?.[1] ?? "",
+        limpar: { naturezaJuridica: "" },
+      });
+    if (filtros.municipio) {
+      const m = municipios.find((x) => x.ibge === filtros.municipio);
+      lista.push({
+        chave: "municipio",
+        rotulo: m?.nome ?? filtros.municipio,
+        limpar: { municipio: "" },
+      });
+    }
+    if (filtros.modalidade)
+      lista.push({
+        chave: "modalidade",
+        rotulo: rotuloDe("modalidade", filtros.modalidade),
+        limpar: { modalidade: "" },
+      });
+    if (filtros.orgao)
+      lista.push({ chave: "orgao", rotulo: rotuloDe("orgao", filtros.orgao), limpar: { orgao: "" } });
+    if (filtros.qualificacao)
+      lista.push({
+        chave: "qualificacao",
+        rotulo: rotuloDe("qualificacao", filtros.qualificacao),
+        limpar: { qualificacao: "" },
+      });
+    if (filtros.situacao)
+      lista.push({
+        chave: "situacao",
+        rotulo: rotuloDe("situacao", filtros.situacao),
+        limpar: { situacao: "" },
+      });
+    if (filtros.ano)
+      lista.push({ chave: "ano", rotulo: `Ano ${filtros.ano}`, limpar: { ano: "" } });
+    if (filtros.fonte)
+      lista.push({ chave: "fonte", rotulo: filtros.fonte, limpar: { fonte: "" } });
+    if (filtros.area)
+      lista.push({ chave: "area", rotulo: filtros.area.replace("_", " "), limpar: { area: "" } });
+    if (filtros.valorMin)
+      lista.push({
+        chave: "valorMin",
+        rotulo: `≥ ${formatBRL(filtros.valorMin)}`,
+        limpar: { valorMin: "" },
+      });
+    if (filtros.valorMax)
+      lista.push({
+        chave: "valorMax",
+        rotulo: `≤ ${formatBRL(filtros.valorMax)}`,
+        limpar: { valorMax: "" },
+      });
+    if (filtros.soFavoritas)
+      lista.push({ chave: "fav", rotulo: "Só favoritas ★", limpar: { soFavoritas: false } });
+    if (filtros.pastaId)
+      lista.push({
+        chave: "pasta",
+        rotulo: pastas.find((p) => p.id === filtros.pastaId)?.nome ?? "pasta",
+        limpar: { pastaId: "" },
+      });
+    return lista;
+  }, [filtros, facetas, municipios, pastas]);
+
+  /** "Baixar relatório": mesmo recorte da tela, em CSV. */
+  async function baixarRelatorio() {
+    try {
+      await baixarCsv(
+        "/api/v1/proposals/report.csv",
+        {
+          municipio: filtros.municipio,
+          fonte: filtros.fonte,
+          area: filtros.area,
+          situacao: filtros.situacao,
+          modalidade: filtros.modalidade,
+          orgao: filtros.orgao,
+          natureza_juridica: filtros.naturezaJuridica,
+          qualificacao: filtros.qualificacao,
+          ano: filtros.ano,
+          q: filtros.q,
+          tipo: filtros.tipo,
+          valor_min: filtros.valorMin,
+          valor_max: filtros.valorMax,
+          ordenar: filtros.ordenar,
+        },
+        "captacao.csv",
+      );
+    } catch {
+      setMsg("Não consegui gerar o relatório agora. Tente novamente.");
+    }
+  }
+
+  // agregados de EXECUÇÃO (TransfereGov): o que foi disponibilizado × usado
+  const execucao = useMemo(() => {
+    const com = visiveis.filter((p) => p.execucao);
+    if (com.length === 0) return null;
+    const soma = (k: "valor_global" | "valor_empenhado" | "valor_liberado" | "valor_pago" | "saldo_conta") =>
+      com.reduce((acc, p) => acc + num(p.execucao?.[k]), 0);
+    const empenhado = soma("valor_empenhado");
+    const pago = soma("valor_pago");
+    return {
+      transferencias: com.length,
+      global: soma("valor_global"),
+      empenhado,
+      liberado: soma("valor_liberado"),
+      pago,
+      saldo: soma("saldo_conta"),
+      aUtilizar: Math.max(0, empenhado - pago),
+    };
+  }, [visiveis]);
 
   const fontesOk = fontesStatus.filter((f) => f.status === "ok").length;
   const fontesErro = Array.from(
@@ -300,12 +527,17 @@ export default function CaptacaoPage() {
 
   return (
     <>
-      <header>
-        <h1 className="page-title">Captação</h1>
-        <p className="mt-1 text-sm text-ink-2">
-          Propostas e oportunidades do seu território, consultadas em tempo real
-          nas fontes oficiais (API + scraping).
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="page-title">Captação</h1>
+          <p className="mt-1 text-sm text-ink-2">
+            Propostas e oportunidades do seu território, consultadas em tempo real
+            nas fontes oficiais (API + scraping).
+          </p>
+        </div>
+        <Link href="/panel/funding/summary" className="btn btn-ghost btn-sm">
+          Ver resumo →
+        </Link>
       </header>
 
       {/* abas — várias frentes de trabalho ao mesmo tempo */}
@@ -352,135 +584,236 @@ export default function CaptacaoPage() {
 
       {/* filtros — cada mudança dispara a busca ao vivo */}
       {!acompanhando && (
-      <div className="card flex flex-wrap items-end gap-3 p-4">
-        <div className="flex gap-1.5">
-          {(
-            [
-              ["", "Todas"],
-              ["cadastrada", "Cadastradas"],
-              ["disponivel", "Disponíveis"],
-            ] as const
-          ).map(([valor, rotulo]) => (
+      <div className="card flex flex-col gap-3 p-4">
+        {/* busca livre + ordenação + relatório */}
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="flex min-w-[16rem] flex-1 flex-col gap-1">
+            <span className="field-label">Buscar</span>
+            <input
+              value={filtros.q}
+              onChange={(e) => setFiltros({ q: e.target.value })}
+              placeholder="programa, órgão ou código"
+              className="input w-full"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="field-label">Ordenar por</span>
+            <select
+              value={filtros.ordenar}
+              onChange={(e) => setFiltros({ ordenar: e.target.value })}
+              className="input w-48"
+            >
+              {ORDENACOES.map(([valor, rotulo]) => (
+                <option key={valor} value={valor}>
+                  {rotulo}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            onClick={() => void baixarRelatorio()}
+            className="btn btn-ghost btn-sm mb-1"
+            title="Exporta o recorte atual em CSV"
+          >
+            ↓ Baixar relatório
+          </button>
+        </div>
+
+        {/* natureza jurídica elegível — quem pode propor */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="field-label mr-1">Natureza jurídica</span>
+          {NATUREZAS.map(([valor, rotulo]) => (
             <button
               key={rotulo}
-              onClick={() => setFiltros({ tipo: valor })}
+              onClick={() => setFiltros({ naturezaJuridica: valor })}
               className={`rounded-full border px-3 py-1 text-sm ${
-                filtros.tipo === valor
+                filtros.naturezaJuridica === valor
                   ? "border-ink bg-ink text-surface"
                   : "border-hairline text-ink-2 hover:text-ink"
               }`}
             >
               {rotulo}
+              {contarFaceta("natureza_juridica", valor)}
             </button>
           ))}
         </div>
-        <label className="flex flex-col gap-1">
-          <span className="field-label">Município</span>
-          <select
-            value={filtros.municipio}
-            onChange={(e) => setFiltros({ municipio: e.target.value })}
-            className="input w-48"
-          >
-            <option value="">todos do perfil</option>
-            {municipios.map((m) => (
-              <option key={m.ibge} value={m.ibge}>
-                {m.nome ?? m.ibge}
-                {m.uf ? `/${m.uf}` : ""}
-              </option>
+
+        {/* tipo + dropdowns */}
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex gap-1.5 pb-1">
+            {(
+              [
+                ["", "Todas"],
+                ["cadastrada", "Cadastradas"],
+                ["disponivel", "Disponíveis"],
+              ] as const
+            ).map(([valor, rotulo]) => (
+              <button
+                key={rotulo}
+                onClick={() => setFiltros({ tipo: valor })}
+                className={`rounded-full border px-3 py-1 text-sm ${
+                  filtros.tipo === valor
+                    ? "border-ink bg-ink text-surface"
+                    : "border-hairline text-ink-2 hover:text-ink"
+                }`}
+              >
+                {rotulo}
+                {contarFaceta("tipo", valor)}
+              </button>
             ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="field-label">Fonte</span>
-          <select
-            value={filtros.fonte}
-            onChange={(e) => setFiltros({ fonte: e.target.value })}
-            className="input w-44"
-          >
-            <option value="">todas</option>
-            {FONTES.map((f) => (
-              <option key={f} value={f}>
-                {f}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="field-label">Área</span>
-          <select
-            value={filtros.area}
-            onChange={(e) => setFiltros({ area: e.target.value })}
-            className="input w-40"
-          >
-            <option value="">todas</option>
-            {AREAS.map((a) => (
-              <option key={a} value={a}>
-                {a.replace("_", " ")}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="field-label">Situação</span>
-          <select
-            value={filtros.situacao}
-            onChange={(e) => setFiltros({ situacao: e.target.value })}
-            className="input w-44"
-          >
-            <option value="">todas</option>
-            {situacoes.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="field-label">Valor mín (R$)</span>
-          <input
-            type="number"
-            min={0}
-            value={filtros.valorMin}
-            onChange={(e) => setFiltros({ valorMin: e.target.value })}
-            className="input w-32"
+          </div>
+          <label className="flex flex-col gap-1">
+            <span className="field-label">Município</span>
+            <select
+              value={filtros.municipio}
+              onChange={(e) => setFiltros({ municipio: e.target.value })}
+              className="input w-48"
+            >
+              <option value="">todos do perfil</option>
+              {municipios.map((m) => (
+                <option key={m.ibge} value={m.ibge}>
+                  {m.nome ?? m.ibge}
+                  {m.uf ? `/${m.uf}` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <SelectFaceta
+            rotulo="Modalidade"
+            valor={filtros.modalidade}
+            opcoes={facetas.modalidade}
+            largura="w-44"
+            aoMudar={(v) => setFiltros({ modalidade: v })}
           />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="field-label">Valor máx (R$)</span>
-          <input
-            type="number"
-            min={0}
-            value={filtros.valorMax}
-            onChange={(e) => setFiltros({ valorMax: e.target.value })}
-            className="input w-32"
+          <SelectFaceta
+            rotulo="Órgão"
+            valor={filtros.orgao}
+            opcoes={facetas.orgao}
+            largura="w-56"
+            aoMudar={(v) => setFiltros({ orgao: v })}
           />
-        </label>
-        <label className="flex items-center gap-2 pb-2 text-sm text-ink-2">
-          <input
-            type="checkbox"
-            checked={filtros.soFavoritas}
-            onChange={(e) => setFiltros({ soFavoritas: e.target.checked })}
+          <SelectFaceta
+            rotulo="Qualificação"
+            valor={filtros.qualificacao}
+            opcoes={facetas.qualificacao}
+            largura="w-44"
+            aoMudar={(v) => setFiltros({ qualificacao: v })}
           />
-          Só favoritas ★
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="field-label">Pasta</span>
-          <select
-            value={filtros.pastaId}
-            onChange={(e) => setFiltros({ pastaId: e.target.value })}
-            className="input w-40"
-          >
-            <option value="">todas</option>
-            {pastas.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nome}
-              </option>
+          <SelectFaceta
+            rotulo="Situação"
+            valor={filtros.situacao}
+            opcoes={facetas.situacao}
+            largura="w-44"
+            aoMudar={(v) => setFiltros({ situacao: v })}
+          />
+          <SelectFaceta
+            rotulo="Ano"
+            valor={filtros.ano}
+            opcoes={facetas.ano}
+            largura="w-28"
+            aoMudar={(v) => setFiltros({ ano: v })}
+          />
+          <label className="flex flex-col gap-1">
+            <span className="field-label">Fonte</span>
+            <select
+              value={filtros.fonte}
+              onChange={(e) => setFiltros({ fonte: e.target.value })}
+              className="input w-44"
+            >
+              <option value="">todas</option>
+              {(facetas.fonte ?? []).map((o) => (
+                <option key={o.valor} value={o.valor}>
+                  {o.rotulo} ({o.total})
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="field-label">Área</span>
+            <select
+              value={filtros.area}
+              onChange={(e) => setFiltros({ area: e.target.value })}
+              className="input w-40"
+            >
+              <option value="">todas</option>
+              {AREAS.map((a) => (
+                <option key={a} value={a}>
+                  {a.replace("_", " ")}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="field-label">Valor mín (R$)</span>
+            <input
+              type="number"
+              min={0}
+              value={filtros.valorMin}
+              onChange={(e) => setFiltros({ valorMin: e.target.value })}
+              className="input w-32"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="field-label">Valor máx (R$)</span>
+            <input
+              type="number"
+              min={0}
+              value={filtros.valorMax}
+              onChange={(e) => setFiltros({ valorMax: e.target.value })}
+              className="input w-32"
+            />
+          </label>
+          <label className="flex items-center gap-2 pb-2 text-sm text-ink-2">
+            <input
+              type="checkbox"
+              checked={filtros.soFavoritas}
+              onChange={(e) => setFiltros({ soFavoritas: e.target.checked })}
+            />
+            Só favoritas ★
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="field-label">Pasta</span>
+            <select
+              value={filtros.pastaId}
+              onChange={(e) => setFiltros({ pastaId: e.target.value })}
+              className="input w-40"
+            >
+              <option value="">todas</option>
+              {pastas.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button onClick={criarPasta} className="btn btn-ghost btn-sm mb-1">
+            + pasta
+          </button>
+        </div>
+
+        {/* filtros ativos — o que está recortando a lista agora */}
+        {ativos.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 border-t border-hairline pt-3">
+            <span className="field-label mr-1">Filtros ativos</span>
+            {ativos.map((f) => (
+              <button
+                key={f.chave}
+                onClick={() => setFiltros(f.limpar)}
+                className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-1 text-xs text-ink-2 hover:text-ink"
+                title="Remover este filtro"
+              >
+                {f.rotulo}
+                <span className="text-ink-3">×</span>
+              </button>
             ))}
-          </select>
-        </label>
-        <button onClick={criarPasta} className="btn btn-ghost btn-sm mb-1">
-          + pasta
-        </button>
+            <button
+              onClick={() => setFiltros(FILTROS_VAZIOS)}
+              className="btn btn-ghost btn-sm"
+            >
+              Limpar tudo
+            </button>
+          </div>
+        )}
       </div>
       )}
 
@@ -521,6 +854,41 @@ export default function CaptacaoPage() {
 
       {msg && <p className="text-sm text-ink-2">{msg}</p>}
 
+      {/* execução financeira (TransfereGov): quanto foi disponibilizado × usado */}
+      {execucao && (
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          {(
+            [
+              ["Transferências", String(execucao.transferencias), false],
+              ["Valor global", formatBRL(String(execucao.global)), false],
+              ["Empenhado", formatBRL(String(execucao.empenhado)), false],
+              ["Empenhado a utilizar", formatBRL(String(execucao.aUtilizar)), true],
+              ["Pago", formatBRL(String(execucao.pago)), false],
+              ["Saldo em conta", formatBRL(String(execucao.saldo)), false],
+            ] as const
+          ).map(([rotulo, valor, destaque]) => (
+            <div
+              key={rotulo}
+              className={`card p-4 ${destaque ? "ring-1 ring-lime" : ""}`}
+            >
+              <p className="field-label">{rotulo}</p>
+              <p
+                className={`mt-1 text-lg tabular-nums tracking-tight ${
+                  destaque ? "text-lime" : ""
+                }`}
+              >
+                {valor}
+              </p>
+              {destaque && (
+                <p className="mt-0.5 text-[11px] text-ink-3">
+                  verba disponibilizada ainda não utilizada
+                </p>
+              )}
+            </div>
+          ))}
+        </section>
+      )}
+
       <section className="overflow-x-auto">
         {visiveis.length === 0 ? (
           <p className="text-ink-3">
@@ -538,7 +906,9 @@ export default function CaptacaoPage() {
                   <th className="px-4 py-3 w-8"></th>
                   <th className="px-3 py-3">Proposta</th>
                   <th className="px-3 py-3">Município</th>
-                  <th className="px-3 py-3">Valor</th>
+                  <th className="px-3 py-3">Prazo</th>
+                  <th className="px-3 py-3">Valor global</th>
+                  <th className="px-3 py-3">Empenhado</th>
                   <th className="px-3 py-3">Situação</th>
                   <th className="px-3 py-3">Pasta</th>
                 </tr>
@@ -567,6 +937,11 @@ export default function CaptacaoPage() {
                       >
                         {p.titulo ?? p.objeto ?? p.id_externo}
                       </Link>
+                      <p className="mt-0.5 max-w-md text-xs text-ink-3">
+                        {[p.orgao_superior, p.modalidade, p.id_externo]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
                       {p.resumo_ia && (
                         <p className="mt-0.5 line-clamp-2 max-w-md text-xs text-ink-3">
                           {p.resumo_ia}
@@ -577,8 +952,47 @@ export default function CaptacaoPage() {
                       {p.municipio_nome ?? p.municipio_ibge ?? "—"}
                       {p.uf ? `/${p.uf}` : ""}
                     </td>
+                    <td className="px-3 py-3 text-ink-2">
+                      {p.prazo_final ? (
+                        <>
+                          {p.prazo_final.slice(0, 10).split("-").reverse().join("/")}
+                          <span
+                            className={`ml-1.5 font-mono text-[10px] ${
+                              (p.dias_restantes ?? 0) < 0
+                                ? "text-ink-3"
+                                : (p.dias_restantes ?? 0) <= 30
+                                  ? "text-amber-600"
+                                  : "text-ink-3"
+                            }`}
+                          >
+                            {(p.dias_restantes ?? 0) < 0
+                              ? "vencido"
+                              : `${p.dias_restantes}d`}
+                          </span>
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td className="px-3 py-3 tabular-nums">
-                      {formatBRL(p.valor_total)}
+                      {formatBRL(p.execucao?.valor_global ?? p.valor_total)}
+                    </td>
+                    <td className="px-3 py-3 tabular-nums">
+                      {p.execucao?.valor_empenhado != null ? (
+                        <>
+                          {formatBRL(p.execucao.valor_empenhado)}
+                          {num(p.execucao.valor_empenhado) > num(p.execucao.valor_pago) && (
+                            <span
+                              className="ml-1 align-middle text-[10px] text-lime"
+                              title="Há verba empenhada ainda não utilizada"
+                            >
+                              ●
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="px-3 py-3">
                       <span className="text-ink-2">{p.situacao ?? "—"}</span>
