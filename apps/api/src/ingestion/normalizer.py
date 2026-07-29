@@ -195,6 +195,8 @@ def normalize(record: RawRecord) -> PropostaCanonica:
         ),
         "url_origem": _first(plano.get("link"), plano.get("url"), plano.get("url_origem")),
         "execucao": _montar_execucao(plano) if isinstance(plano, dict) else None,
+        # registro-fonte COMPLETO (todos os campos) p/ o detalhe exibir "tudo"
+        "dados_fonte": raw if isinstance(raw, dict) else None,
     }
 
     # fim de vigência vira prazo estruturado (alimenta /proposals/deadlines)
