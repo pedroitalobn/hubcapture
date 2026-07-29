@@ -884,3 +884,18 @@ mudou é a granularidade do recorte sobre o território.
   ano/fonte), ordenação, **filtros ativos** com remoção individual e "limpar tudo", e
   "Baixar relatório". `PropostaRead` ganhou os computados `natureza_juridica`,
   `prazo_final` e `dias_restantes` (contador de prazo na lista).
+
+## 29. Guarda de segredo no boot (produção)
+
+`JWT_SECRET`/`JWT_REFRESH_SECRET` têm padrão versionado no `.env.example` (dev
+local sobe sem configurar nada). Em produção isso permitiria forjar token de
+qualquer usuário, então `core/seguranca_boot.verificar_segredos` roda no
+`lifespan` ANTES de tudo:
+
+- **dev** (APP_BASE_URL com localhost/127.0.0.1/.local) → só avisa no log;
+- **produção** (domínio público) → **RuntimeError e o boot para**, com a
+  instrução exata (`openssl rand -hex 32` em cada variável);
+- válvula consciente p/ homologação atrás de domínio: `PERMITIR_SEGREDO_PADRAO=true`
+  (mantém o aviso).
+
+Trocar os segredos invalida as sessões vigentes uma vez — comportamento esperado.
