@@ -121,19 +121,25 @@ def normalize(record: RawRecord) -> PropostaCanonica:
             plano.get("numero_plano_acao"),
             plano.get("numero_proposta"),
             plano.get("numero_convenio"),  # voluntárias (convênio)
+            plano.get("codigo_plano_acao"),  # fundo a fundo
             plano.get("numero"),  # painel SERPRO
         ),
-        "titulo": _first(programa.get("nome_programa"), plano.get("nome"), plano.get("programa")),
+        "titulo": _first(
+            programa.get("nome_programa"), plano.get("nome"), plano.get("programa")
+        ),
         "objeto": _first(
             programa.get("objeto"),
             plano.get("objeto"),
             plano.get("objeto_convenio"),
             plano.get("objeto_proposta"),
+            plano.get("objetivos_plano_acao"),  # fundo a fundo
+            plano.get("diagnostico_plano_acao"),  # fundo a fundo (fallback)
         ),
         "orgao_superior": _first(
             programa.get("nome_orgao_superior_programa"),
             programa.get("nome_orgao_superior"),
             plano.get("nome_orgao_superior"),
+            plano.get("nome_orgao_repassador_plano_acao"),  # fundo a fundo
             plano.get("orgao"),
         ),
         "modalidade": _first(
@@ -145,13 +151,26 @@ def normalize(record: RawRecord) -> PropostaCanonica:
         "municipio_ibge": _first(
             record.municipio_ibge, benef.get("codigo_ibge"), plano.get("codigo_ibge")
         ),
-        "municipio_nome": _first(benef.get("nome_municipio"), benef.get("municipio")),
-        "uf": _first(benef.get("sigla_uf"), benef.get("uf"), plano.get("uf")),
+        "municipio_nome": _first(
+            benef.get("nome_municipio"),
+            benef.get("municipio"),
+            plano.get("nome_municipio_ente_recebedor_plano_acao"),  # fundo a fundo
+            plano.get("nome_municipio_ente_repassador_plano_acao"),
+        ),
+        "uf": _first(
+            benef.get("sigla_uf"),
+            benef.get("uf"),
+            plano.get("uf"),
+            plano.get("uf_ente_recebedor_plano_acao"),  # fundo a fundo
+            plano.get("uf_ente_repassador_plano_acao"),
+        ),
         "valor_total": _to_decimal(
             _first(
                 plano.get("valor_total"),
                 plano.get("valor_repasse_emenda_parlamentar"),
                 plano.get("valor_global"),  # voluntárias (convênio)
+                plano.get("valor_total_repasse_plano_acao"),  # fundo a fundo
+                plano.get("valor_total_plano_acao"),
                 plano.get("valor"),
             )
         ),
