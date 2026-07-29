@@ -85,8 +85,14 @@ class Settings(BaseSettings):
     # IBGE Localidades — resolve nome do município → código IBGE (onboarding)
     ibge_localidades_url: str = "https://servicodados.ibge.gov.br/api/v1/localidades/"
 
-    # ── E-mail transacional (SMTP) — opcional, ligado pelo painel admin ─────
+    # ── E-mail transacional ────────────────────────────────────────────────
     app_base_url: str = "http://localhost:3000"  # base dos links de e-mail
+    # Remetente (ex.: "Hub Capture <no-reply@hubcapture.com.br>"). Env EMAIL_FROM.
+    email_from: str = ""
+    # Maileroo (provedor de envio via API HTTP). Env MAILEROO_API_KEY. Se setado,
+    # é o caminho preferido; senão cai no SMTP (config do painel admin).
+    maileroo_api_key: str = ""
+    maileroo_api_url: str = "https://smtp.maileroo.com/api/v2/emails"
 
     # ── Scraping (Crawl4AI + Firecrawl) — coleta combinada / fallback ───────
     firecrawl_api_key: str = ""  # vazio = Firecrawl desabilitado
