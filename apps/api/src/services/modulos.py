@@ -32,7 +32,9 @@ MODULOS: list[dict] = [
         "chave": "recebidos",
         "label": "Recursos recebidos",
         "descricao": "Repasses recebidos (FPM, emendas, fundos)",
-        "padrao": True,
+        # Desligado por ora (foco na validação da Captação). Reative pelo painel
+        # admin → Módulos quando quiser — o toggle sobrescreve este default.
+        "padrao": False,
     },
     {
         "chave": "conformidade",

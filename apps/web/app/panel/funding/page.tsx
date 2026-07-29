@@ -200,6 +200,7 @@ export default function CaptacaoPage() {
   const [fontesStatus, setFontesStatus] = useState<FonteStatus[]>([]);
   const [facetas, setFacetas] = useState<Facetas>({});
   const [buscando, setBuscando] = useState(true);
+  const [mostrarAvancados, setMostrarAvancados] = useState(false);
   const [favoritos, setFavoritos] = useState<Set<string>>(new Set());
   const [pastas, setPastas] = useState<Pasta[]>([]);
   const [pastaPropostas, setPastaPropostas] = useState<Set<string>>(new Set());
@@ -399,6 +400,19 @@ export default function CaptacaoPage() {
   }
 
   /** Chips de "filtros ativos" — cada um se remove ao clicar. */
+  // quantos filtros avançados estão ativos — mostra badge no toggle mesmo recolhido
+  const qtdAvancadosAtivos = [
+    filtros.naturezaJuridica,
+    filtros.modalidade,
+    filtros.orgao,
+    filtros.qualificacao,
+    filtros.situacao,
+    filtros.ano,
+    filtros.area,
+    filtros.valorMin,
+    filtros.valorMax,
+  ].filter(Boolean).length;
+
   const ativos = useMemo(() => {
     const rotuloDe = (dim: keyof Facetas, valor: string) =>
       (facetas[dim] ?? []).find((o) => o.valor === valor)?.rotulo ?? valor;
@@ -585,7 +599,7 @@ export default function CaptacaoPage() {
       {/* filtros — cada mudança dispara a busca ao vivo */}
       {!acompanhando && (
       <div className="card flex flex-col gap-3 p-4">
-        {/* busca livre + ordenação + relatório */}
+        {/* linha 1 — essenciais (sempre visíveis) */}
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex min-w-[16rem] flex-1 flex-col gap-1">
             <span className="field-label">Buscar</span>
@@ -597,11 +611,42 @@ export default function CaptacaoPage() {
             />
           </label>
           <label className="flex flex-col gap-1">
+            <span className="field-label">Município</span>
+            <select
+              value={filtros.municipio}
+              onChange={(e) => setFiltros({ municipio: e.target.value })}
+              className="input w-48"
+            >
+              <option value="">todos do perfil</option>
+              {municipios.map((m) => (
+                <option key={m.ibge} value={m.ibge}>
+                  {m.nome ?? m.ibge}
+                  {m.uf ? `/${m.uf}` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="field-label">Fonte</span>
+            <select
+              value={filtros.fonte}
+              onChange={(e) => setFiltros({ fonte: e.target.value })}
+              className="input w-44"
+            >
+              <option value="">todas</option>
+              {(facetas.fonte ?? []).map((o) => (
+                <option key={o.valor} value={o.valor}>
+                  {o.rotulo} ({o.total})
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
             <span className="field-label">Ordenar por</span>
             <select
               value={filtros.ordenar}
               onChange={(e) => setFiltros({ ordenar: e.target.value })}
-              className="input w-48"
+              className="input w-44"
             >
               {ORDENACOES.map(([valor, rotulo]) => (
                 <option key={valor} value={valor}>
@@ -619,28 +664,9 @@ export default function CaptacaoPage() {
           </button>
         </div>
 
-        {/* natureza jurídica elegível — quem pode propor */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="field-label mr-1">Natureza jurídica</span>
-          {NATUREZAS.map(([valor, rotulo]) => (
-            <button
-              key={rotulo}
-              onClick={() => setFiltros({ naturezaJuridica: valor })}
-              className={`rounded-full border px-3 py-1 text-sm ${
-                filtros.naturezaJuridica === valor
-                  ? "border-ink bg-ink text-surface"
-                  : "border-hairline text-ink-2 hover:text-ink"
-              }`}
-            >
-              {rotulo}
-              {contarFaceta("natureza_juridica", valor)}
-            </button>
-          ))}
-        </div>
-
-        {/* tipo + dropdowns */}
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex gap-1.5 pb-1">
+        {/* linha 2 — tipo (esq.) + curadoria e toggle avançados (dir.) */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-1.5">
             {(
               [
                 ["", "Todas"],
@@ -662,134 +688,141 @@ export default function CaptacaoPage() {
               </button>
             ))}
           </div>
-          <label className="flex flex-col gap-1">
-            <span className="field-label">Município</span>
-            <select
-              value={filtros.municipio}
-              onChange={(e) => setFiltros({ municipio: e.target.value })}
-              className="input w-48"
-            >
-              <option value="">todos do perfil</option>
-              {municipios.map((m) => (
-                <option key={m.ibge} value={m.ibge}>
-                  {m.nome ?? m.ibge}
-                  {m.uf ? `/${m.uf}` : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          <SelectFaceta
-            rotulo="Modalidade"
-            valor={filtros.modalidade}
-            opcoes={facetas.modalidade}
-            largura="w-44"
-            aoMudar={(v) => setFiltros({ modalidade: v })}
-          />
-          <SelectFaceta
-            rotulo="Órgão"
-            valor={filtros.orgao}
-            opcoes={facetas.orgao}
-            largura="w-56"
-            aoMudar={(v) => setFiltros({ orgao: v })}
-          />
-          <SelectFaceta
-            rotulo="Qualificação"
-            valor={filtros.qualificacao}
-            opcoes={facetas.qualificacao}
-            largura="w-44"
-            aoMudar={(v) => setFiltros({ qualificacao: v })}
-          />
-          <SelectFaceta
-            rotulo="Situação"
-            valor={filtros.situacao}
-            opcoes={facetas.situacao}
-            largura="w-44"
-            aoMudar={(v) => setFiltros({ situacao: v })}
-          />
-          <SelectFaceta
-            rotulo="Ano"
-            valor={filtros.ano}
-            opcoes={facetas.ano}
-            largura="w-28"
-            aoMudar={(v) => setFiltros({ ano: v })}
-          />
-          <label className="flex flex-col gap-1">
-            <span className="field-label">Fonte</span>
-            <select
-              value={filtros.fonte}
-              onChange={(e) => setFiltros({ fonte: e.target.value })}
-              className="input w-44"
-            >
-              <option value="">todas</option>
-              {(facetas.fonte ?? []).map((o) => (
-                <option key={o.valor} value={o.valor}>
-                  {o.rotulo} ({o.total})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="field-label">Área</span>
-            <select
-              value={filtros.area}
-              onChange={(e) => setFiltros({ area: e.target.value })}
-              className="input w-40"
-            >
-              <option value="">todas</option>
-              {AREAS.map((a) => (
-                <option key={a} value={a}>
-                  {a.replace("_", " ")}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="field-label">Valor mín (R$)</span>
-            <input
-              type="number"
-              min={0}
-              value={filtros.valorMin}
-              onChange={(e) => setFiltros({ valorMin: e.target.value })}
-              className="input w-32"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="field-label">Valor máx (R$)</span>
-            <input
-              type="number"
-              min={0}
-              value={filtros.valorMax}
-              onChange={(e) => setFiltros({ valorMax: e.target.value })}
-              className="input w-32"
-            />
-          </label>
-          <label className="flex items-center gap-2 pb-2 text-sm text-ink-2">
-            <input
-              type="checkbox"
-              checked={filtros.soFavoritas}
-              onChange={(e) => setFiltros({ soFavoritas: e.target.checked })}
-            />
-            Só favoritas ★
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="field-label">Pasta</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-ink-2">
+              <input
+                type="checkbox"
+                checked={filtros.soFavoritas}
+                onChange={(e) => setFiltros({ soFavoritas: e.target.checked })}
+              />
+              Só favoritas ★
+            </label>
             <select
               value={filtros.pastaId}
               onChange={(e) => setFiltros({ pastaId: e.target.value })}
               className="input w-40"
+              title="Filtrar por pasta"
             >
-              <option value="">todas</option>
+              <option value="">todas as pastas</option>
               {pastas.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.nome}
                 </option>
               ))}
             </select>
-          </label>
-          <button onClick={criarPasta} className="btn btn-ghost btn-sm mb-1">
-            + pasta
-          </button>
+            <button onClick={criarPasta} className="btn btn-ghost btn-sm">
+              + pasta
+            </button>
+            <button
+              onClick={() => setMostrarAvancados((v) => !v)}
+              className="btn btn-ghost btn-sm"
+              aria-expanded={mostrarAvancados}
+            >
+              Filtros avançados
+              {qtdAvancadosAtivos > 0 && (
+                <span className="ml-1.5 rounded-full bg-ink px-1.5 text-xs text-surface">
+                  {qtdAvancadosAtivos}
+                </span>
+              )}
+              <span className="ml-1 text-ink-3">{mostrarAvancados ? "▲" : "▼"}</span>
+            </button>
+          </div>
         </div>
+
+        {/* filtros avançados — recolhidos por padrão */}
+        {mostrarAvancados && (
+          <div className="flex flex-col gap-3 border-t border-hairline pt-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="field-label mr-1">Natureza jurídica</span>
+              {NATUREZAS.map(([valor, rotulo]) => (
+                <button
+                  key={rotulo}
+                  onClick={() => setFiltros({ naturezaJuridica: valor })}
+                  className={`rounded-full border px-3 py-1 text-sm ${
+                    filtros.naturezaJuridica === valor
+                      ? "border-ink bg-ink text-surface"
+                      : "border-hairline text-ink-2 hover:text-ink"
+                  }`}
+                >
+                  {rotulo}
+                  {contarFaceta("natureza_juridica", valor)}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-end gap-3">
+              <SelectFaceta
+                rotulo="Modalidade"
+                valor={filtros.modalidade}
+                opcoes={facetas.modalidade}
+                largura="w-44"
+                aoMudar={(v) => setFiltros({ modalidade: v })}
+              />
+              <SelectFaceta
+                rotulo="Órgão"
+                valor={filtros.orgao}
+                opcoes={facetas.orgao}
+                largura="w-56"
+                aoMudar={(v) => setFiltros({ orgao: v })}
+              />
+              <SelectFaceta
+                rotulo="Qualificação"
+                valor={filtros.qualificacao}
+                opcoes={facetas.qualificacao}
+                largura="w-44"
+                aoMudar={(v) => setFiltros({ qualificacao: v })}
+              />
+              <SelectFaceta
+                rotulo="Situação"
+                valor={filtros.situacao}
+                opcoes={facetas.situacao}
+                largura="w-44"
+                aoMudar={(v) => setFiltros({ situacao: v })}
+              />
+              <SelectFaceta
+                rotulo="Ano"
+                valor={filtros.ano}
+                opcoes={facetas.ano}
+                largura="w-28"
+                aoMudar={(v) => setFiltros({ ano: v })}
+              />
+              <label className="flex flex-col gap-1">
+                <span className="field-label">Área</span>
+                <select
+                  value={filtros.area}
+                  onChange={(e) => setFiltros({ area: e.target.value })}
+                  className="input w-40"
+                >
+                  <option value="">todas</option>
+                  {AREAS.map((a) => (
+                    <option key={a} value={a}>
+                      {a.replace("_", " ")}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="field-label">Valor mín (R$)</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={filtros.valorMin}
+                  onChange={(e) => setFiltros({ valorMin: e.target.value })}
+                  className="input w-32"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="field-label">Valor máx (R$)</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={filtros.valorMax}
+                  onChange={(e) => setFiltros({ valorMax: e.target.value })}
+                  className="input w-32"
+                />
+              </label>
+            </div>
+          </div>
+        )}
 
         {/* filtros ativos — o que está recortando a lista agora */}
         {ativos.length > 0 && (
