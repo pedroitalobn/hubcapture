@@ -13,6 +13,7 @@ from __future__ import annotations
 import csv
 import io
 import unicodedata
+import zipfile
 from datetime import date
 from typing import Any
 
@@ -23,12 +24,17 @@ from ..services import config as config_service
 from ._http import TIMEOUT
 from .base import RawRecord, register
 
-CSV_FILENAME = "siconv_proposta.csv"  # sobrescrevível apontando a URL direto p/ .csv
+# Fonte oficial: ZIP nacional (siconv_proposta.csv dentro) no Azure blob do
+# Transferegov. Tem COD_MUNIC_IBGE, então dá pra filtrar por município.
+ZIP_URL = (
+    "https://api-publica.transferegov.gestao.gov.br/downloads/dadosgov/siconv_proposta.zip"
+)
 
-# o CSV é NACIONAL (um arquivo p/ todos os municípios) — cache em memória 1h
-# para a live-search de vários municípios não rebaixar o arquivo a cada consulta
-_CSV_TTL = 3600.0
-_csv_cache: dict[str, tuple[float, str]] = {}
+# o arquivo é NACIONAL (todos os municípios) e grande (~200MB) — cache dos
+# BYTES em memória por 1h para a live-search de vários municípios reusar sem
+# rebaixar. Guarda bytes (não o texto ~1GB descompactado).
+_CACHE_TTL = 3600.0
+_fonte_cache: dict[str, tuple[float, bytes]] = {}
 
 
 def _digits(v: Any) -> str:
@@ -83,24 +89,53 @@ class TransferegovDiscConnector:
     def __init__(self, base_url: str | None = None) -> None:
         self.base_url = base_url or settings.transferegov_disc_csv_url
 
-    async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
-        base = await config_service.resolver("transferegov_disc_csv_url") or self.base_url
-        url = base if base.lower().endswith(".csv") else f"{base.rstrip('/')}/{CSV_FILENAME}"
+    def _resolver_url(self, base: str) -> str:
+        # a URL antiga (repositorio.dados.gov.br/.../siconv_proposta.csv) 404 —
+        # a fonte oficial é o ZIP nacional no Azure blob. Aceita override .csv/.zip.
+        low = base.lower()
+        if low.endswith(".zip") or low.endswith(".csv"):
+            return base
+        return ZIP_URL
+
+    async def _bytes_da_fonte(self, url: str) -> bytes:
         import time
 
         agora = time.monotonic()
-        em_cache = _csv_cache.get(url)
-        if em_cache and agora - em_cache[0] < _CSV_TTL:
-            texto = em_cache[1]
-        else:
-            async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
-                resp = await client.get(url)
-                resp.raise_for_status()
-                texto = resp.text
-            _csv_cache[url] = (agora, texto)
-        primeira = texto.splitlines()[0] if texto else ""
-        delim = ";" if primeira.count(";") >= primeira.count(",") else ","
-        reader = csv.DictReader(io.StringIO(texto), delimiter=delim)
+        em_cache = _fonte_cache.get(url)
+        if em_cache and agora - em_cache[0] < _CACHE_TTL:
+            return em_cache[1]
+        # ZIP nacional é grande (~200MB); timeout folgado só p/ esta baixada
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(180.0, connect=15.0), follow_redirects=True
+        ) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+            conteudo = resp.content
+        _fonte_cache[url] = (agora, conteudo)
+        return conteudo
+
+    def _abrir_csv(self, url: str, conteudo: bytes) -> io.TextIOBase:
+        """Stream de texto do CSV — direto ou de dentro do ZIP (sem carregar o
+        CSV inteiro em memória: o csv.DictReader consome linha a linha)."""
+        if url.lower().endswith(".zip"):
+            z = zipfile.ZipFile(io.BytesIO(conteudo))
+            nome = next(
+                (n for n in z.namelist() if n.lower().endswith(".csv")), z.namelist()[0]
+            )
+            return io.TextIOWrapper(z.open(nome), encoding="utf-8-sig", errors="replace")
+        return io.StringIO(conteudo.decode("utf-8-sig", errors="replace"))
+
+    async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
+        base = await config_service.resolver("transferegov_disc_csv_url") or self.base_url
+        url = self._resolver_url(base)
+        conteudo = await self._bytes_da_fonte(url)
+
+        f = self._abrir_csv(url, conteudo)
+        header_line = f.readline()
+        delim = ";" if header_line.count(";") >= header_line.count(",") else ","
+        fieldnames = next(csv.reader([header_line], delimiter=delim))
+        reader = csv.DictReader(f, fieldnames=fieldnames, delimiter=delim)
+
         records: list[RawRecord] = []
         for row in reader:
             ibge_row = _digits(_col(row, "ibge"))
@@ -121,8 +156,8 @@ class TransferegovDiscConnector:
 
     async def health_check(self) -> bool:
         try:
-            async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-                resp = await client.head(self.base_url)
+            async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
+                resp = await client.head(self._resolver_url(self.base_url))
             return resp.status_code < 400
         except Exception:
             return False
