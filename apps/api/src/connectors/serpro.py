@@ -1,11 +1,18 @@
-"""Connector SERPRO — painel público dd-publico (scraping) + API de enrichment.
+"""Connector do PAINEL TRANSFEREGOV (Visão Geral) — scraping + API de enrichment.
 
-Fonte principal: o painel público do SERPRO (Qlik, JS pesado) em
-https://dd-publico.serpro.gov.br/extensions/painel/painel.html — só renderiza
-com browser headless, então a extração usa a facade de scraping
-(Crawl4AI/Firecrawl) com schema estruturado. A API gateway do SERPRO (token)
-segue como enrichment/cruzamento quando credenciada; se ela falhar ou não
-estiver configurada, o painel assume (coleta combinada com fallback).
+O `source_id` diz "serpro" por causa da hospedagem, mas o dado é TransfereGov: o
+painel público da Visão Geral em
+https://dd-publico.serpro.gov.br/extensions/painel/TransferegovbrVisaoGeral.html
+— o SERPRO só serve a página. Por isso este connector faz parte do grupo
+TransfereGov em `services/fontes.py`.
+
+É um painel Qlik (JS pesado): só existe depois de renderizado, então a extração
+vai pela facade de scraping, que hoje resolve isso com browser local
+(Crawl4AI/Playwright) sem depender de serviço externo.
+
+Coleta COMBINADA (seção 5): a API gateway do SERPRO (token) e o painel rodam
+JUNTOS e o resultado é aglutinado — o painel é uma segunda fonte de verdade, não
+um plano B, e é dele que vem a execução financeira (empenhado/pago/saldo).
 Campos/rotas isolados p/ calibração.
 """
 
@@ -16,6 +23,7 @@ from datetime import date
 from ..core.config import settings
 from ..scraping.scraper import get_scraper
 from ..services import config as config_service
+from . import _combinada
 from ._http import get_json
 from .base import RawRecord, register
 
@@ -65,51 +73,55 @@ class SerproConnector:
     def __init__(self, base_url: str | None = None) -> None:
         self.base_url = base_url or settings.serpro_base_url
 
-    async def _collect_api(self, municipio_ibge: str) -> list[RawRecord]:
+    async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
+        """Coleta COMBINADA: API gateway e painel público rodam juntos.
+
+        O painel não é plano B — é a fonte que traz a execução financeira
+        (empenhado/pago/saldo) que o gateway não devolve. Os dois lados são
+        aglutinados por número da transferência; o que só existe num dos lados
+        entra assim mesmo.
+        """
+        linhas_api, linhas_painel, erro_api = await _combinada.coletar(
+            lambda: self._linhas_api(municipio_ibge),
+            lambda: self._linhas_painel(municipio_ibge),
+            fonte=self.source_id,
+        )
+        if not linhas_api and not linhas_painel:
+            # nada de nenhum lado: releva o erro da API para virar sync_run
+            if erro_api:
+                raise erro_api
+            return []
+
+        registros: list[RawRecord] = []
+        for i, (api, painel) in enumerate(_combinada.aglutinar(linhas_api, linhas_painel)):
+            numero = (painel or {}).get("numero") or api.get("id")
+            raw: dict = {"enrichment": api} if api else {}
+            if painel:
+                raw[_combinada.CHAVE_SCRAPE] = {"plano_acao": painel}
+            registros.append(
+                RawRecord(
+                    source_id=self.source_id,
+                    id_externo=str(numero or f"painel-{municipio_ibge}-{i}"),
+                    municipio_ibge=municipio_ibge,
+                    endpoint=ENDPOINT if api else "scrape",
+                    raw=raw,
+                )
+            )
+        return registros
+
+    async def _linhas_api(self, municipio_ibge: str) -> list[dict]:
         base = await config_service.resolver("serpro_base_url") or self.base_url
         data = await get_json(base, ENDPOINT, {"ibge": municipio_ibge})
-        linhas = data if isinstance(data, list) else data.get("items", [])
-        return [
-            RawRecord(
-                source_id=self.source_id,
-                id_externo=str(row.get("id")),
-                municipio_ibge=municipio_ibge,
-                endpoint=ENDPOINT,
-                raw={"enrichment": row},
-            )
-            for row in linhas
-        ]
+        return data if isinstance(data, list) else data.get("items", [])
 
-    async def _collect_painel(self, municipio_ibge: str) -> list[RawRecord]:
+    async def _linhas_painel(self, municipio_ibge: str) -> list[dict]:
         painel = await config_service.resolver("serpro_painel_url") or settings.serpro_painel_url
-        scraper = get_scraper()
-        dados = await scraper.extract(
+        dados = await get_scraper().extract(
             painel,
             PAINEL_EXTRACT_SCHEMA,
             prompt=f"Extraia as transferências do município IBGE {municipio_ibge}.",
         )
-        itens = dados.get("transferencias", []) if isinstance(dados, dict) else []
-        return [
-            RawRecord(
-                source_id=self.source_id,
-                id_externo=str(item.get("numero") or f"painel-{municipio_ibge}-{i}"),
-                municipio_ibge=municipio_ibge,
-                endpoint="scrape",
-                raw={"plano_acao": item, "scraper": dados.get("_scraper")},
-            )
-            for i, item in enumerate(itens)
-        ]
-
-    async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
-        try:
-            return await self._collect_api(municipio_ibge)
-        except Exception:
-            # painel público via scraping headless; se nenhum scraper estiver
-            # configurado, propaga o erro original da API (nunca engolir)
-            scraper = get_scraper()
-            if not await scraper.is_enabled():
-                raise
-            return await self._collect_painel(municipio_ibge)
+        return dados.get("transferencias", []) if isinstance(dados, dict) else []
 
     async def health_check(self) -> bool:
         try:

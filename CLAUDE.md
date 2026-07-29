@@ -899,3 +899,62 @@ qualquer usuário, então `core/seguranca_boot.verificar_segredos` roda no
   (mantém o aviso).
 
 Trocar os segredos invalida as sessões vigentes uma vez — comportamento esperado.
+
+## 30. Recorte de DUAS fontes + scraping como 2ª fonte de verdade (decisão travada)
+
+Enquanto as demais fontes não estão calibradas contra as APIs vivas, o produto opera
+com **TransfereGov + FNS**. As outras (FPM, emendas, FNDE, SISMOB/SIMEC/CAIXA, Siconfi)
+continuam no repositório — connectors, migrations, serviços e telas — apenas fora do
+recorte. Ligar de volta = uma linha em `services/fontes.py`; o core não muda.
+
+- **Registro** — `services/fontes.py` é a fonte de verdade: `GRUPOS` (o que o usuário
+  escolhe: `transferegov`, `fns`), `HABILITADAS` (connector ids em operação),
+  `CAPTACAO` (produz propostas) e `RECEBIDOS` (produz repasses). `expandir()` traduz
+  grupo → connector ids na entrada do onboarding, então todo o resto do sistema
+  segue falando connector id. `CAPTACAO_FONTES` (consulta_avulsa), `FONTES_CAPTACAO`/
+  `FONTES_RECEBIDOS` (primeiro_sync), `FONTES_PADRAO` (router de transfers) e
+  `AREA_FONTES` (perfil) derivam daí — não existe mais lista de fontes solta.
+- **`serpro` é TransfereGov**: apesar do `source_id`, o connector coleta o painel da
+  **Visão Geral do TransfereGov** (`dd-publico.serpro.gov.br/.../TransferegovbrVisaoGeral.html`);
+  o SERPRO só hospeda. Por isso está no grupo `transferegov` e em `CAPTACAO`.
+- **Onboarding** oferece só os dois grupos (com descrição), pré-marcados pelas áreas.
+  TransfereGov serve todas as áreas (não é setorial); FNS entra com saúde.
+
+**Scraping deixou de ser fallback.** A §5 (coleta combinada) agora é real:
+`connectors/_combinada.py` roda API e scraping **em paralelo** (`coletar`) e pareia as
+linhas pelo número da transferência só por dígitos (`aglutinar` — "123456/2024" casa com
+1234562024). O payload de scraping viaja no `raw` sob `_scrape`, e
+`ingestion/merge.py::merge_record` normaliza os dois lados e funde com a precedência de
+sempre (API vence em id/valor/data; scraping vence em situação/pendências/movimentação),
+gravando `proveniencia` por campo. Linha que só existe no scraping entra sozinha — a
+página conhece transferência que a API ainda não publicou. Aplicado em `serpro`;
+`consulta_avulsa` usa `merge_record` no lugar de `merge(normalize(...), None)`.
+
+**Scraping local (sem serviço externo).** O facade (`scraping/scraper.py`) passou a ter
+quatro providers, nessa ordem no modo `auto`: `crawl4ai_local` → `playwright` →
+`crawl4ai` (servidor) → `firecrawl`. Os dois primeiros rodam Chromium no próprio
+container (extra opcional `scraping` no pyproject: `uv sync --extra scraping`), o que
+destrava as páginas JS-pesadas sem chave paga nem container extra.
+- `scraping/tabelas.py` é a extração: lê `<table>` **e grid ARIA** (`role="grid"/"row"/
+  "columnheader"` — como o Qlik renderiza) com parser de pilha, e casa cabeçalho com o
+  campo do JSON Schema do connector por texto normalizado ("Valor Empenhado" →
+  `valor_empenhado`; `numero` → "Nº Transferência" pela `description`). Determinístico,
+  sem LLM, sem custo por página; o que não casou fica em `_linha` para calibração.
+- `scraping/playwright.py` vence virtualização rolando o grid até parar de aparecer
+  linha nova, e cai para o Chromium do sistema (`CHROMIUM_EXECUTABLE_PATH`,
+  `/opt/pw-browsers/chromium`…) quando o browser do pacote não está baixado.
+- Crawl4AI **não levanta** em falha de navegação (devolve `success=False`): o provider
+  converte isso em exceção, senão "não abri a página" viraria "a fonte não tem
+  registros" e o gestor veria painel vazio como se fosse verdade.
+- Chaves novas no painel admin (categoria scraping): `scraping_crawl4ai_local`,
+  `scraping_playwright` (`on`/`off`) e `scraping_provider` aceitando os quatro nomes.
+- `services/config.resolver` passou a degradar para o `.env` quando o Postgres não
+  responde (o painel só SOBRESCREVE o `.env`) — banco fora do ar não derruba ingestão.
+- **Dockerfile**: `ARG COM_SCRAPING=1` instala o extra + `playwright install --with-deps
+  chromium` (~500MB). `--build-arg COM_SCRAPING=0` monta a imagem enxuta.
+
+**Probe de fontes** — `python -m src.tools.probe_fontes <ibge> [--fonte X] [--json]`:
+bate nas fontes REAIS e relata por fonte se respondeu, quantos registros e QUAIS campos
+vieram (é o que se calibra). Não precisa de banco nem da API no ar; sai com código 1 se
+alguma falhar. Calibrar connector é trabalho empírico — isto substitui descobrir pelo
+`sync_runs` depois do deploy.

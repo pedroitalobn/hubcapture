@@ -18,6 +18,7 @@ from ..models.plano import Plano
 from ..models.preferencias import PreferenciasUsuario
 from ..models.usuario import Usuario
 from ..schemas.curadoria import OnboardingRequest, OnboardingResponse
+from . import fontes as fontes_service
 from . import monitoramentos as monitoramentos_service
 
 
@@ -82,9 +83,14 @@ async def onboarding(
             .on_conflict_do_nothing(constraint="uq_municipios_usuario_ibge")
         )
 
+    # O onboarding oferece GRUPOS ("transferegov", "fns"); o resto do sistema
+    # fala connector id. A expansão acontece aqui, uma vez, na entrada — e
+    # descarta fonte fora do recorte da v1 (`services/fontes.py`).
+    fontes_escolhidas = fontes_service.expandir(req.fontes) or list(fontes_service.HABILITADAS)
+
     prefs = pg_insert(PreferenciasUsuario).values(
         usuario_id=usuario_id,
-        fontes=req.fontes,
+        fontes=fontes_escolhidas,
         areas=req.areas,
         monitorar_ativo=req.monitorar_ativo,
     )

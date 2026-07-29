@@ -21,12 +21,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..connectors.base import get_connector
 from ..core.config import settings
 from ..db.session import SessionLocal
-from ..ingestion.merge import merge
-from ..ingestion.normalizer import normalize
+from ..ingestion.merge import merge_record
 from ..models.audit_log import AuditLog
 from ..models.municipio_interesse import MunicipioInteresse
 from ..models.proposta import Proposta
 from ..models.sync_run import SyncRun
+from . import fontes as fontes_service
 from . import propostas as propostas_service
 
 
@@ -93,7 +93,8 @@ async def consulta_avulsa(
         registros = await connector.collect(municipio_ibge, since=_since())
         n = 0
         for record in registros:
-            canonica = merge(normalize(record), None)
+            # aglutina API + scraping quando o connector trouxe os dois lados
+            canonica = merge_record(record)
             await propostas_service.upsert(session, canonica)
             n += 1
     except Exception as exc:  # nunca engolir: registra incidente e propaga
@@ -130,16 +131,10 @@ async def consulta_avulsa(
 # scraping via connector). Cada fonte é best-effort: falha vira status (e
 # sync_run), nunca derruba a busca inteira.
 
-# fontes cujo connector produz PROPOSTAS (captação) — repasses/obras/fiscal ficam fora
-CAPTACAO_FONTES: tuple[str, ...] = (
-    "transferegov_ff",
-    "transferegov_esp",
-    "transferegov_voluntarias",
-    "transferegov_disc",
-    "fns",
-    "fnde",
-    "serpro",
-)
+# fontes cujo connector produz PROPOSTAS (captação). O recorte da v1 vive em
+# `services/fontes.py` — hoje é a família TransfereGov (as APIs PostgREST, o CSV
+# das discricionárias e o painel da Visão Geral).
+CAPTACAO_FONTES: tuple[str, ...] = fontes_service.CAPTACAO
 
 
 def _fontes_alvo(fonte: str | None, area: str | None, fontes_perfil: list[str] | None) -> list[str]:

@@ -32,19 +32,29 @@ from ..schemas.perfil import (
     SyncRunStatus,
     VisaoGeralPerfil,
 )
+from . import fontes as fontes_service
 from . import modulos as modulos_service
 
 # Áreas de interesse → fontes que as servem. Usado só como RECORTE do feed de
 # novidades (a navegação continua profile-centric; fonte nunca vira aba).
+#
+# Com o recorte de duas fontes (`services/fontes.py`), o TransfereGov atende
+# todas as áreas — ele não é setorial — e o FNS entra só na saúde. Quando uma
+# fonte setorial voltar (FNDE na educação, CAIXA em infra), é aqui que ela
+# reaparece.
+AREAS = (
+    "saude",
+    "educacao",
+    "infraestrutura",
+    "assistencia_social",
+    "cultura",
+    "esporte",
+    "meio_ambiente",
+    "agricultura",
+)
 AREA_FONTES: dict[str, set[str]] = {
-    "saude": {"fns", "sismob"},
-    "educacao": {"fnde", "simec"},
-    "infraestrutura": {"caixa", "transferegov_esp"},
-    "assistencia_social": {"transferegov_ff"},
-    "cultura": {"transferegov_voluntarias"},
-    "esporte": {"transferegov_voluntarias"},
-    "meio_ambiente": {"transferegov_voluntarias"},
-    "agricultura": {"transferegov_voluntarias"},
+    area: set(fontes_service.TRANSFEREGOV) | ({"fns"} if area == "saude" else set())
+    for area in AREAS
 }
 
 
@@ -105,9 +115,7 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
                 chave="captacao",
                 titulo="Captação",
                 total=int(prop_n),
-                destaque=(
-                    f"{_brl(prop_valor)} em propostas" if prop_n else "sem propostas ainda"
-                ),
+                destaque=(f"{_brl(prop_valor)} em propostas" if prop_n else "sem propostas ainda"),
                 href="/panel/funding",
             )
         )
@@ -134,9 +142,7 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
         conf_n = (await session.execute(select(func.count(Conformidade.id)))).scalar_one()
         conf_pendentes = (
             await session.execute(
-                select(func.count(Conformidade.id)).where(
-                    Conformidade.status == "a_comprovar"
-                )
+                select(func.count(Conformidade.id)).where(Conformidade.status == "a_comprovar")
             )
         ).scalar_one()
         dimensoes.append(
@@ -144,9 +150,7 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
                 chave="conformidade",
                 titulo="Conformidade fiscal",
                 total=int(conf_n),
-                destaque=(
-                    f"{conf_pendentes} a comprovar" if conf_n else "sem dados fiscais ainda"
-                ),
+                destaque=(f"{conf_pendentes} a comprovar" if conf_n else "sem dados fiscais ainda"),
                 href="/panel/compliance",
             )
         )
@@ -155,9 +159,7 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
         # Obras (execução) — destaque é o que está em andamento.
         obras_n = (await session.execute(select(func.count(Obra.id)))).scalar_one()
         obras_exec = (
-            await session.execute(
-                select(func.count(Obra.id)).where(Obra.situacao == "em_execucao")
-            )
+            await session.execute(select(func.count(Obra.id)).where(Obra.situacao == "em_execucao"))
         ).scalar_one()
         dimensoes.append(
             DimensaoResumo(

@@ -13,16 +13,16 @@ from ...connectors._http import ConnectorClientError
 from ...core.users import current_active_user
 from ...models.usuario import Usuario
 from ...schemas.repasse import RepasseRead, ResumoEmendas, VisaoGeral
+from ...services import fontes as fontes_service
 from ...services import repasses as service
 from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
 # Módulo desligável pelo painel admin (recebidos): desativado → eixo responde 404.
-router = APIRouter(
-    tags=["repasses"], dependencies=[Depends(require_modulo("recebidos"))]
-)
+router = APIRouter(tags=["repasses"], dependencies=[Depends(require_modulo("recebidos"))])
 
-FONTES_PADRAO = ["fpm", "emendas"]
+# recorte da v1 (services/fontes.py): recebidos vêm do FNS
+FONTES_PADRAO = list(fontes_service.RECEBIDOS)
 
 
 class SyncRepassesRequest(BaseModel):

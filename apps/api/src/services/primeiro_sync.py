@@ -26,14 +26,16 @@ import uuid
 from ..db.session import rls_session
 from . import conformidade as conformidade_service
 from . import consulta_avulsa as consulta_service
+from . import fontes as fontes_service
 from . import obras as obras_service
 from . import repasses as repasses_service
 
 log = logging.getLogger("hubcapture.primeiro_sync")
 
-# Fontes de captação (propostas) e de recebidos (repasses) que o 1º sync cobre.
-FONTES_CAPTACAO = ("transferegov_ff", "transferegov_esp", "transferegov_voluntarias")
-FONTES_RECEBIDOS = ("fpm", "emendas", "fns", "fnde")
+# Fontes de captação (propostas) e de recebidos (repasses) que o 1º sync cobre —
+# ambas saem do recorte de fontes habilitadas (`services/fontes.py`).
+FONTES_CAPTACAO = fontes_service.CAPTACAO
+FONTES_RECEBIDOS = fontes_service.RECEBIDOS
 # Obras por área de interesse; sem área conhecida, tenta as três.
 AREA_FONTES_OBRAS: dict[str, str] = {
     "saude": "sismob",
@@ -44,12 +46,12 @@ AREA_FONTES_OBRAS: dict[str, str] = {
 
 def _fontes_captacao(fontes: list[str]) -> list[str]:
     escolhidas = [f for f in FONTES_CAPTACAO if f in fontes]
-    return escolhidas or ["transferegov_ff"]  # a fonte que responde hoje
+    return escolhidas or list(FONTES_CAPTACAO)
 
 
 def _fontes_recebidos(fontes: list[str]) -> list[str]:
     escolhidas = [f for f in FONTES_RECEBIDOS if f in fontes]
-    return escolhidas or ["fpm", "emendas"]
+    return escolhidas or list(FONTES_RECEBIDOS)
 
 
 def _fontes_obras(areas: list[str]) -> list[str]:
