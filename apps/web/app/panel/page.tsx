@@ -4,7 +4,129 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { SkeletonCards } from "@/components/Skeleton";
+import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
+import { formatBRL } from "@/lib/format";
+
+// ── Panorama financeiro do território (números + gráfico) ───────────────────
+// Reusa /proposals/summary (mesma fonte da página de resumo da Captação) para
+// dar cards e um gráfico por ano direto no Meu painel, com filtro de período.
+interface ResumoPainelData {
+  cards: {
+    valor_conveniado: string;
+    valor_desembolsado: string;
+    valor_a_utilizar: string;
+    transferencias: number;
+    convenios_em_execucao: number;
+    oportunidades_abertas: number;
+  };
+  por_ano: { ano: string; aprovado: string; desembolsado: string }[];
+}
+
+function numBR(v?: string | number | null): number {
+  const n = Number(v);
+  return Number.isNaN(n) ? 0 : n;
+}
+
+function PanoramaFinanceiro() {
+  const [resumo, setResumo] = useState<ResumoPainelData | null>(null);
+  const [ano, setAno] = useState("");
+  const [carregando, setCarregando] = useState(true);
+
+  useEffect(() => {
+    setCarregando(true);
+    void api
+      .GET("/api/v1/proposals/summary", {
+        params: { query: { ano: ano || undefined } } as never,
+      })
+      .then(({ data }) => {
+        if (data) setResumo(data as ResumoPainelData);
+        setCarregando(false);
+      });
+  }, [ano]);
+
+  if (carregando && !resumo) return <SkeletonCards />;
+  if (!resumo) return null;
+
+  const anos = resumo.por_ano.map((a) => a.ano);
+  const maxAno = Math.max(
+    1,
+    ...resumo.por_ano.flatMap((a) => [numBR(a.aprovado), numBR(a.desembolsado)]),
+  );
+
+  return (
+    <section className="anim-fade-up flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h2 className="tracking-tight">Panorama financeiro</h2>
+        <select
+          value={ano}
+          onChange={(e) => setAno(e.target.value)}
+          className="input w-36"
+          title="Filtrar por período (ano)"
+        >
+          <option value="">Todos os anos</option>
+          {anos.map((a) => (
+            <option key={a} value={a}>
+              {a}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <StatCard
+          label="Valor conveniado"
+          value={formatBRL(resumo.cards.valor_conveniado)}
+          context={`${resumo.cards.transferencias} transferências`}
+        />
+        <StatCard
+          label="Desembolsado"
+          value={formatBRL(resumo.cards.valor_desembolsado)}
+          context="liberado ao ente"
+        />
+        <StatCard
+          label="Em execução"
+          value={String(resumo.cards.convenios_em_execucao)}
+          context="convênios vigentes"
+        />
+        <StatCard
+          label="Oportunidades abertas"
+          value={String(resumo.cards.oportunidades_abertas)}
+          context="disponíveis p/ captar"
+        />
+      </div>
+
+      {resumo.por_ano.length > 0 && (
+        <div className="card p-5">
+          <h3 className="label-mono">Aprovado × desembolsado por ano</h3>
+          <div className="mt-4 flex items-end gap-2 overflow-x-auto">
+            {resumo.por_ano.map((a) => (
+              <div key={a.ano} className="flex min-w-[42px] flex-col items-center gap-1">
+                <div className="flex h-28 items-end gap-0.5">
+                  <div
+                    title={`Aprovado: ${formatBRL(a.aprovado)}`}
+                    className="w-3 rounded-t bg-ink/70"
+                    style={{ height: `${(numBR(a.aprovado) / maxAno) * 100}%` }}
+                  />
+                  <div
+                    title={`Desembolsado: ${formatBRL(a.desembolsado)}`}
+                    className="w-3 rounded-t bg-lime"
+                    style={{ height: `${(numBR(a.desembolsado) / maxAno) * 100}%` }}
+                  />
+                </div>
+                <span className="font-mono text-[10px] text-ink-3">{a.ano}</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 font-mono text-[11px] text-ink-3">
+            <span className="mr-3">▊ aprovado</span>
+            <span className="text-lime">▊ desembolsado</span>
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
 
 interface Dimensao {
   chave: string;
@@ -255,6 +377,8 @@ function MeuPainel() {
               </Link>
             ))}
           </section>
+
+          <PanoramaFinanceiro />
 
           <section className="anim-fade-up flex flex-col gap-3">
             <div className="flex items-center justify-between">

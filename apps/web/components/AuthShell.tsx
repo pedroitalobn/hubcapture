@@ -6,7 +6,7 @@ export function BrandMark({ size = "base" }: { size?: "base" | "lg" }) {
   return (
     <span
       className={`inline-flex items-center gap-2 tracking-tight ${
-        size === "lg" ? "text-xl" : "text-base"
+        size === "lg" ? "text-3xl font-medium" : "text-base"
       }`}
     >
       <span className="brand-dot" aria-hidden />
@@ -126,7 +126,7 @@ export function AuthShell({
   const form = (
     <div className="flex flex-col justify-between py-4 sm:px-6">
       <Link href="/" className="self-start">
-        <BrandMark />
+        <BrandMark size="lg" />
       </Link>
 
       <div className="mx-auto w-full max-w-sm py-10">
