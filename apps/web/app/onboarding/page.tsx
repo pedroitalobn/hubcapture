@@ -46,28 +46,28 @@ const AREAS = [
   { value: "agricultura", label: "Agricultura" },
 ];
 
+// Fontes oferecidas na v1 — GRUPOS, não connectors. "TransfereGov" cobre Fundo
+// a Fundo, Especiais, Voluntárias, Discricionárias e o painel da Visão Geral; a
+// API expande o grupo nos connectors (`services/fontes.py`). Manter em sincronia
+// com `GRUPOS` de lá ao ligar uma fonte nova.
 const FONTES = [
-  { value: "transferegov_ff", label: "TransfereGov (Fundo a Fundo)" },
-  { value: "transferegov_esp", label: "TransfereGov (Especiais)" },
-  { value: "transferegov_voluntarias", label: "TransfereGov (Voluntárias)" },
-  { value: "fpm", label: "FPM (Tesouro)" },
-  { value: "emendas", label: "Emendas parlamentares" },
-  { value: "fns", label: "FNS — Fundo Nacional de Saúde" },
-  { value: "fnde", label: "FNDE — Educação" },
+  {
+    value: "transferegov",
+    label: "TransfereGov",
+    descricao: "Convênios, transferências especiais, voluntárias e execução financeira",
+  },
+  {
+    value: "fns",
+    label: "FNS — Fundo Nacional de Saúde",
+    descricao: "Repasses do Ministério da Saúde ao município",
+  },
 ];
 
 // Sugestão de fontes a partir das áreas — o Copiloto pré-marca por você.
+// TransfereGov serve qualquer área (não é setorial); FNS entra com saúde.
 function fontesSugeridas(areas: string[]): string[] {
-  const f = new Set(["transferegov_ff", "fpm", "emendas"]);
-  if (areas.includes("saude")) f.add("fns");
-  if (areas.includes("educacao")) f.add("fnde");
-  if (
-    areas.some((a) =>
-      ["cultura", "esporte", "meio_ambiente", "agricultura"].includes(a),
-    )
-  )
-    f.add("transferegov_voluntarias");
-  if (areas.includes("infraestrutura")) f.add("transferegov_esp");
+  const f = new Set(["transferegov"]);
+  if (areas.includes("saude") || areas.length === 0) f.add("fns");
   return [...f];
 }
 
@@ -201,7 +201,7 @@ export default function OnboardingPage() {
     setEtapa("fontes");
     falar([
       "Fechado. E de quais FONTES oficiais você quer receber dados?",
-      "Já marquei as que combinam com o seu perfil — ajuste se quiser.",
+      "Por enquanto trabalho com duas — as que já entregam dado confiável. Deixei marcadas as que combinam com o seu perfil.",
     ]);
   }
 
@@ -422,14 +422,17 @@ export default function OnboardingPage() {
 
       {etapa === "fontes" && !digitando && (
         <div className="anim-fade-up flex flex-col gap-3">
-          <div className="stagger flex flex-wrap gap-2">
+          <div className="stagger flex flex-col gap-2">
             {FONTES.map((f) => (
               <button
                 key={f.value}
                 onClick={() => toggleFonte(f.value)}
-                className={`chip ${fontes.includes(f.value) ? "chip-active" : ""}`}
+                className={`chip flex-col items-start gap-0.5 text-left ${
+                  fontes.includes(f.value) ? "chip-active" : ""
+                }`}
               >
-                {f.label}
+                <span>{f.label}</span>
+                <span className="text-[11px] opacity-70">{f.descricao}</span>
               </button>
             ))}
           </div>

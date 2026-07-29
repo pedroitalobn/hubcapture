@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import logging
 
 from cryptography.fernet import Fernet
 from sqlalchemy import select
@@ -18,6 +19,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..core.config import settings
 from ..db.session import SessionLocal
 from ..models.configuracao import Configuracao
+
+log = logging.getLogger("hubcapture.config")
 
 
 # Catálogo de chaves configuráveis pelo painel. `default` vem do Settings (.env).
@@ -45,8 +48,22 @@ CATALOGO: list[dict] = [
     _c("crawl4ai_base_url", "Crawl4AI servidor URL (Docker)", "scraping", False, "crawl4ai"),
     _c("crawl4ai_api_token", "Crawl4AI API token", "scraping", True, "crawl4ai"),
     _c(
+        "scraping_crawl4ai_local",
+        "Crawl4AI local — biblioteca no próprio container (on|off)",
+        "scraping",
+        False,
+        "crawl4ai_local",
+    ),
+    _c(
+        "scraping_playwright",
+        "Playwright local — Chromium headless no container (on|off)",
+        "scraping",
+        False,
+        "playwright",
+    ),
+    _c(
         "scraping_provider",
-        "Scraper preferido (auto|crawl4ai|firecrawl)",
+        "Scraper preferido (auto|crawl4ai_local|playwright|crawl4ai|firecrawl)",
         "scraping",
         False,
         "scraping",
@@ -238,6 +255,16 @@ async def listar_catalogo(session: AsyncSession) -> list[dict]:
 
 
 async def resolver(chave: str) -> str | None:
-    """Acesso runtime (usado por Firecrawl/LLM/connectors). Abre sessão própria."""
-    async with SessionLocal() as s:
-        return await get_valor(s, chave)
+    """Acesso runtime (usado por scrapers/LLM/connectors). Abre sessão própria.
+
+    Banco fora do ar não pode derrubar a ingestão: o painel apenas SOBRESCREVE o
+    `.env`, então sem banco vale o default do `.env` — o mesmo valor que valeria
+    se ninguém tivesse configurado nada no painel. É também o que permite rodar
+    o probe de fontes (`python -m src.tools.probe_fontes`) sem subir o Postgres.
+    """
+    try:
+        async with SessionLocal() as s:
+            return await get_valor(s, chave)
+    except Exception:
+        log.warning("configuração %r: banco indisponível, usando default do .env", chave)
+        return _default(chave)

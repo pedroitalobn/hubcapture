@@ -76,16 +76,22 @@ async def test_novidades_recorta_por_fontes_e_areas_do_perfil(
     await seed_repasse("fpm", "r1", "3550308", valor="1000", data_repasse="2026-07-10")
     await seed_repasse("fns", "r2", "3550308", valor="2000", data_repasse="2026-07-20")
     await seed_repasse("fnde", "r3", "3550308", valor="3000")  # fora do recorte
-    await seed_proposta("transferegov_ff", "p1", "3550308")  # fora do recorte
+    # TransfereGov serve TODAS as áreas no recorte da v1 (services/fontes.py),
+    # então a proposta dele entra pela área de saúde do perfil
+    await seed_proposta("transferegov_ff", "p1", "3550308")
 
     async with rls_session(u) as s:
         nov = await perfil_service.novidades(s, _FakeUser(u))
 
     fontes = [i.fonte for i in nov.itens]
-    assert set(fontes) == {"fpm", "fns"}
-    # mais recente primeiro
-    assert nov.itens[0].fonte == "fns"
-    assert nov.itens[0].tipo == "recebido"
+    assert set(fontes) == {"fpm", "fns", "transferegov_ff"}
+    assert "fnde" not in fontes  # fonte desligada não vaza para o feed
+
+    # intercalado por data, mais recente primeiro
+    datas = [i.data for i in nov.itens if i.data]
+    assert datas == sorted(datas, reverse=True)
+    recebidos = [i for i in nov.itens if i.tipo == "recebido"]
+    assert recebidos[0].fonte == "fns"  # 20/07 vem antes do fpm de 10/07
 
 
 async def test_novidades_sem_preferencias_mostra_tudo_do_territorio(
@@ -107,9 +113,12 @@ async def test_novidades_sem_preferencias_mostra_tudo_do_territorio(
 
 
 def test_primeiro_sync_seleciona_fontes_pelo_perfil() -> None:
+    from src.services import fontes as fontes_service
+
+    # o perfil filtra dentro do recorte; sem escolha, cobre o recorte inteiro
     assert primeiro_sync._fontes_captacao(["fpm", "transferegov_ff"]) == ["transferegov_ff"]
-    assert primeiro_sync._fontes_captacao([]) == ["transferegov_ff"]
-    assert primeiro_sync._fontes_recebidos(["fns", "fpm"]) == ["fpm", "fns"]
-    assert primeiro_sync._fontes_recebidos([]) == ["fpm", "emendas"]
+    assert primeiro_sync._fontes_captacao([]) == list(fontes_service.CAPTACAO)
+    assert primeiro_sync._fontes_recebidos(["fns", "fpm"]) == ["fns"]
+    assert primeiro_sync._fontes_recebidos([]) == list(fontes_service.RECEBIDOS)
     assert primeiro_sync._fontes_obras(["saude", "educacao"]) == ["simec", "sismob"]
     assert primeiro_sync._fontes_obras([]) == ["caixa", "simec", "sismob"]

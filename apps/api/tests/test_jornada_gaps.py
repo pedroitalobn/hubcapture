@@ -270,9 +270,13 @@ async def test_live_search_usa_cache_fresco_e_reporta_erro(seed_user, seed_munic
 def test_fontes_alvo_prioriza_filtro_area_perfil() -> None:
     from src.services.consulta_avulsa import CAPTACAO_FONTES, _fontes_alvo
 
-    assert _fontes_alvo("fns", None, None) == ["fns"]
-    assert _fontes_alvo(None, "saude", None) == ["fns"]
-    assert _fontes_alvo(None, None, ["fnde", "fpm"]) == ["fnde"]
+    # fonte explícita sempre vence
+    assert _fontes_alvo("transferegov_ff", None, None) == ["transferegov_ff"]
+    # área recorta pelas fontes de captação da área (v1: TransfereGov serve todas)
+    assert _fontes_alvo(None, "saude", None) == sorted(CAPTACAO_FONTES)
+    # fonte do perfil fora do recorte de captação (fpm é recebidos) → tudo
+    assert _fontes_alvo(None, None, ["fpm"]) == list(CAPTACAO_FONTES)
+    assert _fontes_alvo(None, None, ["transferegov_esp"]) == ["transferegov_esp"]
     assert _fontes_alvo(None, None, None) == list(CAPTACAO_FONTES)
 
 

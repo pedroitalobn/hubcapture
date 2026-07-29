@@ -72,9 +72,13 @@ class _StubProvider:
 
 
 async def test_scraper_sem_provider_levanta() -> None:
+    # inclui os providers locais (crawl4ai_local/playwright): sem NENHUM
+    # disponível, a facade precisa levantar em vez de devolver vazio
     s = Scraper(
         crawl4ai=_StubProvider(enabled=False),
         firecrawl=_StubProvider(enabled=False),
+        crawl4ai_local=_StubProvider(enabled=False),
+        playwright=_StubProvider(enabled=False),
         provider="auto",
     )
     assert await s.is_enabled() is False
@@ -84,6 +88,8 @@ async def test_scraper_sem_provider_levanta() -> None:
 
 async def test_scraper_prefere_crawl4ai_no_auto() -> None:
     s = Scraper(
+        crawl4ai_local=_StubProvider(enabled=False),
+        playwright=_StubProvider(enabled=False),
         crawl4ai=_StubProvider(nome="crawl4ai"),
         firecrawl=_StubProvider(nome="firecrawl"),
         provider="auto",
