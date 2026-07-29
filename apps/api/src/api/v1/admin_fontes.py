@@ -12,11 +12,13 @@ from __future__ import annotations
 import asyncio
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from pydantic import BaseModel
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...connectors.base import available_sources, get_connector
 from ...core.users import current_superuser
+from ...models.proposta import Proposta
 from ...models.sync_run import SyncRun
 from ...models.usuario import Usuario
 from ...schemas.config import DiagnosticoFontes, FonteDiagnostico, UltimaColeta
@@ -27,6 +29,24 @@ from ..deps import get_platform_db
 router = APIRouter(tags=["admin"])
 
 HEALTH_TIMEOUT = 10.0  # s por fonte — fonte pendurada não trava o diagnóstico
+
+
+class ResultadoLimpeza(BaseModel):
+    removidas: int
+
+
+@router.delete("/admin/proposals", response_model=ResultadoLimpeza)
+async def zerar_propostas(
+    _admin: Usuario = Depends(current_superuser),
+    session: AsyncSession = Depends(get_platform_db),
+) -> ResultadoLimpeza:
+    """Zera TODAS as propostas do sistema (uso: validação — recomeçar a coleta do
+    zero). As FKs são ON DELETE CASCADE, então favoritos, pastas, monitoramentos,
+    alertas e embeddings ligados às propostas somem junto. Só superuser."""
+    total = (await session.execute(select(func.count()).select_from(Proposta))).scalar_one()
+    await session.execute(delete(Proposta))
+    await session.commit()
+    return ResultadoLimpeza(removidas=int(total or 0))
 
 
 async def _health(fonte: str) -> bool:
