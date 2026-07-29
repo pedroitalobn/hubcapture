@@ -1,113 +1,90 @@
-"""Connector TransfereGov — Transferências Especiais (API pública + fallback scraping).
+"""Connector TransfereGov — Transferências Especiais (API pública PostgREST).
 
-Base: https://api-publica.transferegov.gestao.gov.br/especiais/
-(docs vivos em <base>/docs — padrão PostgREST: ?campo=eq.valor).
+Base: https://api.transferegov.gestao.gov.br/transferenciasespeciais/
+Tabela: plano_acao_especial (PostgREST — ?campo=eq.valor / ?campo=ilike.*x*).
 
-A API antiga (api.transferegov…/transferenciasespeciais) retornou 502 em
-produção; a coleta agora aponta para a API pública e mantém o fallback por
-scraping (facade Crawl4AI/Firecrawl) quando a API cai.
-Campos/rotas isolados em constantes — calibrar contra <base>/docs.
+A tabela NÃO tem código IBGE — o beneficiário vem por UF + CNPJ + NOME
+(ex.: "MUNICIPIO DE FORTALEZA", uf=CE). Então filtramos por
+`uf_beneficiario` = UF do município + `nome_beneficiario ilike *<nome>*`,
+resolvendo IBGE→(nome, uf) via services.municipios. Como o mesmo nome pode
+existir em variações ("FORTALEZA" × "FORTALEZA DO TABOCAO"), refinamos em
+Python: só mantém linhas cujo beneficiário casa o município.
+
+Sem stub de scraping: se a API falhar, o erro sobe e vira incidente em
+sync_runs — nunca gravamos uma "proposta" vazia (o antigo scrape-<ibge>).
 """
 
 from __future__ import annotations
 
+import unicodedata
 from datetime import date
 
-from ..core.config import settings
-from ..scraping.scraper import get_scraper
 from ..services import config as config_service
-from . import _postgrest
-from ._http import ConnectorClientError, get_json
+from ..services import municipios as municipios_service
+from ._http import get_json
 from .base import RawRecord, register
 
-# defaults; a rota/coluna REAIS são descobertas via OpenAPI do PostgREST
-# (override manual no painel: transferegov_esp_endpoint / _ibge_field)
-ENDPOINT = "plano_acao"
-IBGE_FIELD = "codigo_ibge_municipio_beneficiario"
+TABLE = "plano_acao_especial"
+UF_FIELD = "uf_beneficiario_plano_acao"
+NOME_FIELD = "nome_beneficiario_plano_acao"
 ID_FIELD = "id_plano_acao"
-TABELAS_PREFERIDAS = ("plano_acao", "transferencia_especial", "plano_trabalho")
+DEFAULT_BASE = "https://api.transferegov.gestao.gov.br/transferenciasespeciais/"
+
+
+def _norm(t: str) -> str:
+    sem = unicodedata.normalize("NFD", t or "")
+    return "".join(c for c in sem if unicodedata.category(c) != "Mn").lower().strip()
 
 
 class TransferegovEspConnector:
     source_id = "transferegov_esp"
 
     def __init__(self, base_url: str | None = None) -> None:
-        self.base_url = base_url or settings.transferegov_esp_base_url
-
-    async def _endpoint_e_coluna(self, base: str) -> tuple[str, str]:
-        """Override do painel > OpenAPI do PostgREST > defaults."""
-        endpoint = await config_service.resolver("transferegov_esp_endpoint")
-        coluna = await config_service.resolver("transferegov_esp_ibge_field")
-        if endpoint and coluna:
-            return endpoint, coluna
-        descoberto = await _postgrest.descobrir(base, TABELAS_PREFERIDAS)
-        if descoberto:
-            return endpoint or descoberto[0], coluna or descoberto[1]
-        return endpoint or ENDPOINT, coluna or IBGE_FIELD
-
-    async def _consultar(
-        self, base: str, endpoint: str, coluna: str, ibge: str
-    ) -> list[dict]:
-        data = await get_json(base, endpoint, {coluna: f"eq.{ibge}", "limit": "500"})
-        linhas = data if isinstance(data, list) else data.get("items", [])
-        # bases com IBGE de 6 dígitos (sem dígito verificador)
-        if not linhas and len(ibge) == 7:
-            data = await get_json(
-                base, endpoint, {coluna: f"eq.{ibge[:6]}", "limit": "500"}
-            )
-            linhas = data if isinstance(data, list) else data.get("items", [])
-        return linhas
+        self.base_url = DEFAULT_BASE
 
     async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
-        base = await config_service.resolver("transferegov_esp_base_url") or self.base_url
-        try:
-            endpoint, coluna = await self._endpoint_e_coluna(base)
-            try:
-                linhas = await self._consultar(base, endpoint, coluna, municipio_ibge)
-            except ConnectorClientError:
-                # coluna recusada (42703) → tenta os candidatos conhecidos
-                linhas = []
-                for candidato in _postgrest.IBGE_CANDIDATES:
-                    if candidato == coluna:
-                        continue
-                    try:
-                        linhas = await self._consultar(
-                            base, endpoint, candidato, municipio_ibge
-                        )
-                        break
-                    except ConnectorClientError:
-                        continue
-                else:
-                    raise
-            return [
+        base = (
+            await config_service.resolver("transferegov_esp_base_url") or self.base_url
+        )
+        # a base antiga (api-publica/especiais) não tem plano_acao_especial;
+        # se a config ainda apontar pra lá, usa o host que tem a tabela.
+        if "api-publica" in base or "/especiais" in base:
+            base = DEFAULT_BASE
+
+        nome_uf = await municipios_service.nome_uf_por_ibge(municipio_ibge)
+        if not nome_uf:
+            return []  # sem como casar o município → nada a coletar
+        nome, uf = nome_uf
+        nome_norm = _norm(nome)
+
+        data = await get_json(
+            base,
+            TABLE,
+            {UF_FIELD: f"eq.{uf}", NOME_FIELD: f"ilike.*{nome}*", "limit": "500"},
+        )
+        linhas = data if isinstance(data, list) else data.get("items", [])
+
+        registros: list[RawRecord] = []
+        for row in linhas:
+            benef = _norm(str(row.get(NOME_FIELD) or ""))
+            # refino: beneficiário tem que SER o município deste nome (evita
+            # "FORTALEZA" casar "FORTALEZA DO TABOCAO").
+            if not (benef.endswith(nome_norm) or f" {nome_norm} " in f" {benef} "):
+                continue
+            registros.append(
                 RawRecord(
                     source_id=self.source_id,
                     id_externo=str(row.get(ID_FIELD) or row.get("id")),
                     municipio_ibge=municipio_ibge,
-                    endpoint=ENDPOINT,
+                    endpoint=TABLE,
                     raw={"plano_acao": row, "modalidade": "Especial"},
                 )
-                for row in linhas
-            ]  # noqa: TRY300
-        except Exception:
-            # fallback: scraping do painel gerencial (quando algum scraper está ligado)
-            scraper = get_scraper()
-            if not await scraper.is_enabled():
-                raise
-            dados = await scraper.scrape(f"{base}#municipio={municipio_ibge}")
-            return [
-                RawRecord(
-                    source_id=self.source_id,
-                    id_externo=f"scrape-{municipio_ibge}",
-                    municipio_ibge=municipio_ibge,
-                    endpoint="scrape",
-                    raw={"scrape": dados, "modalidade": "Especial"},
-                )
-            ]
+            )
+        return registros
 
     async def health_check(self) -> bool:
         try:
-            await get_json(self.base_url, ENDPOINT, {"limit": "1"})
+            await get_json(self.base_url, TABLE, {"limit": "1"})
             return True
         except Exception:
             return False

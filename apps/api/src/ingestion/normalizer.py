@@ -125,7 +125,15 @@ def normalize(record: RawRecord) -> PropostaCanonica:
             plano.get("numero"),  # painel SERPRO
         ),
         "titulo": _first(
-            programa.get("nome_programa"), plano.get("nome"), plano.get("programa")
+            programa.get("nome_programa"),
+            plano.get("nome"),
+            plano.get("programa"),
+            # especiais: emenda parlamentar (não há nome de programa)
+            (
+                f"Transferência especial — {plano['nome_parlamentar_emenda_plano_acao']}"
+                if plano.get("nome_parlamentar_emenda_plano_acao")
+                else None
+            ),
         ),
         "objeto": _first(
             programa.get("objeto"),
@@ -156,6 +164,7 @@ def normalize(record: RawRecord) -> PropostaCanonica:
             benef.get("municipio"),
             plano.get("nome_municipio_ente_recebedor_plano_acao"),  # fundo a fundo
             plano.get("nome_municipio_ente_repassador_plano_acao"),
+            plano.get("nome_beneficiario_plano_acao"),  # especiais
         ),
         "uf": _first(
             benef.get("sigla_uf"),
@@ -163,6 +172,7 @@ def normalize(record: RawRecord) -> PropostaCanonica:
             plano.get("uf"),
             plano.get("uf_ente_recebedor_plano_acao"),  # fundo a fundo
             plano.get("uf_ente_repassador_plano_acao"),
+            plano.get("uf_beneficiario_plano_acao"),  # especiais
         ),
         "valor_total": _to_decimal(
             _first(
@@ -171,6 +181,8 @@ def normalize(record: RawRecord) -> PropostaCanonica:
                 plano.get("valor_global"),  # voluntárias (convênio)
                 plano.get("valor_total_repasse_plano_acao"),  # fundo a fundo
                 plano.get("valor_total_plano_acao"),
+                plano.get("valor_investimento_plano_acao"),  # especiais
+                plano.get("valor_custeio_plano_acao"),  # especiais
                 plano.get("valor"),
             )
         ),
