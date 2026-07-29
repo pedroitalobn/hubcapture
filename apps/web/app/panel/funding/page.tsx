@@ -3,6 +3,20 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, baixarCsv } from "@/lib/api/client";
+import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
+
+// mapeia a situação da proposta para o tom do badge (verde = bom andamento,
+// âmbar = em análise/pendente, vermelho = negado/cancelado)
+function tomSituacao(s?: string | null): BadgeTone {
+  const t = (s ?? "").toLowerCase();
+  if (/autoriz|aprov|execu|pago|libera|conclu|vigente|celebrad|recebid/.test(t))
+    return "success";
+  if (/cancel|rejeit|indefer|reprov|inadimpl|impedid|vencid|expirad/.test(t))
+    return "danger";
+  if (/analis|pendente|aguard|cadastr|propost|elabor|em andamento/.test(t))
+    return "warning";
+  return "neutral";
+}
 
 type Proposta = {
   id: string;
@@ -1071,7 +1085,13 @@ export default function CaptacaoPage() {
                       )}
                     </td>
                     <td className="px-3 py-3">
-                      <span className="text-ink-2">{p.situacao ?? "—"}</span>
+                      {p.situacao ? (
+                        <StatusBadge tone={tomSituacao(p.situacao)}>
+                          {p.situacao}
+                        </StatusBadge>
+                      ) : (
+                        <span className="text-ink-3">—</span>
+                      )}
                       <span
                         className={`ml-1.5 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase ${
                           p.tipo === "disponivel"
