@@ -28,6 +28,7 @@ interface Perfil {
 const NAV = [
   { href: "/panel", label: "Meu painel", exact: true },
   { href: "/panel/funding", label: "Captação", modulo: "captacao" },
+  { href: "/panel/my-proposals", label: "Minhas Propostas", modulo: "captacao" },
   { href: "/panel/transfers", label: "Recursos recebidos", modulo: "recebidos" },
   {
     href: "/panel/compliance",
