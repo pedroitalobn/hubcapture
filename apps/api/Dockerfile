@@ -52,5 +52,16 @@ RUN if [ "$COM_SCRAPING" = "1" ]; then uv sync --no-dev --extra scraping; else u
 ENV PATH="/app/apps/api/.venv/bin:${PATH}" \
     UV_NO_SYNC=1
 
+# Carimbo da versão — última camada de propósito: muda a cada build sem
+# invalidar o cache das camadas caras (deps e Chromium) acima.
+# /health passa a devolver o commit, então dá para conferir de fora QUAL versão
+# está no ar em vez de supor. No Dokploy, defina os build args GIT_SHA/GIT_REF.
+ARG GIT_SHA=desconhecido
+ARG GIT_REF=""
+ARG BUILD_TIME=""
+ENV GIT_SHA=${GIT_SHA} \
+    GIT_REF=${GIT_REF} \
+    BUILD_TIME=${BUILD_TIME}
+
 EXPOSE 8000
 ENTRYPOINT ["./docker-entrypoint.sh"]
