@@ -221,7 +221,8 @@ async def novidades(
             fonte=p.fonte,
             municipio_ibge=p.municipio_ibge,
             municipio_nome=p.municipio_nome,
-            href="/panel/funding",
+            # detalhe da proposta (antes ia pra lista da Captação e "sumia")
+            href=f"/panel/funding/{p.id}",
         )
         for p in propostas
     ] + [

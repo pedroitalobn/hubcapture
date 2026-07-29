@@ -202,6 +202,8 @@ export default function CaptacaoPage() {
   const [buscando, setBuscando] = useState(true);
   const [mostrarAvancados, setMostrarAvancados] = useState(false);
   const [favoritos, setFavoritos] = useState<Set<string>>(new Set());
+  // proposta_id -> id do monitoramento (para ligar/desligar o alerta pelo card)
+  const [alertas, setAlertas] = useState<Map<string, string>>(new Map());
   const [pastas, setPastas] = useState<Pasta[]>([]);
   const [pastaPropostas, setPastaPropostas] = useState<Set<string>>(new Set());
   const [municipios, setMunicipios] = useState<MunicipioPerfil[]>([]);
@@ -279,15 +281,26 @@ export default function CaptacaoPage() {
   }, [buscarAoVivo, acompanhando]);
 
   const carregarCuradoria = useCallback(async () => {
-    const [fav, pas, perf] = await Promise.all([
+    const [fav, pas, perf, mon] = await Promise.all([
       api.GET("/api/v1/favorites"),
       api.GET("/api/v1/folders"),
       api.GET("/api/v1/profile"),
+      api.GET("/api/v1/monitors"),
     ]);
     if (fav.data) {
       setFavoritos(
         new Set(
           (fav.data as { proposta_id: string }[]).map((f) => f.proposta_id),
+        ),
+      );
+    }
+    if (mon.data) {
+      setAlertas(
+        new Map(
+          (mon.data as { id: string; proposta_id: string }[]).map((m) => [
+            m.proposta_id,
+            m.id,
+          ]),
         ),
       );
     }
@@ -363,6 +376,27 @@ export default function CaptacaoPage() {
       setFavoritos((prev) => new Set(prev).add(p.id));
     }
     if (acompanhando) void carregarAcompanhadas();
+  }
+
+  // liga/desliga o alerta (monitoramento) direto do card — canal painel por padrão
+  async function alternarAlerta(p: Proposta) {
+    const existente = alertas.get(p.id);
+    if (existente) {
+      await api.DELETE("/api/v1/monitors/{monitoramento_id}", {
+        params: { path: { monitoramento_id: existente } },
+      });
+      setAlertas((prev) => {
+        const m = new Map(prev);
+        m.delete(p.id);
+        return m;
+      });
+    } else {
+      const { data } = await api.POST("/api/v1/monitors", {
+        body: { proposta_id: p.id, canais: ["painel"] },
+      });
+      const novoId = (data as { id?: string } | undefined)?.id;
+      if (novoId) setAlertas((prev) => new Map(prev).set(p.id, novoId));
+    }
   }
 
   async function criarPasta() {
@@ -582,15 +616,7 @@ export default function CaptacaoPage() {
             )}
           </span>
         ))}
-        <button
-          onClick={() => setAbaAtiva(ABA_ACOMPANHAMENTO)}
-          className={`inline-flex items-center rounded-t-lg border border-b-0 border-hairline px-3 py-1.5 text-sm ${
-            acompanhando ? "bg-surface-2 font-medium" : "text-ink-2"
-          }`}
-          title="As propostas que você favoritou para acompanhar"
-        >
-          ★ Minhas Propostas
-        </button>
+        {/* "Minhas Propostas" agora vive no menu lateral (/panel/my-proposals) */}
         <button onClick={novaAba} className="btn btn-ghost btn-sm" title="Nova aba">
           + aba
         </button>
@@ -953,15 +979,32 @@ export default function CaptacaoPage() {
                     className="border-b border-hairline last:border-0 hover:bg-surface-2"
                   >
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => alternarFavorito(p)}
-                        aria-label="Favoritar"
-                        className={
-                          favoritos.has(p.id) ? "text-amber-500" : "text-ink-3"
-                        }
-                      >
-                        {favoritos.has(p.id) ? "★" : "☆"}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => alternarFavorito(p)}
+                          aria-label="Favoritar"
+                          title={favoritos.has(p.id) ? "Desfavoritar" : "Favoritar"}
+                          className={
+                            favoritos.has(p.id) ? "text-amber-500" : "text-ink-3 hover:text-amber-500"
+                          }
+                        >
+                          {favoritos.has(p.id) ? "★" : "☆"}
+                        </button>
+                        <button
+                          onClick={() => alternarAlerta(p)}
+                          aria-label="Alerta"
+                          title={
+                            alertas.has(p.id)
+                              ? "Alerta ligado — avisa quando mudar situação/prazo"
+                              : "Ligar alerta desta proposta"
+                          }
+                          className={
+                            alertas.has(p.id) ? "text-emerald-500" : "text-ink-3 hover:text-emerald-500"
+                          }
+                        >
+                          {alertas.has(p.id) ? "🔔" : "🔕"}
+                        </button>
+                      </div>
                     </td>
                     <td className="px-3 py-3">
                       <Link
