@@ -92,6 +92,21 @@ services:
     networks:
       - default
       - dokploy-network
+    # Sem healthcheck, o provider Docker do Traefik não reavalia o endpoint e,
+    # quando o deploy recria/reconecta o container (IP novo na dokploy-network),
+    # o Traefik segue roteando pro IP ANTIGO → 502 "Bad Gateway" a cada deploy.
+    # Com healthcheck, o endpoint só entra no balanceador quando saudável e é
+    # reavaliado — o IP novo é captado (mesma proteção que o `api` já tem).
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"require('http').get('http://localhost:3000/', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))\"",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     restart: unless-stopped
 
   # Fila para ARQ (sync pesado, retries, alertas) — declarado p/ as fases seguintes.
