@@ -115,3 +115,58 @@ async def _ensure_admin_uma_vez(email: str, senha: str) -> None:
         )
         await session.commit()
         logger.info("superadmin criado: %s", email)
+
+
+# ── Planos padrão ───────────────────────────────────────────────────────────
+# Semeados no startup (idempotente por slug). Preços/limites são editáveis no
+# painel admin depois — aqui só garantimos que os 4 existam para atribuir a
+# convites/usuários (customer = usuário com plano).
+PLANOS_PADRAO = [
+    {
+        "slug": "free",
+        "nome": "Free",
+        "descricao": "Gratuito — 1 município monitorado.",
+        "preco_mensal": 0,
+        "limites": {"municipios": 1, "alertas": True, "copiloto": False},
+    },
+    {
+        "slug": "start",
+        "nome": "Start",
+        "descricao": "Para começar — poucos municípios.",
+        "preco_mensal": 97,
+        "limites": {"municipios": 5, "alertas": True, "copiloto": False},
+    },
+    {
+        "slug": "pro",
+        "nome": "Pro",
+        "descricao": "Uso profissional — mais municípios + copiloto IA.",
+        "preco_mensal": 297,
+        "limites": {"municipios": 20, "alertas": True, "copiloto": True},
+    },
+    {
+        "slug": "business",
+        "nome": "Business",
+        "descricao": "Equipes/consultorias — sem limite prático.",
+        "preco_mensal": 697,
+        "limites": {"municipios": 999, "alertas": True, "copiloto": True},
+    },
+]
+
+
+async def ensure_planos() -> None:
+    """Cria os planos padrão que ainda não existirem (por slug). Idempotente."""
+    from ..models.plano import Plano
+
+    async with SessionLocal() as session:
+        existentes = set(
+            (await session.execute(select(Plano.slug))).scalars().all()
+        )
+        criados = 0
+        for p in PLANOS_PADRAO:
+            if p["slug"] in existentes:
+                continue
+            session.add(Plano(**p))
+            criados += 1
+        if criados:
+            await session.commit()
+            logger.info("planos padrão criados: %d", criados)

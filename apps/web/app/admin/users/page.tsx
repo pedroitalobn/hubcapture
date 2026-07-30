@@ -30,7 +30,7 @@ export default function AdminUsuariosPage() {
   const [email, setEmail] = useState("");
   const [nome, setNome] = useState("");
   const [senha, setSenha] = useState("");
-  const [papel, setPapel] = useState<string>("equipe");
+  const [papel, setPapel] = useState<string>("");
   const [planoId, setPlanoId] = useState<string>("");
   const [superuser, setSuperuser] = useState(false);
 
@@ -71,7 +71,7 @@ export default function AdminUsuariosPage() {
     setEmail("");
     setNome("");
     setSenha("");
-    setPapel("equipe");
+    setPapel("");
     setPlanoId("");
     setSuperuser(false);
     setMsg("Usuário criado.");
@@ -133,12 +133,13 @@ export default function AdminUsuariosPage() {
           />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="field-label">Papel (role)</span>
+          <span className="field-label">Papel (opcional)</span>
           <select
             value={papel}
             onChange={(e) => setPapel(e.target.value)}
             className="input"
           >
+            <option value="">— sem papel —</option>
             {PAPEIS.map((p) => (
               <option key={p} value={p}>
                 {p}

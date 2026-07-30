@@ -34,7 +34,7 @@ export default function AdminConvitesPage() {
   const [copiado, setCopiado] = useState<string | null>(null);
 
   const [email, setEmail] = useState("");
-  const [papel, setPapel] = useState<string>("equipe");
+  const [papel, setPapel] = useState<string>("");
   const [planoId, setPlanoId] = useState<string>("");
   const [dias, setDias] = useState(7);
 
@@ -115,12 +115,13 @@ export default function AdminConvitesPage() {
           />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="field-label">Papel</span>
+          <span className="field-label">Papel (opcional)</span>
           <select
             value={papel}
             onChange={(e) => setPapel(e.target.value)}
-            className="input w-36"
+            className="input w-40"
           >
+            <option value="">— sem papel —</option>
             {PAPEIS.map((p) => (
               <option key={p} value={p}>
                 {p}
