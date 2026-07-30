@@ -112,6 +112,22 @@ export async function zerarPropostas(): Promise<{ removidas: number }> {
   return resp.json();
 }
 
+/** Dispara um e-mail de teste (admin) e devolve o resultado do provedor. */
+export async function testarEmail(
+  destinatario?: string,
+): Promise<{ enviado: boolean; detalhe: string }> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/admin/email/test`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${(await garantirSessao()) ?? ""}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ destinatario: destinatario || null }),
+  });
+  if (!resp.ok) throw new Error(`Falha ao testar e-mail (HTTP ${resp.status})`);
+  return resp.json();
+}
+
 export async function baixarPdfProposta(id: string): Promise<void> {
   const resp = await fetch(`${API_ORIGIN}/api/v1/proposals/${id}/pdf`, {
     headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },

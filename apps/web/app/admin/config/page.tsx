@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { api, getToken } from "@/lib/api/client";
+import { api, getToken, testarEmail } from "@/lib/api/client";
 
 interface ConfigItem {
   chave: string;
@@ -148,6 +148,10 @@ export default function AdminConfigPage() {
   const [cat, setCat] = useState<string>("ia");
   // id do grupo/provider inativo aberto para configuração
   const [adicionando, setAdicionando] = useState<string | null>(null);
+  // teste de envio de e-mail (valida Maileroo/SMTP sem depender de convite)
+  const [emailTeste, setEmailTeste] = useState("");
+  const [emailResultado, setEmailResultado] = useState<string | null>(null);
+  const [testandoEmail, setTestandoEmail] = useState(false);
 
   // estado da seção LLM
   const [chaveEdits, setChaveEdits] = useState<Record<string, string>>({});
@@ -502,6 +506,46 @@ export default function AdminConfigPage() {
             </>
           ) : (
             <>
+              {cat === "email" && (
+                <div className="card border border-lime/30 p-4">
+                  <h3 className="text-sm tracking-tight">Testar envio de e-mail</h3>
+                  <p className="mt-1 text-xs text-ink-2">
+                    Manda um e-mail de teste (usa Maileroo se a API key estiver setada;
+                    senão o SMTP). Se o provedor recusar, o erro aparece aqui.
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <input
+                      value={emailTeste}
+                      onChange={(e) => setEmailTeste(e.target.value)}
+                      placeholder="destinatário (vazio = seu e-mail de admin)"
+                      className="input w-72"
+                    />
+                    <button
+                      onClick={async () => {
+                        setTestandoEmail(true);
+                        setEmailResultado(null);
+                        try {
+                          const r = await testarEmail(emailTeste);
+                          setEmailResultado((r.enviado ? "✓ " : "✗ ") + r.detalhe);
+                        } catch (e) {
+                          setEmailResultado(
+                            e instanceof Error ? e.message : "erro desconhecido",
+                          );
+                        } finally {
+                          setTestandoEmail(false);
+                        }
+                      }}
+                      disabled={testandoEmail}
+                      className="btn btn-primary"
+                    >
+                      {testandoEmail ? "Enviando…" : "Enviar teste"}
+                    </button>
+                  </div>
+                  {emailResultado && (
+                    <p className="mt-3 text-xs text-ink-2">{emailResultado}</p>
+                  )}
+                </div>
+              )}
               {gruposAtivos.length > 0 && (
                 <div className="flex flex-col gap-3">
                   <h3 className="label-mono">Provedores ativos</h3>

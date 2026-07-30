@@ -7,10 +7,12 @@ As chaves são restritas ao catálogo conhecido (services/config.CATALOGO).
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.users import current_superuser
 from ...models.usuario import Usuario
+from ...notifications import email as email_service
 from ...schemas.config import (
     ConfigItem,
     ConfigSet,
@@ -103,3 +105,49 @@ async def listar_llm_modelos(
     if not api_key:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "CHAVE_NAO_CONFIGURADA")
     return LlmModelosOut(**await llm_providers.listar_modelos(provider_id, api_key))
+
+
+class EmailTesteIn(BaseModel):
+    destinatario: str | None = None
+
+
+class EmailTesteOut(BaseModel):
+    enviado: bool
+    detalhe: str
+
+
+@router.post("/admin/email/test", response_model=EmailTesteOut)
+async def testar_email(
+    body: EmailTesteIn,
+    admin: Usuario = Depends(current_superuser),
+    session: AsyncSession = Depends(get_platform_db),
+) -> EmailTesteOut:
+    """Envia um e-mail de teste (Maileroo/SMTP) p/ validar a configuração.
+
+    Sem `destinatario`, manda para o próprio admin. Se o provedor recusar
+    (chave/domínio inválido), devolve o motivo — pra depurar sem adivinhar.
+    """
+    destino = (body.destinatario or admin.email or "").strip()
+    if not destino:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "SEM_DESTINATARIO")
+    if not await email_service.habilitado():
+        return EmailTesteOut(
+            enviado=False,
+            detalhe=(
+                "E-mail desabilitado: configure MAILEROO_API_KEY + EMAIL_FROM "
+                "(ou o SMTP no painel)."
+            ),
+        )
+    try:
+        ok = await email_service.enviar(
+            destino,
+            "Hub Capture — e-mail de teste",
+            "Se você recebeu este e-mail, o envio está funcionando. 🎉",
+            "<p>Se você recebeu este e-mail, o envio está funcionando. 🎉</p>",
+        )
+    except Exception as exc:  # noqa: BLE001 — queremos MOSTRAR o erro do provedor
+        return EmailTesteOut(enviado=False, detalhe=f"Falha no provedor: {exc}")
+    return EmailTesteOut(
+        enviado=bool(ok),
+        detalhe=f"Enviado para {destino}." if ok else "Envio retornou desabilitado.",
+    )
