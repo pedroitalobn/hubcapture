@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { api, getToken } from "@/lib/api/client";
+import { api, getToken, excluirUsuario } from "@/lib/api/client";
 
 interface Usuario {
   id: string;
@@ -88,6 +88,22 @@ export default function AdminUsuariosPage() {
     });
     if (error) setMsg("Falha ao atualizar.");
     await carregar();
+  }
+
+  async function remover(id: string, email: string) {
+    if (
+      !window.confirm(
+        `Excluir o usuário ${email}?\n\nApaga também favoritos, monitoramentos, ` +
+          "pastas e alertas dele. Não dá para desfazer.",
+      )
+    )
+      return;
+    try {
+      await excluirUsuario(id);
+      await carregar();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Falha ao excluir usuário.");
+    }
   }
 
   return (
@@ -186,6 +202,7 @@ export default function AdminUsuariosPage() {
               <th className="px-3 py-3">Admin</th>
               <th className="px-3 py-3">Ativo</th>
               <th className="px-3 py-3"></th>
+              <th className="px-3 py-3"></th>
             </tr>
           </thead>
           <tbody>
@@ -252,6 +269,15 @@ export default function AdminUsuariosPage() {
                 </td>
                 <td className="px-3 py-3 text-xs text-ink-3">
                   {u.is_verified ? "verificado" : "—"}
+                </td>
+                <td className="px-3 py-3">
+                  <button
+                    onClick={() => void remover(u.id, u.email)}
+                    className="text-xs text-red-500 hover:underline"
+                    title="Excluir usuário"
+                  >
+                    excluir
+                  </button>
                 </td>
               </tr>
             ))}

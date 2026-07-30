@@ -112,6 +112,24 @@ export async function zerarPropostas(): Promise<{ removidas: number }> {
   return resp.json();
 }
 
+/** Exclui um convite (admin). Rota fora do client tipado → fetch cru. */
+export async function excluirConvite(id: string): Promise<void> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/admin/invites/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+  });
+  if (!resp.ok) throw new Error(`Falha ao excluir convite (HTTP ${resp.status})`);
+}
+
+/** Exclui um usuário (admin). FKs CASCADE limpam favoritos/monitoramentos/etc. */
+export async function excluirUsuario(id: string): Promise<void> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/admin/users/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+  });
+  if (!resp.ok) throw new Error(`Falha ao excluir usuário (HTTP ${resp.status})`);
+}
+
 /** Dispara um e-mail de teste (admin) e devolve o resultado do provedor. */
 export async function testarEmail(
   destinatario?: string,

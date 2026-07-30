@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.users import UserManager, current_superuser, get_user_manager
 from ...models.base_conhecimento import BaseConhecimento
+from ...models.convite import Convite
 from ...models.usuario import Usuario
 from ...schemas.config import ConhecimentoCreate
 from ...schemas.planos import (
@@ -113,3 +115,29 @@ async def admin_add_conhecimento(
         )
     )
     return {"ok": True}
+
+
+@router.delete("/admin/invites/{convite_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def admin_excluir_convite(
+    convite_id: uuid.UUID,
+    _admin: Usuario = Depends(current_superuser),
+    session: AsyncSession = Depends(get_platform_db),
+) -> None:
+    """Exclui um convite (pendente/expirado/aceito). Não afeta o usuário já
+    criado a partir dele — para remover o usuário, use DELETE /admin/users."""
+    await session.execute(delete(Convite).where(Convite.id == convite_id))
+    await session.commit()
+
+
+@router.delete("/admin/users/{usuario_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def admin_excluir_usuario(
+    usuario_id: uuid.UUID,
+    admin: Usuario = Depends(current_superuser),
+    session: AsyncSession = Depends(get_platform_db),
+) -> None:
+    """Exclui um usuário. FKs são CASCADE (favoritos/monitoramentos/pastas/
+    alertas somem junto). Guarda: não permite excluir a própria conta."""
+    if usuario_id == admin.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "NAO_PODE_EXCLUIR_A_SI_MESMO")
+    await session.execute(delete(Usuario).where(Usuario.id == usuario_id))
+    await session.commit()

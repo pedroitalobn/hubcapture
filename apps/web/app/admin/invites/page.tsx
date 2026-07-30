@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { api, getToken } from "@/lib/api/client";
+import { api, getToken, excluirConvite } from "@/lib/api/client";
 
 interface Convite {
   id: string;
@@ -85,6 +85,16 @@ export default function AdminConvitesPage() {
     await navigator.clipboard.writeText(linkConvite(token));
     setCopiado(token);
     setTimeout(() => setCopiado(null), 2000);
+  }
+
+  async function removerConvite(id: string, email: string) {
+    if (!window.confirm(`Excluir o convite de ${email}?`)) return;
+    try {
+      await excluirConvite(id);
+      await carregar();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Falha ao excluir convite.");
+    }
   }
 
   const planoNome = (id?: string | null) =>
@@ -197,6 +207,13 @@ export default function AdminConvitesPage() {
                       {copiado === c.token ? "Copiado ✓" : "Copiar link"}
                     </button>
                   )}
+                  <button
+                    onClick={() => void removerConvite(c.id, c.email)}
+                    className="ml-2 text-xs text-red-500 hover:underline"
+                    title="Excluir convite"
+                  >
+                    excluir
+                  </button>
                 </td>
               </tr>
             ))}
