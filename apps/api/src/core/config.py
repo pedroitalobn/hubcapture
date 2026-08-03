@@ -68,6 +68,16 @@ class Settings(BaseSettings):
     # ── E-mail transacional (SMTP) — opcional, ligado pelo painel admin ─────
     app_base_url: str = "http://localhost:3000"  # base dos links de e-mail
 
+    # ── Integrações de agenda de contatos (opcionais, painel admin) ─────────
+    # OAuth de aplicação: sem client id/secret o provedor aparece indisponível.
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    microsoft_client_id: str = ""
+    microsoft_client_secret: str = ""
+    microsoft_tenant: str = "common"  # 'common' aceita conta pessoal e corporativa
+    # Apple/iCloud é CardDAV com senha de app — não precisa de credencial de app.
+    apple_carddav_url: str = "https://contacts.icloud.com"
+
     # ── Scraping (Firecrawl) — coleta combinada / fallback ──────────────────
     firecrawl_api_key: str = ""  # vazio = scraping desabilitado
     firecrawl_base_url: str = "https://api.firecrawl.dev"

@@ -27,6 +27,7 @@ const NAV = [
   { href: "/painel/repasses", label: "Recursos recebidos" },
   { href: "/painel/conformidade", label: "Conformidade fiscal" },
   { href: "/painel/obras", label: "Obras" },
+  { href: "/painel/contatos", label: "Agenda de contatos" },
   { href: "/painel/chat", label: "Copiloto" },
   { href: "/painel/conta", label: "Minha conta" },
 ];
