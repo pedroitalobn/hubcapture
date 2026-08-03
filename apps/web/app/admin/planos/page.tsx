@@ -65,7 +65,7 @@ export default function AdminPlanosPage() {
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             required
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="rounded-md border border-line px-3 py-2"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -74,7 +74,7 @@ export default function AdminPlanosPage() {
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
             required
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="rounded-md border border-line px-3 py-2"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -83,21 +83,21 @@ export default function AdminPlanosPage() {
             value={preco}
             onChange={(e) => setPreco(e.target.value)}
             placeholder="99.90"
-            className="w-28 rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="w-28 rounded-md border border-line px-3 py-2"
           />
         </label>
         <button type="submit" className="rounded-md bg-brand px-4 py-2 text-brand-fg">
           Criar plano
         </button>
       </form>
-      {msg && <p className="text-sm text-red-600">{msg}</p>}
+      {msg && <p className="text-sm text-danger">{msg}</p>}
 
-      <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-900">
+      <ul className="flex flex-col divide-y divide-line">
         {planos.map((p) => (
           <li key={p.id} className="flex items-center justify-between py-3">
             <div>
               <span className="font-medium">{p.nome}</span>{" "}
-              <span className="text-xs text-gray-500">/{p.slug}</span>
+              <span className="text-xs text-muted">/{p.slug}</span>
             </div>
             <div className="flex items-center gap-3">
               <span className="tabular-nums">{formatBRL(p.preco_mensal)}/mês</span>
@@ -108,7 +108,7 @@ export default function AdminPlanosPage() {
           </li>
         ))}
         {planos.length === 0 && (
-          <li className="py-3 text-gray-500">Nenhum plano cadastrado ainda.</li>
+          <li className="py-3 text-muted">Nenhum plano cadastrado ainda.</li>
         )}
       </ul>
     </main>

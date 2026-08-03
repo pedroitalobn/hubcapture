@@ -1,29 +1,42 @@
 "use client";
 
+import { cx } from "./ui";
+
 export interface ChipOption {
   value: string;
   label: string;
   count?: number;
 }
 
-/** Chips de filtro por fonte, cada um com contador de movimentações. */
+/** Chips de filtro com contador. `todasLabel` some quando não faz sentido. */
 export function FilterChips({
   options,
   selected,
   onSelect,
+  todasLabel = "Todas",
+  todasCount,
+  ariaLabel,
 }: {
   options: ChipOption[];
   selected: string | null;
   onSelect: (value: string | null) => void;
+  todasLabel?: string;
+  todasCount?: number;
+  ariaLabel?: string;
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
-      <Chip active={selected === null} onClick={() => onSelect(null)} label="Todas" />
+    <div className="flex flex-wrap gap-2" role="group" aria-label={ariaLabel}>
+      <Chip
+        active={selected === null}
+        onClick={() => onSelect(null)}
+        label={todasLabel}
+        count={todasCount}
+      />
       {options.map((o) => (
         <Chip
           key={o.value}
           active={selected === o.value}
-          onClick={() => onSelect(o.value)}
+          onClick={() => onSelect(selected === o.value ? null : o.value)}
           label={o.label}
           count={o.count}
         />
@@ -45,19 +58,23 @@ function Chip({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition ${
+      aria-pressed={active}
+      className={cx(
+        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition",
         active
-          ? "border-brand bg-brand text-brand-fg"
-          : "border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900"
-      }`}
+          ? "border-brand bg-brand font-medium text-brand-fg"
+          : "border-line bg-bg text-ink-2 hover:border-line-strong hover:text-ink",
+      )}
     >
       {label}
       {count !== undefined && (
         <span
-          className={`rounded-full px-1.5 text-xs ${
-            active ? "bg-white/20" : "bg-gray-200 dark:bg-gray-800"
-          }`}
+          className={cx(
+            "num rounded-full px-1.5 text-xs",
+            active ? "bg-white/25 text-brand-fg" : "bg-surface-2 text-muted",
+          )}
         >
           {count}
         </span>

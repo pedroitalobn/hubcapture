@@ -1,29 +1,38 @@
-export type BadgeTone =
-  | "neutral"
-  | "success"
-  | "warning"
-  | "danger"
-  | "info";
+import type { ReactNode } from "react";
+import { cx } from "./ui";
+
+export type BadgeTone = "neutral" | "success" | "warning" | "danger" | "info" | "brand";
 
 const TONES: Record<BadgeTone, string> = {
-  neutral: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-  success: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
-  warning: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
-  danger: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
-  info: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+  neutral: "bg-surface-2 text-ink-2 border-line",
+  success: "bg-ok-bg text-ok border-ok-line",
+  warning: "bg-warn-bg text-warn border-warn-line",
+  danger: "bg-danger-bg text-danger border-danger-line",
+  info: "bg-info-bg text-info border-info-line",
+  brand: "bg-brand-soft text-brand-soft-fg border-transparent",
 };
 
-/** Badge de status semântico e colorido (PAGO, Crédito, Dedução, Emenda…). */
+/** Badge de status semântico (situação, natureza, fonte, pendência…). */
 export function StatusBadge({
   children,
   tone = "neutral",
+  mono = false,
+  className,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   tone?: BadgeTone;
+  /** Para identificadores técnicos (slug da fonte, nº de processo). */
+  mono?: boolean;
+  className?: string;
 }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TONES[tone]}`}
+      className={cx(
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
+        mono && "font-mono text-[11px] tracking-tight",
+        TONES[tone],
+        className,
+      )}
     >
       {children}
     </span>

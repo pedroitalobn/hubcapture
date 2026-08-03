@@ -62,7 +62,7 @@ export default function AdminConfigPage() {
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-8">
       <header>
         <h1 className="text-2xl font-bold">Configuração de providers</h1>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted">
           Credenciais e URLs das fontes. Segredos ficam cifrados e mascarados.
         </p>
       </header>
@@ -70,7 +70,7 @@ export default function AdminConfigPage() {
 
       {categorias.map((cat) => (
         <section key={cat} className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
             {CATEGORIA_LABEL[cat] ?? cat}
           </h2>
           {itens
@@ -78,11 +78,11 @@ export default function AdminConfigPage() {
             .map((i) => (
               <div
                 key={i.chave}
-                className="flex flex-wrap items-center gap-3 rounded-md border border-gray-200 p-3 dark:border-gray-800"
+                className="flex flex-wrap items-center gap-3 rounded-md border border-line p-3"
               >
                 <div className="min-w-40 flex-1">
                   <div className="text-sm font-medium">{i.label}</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-muted">
                     {i.chave}
                     {i.valor ? ` · ${i.valor}` : ""}
                   </div>
@@ -97,7 +97,7 @@ export default function AdminConfigPage() {
                   onChange={(e) =>
                     setEdits((s) => ({ ...s, [i.chave]: e.target.value }))
                   }
-                  className="w-48 rounded-md border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900"
+                  className="w-48 rounded-md border border-line px-3 py-1.5 text-sm"
                 />
                 <button
                   onClick={() => salvar(i.chave)}

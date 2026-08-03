@@ -1,9 +1,29 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
+import { Button, Input, cx } from "@/components/ui";
 import { chatStream } from "@/lib/api/client";
 
 type Msg = { autor: "user" | "ia"; texto: string };
+
+const MODOS = [
+  { valor: "propostas", rotulo: "Minhas propostas" },
+  { valor: "copiloto", rotulo: "Tutoriais" },
+] as const;
+
+const SUGESTOES: Record<string, string[]> = {
+  propostas: [
+    "Quais propostas estão com pendência?",
+    "Qual o prazo mais próximo?",
+    "Some o valor das propostas em análise.",
+  ],
+  copiloto: [
+    "Como cadastrar um plano de trabalho no TransfereGov?",
+    "O que é contrapartida e quando é obrigatória?",
+    "Passo a passo para regularizar o CAUC.",
+  ],
+};
 
 export default function ChatPage() {
   const [modo, setModo] = useState<"propostas" | "copiloto">("propostas");
@@ -16,9 +36,7 @@ export default function ChatPage() {
     fimRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensagens]);
 
-  async function enviar(e: React.FormEvent) {
-    e.preventDefault();
-    const q = pergunta.trim();
+  async function perguntar(q: string) {
     if (!q || ocupado) return;
     setPergunta("");
     setMensagens((m) => [...m, { autor: "user", texto: q }, { autor: "ia", texto: "" }]);
@@ -28,9 +46,7 @@ export default function ChatPage() {
         setMensagens((m) => {
           const copia = [...m];
           const ultimo = copia[copia.length - 1];
-          if (ultimo) {
-            copia[copia.length - 1] = { autor: "ia", texto: ultimo.texto + delta };
-          }
+          if (ultimo) copia[copia.length - 1] = { autor: "ia", texto: ultimo.texto + delta };
           return copia;
         });
       });
@@ -41,58 +57,91 @@ export default function ChatPage() {
 
   return (
     <>
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Copiloto</h1>
-        <div className="inline-flex overflow-hidden rounded-md border border-gray-300 text-sm dark:border-gray-700">
-          {(["propostas", "copiloto"] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => setModo(m)}
-              className={`px-3 py-1.5 ${
-                modo === m ? "bg-brand text-brand-fg" : ""
-              }`}
-            >
-              {m === "propostas" ? "Minhas propostas" : "Tutoriais"}
-            </button>
-          ))}
-        </div>
-      </header>
-
-      <div className="flex min-h-[50vh] flex-col gap-3 rounded-md border border-gray-200 p-4 dark:border-gray-800">
-        {mensagens.length === 0 && (
-          <p className="text-sm text-gray-500">
-            Pergunte sobre suas propostas ou peça um tutorial do TransfereGov.
-          </p>
-        )}
-        {mensagens.map((m, i) => (
+      <PageHeader
+        titulo="Copiloto"
+        descricao="Pergunte sobre as suas propostas ou peça um tutorial das plataformas."
+        acoes={
           <div
-            key={i}
-            className={`max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm ${
-              m.autor === "user"
-                ? "self-end bg-brand text-brand-fg"
-                : "self-start bg-gray-100 dark:bg-gray-900"
-            }`}
+            className="inline-flex overflow-hidden rounded-md border border-line"
+            role="group"
+            aria-label="Modo do copiloto"
           >
-            {m.texto || "…"}
+            {MODOS.map((m) => (
+              <button
+                key={m.valor}
+                type="button"
+                onClick={() => setModo(m.valor)}
+                aria-pressed={modo === m.valor}
+                className={cx(
+                  "px-3 py-1.5 text-sm transition",
+                  modo === m.valor
+                    ? "bg-brand font-medium text-brand-fg"
+                    : "bg-bg text-ink-2 hover:bg-surface hover:text-ink",
+                )}
+              >
+                {m.rotulo}
+              </button>
+            ))}
           </div>
-        ))}
+        }
+      />
+
+      <div className="flex min-h-[46vh] flex-col gap-3 rounded-xl border border-line bg-bg p-4 shadow-card">
+        {mensagens.length === 0 ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-muted">
+              {modo === "propostas"
+                ? "O copiloto responde com base nas propostas do seu território."
+                : "O copiloto ensina o passo a passo das plataformas de transferência."}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(SUGESTOES[modo] ?? []).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => void perguntar(s)}
+                  className="rounded-full border border-line bg-surface px-3 py-1 text-xs text-ink-2 transition hover:border-brand hover:text-brand"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          mensagens.map((m, i) => (
+            <div
+              key={i}
+              className={cx(
+                "max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm",
+                m.autor === "user"
+                  ? "self-end bg-brand text-brand-fg"
+                  : "self-start bg-surface text-ink-2",
+              )}
+            >
+              {m.texto || "…"}
+            </div>
+          ))
+        )}
         <div ref={fimRef} />
       </div>
 
-      <form onSubmit={enviar} className="flex gap-2">
-        <input
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void perguntar(pergunta.trim());
+        }}
+        className="flex gap-2"
+      >
+        <Input
           value={pergunta}
           onChange={(e) => setPergunta(e.target.value)}
           placeholder="Sua pergunta…"
-          className="flex-1 rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          aria-label="Pergunta ao copiloto"
+          className="flex-1"
         />
-        <button
-          type="submit"
-          disabled={ocupado}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
-        >
+        <Button type="submit" disabled={ocupado || !pergunta.trim()}>
           {ocupado ? "…" : "Enviar"}
-        </button>
+        </Button>
       </form>
     </>
   );

@@ -1,9 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { StatCard } from "@/components/StatCard";
+import { EmptyState } from "@/components/EmptyState";
+import { PageHeader } from "@/components/PageHeader";
+import { SkeletonCards, SkeletonLines } from "@/components/Skeleton";
+import { StatCard, StatRow } from "@/components/StatCard";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
-import { SkeletonCards } from "@/components/Skeleton";
+import { SyncForm } from "@/components/SyncForm";
+import { Aviso, Card } from "@/components/ui";
 import { api } from "@/lib/api/client";
 
 interface Requisito {
@@ -45,16 +49,17 @@ const LABEL: Record<string, string> = {
 export default function ConformidadePage() {
   const [data, setData] = useState<Resumo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [ibge, setIbge] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
-  const [sinc, setSinc] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [ibgeSugerido, setIbgeSugerido] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     setLoading(true);
+    setErro(null);
     const { data: d, error } = await api.GET("/api/v1/conformidade", {
       params: { query: {} },
     });
-    if (!error) setData(d as Resumo);
+    if (error) setErro("Não foi possível carregar a conformidade fiscal.");
+    else setData(d as Resumo);
     setLoading(false);
   }, []);
 
@@ -62,93 +67,117 @@ export default function ConformidadePage() {
     void carregar();
   }, [carregar]);
 
-  async function sincronizar(e: React.FormEvent) {
-    e.preventDefault();
-    setMsg(null);
-    setSinc(true);
-    const { error } = await api.POST("/api/v1/conformidade/sync", {
-      body: { municipio_ibge: ibge },
-    });
-    setMsg(
-      error
-        ? "A fonte (Tesouro) não respondeu agora. Tente novamente."
-        : "Sincronização concluída.",
-    );
-    if (!error) await carregar();
-    setSinc(false);
-  }
+  useEffect(() => {
+    void (async () => {
+      const { data: perfil } = await api.GET("/api/v1/perfil");
+      const m = (perfil as { municipios?: { ibge: string }[] } | undefined)?.municipios?.[0];
+      if (m) setIbgeSugerido(m.ibge);
+    })();
+  }, []);
 
   const requisitosPorSecao = (secao: string) =>
     (data?.requisitos ?? []).filter((r) => (r.secao ?? "—") === secao);
 
+  const pendentes = data?.a_comprovar ?? 0;
+
   return (
     <>
-      <h1 className="text-2xl font-bold">Conformidade fiscal (CAUC/CAPAG)</h1>
+      <PageHeader
+        titulo="Conformidade fiscal"
+        descricao="CAUC e CAPAG — o que pode travar a assinatura de um convênio."
+      />
 
-      <form onSubmit={sincronizar} className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          Sincronizar município (IBGE)
-          <input
-            value={ibge}
-            onChange={(e) => setIbge(e.target.value)}
-            placeholder="3550308"
-            maxLength={7}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={sinc || ibge.length !== 7}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
-        >
-          {sinc ? "Sincronizando…" : "Buscar no Tesouro"}
-        </button>
-      </form>
-      {msg && <p className="text-sm text-gray-600 dark:text-gray-400">{msg}</p>}
+      <SyncForm
+        rotulo="Sincronizar município (IBGE)"
+        botao="Buscar no Tesouro"
+        erroPadrao="A fonte (Tesouro) não respondeu agora. Tente novamente."
+        ibgeSugerido={ibgeSugerido}
+        onSync={async (ibge) => {
+          const { error } = await api.POST("/api/v1/conformidade/sync", {
+            body: { municipio_ibge: ibge },
+          });
+          if (error) return { ok: false };
+          await carregar();
+          return { ok: true, mensagem: "Sincronização concluída." };
+        }}
+      />
+
+      {erro && <Aviso tom="erro">{erro}</Aviso>}
 
       {loading ? (
-        <SkeletonCards />
+        <>
+          <SkeletonCards />
+          <SkeletonLines count={4} />
+        </>
+      ) : (data?.total ?? 0) === 0 ? (
+        <EmptyState
+          titulo="Sem dados de conformidade."
+          descricao="Sincronize um município acima para buscar os requisitos do CAUC no Tesouro Transparente."
+        />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <StatCard label="Requisitos" value={String(data?.total ?? 0)} />
-            <StatCard label="Comprovados" value={String(data?.comprovados ?? 0)} />
-            <StatCard label="A comprovar" value={String(data?.a_comprovar ?? 0)} />
+          <StatRow cols={4}>
+            <StatCard
+              label="Requisitos"
+              value={String(data?.total ?? 0)}
+              context="avaliados no CAUC"
+            />
+            <StatCard
+              label="Comprovados"
+              value={String(data?.comprovados ?? 0)}
+              tone="ok"
+              context={
+                (data?.total ?? 0) > 0
+                  ? `${(((data?.comprovados ?? 0) / data!.total) * 100).toFixed(0)}% do total`
+                  : undefined
+              }
+            />
+            <StatCard
+              label="A comprovar"
+              value={String(pendentes)}
+              tone={pendentes > 0 ? "alerta" : "ok"}
+              context={pendentes > 0 ? "bloqueiam repasses" : "nada pendente"}
+            />
             <StatCard
               label="CAPAG"
-              value={data?.capag?.status ? "avaliado" : "—"}
+              value={data?.capag?.status ?? "—"}
               context="capacidade de pagamento"
             />
-          </div>
+          </StatRow>
 
-          {(data?.secoes ?? []).map((sec) => (
-            <section key={sec.secao} className="flex flex-col gap-2">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                {sec.secao} · {sec.comprovados}/{sec.total} comprovados
-              </h2>
-              <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-900">
-                {requisitosPorSecao(sec.secao).map((r) => (
-                  <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                    <span>
-                      <span className="font-mono text-xs text-gray-500">{r.numero}</span>{" "}
-                      {r.descricao ?? "—"}
-                      {r.orgao ? (
-                        <span className="text-xs text-gray-400"> · {r.orgao}</span>
-                      ) : null}
-                    </span>
-                    <StatusBadge tone={TONE[r.status ?? ""] ?? "neutral"}>
-                      {LABEL[r.status ?? ""] ?? r.status ?? "—"}
-                    </StatusBadge>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-          {(data?.total ?? 0) === 0 && (
-            <p className="text-gray-500">
-              Sem dados de conformidade. Sincronize um município acima.
-            </p>
-          )}
+          <div className="flex flex-col gap-5">
+            {(data?.secoes ?? []).map((sec) => (
+              <section key={sec.secao} className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+                    {sec.secao}
+                  </h2>
+                  <span className="num text-xs text-muted">
+                    {sec.comprovados}/{sec.total} comprovados
+                  </span>
+                </div>
+                <Card>
+                  <ul className="flex flex-col divide-y divide-line">
+                    {requisitosPorSecao(sec.secao).map((r) => (
+                      <li
+                        key={r.id}
+                        className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1 px-4 py-2.5 text-sm"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="font-mono text-xs text-muted">{r.numero}</span>{" "}
+                          <span className="text-ink-2">{r.descricao ?? "—"}</span>
+                          {r.orgao && <span className="text-xs text-muted"> · {r.orgao}</span>}
+                        </span>
+                        <StatusBadge tone={TONE[r.status ?? ""] ?? "neutral"}>
+                          {LABEL[r.status ?? ""] ?? r.status ?? "—"}
+                        </StatusBadge>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              </section>
+            ))}
+          </div>
         </>
       )}
     </>

@@ -21,10 +21,10 @@ export default function EsqueciSenhaPage() {
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
       <div>
         <h1 className="text-2xl font-bold">Recuperar senha</h1>
-        <p className="text-sm text-gray-500">Hub Capture</p>
+        <p className="text-sm text-muted">Hub Capture</p>
       </div>
       {enviado ? (
-        <div className="rounded-md border border-gray-200 p-4 text-sm dark:border-gray-800">
+        <div className="rounded-md border border-line p-4 text-sm">
           <p>
             Se existir uma conta com <b>{email}</b>, enviamos um link para redefinir
             a senha. Confira sua caixa de entrada.
@@ -42,7 +42,7 @@ export default function EsqueciSenhaPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+              className="rounded-md border border-line px-3 py-2"
             />
           </label>
           <button
@@ -52,7 +52,7 @@ export default function EsqueciSenhaPage() {
           >
             {carregando ? "Enviando…" : "Enviar link de recuperação"}
           </button>
-          <Link href="/login" className="text-sm text-gray-500 underline">
+          <Link href="/login" className="text-sm text-muted underline">
             Voltar para o login
           </Link>
         </form>

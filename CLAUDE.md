@@ -600,3 +600,40 @@ Stack completo sobe com um comando; o superadmin é criado no boot.
   alterna papel/admin/ativo inline. Backend: `GET /admin/usuarios`,
   `POST /admin/usuarios` (agora aceita `is_superuser`), `PATCH /admin/usuarios/{id}`
   (papel/is_superuser/is_active/plano). Env `ADMIN_EMAIL`/`ADMIN_PASSWORD`/`APP_BASE_URL`.
+
+## 23. Design system da web (decisão travada) — tokens em CSS, Tailwind 4
+
+**Tailwind 4 é CSS-first.** Um preset `.js` no formato v3 (`module.exports` com
+`theme.extend`) **não é lido** sem uma diretiva `@config` — o antigo
+`packages/config/tailwind.preset.js` estava órfão desde o primeiro commit e as 32
+ocorrências de `bg-brand`/`text-brand-fg` compilavam para nada (todo botão primário
+renderizava sem fundo). O preset foi **removido**; a fonte de verdade dos tokens é
+`apps/web/app/globals.css`. Não recriar preset `.js`.
+
+- **Tokens semânticos** em custom properties no `:root`, trocados por tema
+  (`@media (prefers-color-scheme: dark)` + `:root[data-theme="dark"|"light"]`), e
+  expostos ao Tailwind com `@theme inline`. Consequência: **não se escreve `dark:`**
+  nos componentes — `bg-surface`, `text-ink`, `border-line` já acompanham o tema.
+  Escala: `brand-50…900`/`brand`/`brand-fg`/`brand-soft` · `bg`/`surface`/`surface-2` ·
+  `line`/`line-strong` · `ink`/`ink-2`/`muted` · `ok`/`warn`/`danger`/`info` (+`-bg`/`-line`).
+- **Alternador de tema** (`components/ThemeToggle`): claro/escuro/auto, persistido em
+  `localStorage.hub_tema`; script inline no `app/layout.tsx` aplica antes da 1ª pintura.
+- **Primitivas** em `components/ui.tsx` (`Button`, `Input`, `Field`, `Card`, `Aviso`, `cx`)
+  + `PageHeader`, `StatCard`/`StatRow`, `StatusBadge`, `FilterChips`, `Skeleton*`,
+  `EmptyState`, `SyncForm`, `AuthShell`, `PropostaCard`. Toda lente do painel usa o
+  mesmo cabeçalho, a mesma faixa de KPI e os mesmos badges — não improvisar por página.
+- **Dinheiro e contagem** levam a classe `.num` (`tabular-nums`). `StatRow` recebe a
+  contagem real de cartões (grid de 4 com 2 cartões deixava metade da faixa vazia).
+- **Vazio ≠ carregando**: `Skeleton*` durante o fetch, `EmptyState` só quando a
+  resposta chegou vazia.
+- **Domínio da proposta** em `lib/proposta.ts`: os 23 campos de `PropostaRead`,
+  `tituloProposta` (fallback para `objeto` quando a fonte não manda `titulo`),
+  `situacaoTone` (situação é texto livre por fonte → classificação por palavra-chave),
+  `prazoMaisProximo`, `provenienciaResumo` (auditoria do merge API×scraping),
+  `resumirCaptacao` (KPIs). Formatação em `lib/format.ts`.
+- **Navegação responsiva**: `app/painel/layout.tsx` é topbar + drawer abaixo de `md`
+  e sidebar a partir de `md`. A sidebar nunca empilha acima do conteúdo.
+- **Telas que fecham a superfície da API**: `app/painel/captacao/[id]` (detalhe com os
+  23 campos + proveniência), `app/painel/alertas` (`GET /alertas`, marcar lido),
+  `app/painel/curadoria` (favoritos + pastas). Favoritar/monitorar são ações no
+  `PropostaCard`, com rollback otimista em erro.

@@ -1,13 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DateRangePresets, presetToInicio, type RangePreset } from "@/components/DateRangePresets";
+import {
+  DateRangePresets,
+  presetToInicio,
+  type RangePreset,
+} from "@/components/DateRangePresets";
+import { EmptyState } from "@/components/EmptyState";
 import { Feed } from "@/components/Feed";
 import { FilterChips } from "@/components/FilterChips";
-import { SkeletonCards } from "@/components/Skeleton";
-import { StatCard } from "@/components/StatCard";
+import { PageHeader } from "@/components/PageHeader";
+import { SkeletonCards, SkeletonLines } from "@/components/Skeleton";
+import { StatCard, StatRow } from "@/components/StatCard";
+import { SyncForm } from "@/components/SyncForm";
+import { Aviso } from "@/components/ui";
 import { api } from "@/lib/api/client";
-import { formatBRL } from "@/lib/format";
+import { formatBRL, formatBRLCompact, formatDate } from "@/lib/format";
 
 interface FonteResumo {
   fonte: string;
@@ -49,20 +57,17 @@ export default function RepassesPage() {
   const [data, setData] = useState<VisaoGeral | null>(null);
   const [loading, setLoading] = useState(true);
   const [fonteSel, setFonteSel] = useState<string | null>(null);
-  const [ibge, setIbge] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
-  const [sincronizando, setSincronizando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [ibgeSugerido, setIbgeSugerido] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     setLoading(true);
+    setErro(null);
     const { data: vg, error } = await api.GET("/api/v1/repasses/visao-geral", {
       params: { query: { inicio: presetToInicio(preset) } },
     });
-    if (error) {
-      setMsg("Falha ao carregar a visão geral.");
-    } else {
-      setData(vg as VisaoGeral);
-    }
+    if (error) setErro("Não foi possível carregar a visão geral de repasses.");
+    else setData(vg as VisaoGeral);
     setLoading(false);
   }, [preset]);
 
@@ -70,23 +75,13 @@ export default function RepassesPage() {
     void carregar();
   }, [carregar]);
 
-  async function sincronizar(e: React.FormEvent) {
-    e.preventDefault();
-    setMsg(null);
-    setSincronizando(true);
-    const { error } = await api.POST("/api/v1/repasses/sync", {
-      body: { municipio_ibge: ibge },
-    });
-    if (error) {
-      setMsg(
-        "As fontes oficiais não responderam agora (comum: instabilidade/rede). Tente novamente.",
-      );
-    } else {
-      setMsg("Sincronização concluída.");
-      await carregar();
-    }
-    setSincronizando(false);
-  }
+  useEffect(() => {
+    void (async () => {
+      const { data: perfil } = await api.GET("/api/v1/perfil");
+      const m = (perfil as { municipios?: { ibge: string }[] } | undefined)?.municipios?.[0];
+      if (m) setIbgeSugerido(m.ibge);
+    })();
+  }, []);
 
   const chips = useMemo(
     () =>
@@ -106,59 +101,121 @@ export default function RepassesPage() {
       .filter((d) => d.itens.length > 0);
   }, [data, fonteSel]);
 
+  /** Métricas derivadas — completam a faixa de KPI, que ficava metade vazia. */
+  const extras = useMemo(() => {
+    const itens = (data?.feed ?? []).flatMap((d) => d.itens);
+    let emendas = 0;
+    let deducoes = 0;
+    for (const i of itens) {
+      const v = Number(i.valor);
+      if (!Number.isFinite(v)) continue;
+      if (i.emenda) emendas += v;
+      if (i.natureza === "deducao") deducoes += v;
+    }
+    const maiorFonte = [...(data?.fontes ?? [])].sort(
+      (a, b) => Number(b.total) - Number(a.total),
+    )[0];
+    const ultimoDia = data?.feed?.[0]?.data ?? null;
+    return { emendas, deducoes, maiorFonte, ultimoDia };
+  }, [data]);
+
   return (
     <>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Recursos recebidos</h1>
-        <DateRangePresets value={preset} onChange={setPreset} />
-      </header>
+      <PageHeader
+        titulo="Recursos recebidos"
+        descricao="O que já entrou no caixa do município, por fonte e por dia."
+        acoes={<DateRangePresets value={preset} onChange={setPreset} />}
+      />
 
-      <form onSubmit={sincronizar} className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          Sincronizar município (IBGE, 7 dígitos)
-          <input
-            value={ibge}
-            onChange={(e) => setIbge(e.target.value)}
-            placeholder="3550308"
-            maxLength={7}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={sincronizando || ibge.length !== 7}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
-        >
-          {sincronizando ? "Sincronizando…" : "Buscar nas fontes"}
-        </button>
-      </form>
+      <SyncForm
+        rotulo="Sincronizar município (IBGE)"
+        botao="Buscar nas fontes"
+        erroPadrao="As fontes oficiais não responderam agora (instabilidade ou rede). Tente novamente."
+        ibgeSugerido={ibgeSugerido}
+        onSync={async (ibge) => {
+          const { error } = await api.POST("/api/v1/repasses/sync", {
+            body: { municipio_ibge: ibge },
+          });
+          if (error) return { ok: false };
+          await carregar();
+          return { ok: true, mensagem: "Sincronização concluída e cache atualizado." };
+        }}
+      />
 
-      {msg && <p className="text-sm text-gray-600 dark:text-gray-400">{msg}</p>}
+      {erro && <Aviso tom="erro">{erro}</Aviso>}
 
       {loading ? (
-        <SkeletonCards />
+        <>
+          <SkeletonCards />
+          <SkeletonLines count={5} />
+        </>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <StatRow cols={4}>
             <StatCard
-              label="Total Pago"
-              value={formatBRL(data?.total_pago)}
-              context={`${data?.movimentacoes ?? 0} movimentações`}
+              label="Total pago"
+              value={formatBRLCompact(data?.total_pago)}
+              title={formatBRL(data?.total_pago)}
+              context={`${data?.movimentacoes ?? 0} movimentações no período`}
             />
             <StatCard
-              label="Fontes"
-              value={String(data?.fontes.length ?? 0)}
-              context="com movimentação no período"
+              label="Via emenda"
+              value={formatBRLCompact(extras.emendas)}
+              title={formatBRL(extras.emendas)}
+              context={
+                Number(data?.total_pago) > 0
+                  ? `${((extras.emendas / Number(data!.total_pago)) * 100).toFixed(1)}% do total`
+                  : "sem base de cálculo"
+              }
             />
-          </div>
+            <StatCard
+              label="Deduções"
+              value={formatBRLCompact(extras.deducoes)}
+              title={formatBRL(extras.deducoes)}
+              tone={extras.deducoes > 0 ? "alerta" : "neutral"}
+              context="descontadas do bruto (FPM)"
+            />
+            <StatCard
+              label="Maior fonte"
+              value={
+                extras.maiorFonte
+                  ? (FONTE_LABEL[extras.maiorFonte.fonte] ?? extras.maiorFonte.fonte)
+                  : "—"
+              }
+              context={
+                extras.maiorFonte
+                  ? formatBRLCompact(extras.maiorFonte.total)
+                  : "nenhuma movimentação"
+              }
+            />
+          </StatRow>
 
           {chips.length > 0 && (
-            <FilterChips options={chips} selected={fonteSel} onSelect={setFonteSel} />
+            <FilterChips
+              ariaLabel="Filtrar por fonte"
+              options={chips}
+              selected={fonteSel}
+              onSelect={setFonteSel}
+              todasLabel="Todas as fontes"
+              todasCount={data?.movimentacoes}
+            />
           )}
 
-          <section>
-            <Feed dias={feed} />
-          </section>
+          {feed.length === 0 ? (
+            <EmptyState
+              titulo="Nenhum repasse no período."
+              descricao="Amplie o intervalo acima ou sincronize um município para buscar nas fontes oficiais."
+            />
+          ) : (
+            <section aria-label="Repasses por dia" className="flex flex-col gap-2">
+              {extras.ultimoDia && (
+                <p className="text-xs text-muted">
+                  Movimentação mais recente em {formatDate(extras.ultimoDia)}.
+                </p>
+              )}
+              <Feed dias={feed} />
+            </section>
+          )}
         </>
       )}
     </>

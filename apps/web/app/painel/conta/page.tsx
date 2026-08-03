@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
+import { Aviso, Button, Card, Field, Input } from "@/components/ui";
 import { atualizarPerfil, meProfile } from "@/lib/api/client";
 
 export default function ContaPage() {
@@ -9,7 +11,7 @@ export default function ContaPage() {
   const [optin, setOptin] = useState(false);
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<{ tom: "ok" | "erro"; texto: string } | null>(null);
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
@@ -26,24 +28,23 @@ export default function ContaPage() {
         setOptin(Boolean(me.optin_wpp));
         setEmail(me.email);
       } catch {
-        /* layout já trata sessão */
+        /* o layout já trata sessão expirada */
       }
     })();
   }, []);
 
   async function salvarPerfil(e: React.FormEvent) {
     e.preventDefault();
-    setMsg(null);
+    setAviso(null);
     setSalvando(true);
     try {
-      await atualizarPerfil({
-        nome,
-        telefone_wpp: telefone,
-        optin_wpp: optin,
-      });
-      setMsg("Perfil atualizado.");
+      await atualizarPerfil({ nome, telefone_wpp: telefone, optin_wpp: optin });
+      setAviso({ tom: "ok", texto: "Perfil atualizado." });
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "Erro ao salvar");
+      setAviso({
+        tom: "erro",
+        texto: err instanceof Error ? err.message : "Não foi possível salvar.",
+      });
     } finally {
       setSalvando(false);
     }
@@ -51,18 +52,21 @@ export default function ContaPage() {
 
   async function trocarSenha(e: React.FormEvent) {
     e.preventDefault();
-    setMsg(null);
+    setAviso(null);
     if (senha.length < 8) {
-      setMsg("A senha precisa ter ao menos 8 caracteres.");
+      setAviso({ tom: "erro", texto: "A senha precisa ter ao menos 8 caracteres." });
       return;
     }
     setSalvando(true);
     try {
       await atualizarPerfil({ password: senha });
       setSenha("");
-      setMsg("Senha alterada.");
+      setAviso({ tom: "ok", texto: "Senha alterada." });
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "Erro ao alterar senha");
+      setAviso({
+        tom: "erro",
+        texto: err instanceof Error ? err.message : "Não foi possível alterar a senha.",
+      });
     } finally {
       setSalvando(false);
     }
@@ -70,73 +74,60 @@ export default function ContaPage() {
 
   return (
     <>
-      <header>
-        <h1 className="text-2xl font-bold">Minha conta</h1>
-        <p className="text-sm text-gray-500">{email}</p>
-      </header>
+      <PageHeader titulo="Minha conta" descricao={email} />
 
-      {msg && <p className="text-sm text-gray-600 dark:text-gray-400">{msg}</p>}
+      {aviso && <Aviso tom={aviso.tom}>{aviso.texto}</Aviso>}
 
-      <form onSubmit={salvarPerfil} className="flex max-w-md flex-col gap-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-          Perfil
-        </h2>
-        <label className="flex flex-col gap-1 text-sm">
-          Nome
-          <input
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Telefone (WhatsApp)
-          <input
-            value={telefone}
-            onChange={(e) => setTelefone(e.target.value)}
-            placeholder="+5511999999999"
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-          />
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={optin}
-            onChange={(e) => setOptin(e.target.checked)}
-          />
-          Receber alertas por WhatsApp
-        </label>
-        <button
-          type="submit"
-          disabled={salvando}
-          className="self-start rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
-        >
-          Salvar perfil
-        </button>
-      </form>
+      <Card className="max-w-lg p-5">
+        <form onSubmit={salvarPerfil} className="flex flex-col gap-4">
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+            Perfil
+          </h2>
+          <Field label="Nome">
+            <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+          </Field>
+          <Field label="Telefone (WhatsApp)" hint="Use o formato internacional, com DDI.">
+            <Input
+              value={telefone}
+              onChange={(e) => setTelefone(e.target.value)}
+              placeholder="+5511999999999"
+              inputMode="tel"
+            />
+          </Field>
+          <label className="flex items-center gap-2 text-sm text-ink-2">
+            <input
+              type="checkbox"
+              checked={optin}
+              onChange={(e) => setOptin(e.target.checked)}
+              className="accent-brand"
+            />
+            Receber alertas por WhatsApp
+          </label>
+          <Button type="submit" disabled={salvando} className="self-start">
+            Salvar perfil
+          </Button>
+        </form>
+      </Card>
 
-      <form onSubmit={trocarSenha} className="flex max-w-md flex-col gap-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-          Trocar senha
-        </h2>
-        <label className="flex flex-col gap-1 text-sm">
-          Nova senha
-          <input
-            type="password"
-            minLength={8}
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={salvando || !senha}
-          className="self-start rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
-        >
-          Alterar senha
-        </button>
-      </form>
+      <Card className="max-w-lg p-5">
+        <form onSubmit={trocarSenha} className="flex flex-col gap-4">
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+            Trocar senha
+          </h2>
+          <Field label="Nova senha" hint="Mínimo de 8 caracteres.">
+            <Input
+              type="password"
+              minLength={8}
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              autoComplete="new-password"
+            />
+          </Field>
+          <Button type="submit" disabled={salvando || !senha} className="self-start">
+            Alterar senha
+          </Button>
+        </form>
+      </Card>
     </>
   );
 }

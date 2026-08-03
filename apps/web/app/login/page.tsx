@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { AuthShell } from "@/components/AuthShell";
+import { Aviso, Button, Field, Input } from "@/components/ui";
 import { login } from "@/lib/api/client";
 
 export default function LoginPage() {
@@ -19,57 +21,48 @@ export default function LoginPage() {
     try {
       await login(email, senha);
       router.push("/painel");
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : "Erro ao entrar");
+    } catch {
+      setErro("E-mail ou senha incorretos.");
     } finally {
       setCarregando(false);
     }
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
-      <div>
-        <h1 className="text-2xl font-bold">Entrar</h1>
-        <p className="text-sm text-gray-500">Hub Capture</p>
-      </div>
+    <AuthShell titulo="Entrar" descricao="Acesse o painel do seu território.">
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          E-mail
-          <input
+        <Field label="E-mail">
+          <Input
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Senha
-          <input
+        </Field>
+        <Field label="Senha">
+          <Input
             type="password"
             required
+            autoComplete="current-password"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
           />
-        </label>
-        {erro && <p className="text-sm text-red-600">{erro}</p>}
-        <button
-          type="submit"
-          disabled={carregando}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
-        >
+        </Field>
+        {erro && <Aviso tom="erro">{erro}</Aviso>}
+        <Button type="submit" disabled={carregando}>
           {carregando ? "Entrando…" : "Entrar"}
-        </button>
+        </Button>
       </form>
-      <div className="flex items-center justify-between text-sm text-gray-500">
-        <Link href="/cadastro" className="text-brand underline">
+
+      <div className="flex items-center justify-between text-sm">
+        <Link href="/cadastro" className="text-brand underline underline-offset-2">
           Criar conta
         </Link>
-        <Link href="/esqueci-senha" className="underline">
+        <Link href="/esqueci-senha" className="text-muted underline underline-offset-2">
           Esqueci a senha
         </Link>
       </div>
-    </main>
+    </AuthShell>
   );
 }

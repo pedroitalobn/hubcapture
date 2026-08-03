@@ -1,9 +1,214 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   Design tokens — Tailwind 4 é CSS-first.
+   Um preset .js (formato v3) NÃO é lido sem @config; por isso a fonte de
+   verdade dos tokens é este arquivo. Cores semânticas ficam em custom
+   properties trocadas por tema, e `@theme inline` faz as utilities apontarem
+   para a var (não copiar o valor) — assim `bg-surface` acompanha o tema sem
+   precisar de `dark:` em cada elemento.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
-  color-scheme: light dark;
+  /* marca */
+  --brand-50: #eff4ff;
+  --brand-100: #dbe6fe;
+  --brand-200: #bfd3fe;
+  --brand-300: #93b4fd;
+  --brand-400: #608ffa;
+  --brand-500: #3b6df6;
+  --brand-600: #1d4ed8;
+  --brand-700: #1a41b8;
+  --brand-800: #1b3894;
+  --brand-900: #1c3475;
+
+  --brand: var(--brand-600);
+  --brand-fg: #ffffff;
+  --brand-soft: var(--brand-50);
+  --brand-soft-fg: var(--brand-800);
+
+  /* superfícies e texto (neutros com viés frio) */
+  --bg: #ffffff;
+  --surface: #f7f8fa;
+  --surface-2: #eff1f5;
+  --line: #e1e5eb;
+  --line-strong: #cdd3dc;
+  --ink: #0f1626;
+  --ink-2: #414b5c;
+  --muted: #6b7686;
+
+  /* estados semânticos */
+  --ok: #067647;
+  --ok-bg: #ecfdf3;
+  --ok-line: #a9e6c4;
+  --warn: #b54708;
+  --warn-bg: #fffaeb;
+  --warn-line: #fddcab;
+  --danger: #b42318;
+  --danger-bg: #fef3f2;
+  --danger-line: #fcc9c4;
+  --info: var(--brand-700);
+  --info-bg: var(--brand-50);
+  --info-line: var(--brand-200);
+
+  --ring: var(--brand-500);
+  --shadow-card: 0 1px 2px rgb(15 22 38 / 0.05), 0 1px 3px rgb(15 22 38 / 0.05);
+  --shadow-pop: 0 8px 28px -8px rgb(15 22 38 / 0.22);
+}
+
+/* Tema escuro por preferência do sistema — só quando o usuário não fixou
+   um tema manualmente (data-theme="light" vence a media query). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --brand: var(--brand-500);
+    --brand-fg: #ffffff;
+    --brand-soft: #16233d;
+    --brand-soft-fg: var(--brand-200);
+
+    --bg: #0c1017;
+    --surface: #131923;
+    --surface-2: #1a222e;
+    --line: #253040;
+    --line-strong: #35435a;
+    --ink: #e7ecf3;
+    --ink-2: #b4bfce;
+    --muted: #7d8b9e;
+
+    --ok: #46d39a;
+    --ok-bg: #0a2a1d;
+    --ok-line: #14523a;
+    --warn: #f5b544;
+    --warn-bg: #2b1d06;
+    --warn-line: #543a0f;
+    --danger: #f87171;
+    --danger-bg: #2c1110;
+    --danger-line: #5a201d;
+    --info: var(--brand-300);
+    --info-bg: #16233d;
+    --info-line: #23365c;
+
+    --ring: var(--brand-400);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+    --shadow-pop: 0 8px 28px -8px rgb(0 0 0 / 0.6);
+  }
+}
+
+/* Tema fixado pelo usuário (o alternador escreve data-theme no <html>). */
+:root[data-theme="dark"] {
+  --brand: var(--brand-500);
+  --brand-fg: #ffffff;
+  --brand-soft: #16233d;
+  --brand-soft-fg: var(--brand-200);
+
+  --bg: #0c1017;
+  --surface: #131923;
+  --surface-2: #1a222e;
+  --line: #253040;
+  --line-strong: #35435a;
+  --ink: #e7ecf3;
+  --ink-2: #b4bfce;
+  --muted: #7d8b9e;
+
+  --ok: #46d39a;
+  --ok-bg: #0a2a1d;
+  --ok-line: #14523a;
+  --warn: #f5b544;
+  --warn-bg: #2b1d06;
+  --warn-line: #543a0f;
+  --danger: #f87171;
+  --danger-bg: #2c1110;
+  --danger-line: #5a201d;
+  --info: var(--brand-300);
+  --info-bg: #16233d;
+  --info-line: #23365c;
+
+  --ring: var(--brand-400);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+  --shadow-pop: 0 8px 28px -8px rgb(0 0 0 / 0.6);
+}
+
+/* Expõe os tokens como utilities do Tailwind (bg-surface, text-ink, …). */
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-fg: var(--brand-fg);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-soft-fg: var(--brand-soft-fg);
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+  --color-ok-line: var(--ok-line);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-line: var(--warn-line);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-line: var(--danger-line);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-info-line: var(--info-line);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+}
+
+/* ─────────────────────────────────────────────────────────────── base ── */
+html {
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    color-scheme: dark;
+  }
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 body {
-  @apply bg-white text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100;
+  background-color: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Foco visível e consistente em tudo que é operável. */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Valores monetários e contagens sempre alinham na vertical (UI-11). */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

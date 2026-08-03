@@ -31,7 +31,7 @@ function RedefinirForm() {
 
   if (!token) {
     return (
-      <p className="text-sm text-red-600">
+      <p className="text-sm text-danger">
         Link inválido. Solicite um novo em{" "}
         <Link href="/esqueci-senha" className="underline">
           recuperar senha
@@ -43,7 +43,7 @@ function RedefinirForm() {
 
   if (ok) {
     return (
-      <p className="text-sm text-green-600">
+      <p className="text-sm text-ok">
         Senha redefinida! Redirecionando para o login…
       </p>
     );
@@ -59,10 +59,10 @@ function RedefinirForm() {
           minLength={8}
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          className="rounded-md border border-line px-3 py-2"
         />
       </label>
-      {erro && <p className="text-sm text-red-600">{erro}</p>}
+      {erro && <p className="text-sm text-danger">{erro}</p>}
       <button
         type="submit"
         disabled={carregando}
@@ -79,9 +79,9 @@ export default function RedefinirSenhaPage() {
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
       <div>
         <h1 className="text-2xl font-bold">Redefinir senha</h1>
-        <p className="text-sm text-gray-500">Hub Capture</p>
+        <p className="text-sm text-muted">Hub Capture</p>
       </div>
-      <Suspense fallback={<p className="text-sm text-gray-500">Carregando…</p>}>
+      <Suspense fallback={<p className="text-sm text-muted">Carregando…</p>}>
         <RedefinirForm />
       </Suspense>
     </main>

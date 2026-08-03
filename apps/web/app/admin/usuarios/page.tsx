@@ -90,16 +90,16 @@ export default function AdminUsuariosPage() {
     <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-8 px-6 py-8">
       <header>
         <h1 className="text-2xl font-bold">Usuários & permissões</h1>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted">
           Crie usuários, defina o papel (role) e conceda permissão de admin.
         </p>
       </header>
 
-      {msg && <p className="text-sm text-gray-600 dark:text-gray-400">{msg}</p>}
+      {msg && <p className="text-sm text-ink-2">{msg}</p>}
 
       <form
         onSubmit={criar}
-        className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 p-4 sm:grid-cols-2 dark:border-gray-800"
+        className="grid grid-cols-1 gap-3 rounded-lg border border-line p-4 sm:grid-cols-2"
       >
         <label className="flex flex-col gap-1 text-sm">
           E-mail
@@ -108,7 +108,7 @@ export default function AdminUsuariosPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="rounded-md border border-line px-3 py-2"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -116,7 +116,7 @@ export default function AdminUsuariosPage() {
           <input
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="rounded-md border border-line px-3 py-2"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -127,7 +127,7 @@ export default function AdminUsuariosPage() {
             minLength={8}
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="rounded-md border border-line px-3 py-2"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -135,7 +135,7 @@ export default function AdminUsuariosPage() {
           <select
             value={papel}
             onChange={(e) => setPapel(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="rounded-md border border-line px-3 py-2"
           >
             {PAPEIS.map((p) => (
               <option key={p} value={p}>
@@ -149,7 +149,7 @@ export default function AdminUsuariosPage() {
           <select
             value={planoId}
             onChange={(e) => setPlanoId(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="rounded-md border border-line px-3 py-2"
           >
             <option value="">— sem plano —</option>
             {planos.map((p) => (
@@ -178,7 +178,7 @@ export default function AdminUsuariosPage() {
       <section className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left dark:border-gray-800">
+            <tr className="border-b border-line text-left">
               <th className="py-2 pr-4">Usuário</th>
               <th className="py-2 pr-4">Papel</th>
               <th className="py-2 pr-4">Admin</th>
@@ -188,16 +188,16 @@ export default function AdminUsuariosPage() {
           </thead>
           <tbody>
             {usuarios.map((u) => (
-              <tr key={u.id} className="border-b border-gray-100 dark:border-gray-900">
+              <tr key={u.id} className="border-b border-line">
                 <td className="py-2 pr-4">
                   <span className="block">{u.nome ?? "—"}</span>
-                  <span className="text-xs text-gray-400">{u.email}</span>
+                  <span className="text-xs text-muted">{u.email}</span>
                 </td>
                 <td className="py-2 pr-4">
                   <select
                     value={u.papel ?? ""}
                     onChange={(e) => atualizar(u.id, { papel: e.target.value })}
-                    className="rounded-md border border-gray-300 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900"
+                    className="rounded-md border border-line px-2 py-1 text-xs"
                   >
                     <option value="">—</option>
                     {PAPEIS.map((p) => (
@@ -227,7 +227,7 @@ export default function AdminUsuariosPage() {
                     </StatusBadge>
                   </button>
                 </td>
-                <td className="py-2 pr-4 text-xs text-gray-400">
+                <td className="py-2 pr-4 text-xs text-muted">
                   {u.is_verified ? "verificado" : "—"}
                 </td>
               </tr>
