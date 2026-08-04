@@ -1,42 +1,29 @@
 "use client";
 
-import { cx } from "./ui";
-
 export interface ChipOption {
   value: string;
   label: string;
   count?: number;
 }
 
-/** Chips de filtro com contador. `todasLabel` some quando não faz sentido. */
+/** Chips de filtro por fonte, cada um com contador de movimentações. */
 export function FilterChips({
   options,
   selected,
   onSelect,
-  todasLabel = "Todas",
-  todasCount,
-  ariaLabel,
 }: {
   options: ChipOption[];
   selected: string | null;
   onSelect: (value: string | null) => void;
-  todasLabel?: string;
-  todasCount?: number;
-  ariaLabel?: string;
 }) {
   return (
-    <div className="flex flex-wrap gap-2" role="group" aria-label={ariaLabel}>
-      <Chip
-        active={selected === null}
-        onClick={() => onSelect(null)}
-        label={todasLabel}
-        count={todasCount}
-      />
+    <div className="flex flex-wrap gap-2">
+      <Chip active={selected === null} onClick={() => onSelect(null)} label="Todas" />
       {options.map((o) => (
         <Chip
           key={o.value}
           active={selected === o.value}
-          onClick={() => onSelect(selected === o.value ? null : o.value)}
+          onClick={() => onSelect(o.value)}
           label={o.label}
           count={o.count}
         />
@@ -57,27 +44,10 @@ function Chip({
   count?: number;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cx(
-        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition",
-        active
-          ? "border-brand bg-brand font-medium text-brand-fg"
-          : "border-line bg-bg text-ink-2 hover:border-line-strong hover:text-ink",
-      )}
-    >
+    <button onClick={onClick} className={`chip ${active ? "chip-active" : ""}`}>
       {label}
       {count !== undefined && (
-        <span
-          className={cx(
-            "num rounded-full px-1.5 text-xs",
-            active ? "bg-white/25 text-brand-fg" : "bg-surface-2 text-muted",
-          )}
-        >
-          {count}
-        </span>
+        <span className="tabular-nums opacity-60">{count}</span>
       )}
     </button>
   );

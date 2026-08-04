@@ -16,7 +16,7 @@ from ..deps import get_platform_db
 router = APIRouter(tags=["planos"])
 
 
-@router.get("/planos", response_model=list[PlanoRead])
+@router.get("/plans", response_model=list[PlanoRead])
 async def listar_planos(
     session: AsyncSession = Depends(get_platform_db),
 ) -> list[PlanoRead]:
@@ -24,7 +24,7 @@ async def listar_planos(
     return [PlanoRead.model_validate(r) for r in rows]
 
 
-@router.post("/planos", response_model=PlanoRead, status_code=status.HTTP_201_CREATED)
+@router.post("/plans", response_model=PlanoRead, status_code=status.HTTP_201_CREATED)
 async def criar_plano(
     body: PlanoCreate,
     _admin: Usuario = Depends(current_superuser),
@@ -34,7 +34,7 @@ async def criar_plano(
     return PlanoRead.model_validate(plano)
 
 
-@router.patch("/planos/{plano_id}", response_model=PlanoRead)
+@router.patch("/plans/{plano_id}", response_model=PlanoRead)
 async def atualizar_plano(
     plano_id: uuid.UUID,
     body: PlanoUpdate,

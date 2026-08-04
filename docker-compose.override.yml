@@ -12,3 +12,10 @@ services:
   web:
     ports:
       - "3000:3000"
+
+networks:
+  # em dev local a rede do Dokploy não existe — deixa o compose criá-la,
+  # em vez de exigir uma rede externa (que só existe no servidor).
+  dokploy-network:
+    external: false
+    name: hubcapture-dev-proxy

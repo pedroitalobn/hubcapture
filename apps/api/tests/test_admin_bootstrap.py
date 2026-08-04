@@ -34,9 +34,7 @@ async def test_bootstrap_cria_e_promove(monkeypatch) -> None:
     await bootstrap.ensure_admin()  # idempotente (não duplica)
 
     async with SessionLocal() as s:
-        rows = (
-            await s.execute(select(Usuario).where(Usuario.email == email))
-        ).scalars().all()
+        rows = (await s.execute(select(Usuario).where(Usuario.email == email))).scalars().all()
     assert len(rows) == 1
     assert rows[0].is_superuser and rows[0].is_active
 
@@ -79,3 +77,94 @@ async def test_admin_atualiza_role_e_permissao() -> None:
         assert atualizado.is_superuser is True and atualizado.is_active is False
     finally:
         await session.close()
+
+
+async def test_login_promove_admin_do_ambiente(monkeypatch, seed_user) -> None:
+    """Auto-reparo: conta com o e-mail do ADMIN_EMAIL que não é superuser
+    (bootstrap perdido) é promovida ao logar."""
+    from src.core import bootstrap
+    from src.core.config import settings
+
+    email = f"resgate-{uuid.uuid4().hex[:8]}@hub.com"
+    uid = await seed_user(email)
+    monkeypatch.setattr(settings, "admin_email", email)
+    monkeypatch.setattr(settings, "admin_password", "irrelevante")
+
+    async with SessionLocal() as s:
+        user = (await s.execute(select(Usuario).where(Usuario.id == uid))).scalar_one()
+        assert not user.is_superuser
+        promovido = await bootstrap.promover_se_admin_env(user)
+        assert promovido
+        # segunda chamada é no-op
+        assert not await bootstrap.promover_se_admin_env(user)
+
+    async with SessionLocal() as s:
+        atualizado = (await s.execute(select(Usuario).where(Usuario.id == uid))).scalar_one()
+        assert atualizado.is_superuser and atualizado.is_active and atualizado.is_verified
+
+
+async def test_promover_ignora_email_diferente(monkeypatch, seed_user) -> None:
+    from src.core import bootstrap
+    from src.core.config import settings
+
+    uid = await seed_user("naoadmin@hub.com")
+    monkeypatch.setattr(settings, "admin_email", "outro@hub.com")
+
+    async with SessionLocal() as s:
+        user = (await s.execute(select(Usuario).where(Usuario.id == uid))).scalar_one()
+        assert not await bootstrap.promover_se_admin_env(user)
+        assert not user.is_superuser
+
+
+# ── guarda de segredo padrão no boot ────────────────────────────────────────
+def test_boot_aborta_com_segredo_padrao_em_dominio_publico() -> None:
+    import pytest
+
+    from src.core.config import Settings
+    from src.core.seguranca_boot import verificar_segredos
+
+    prod = Settings(
+        app_base_url="https://hub.exemplo.gov.br",
+        jwt_secret="troque-este-segredo-em-producao",
+        jwt_refresh_secret="troque-este-segredo-de-refresh",
+    )
+    with pytest.raises(RuntimeError, match="BOOT ABORTADO"):
+        verificar_segredos(prod)
+
+
+def test_boot_permite_segredo_padrao_no_dev_local() -> None:
+    from src.core.config import Settings
+    from src.core.seguranca_boot import verificar_segredos
+
+    dev = Settings(
+        app_base_url="http://localhost:3000",
+        jwt_secret="troque-este-segredo-em-producao",
+        jwt_refresh_secret="troque-este-segredo-de-refresh",
+    )
+    verificar_segredos(dev)  # só avisa, não levanta
+
+
+def test_boot_ok_com_segredos_fortes() -> None:
+    from src.core.config import Settings
+    from src.core.seguranca_boot import segredos_fracos, verificar_segredos
+
+    prod = Settings(
+        app_base_url="https://hub.exemplo.gov.br",
+        jwt_secret="a" * 48,
+        jwt_refresh_secret="b" * 48,
+    )
+    assert segredos_fracos(prod) == []
+    verificar_segredos(prod)
+
+
+def test_valvula_consciente_libera_homologacao() -> None:
+    from src.core.config import Settings
+    from src.core.seguranca_boot import verificar_segredos
+
+    homolog = Settings(
+        app_base_url="https://homolog.exemplo.gov.br",
+        jwt_secret="troque-este-segredo-em-producao",
+        jwt_refresh_secret="troque-este-segredo-de-refresh",
+        permitir_segredo_padrao=True,
+    )
+    verificar_segredos(homolog)  # liberado com aviso

@@ -1,39 +1,31 @@
-import type { ReactNode } from "react";
-import { cx } from "./ui";
+export type BadgeTone =
+  | "neutral"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info";
 
-export type BadgeTone = "neutral" | "success" | "warning" | "danger" | "info" | "brand";
-
-const TONES: Record<BadgeTone, string> = {
-  neutral: "bg-surface-2 text-ink-2 border-line",
-  success: "bg-ok-bg text-ok border-ok-line",
-  warning: "bg-warn-bg text-warn border-warn-line",
-  danger: "bg-danger-bg text-danger border-danger-line",
-  info: "bg-info-bg text-info border-info-line",
-  brand: "bg-brand-soft text-brand-soft-fg border-transparent",
+/* Disciplina monocromática: o badge é sempre outline + mono; a semântica
+   vem do dot de 6px (lime = ok; tons rebaixados p/ alerta/erro). */
+const DOT: Record<BadgeTone, string> = {
+  neutral: "bg-ink-3",
+  success: "bg-lime",
+  warning: "bg-[#c9a24b]",
+  danger: "bg-[#b5533c]",
+  info: "bg-graphite",
 };
 
-/** Badge de status semântico (situação, natureza, fonte, pendência…). */
+/** Badge de status: pill hairline com dot semântico + label mono. */
 export function StatusBadge({
   children,
   tone = "neutral",
-  mono = false,
-  className,
 }: {
-  children: ReactNode;
+  children: React.ReactNode;
   tone?: BadgeTone;
-  /** Para identificadores técnicos (slug da fonte, nº de processo). */
-  mono?: boolean;
-  className?: string;
 }) {
   return (
-    <span
-      className={cx(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
-        mono && "font-mono text-[11px] tracking-tight",
-        TONES[tone],
-        className,
-      )}
-    >
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[-0.02em] text-ink-2">
+      <span className={`h-1.5 w-1.5 rounded-full ${DOT[tone]}`} aria-hidden />
       {children}
     </span>
   );

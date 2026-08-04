@@ -47,7 +47,10 @@ def gerar_pdf_proposta(p: Proposta) -> bytes:
     )
     elems.append(tabela)
     if p.resumo_ia:
-        elems += [Spacer(1, 14), Paragraph("Resumo (IA)", styles["Heading3"]),
-                  Paragraph(p.resumo_ia, styles["BodyText"])]
+        elems += [
+            Spacer(1, 14),
+            Paragraph("Resumo (IA)", styles["Heading3"]),
+            Paragraph(p.resumo_ia, styles["BodyText"]),
+        ]
     doc.build(elems)
     return buf.getvalue()

@@ -1,26 +1,39 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Inter_Tight, Roboto_Mono } from "next/font/google";
 import "./globals.css";
+
+// Hierarquia tipográfica real: 400 no corpo, 500/600 em títulos e números —
+// legibilidade primeiro; o tracking negativo continua dando o tom técnico.
+const sans = Inter_Tight({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-sans-src",
+});
+const mono = Roboto_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono-src",
+});
 
 export const metadata: Metadata = {
   title: "Hub Capture",
   description: "Concentrador de propostas e repasses do governo brasileiro",
 };
 
-/**
- * Aplica o tema salvo antes da primeira pintura. Sem isso, quem fixou "escuro"
- * vê um flash branco a cada navegação — o CSS só sabe do data-theme depois que
- * o React hidrata.
- */
-const TEMA_INICIAL = `(function(){try{var t=localStorage.getItem("hub_tema");
-if(t==="escuro")document.documentElement.setAttribute("data-theme","dark");
-else if(t==="claro")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();`;
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f7f5" },
+    { media: "(prefers-color-scheme: dark)", color: "#222f30" },
+  ],
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: TEMA_INICIAL }} />
-      </head>
+    <html lang="pt-BR" className={`${sans.variable} ${mono.variable}`}>
       <body>{children}</body>
     </html>
   );

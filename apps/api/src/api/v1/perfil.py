@@ -12,14 +12,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.users import current_active_user
 from ...models.usuario import Usuario
-from ...schemas.perfil import PerfilRead, VisaoGeralPerfil
+from ...schemas.perfil import NovidadesPerfil, PerfilRead, VisaoGeralPerfil
 from ...services import perfil as service
 from ..deps import get_rls_db
 
 router = APIRouter(tags=["perfil"])
 
 
-@router.get("/perfil", response_model=PerfilRead)
+@router.get("/profile", response_model=PerfilRead)
 async def get_perfil(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
@@ -27,9 +27,18 @@ async def get_perfil(
     return await service.get_perfil(session, user)
 
 
-@router.get("/perfil/visao-geral", response_model=VisaoGeralPerfil)
+@router.get("/profile/overview", response_model=VisaoGeralPerfil)
 async def visao_geral_perfil(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> VisaoGeralPerfil:
     return await service.visao_geral(session, user)
+
+
+@router.get("/profile/feed", response_model=NovidadesPerfil)
+async def novidades_perfil(
+    user: Usuario = Depends(current_active_user),
+    session: AsyncSession = Depends(get_rls_db),
+) -> NovidadesPerfil:
+    """Feed 'últimas novidades' do território, recortado pelo perfil do usuário."""
+    return await service.novidades(session, user)

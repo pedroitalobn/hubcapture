@@ -22,6 +22,10 @@ class OnboardingRequest(BaseModel):
     monitorar_ativo: bool = True
     papel: str | None = None
     disparar_sync: bool = False
+    # passo "ativar avisos" da jornada: conectar WhatsApp e escolher canais
+    telefone_wpp: str | None = None
+    optin_wpp: bool | None = None
+    canais_alerta: list[str] = ["painel"]
 
 
 class OnboardingResponse(BaseModel):

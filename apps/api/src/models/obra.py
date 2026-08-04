@@ -25,9 +25,7 @@ SITUACOES = ("planejada", "em_execucao", "paralisada", "concluida", "cancelada")
 
 class Obra(Base):
     __tablename__ = "obras"
-    __table_args__ = (
-        UniqueConstraint("fonte", "id_externo", name="uq_obras_fonte_id_externo"),
-    )
+    __table_args__ = (UniqueConstraint("fonte", "id_externo", name="uq_obras_fonte_id_externo"),)
 
     id: Mapped[uuid.UUID] = uuid_pk()
     fonte: Mapped[str] = mapped_column(String(16), index=True)  # sismob|simec|caixa
@@ -53,9 +51,7 @@ class Obra(Base):
     proveniencia: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     hash_conteudo: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), onupdate=func.now(), nullable=True
     )
