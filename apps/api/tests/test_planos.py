@@ -87,9 +87,7 @@ async def test_convite_criar_e_aceitar() -> None:
         assert u.email == "convidado@ente.gov"
         assert u.papel == "equipe"
         assert u.plano_id == plano_id
-        conv = (
-            await s.execute(select(Convite).where(Convite.token == token))
-        ).scalar_one()
+        conv = (await s.execute(select(Convite).where(Convite.token == token))).scalar_one()
         assert conv.status == "aceito"
 
 
@@ -105,7 +103,5 @@ async def test_convite_expirado_recusado() -> None:
             token = convite.token
             assert convite.expires_at < datetime.now(UTC)
         with pytest.raises(HTTPException) as exc:
-            await gestao.aceitar_convite(
-                s, um, AceitarConvite(token=token, senha="segredo123")
-            )
+            await gestao.aceitar_convite(s, um, AceitarConvite(token=token, senha="segredo123"))
         assert exc.value.status_code == 410

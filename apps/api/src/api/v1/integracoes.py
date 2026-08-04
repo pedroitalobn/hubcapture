@@ -25,9 +25,15 @@ from ...schemas.contato import (
 )
 from ...services import contatos_sync as sync_service
 from ...services import integracoes_contatos as service
+from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
-router = APIRouter(tags=["integracoes"], prefix="/integracoes/contatos")
+# Mesmo módulo da agenda: desligou contatos, some também a conexão de agendas.
+router = APIRouter(
+    tags=["integracoes"],
+    prefix="/integrations/contacts",
+    dependencies=[Depends(require_modulo("contatos"))],
+)
 
 
 async def _get_ou_404(session: AsyncSession, integracao_id: uuid.UUID):
@@ -43,7 +49,7 @@ def _erro(exc: service.IntegracaoErro) -> HTTPException:
     return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
-@router.get("/provedores", response_model=list[ProvedorInfo])
+@router.get("/providers", response_model=list[ProvedorInfo])
 async def listar_provedores(
     _: Usuario = Depends(current_active_user),
 ) -> list[ProvedorInfo]:
@@ -80,7 +86,7 @@ async def sincronizar_todas(
     return await sync_service.sincronizar_todas(session, usuario_id=user.id)
 
 
-@router.post("/{provedor}/autorizar", response_model=AutorizacaoOAuth)
+@router.post("/{provedor}/authorize", response_model=AutorizacaoOAuth)
 async def autorizar(
     provedor: str,
     redirect_uri: str | None = None,
@@ -95,7 +101,7 @@ async def autorizar(
         raise _erro(exc) from exc
 
 
-@router.post("/{provedor}/senha-app", response_model=IntegracaoRead)
+@router.post("/{provedor}/app-password", response_model=IntegracaoRead)
 async def conectar_senha_app(
     provedor: str,
     body: ConectarSenhaApp,

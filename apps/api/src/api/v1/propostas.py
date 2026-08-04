@@ -1,35 +1,126 @@
-"""Endpoints de propostas (cache-first, RLS)."""
+"""Endpoints de propostas (cache-first, RLS).
+
+Os filtros aqui espelham a tela de captação: busca livre (programa/órgão/
+código), natureza jurídica elegível, modalidade, órgão, qualificação, ano,
+tipo (cadastrada × disponível), faixa de valor e ordenação. As opções dos
+dropdowns vêm de `/proposals/facets` (só o que existe no território), o
+consolidado de `/proposals/summary` e o "baixar relatório" de
+`/proposals/report.csv`.
+"""
 
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...schemas.proposta import PropostaRead
+from ...schemas.proposta import (
+    PropostaPrazo,
+    PropostaRead,
+    PropostasFacetas,
+    ResumoCaptacao,
+)
 from ...services import pdf as pdf_service
 from ...services import propostas as propostas_service
+from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
-router = APIRouter(tags=["propostas"])
+# Módulo desligável pelo painel admin (captação): desativado → eixo responde 404.
+router = APIRouter(
+    tags=["propostas"], dependencies=[Depends(require_modulo("captacao"))]
+)
 
 
-@router.get("/propostas", response_model=list[PropostaRead])
+class FiltrosProposta(BaseModel):
+    """Filtros da captação — compartilhados por lista, facetas, resumo e relatório."""
+
+    municipio: str | None = Field(default=None, description="código IBGE (7 dígitos)")
+    fonte: str | None = None
+    area: str | None = Field(default=None, description="área de interesse (saude, educacao…)")
+    situacao: str | None = None
+    modalidade: str | None = Field(default=None, description="tipo de instrumento")
+    orgao: str | None = Field(default=None, description="órgão/ministério concedente")
+    natureza_juridica: str | None = Field(
+        default=None, description="municipal | estadual_df | consorcio | empresa_publica | osc"
+    )
+    qualificacao: str | None = Field(default=None, description="tipo de transferência")
+    ano: str | None = Field(default=None, max_length=4)
+    q: str | None = Field(default=None, description="busca por programa, órgão ou código")
+    valor_min: Decimal | None = Field(default=None, ge=0)
+    valor_max: Decimal | None = Field(default=None, ge=0)
+    tipo: str | None = Field(default=None, pattern="^(cadastrada|disponivel)$")
+
+
+class FiltrosListagem(FiltrosProposta):
+    ordenar: str | None = Field(
+        default=None,
+        pattern="^(recentes|prazo|prazo_distante|nome|orgao|valor)$",
+        description="mais recentes · prazo (próximo/distante) · nome A-Z · órgão A-Z · valor",
+    )
+
+
+@router.get("/proposals", response_model=list[PropostaRead])
 async def listar_propostas(
-    municipio: str | None = Query(default=None, description="código IBGE (7 dígitos)"),
-    fonte: str | None = Query(default=None),
-    area: str | None = Query(default=None, description="reservado (áreas) — futuro"),
-    situacao: str | None = Query(default=None),
+    filtros: Annotated[FiltrosListagem, Query()],
     session: AsyncSession = Depends(get_rls_db),
 ) -> list[PropostaRead]:
-    rows = await propostas_service.listar(
-        session, municipio=municipio, fonte=fonte, situacao=situacao
-    )
+    rows = await propostas_service.listar(session, **filtros.model_dump())
     return [PropostaRead.model_validate(r) for r in rows]
 
 
-@router.get("/propostas/{proposta_id}", response_model=PropostaRead)
+@router.get("/proposals/facets", response_model=PropostasFacetas)
+async def facetas_propostas(
+    filtros: Annotated[FiltrosProposta, Query()],
+    session: AsyncSession = Depends(get_rls_db),
+) -> PropostasFacetas:
+    """Opções de cada filtro com contagem — alimenta os dropdowns da tela."""
+    dados = await propostas_service.facetas(session, **filtros.model_dump())
+    return PropostasFacetas.model_validate(dados)
+
+
+@router.get("/proposals/summary", response_model=ResumoCaptacao)
+async def resumo_propostas(
+    filtros: Annotated[FiltrosProposta, Query()],
+    session: AsyncSession = Depends(get_rls_db),
+) -> ResumoCaptacao:
+    """Resumo consolidado: cards financeiros, série por ano, pipeline e vigentes."""
+    dados = await propostas_service.resumo(session, **filtros.model_dump())
+    return ResumoCaptacao.model_validate(dados)
+
+
+@router.get("/proposals/report.csv")
+async def relatorio_propostas(
+    filtros: Annotated[FiltrosListagem, Query()],
+    session: AsyncSession = Depends(get_rls_db),
+) -> Response:
+    """Baixar relatório: o mesmo recorte da tela, em CSV (';', abre no Excel)."""
+    rows = await propostas_service.listar(session, **filtros.model_dump())
+    conteudo = propostas_service.gerar_csv(rows)
+    return Response(
+        content=conteudo.encode("utf-8-sig"),  # BOM: acento correto no Excel
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="captacao.csv"'},
+    )
+
+
+@router.get("/proposals/deadlines", response_model=list[PropostaPrazo])
+async def propostas_por_prazo(
+    dias: int = Query(default=30, ge=1, le=365),
+    session: AsyncSession = Depends(get_rls_db),
+) -> list[PropostaPrazo]:
+    """Propostas com prazo vencendo na janela — 'quais vencem este mês?'."""
+    rows = await propostas_service.listar_por_prazo(session, dias=dias)
+    return [
+        PropostaPrazo(proposta=PropostaRead.model_validate(p), prazos_na_janela=prazos)
+        for p, prazos in rows
+    ]
+
+
+@router.get("/proposals/{proposta_id}", response_model=PropostaRead)
 async def obter_proposta(
     proposta_id: uuid.UUID,
     session: AsyncSession = Depends(get_rls_db),
@@ -40,7 +131,7 @@ async def obter_proposta(
     return PropostaRead.model_validate(row)
 
 
-@router.get("/propostas/{proposta_id}/pdf")
+@router.get("/proposals/{proposta_id}/pdf")
 async def exportar_pdf(
     proposta_id: uuid.UUID,
     session: AsyncSession = Depends(get_rls_db),

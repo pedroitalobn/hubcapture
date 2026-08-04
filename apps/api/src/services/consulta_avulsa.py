@@ -21,12 +21,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..connectors.base import get_connector
 from ..core.config import settings
 from ..db.session import SessionLocal
-from ..ingestion.merge import merge
-from ..ingestion.normalizer import normalize
+from ..ingestion.merge import merge_record
 from ..models.audit_log import AuditLog
 from ..models.municipio_interesse import MunicipioInteresse
 from ..models.proposta import Proposta
 from ..models.sync_run import SyncRun
+from . import fontes as fontes_service
 from . import propostas as propostas_service
 
 
@@ -93,7 +93,8 @@ async def consulta_avulsa(
         registros = await connector.collect(municipio_ibge, since=_since())
         n = 0
         for record in registros:
-            canonica = merge(normalize(record), None)
+            # aglutina API + scraping quando o connector trouxe os dois lados
+            canonica = merge_record(record)
             await propostas_service.upsert(session, canonica)
             n += 1
     except Exception as exc:  # nunca engolir: registra incidente e propaga
@@ -121,3 +122,87 @@ async def consulta_avulsa(
 
     # 3) devolve do cache (agora povoado), já sob o filtro de RLS
     return await propostas_service.listar(session, municipio=municipio_ibge, fonte=fonte)
+
+
+# ── Busca em TEMPO REAL (multi-fonte) ───────────────────────────────────────
+# A Captação filtra e a busca roda ao vivo: para cada município do perfil (ou o
+# município filtrado) × fonte de captação relevante, reusa o fluxo cache-first
+# acima (cache fresco responde na hora; stale/miss vai à fonte — API e/ou
+# scraping via connector). Cada fonte é best-effort: falha vira status (e
+# sync_run), nunca derruba a busca inteira.
+
+# fontes cujo connector produz PROPOSTAS (captação). O recorte da v1 vive em
+# `services/fontes.py` — hoje é a família TransfereGov (as APIs PostgREST, o CSV
+# das discricionárias e o painel da Visão Geral).
+CAPTACAO_FONTES: tuple[str, ...] = fontes_service.CAPTACAO
+
+
+def _fontes_alvo(fonte: str | None, area: str | None, fontes_perfil: list[str] | None) -> list[str]:
+    if fonte:
+        return [fonte]
+    if area:
+        from .perfil import AREA_FONTES
+
+        da_area = AREA_FONTES.get(area, set()) & set(CAPTACAO_FONTES)
+        if da_area:
+            return sorted(da_area)
+    if fontes_perfil:
+        do_perfil = set(fontes_perfil) & set(CAPTACAO_FONTES)
+        if do_perfil:
+            return sorted(do_perfil)
+    return list(CAPTACAO_FONTES)
+
+
+async def live_search(
+    session: AsyncSession,
+    *,
+    usuario_id: uuid.UUID,
+    municipio: str | None = None,
+    fonte: str | None = None,
+    area: str | None = None,
+    **filtros,
+):
+    """Coleta ao vivo nas fontes relevantes e devolve (propostas, status_fontes)."""
+    from ..models.preferencias import PreferenciasUsuario
+
+    if municipio:
+        ibges = [municipio]
+    else:
+        ibges = list(
+            (
+                await session.execute(
+                    select(MunicipioInteresse.ibge).where(
+                        MunicipioInteresse.usuario_id == usuario_id
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+    pref = (
+        await session.execute(
+            select(PreferenciasUsuario).where(PreferenciasUsuario.usuario_id == usuario_id)
+        )
+    ).scalar_one_or_none()
+    fontes = _fontes_alvo(fonte, area, list(pref.fontes or []) if pref else None)
+
+    status_fontes: list[dict] = []
+    for ibge in ibges:
+        for f in fontes:
+            try:
+                await consulta_avulsa(session, usuario_id=usuario_id, municipio_ibge=ibge, fonte=f)
+                status_fontes.append({"fonte": f, "municipio_ibge": ibge, "status": "ok"})
+            except Exception as exc:  # registrado em sync_runs pela consulta_avulsa
+                status_fontes.append(
+                    {
+                        "fonte": f,
+                        "municipio_ibge": ibge,
+                        "status": "erro",
+                        "erro": type(exc).__name__,
+                    }
+                )
+
+    rows = await propostas_service.listar(
+        session, municipio=municipio, fonte=fonte, area=area, **filtros
+    )
+    return rows, status_fontes

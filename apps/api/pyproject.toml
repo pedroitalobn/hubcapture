@@ -20,6 +20,17 @@ dependencies = [
     "reportlab>=4.2.0",
 ]
 
+# Scraping local (browser headless no próprio container): o painel da Visão
+# Geral do TransfereGov e a consulta do FNS só existem depois que o JS roda.
+# Extra opcional — sem ele a API sobe igual e os providers ficam desabilitados
+# (a facade `scraping.scraper` degrada), com o custo de não coletar essas duas
+# páginas. A imagem de produção instala com `uv sync --extra scraping`.
+[project.optional-dependencies]
+scraping = [
+    "playwright>=1.47.0",
+    "crawl4ai>=0.4.0",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=8.3.0",

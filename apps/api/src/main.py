@@ -17,12 +17,19 @@ from .core.config import settings
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    # Segurança primeiro: em produção, segredo de token padrão aborta o boot
+    # (falha alta e explícita é melhor que sessão forjável em silêncio).
+    from .core.seguranca_boot import verificar_segredos
+
+    verificar_segredos(settings)
+
     # Bootstrap do superadmin inicial (ADMIN_EMAIL/ADMIN_PASSWORD). Best-effort:
     # falha aqui (ex.: banco ainda subindo) não impede a API de servir.
     try:
-        from .core.bootstrap import ensure_admin
+        from .core.bootstrap import ensure_admin, ensure_planos
 
         await ensure_admin()
+        await ensure_planos()  # 4 planos padrão (free/start/pro/business)
     except Exception:  # noqa: BLE001
         logging.getLogger("hubcapture").warning("bootstrap do admin falhou", exc_info=True)
     yield
@@ -57,6 +64,8 @@ def register_routers() -> None:
     from .api.v1 import (
         admin,
         admin_config,
+        admin_fontes,
+        admin_modulos,
         alertas,
         auth,
         conformidade,
@@ -66,6 +75,8 @@ def register_routers() -> None:
         favoritos,
         integracoes,
         monitoramentos,
+        municipios,
+        noticias,
         obras,
         onboarding,
         pastas,
@@ -79,6 +90,7 @@ def register_routers() -> None:
     for mod in (
         auth,
         perfil,
+        municipios,
         propostas,
         consulta_avulsa,
         repasses,
@@ -91,9 +103,12 @@ def register_routers() -> None:
         integracoes,
         monitoramentos,
         alertas,
+        noticias,
         planos,
         admin,
         admin_config,
+        admin_fontes,
+        admin_modulos,
         copiloto,
         webhooks,
     ):

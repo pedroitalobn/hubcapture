@@ -22,7 +22,129 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/conhecimento": {
+    "/api/v1/admin/config/llm/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Llm Providers
+         * @description Provedores de LLM suportados, com status da chave e seleção de modelo atual.
+         */
+        get: operations["listar_llm_providers_api_v1_admin_config_llm_providers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/llm/{provider_id}/chave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Definir Llm Chave
+         * @description Grava a API key do provedor e já devolve os modelos dele (menor fricção).
+         */
+        put: operations["definir_llm_chave_api_v1_admin_config_llm__provider_id__chave_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/llm/{provider_id}/modelos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Llm Modelos
+         * @description Modelos do provedor usando a chave já salva (listagem ao vivo + fallback).
+         */
+        get: operations["listar_llm_modelos_api_v1_admin_config_llm__provider_id__modelos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/email/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Testar Email
+         * @description Envia um e-mail de teste (Maileroo/SMTP) p/ validar a configuração.
+         *
+         *     Sem `destinatario`, manda para o próprio admin. Se o provedor recusar
+         *     (chave/domínio inválido), devolve o motivo — pra depurar sem adivinhar.
+         */
+        post: operations["testar_email_api_v1_admin_email_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Listar Convites */
+        get: operations["admin_listar_convites_api_v1_admin_invites_get"];
+        put?: never;
+        /** Admin Criar Convite */
+        post: operations["admin_criar_convite_api_v1_admin_invites_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invites/{convite_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Admin Excluir Convite
+         * @description Exclui um convite (pendente/expirado/aceito). Não afeta o usuário já
+         *     criado a partir dele — para remover o usuário, use DELETE /admin/users.
+         */
+        delete: operations["admin_excluir_convite_api_v1_admin_invites__convite_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/knowledge": {
         parameters: {
             query?: never;
             header?: never;
@@ -35,50 +157,32 @@ export interface paths {
          * Admin Add Conhecimento
          * @description Adiciona material à base de conhecimento do Copiloto.
          */
-        post: operations["admin_add_conhecimento_api_v1_admin_conhecimento_post"];
+        post: operations["admin_add_conhecimento_api_v1_admin_knowledge_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/convites": {
+    "/api/v1/admin/modules": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Admin Listar Convites */
-        get: operations["admin_listar_convites_api_v1_admin_convites_get"];
-        put?: never;
-        /** Admin Criar Convite */
-        post: operations["admin_criar_convite_api_v1_admin_convites_post"];
+        /** Listar Modulos */
+        get: operations["listar_modulos_api_v1_admin_modules_get"];
+        /** Definir Modulo */
+        put: operations["definir_modulo_api_v1_admin_modules_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/usuarios": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Admin Listar Usuarios */
-        get: operations["admin_listar_usuarios_api_v1_admin_usuarios_get"];
-        put?: never;
-        /** Admin Criar Usuario */
-        post: operations["admin_criar_usuario_api_v1_admin_usuarios_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/usuarios/{usuario_id}": {
+    "/api/v1/admin/proposals": {
         parameters: {
             query?: never;
             header?: never;
@@ -88,14 +192,76 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Zerar Propostas
+         * @description Zera TODAS as propostas do sistema (uso: validação — recomeçar a coleta do
+         *     zero). As FKs são ON DELETE CASCADE, então favoritos, pastas, monitoramentos,
+         *     alertas e embeddings ligados às propostas somem junto. Só superuser.
+         */
+        delete: operations["zerar_propostas_api_v1_admin_proposals_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Diagnostico Fontes */
+        get: operations["diagnostico_fontes_api_v1_admin_sources_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** Admin Atualizar Usuario */
-        patch: operations["admin_atualizar_usuario_api_v1_admin_usuarios__usuario_id__patch"];
+        patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/usuarios/{usuario_id}/plano": {
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Listar Usuarios */
+        get: operations["admin_listar_usuarios_api_v1_admin_users_get"];
+        put?: never;
+        /** Admin Criar Usuario */
+        post: operations["admin_criar_usuario_api_v1_admin_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{usuario_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Admin Excluir Usuario
+         * @description Exclui um usuário. FKs são CASCADE (favoritos/monitoramentos/pastas/
+         *     alertas somem junto). Guarda: não permite excluir a própria conta.
+         */
+        delete: operations["admin_excluir_usuario_api_v1_admin_users__usuario_id__delete"];
+        options?: never;
+        head?: never;
+        /** Admin Atualizar Usuario */
+        patch: operations["admin_atualizar_usuario_api_v1_admin_users__usuario_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/users/{usuario_id}/plan": {
         parameters: {
             query?: never;
             header?: never;
@@ -109,10 +275,10 @@ export interface paths {
         options?: never;
         head?: never;
         /** Admin Atribuir Plano */
-        patch: operations["admin_atribuir_plano_api_v1_admin_usuarios__usuario_id__plano_patch"];
+        patch: operations["admin_atribuir_plano_api_v1_admin_users__usuario_id__plan_patch"];
         trace?: never;
     };
-    "/api/v1/alertas": {
+    "/api/v1/alerts": {
         parameters: {
             query?: never;
             header?: never;
@@ -120,7 +286,7 @@ export interface paths {
             cookie?: never;
         };
         /** Listar Alertas */
-        get: operations["listar_alertas_api_v1_alertas_get"];
+        get: operations["listar_alertas_api_v1_alerts_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -129,7 +295,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/alertas/{alerta_id}/lido": {
+    "/api/v1/alerts/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Varredura Alertas
+         * @description Roda a detecção de novas propostas (buscas) + oportunidades e despacha
+         *     por email/WhatsApp conforme os canais. Retorna quantos alertas foram criados.
+         */
+        post: operations["varredura_alertas_api_v1_alerts_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/{alerta_id}/read": {
         parameters: {
             query?: never;
             header?: never;
@@ -139,14 +326,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Marcar Lido */
-        post: operations["marcar_lido_api_v1_alertas__alerta_id__lido_post"];
+        post: operations["marcar_lido_api_v1_alerts__alerta_id__read_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/aceitar-convite": {
+    "/api/v1/auth/accept-invite": {
         parameters: {
             query?: never;
             header?: never;
@@ -156,7 +343,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Aceitar Convite */
-        post: operations["aceitar_convite_api_v1_auth_aceitar_convite_post"];
+        post: operations["aceitar_convite_api_v1_auth_accept_invite_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -282,7 +469,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/conformidade": {
+    "/api/v1/compliance": {
         parameters: {
             query?: never;
             header?: never;
@@ -290,7 +477,7 @@ export interface paths {
             cookie?: never;
         };
         /** Conformidade Resumo */
-        get: operations["conformidade_resumo_api_v1_conformidade_get"];
+        get: operations["conformidade_resumo_api_v1_compliance_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -299,7 +486,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/conformidade/sync": {
+    "/api/v1/compliance/sync": {
         parameters: {
             query?: never;
             header?: never;
@@ -309,31 +496,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Conformidade Sync */
-        post: operations["conformidade_sync_api_v1_conformidade_sync_post"];
+        post: operations["conformidade_sync_api_v1_compliance_sync_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/consulta-avulsa": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Consulta Avulsa Endpoint */
-        post: operations["consulta_avulsa_endpoint_api_v1_consulta_avulsa_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/contatos": {
+    "/api/v1/contacts": {
         parameters: {
             query?: never;
             header?: never;
@@ -341,17 +511,17 @@ export interface paths {
             cookie?: never;
         };
         /** Listar Contatos */
-        get: operations["listar_contatos_api_v1_contatos_get"];
+        get: operations["listar_contatos_api_v1_contacts_get"];
         put?: never;
         /** Criar Contato */
-        post: operations["criar_contato_api_v1_contatos_post"];
+        post: operations["criar_contato_api_v1_contacts_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/contatos/exportar": {
+    "/api/v1/contacts/export": {
         parameters: {
             query?: never;
             header?: never;
@@ -362,7 +532,7 @@ export interface paths {
          * Exportar Contatos
          * @description Exporta a agenda em .vcf — importável no Google/Apple/Outlook sem conectar conta.
          */
-        get: operations["exportar_contatos_api_v1_contatos_exportar_get"];
+        get: operations["exportar_contatos_api_v1_contacts_export_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -371,7 +541,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/contatos/importar": {
+    "/api/v1/contacts/import": {
         parameters: {
             query?: never;
             header?: never;
@@ -381,14 +551,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Importar Contatos */
-        post: operations["importar_contatos_api_v1_contatos_importar_post"];
+        post: operations["importar_contatos_api_v1_contacts_import_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/contatos/{contato_id}": {
+    "/api/v1/contacts/{contato_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -396,18 +566,18 @@ export interface paths {
             cookie?: never;
         };
         /** Obter Contato */
-        get: operations["obter_contato_api_v1_contatos__contato_id__get"];
+        get: operations["obter_contato_api_v1_contacts__contato_id__get"];
         put?: never;
         post?: never;
         /** Remover Contato */
-        delete: operations["remover_contato_api_v1_contatos__contato_id__delete"];
+        delete: operations["remover_contato_api_v1_contacts__contato_id__delete"];
         options?: never;
         head?: never;
         /** Atualizar Contato */
-        patch: operations["atualizar_contato_api_v1_contatos__contato_id__patch"];
+        patch: operations["atualizar_contato_api_v1_contacts__contato_id__patch"];
         trace?: never;
     };
-    "/api/v1/copiloto/chat": {
+    "/api/v1/copilot/chat": {
         parameters: {
             query?: never;
             header?: never;
@@ -417,14 +587,36 @@ export interface paths {
         get?: never;
         put?: never;
         /** Copiloto Chat */
-        post: operations["copiloto_chat_api_v1_copiloto_chat_post"];
+        post: operations["copiloto_chat_api_v1_copilot_chat_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/favoritos": {
+    "/api/v1/copilot/island": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Copiloto Island
+         * @description Agente do Dynamic Island (tool calling). O loop de ferramentas roda AQUI,
+         *     com a sessão RLS do request viva; o stream só replaye os eventos coletados
+         *     (mesma razão do RAG pré-stream acima).
+         */
+        post: operations["copiloto_island_api_v1_copilot_island_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/favorites": {
         parameters: {
             query?: never;
             header?: never;
@@ -432,17 +624,37 @@ export interface paths {
             cookie?: never;
         };
         /** Listar Favoritos */
-        get: operations["listar_favoritos_api_v1_favoritos_get"];
+        get: operations["listar_favoritos_api_v1_favorites_get"];
         put?: never;
         /** Adicionar Favorito */
-        post: operations["adicionar_favorito_api_v1_favoritos_post"];
+        post: operations["adicionar_favorito_api_v1_favorites_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/favoritos/{proposta_id}": {
+    "/api/v1/favorites/proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Propostas Favoritas
+         * @description Aba de ACOMPANHAMENTO: as propostas favoritadas, completas.
+         */
+        get: operations["listar_propostas_favoritas_api_v1_favorites_proposals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/favorites/{proposta_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -453,13 +665,83 @@ export interface paths {
         put?: never;
         post?: never;
         /** Remover Favorito */
-        delete: operations["remover_favorito_api_v1_favoritos__proposta_id__delete"];
+        delete: operations["remover_favorito_api_v1_favorites__proposta_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/integracoes/contatos": {
+    "/api/v1/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Pastas */
+        get: operations["listar_pastas_api_v1_folders_get"];
+        put?: never;
+        /** Criar Pasta */
+        post: operations["criar_pasta_api_v1_folders_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/folders/{pasta_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Atualizar Pasta */
+        patch: operations["atualizar_pasta_api_v1_folders__pasta_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/folders/{pasta_id}/proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Propostas Da Pasta */
+        get: operations["listar_propostas_da_pasta_api_v1_folders__pasta_id__proposals_get"];
+        put?: never;
+        /** Adicionar Proposta */
+        post: operations["adicionar_proposta_api_v1_folders__pasta_id__proposals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/folders/{pasta_id}/proposals/{proposta_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remover Proposta */
+        delete: operations["remover_proposta_api_v1_folders__pasta_id__proposals__proposta_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/contacts": {
         parameters: {
             query?: never;
             header?: never;
@@ -467,7 +749,7 @@ export interface paths {
             cookie?: never;
         };
         /** Listar Integracoes */
-        get: operations["listar_integracoes_api_v1_integracoes_contatos_get"];
+        get: operations["listar_integracoes_api_v1_integrations_contacts_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -476,7 +758,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/integracoes/contatos/callback": {
+    "/api/v1/integrations/contacts/callback": {
         parameters: {
             query?: never;
             header?: never;
@@ -489,14 +771,14 @@ export interface paths {
          * Concluir Oauth
          * @description Troca o `code` do provedor por tokens e grava a conta conectada.
          */
-        post: operations["concluir_oauth_api_v1_integracoes_contatos_callback_post"];
+        post: operations["concluir_oauth_api_v1_integrations_contacts_callback_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/integracoes/contatos/provedores": {
+    "/api/v1/integrations/contacts/providers": {
         parameters: {
             query?: never;
             header?: never;
@@ -507,7 +789,7 @@ export interface paths {
          * Listar Provedores
          * @description Catálogo de agendas suportadas + se a credencial de aplicação está posta.
          */
-        get: operations["listar_provedores_api_v1_integracoes_contatos_provedores_get"];
+        get: operations["listar_provedores_api_v1_integrations_contacts_providers_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -516,7 +798,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/integracoes/contatos/sync": {
+    "/api/v1/integrations/contacts/sync": {
         parameters: {
             query?: never;
             header?: never;
@@ -526,14 +808,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Sincronizar Todas */
-        post: operations["sincronizar_todas_api_v1_integracoes_contatos_sync_post"];
+        post: operations["sincronizar_todas_api_v1_integrations_contacts_sync_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/integracoes/contatos/{integracao_id}": {
+    "/api/v1/integrations/contacts/{integracao_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -547,14 +829,14 @@ export interface paths {
          * Desconectar
          * @description Desconecta a conta. Os contatos já sincronizados ficam na agenda do Hub.
          */
-        delete: operations["desconectar_api_v1_integracoes_contatos__integracao_id__delete"];
+        delete: operations["desconectar_api_v1_integrations_contacts__integracao_id__delete"];
         options?: never;
         head?: never;
         /** Atualizar Integracao */
-        patch: operations["atualizar_integracao_api_v1_integracoes_contatos__integracao_id__patch"];
+        patch: operations["atualizar_integracao_api_v1_integrations_contacts__integracao_id__patch"];
         trace?: never;
     };
-    "/api/v1/integracoes/contatos/{integracao_id}/sync": {
+    "/api/v1/integrations/contacts/{integracao_id}/sync": {
         parameters: {
             query?: never;
             header?: never;
@@ -564,34 +846,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Sincronizar */
-        post: operations["sincronizar_api_v1_integracoes_contatos__integracao_id__sync_post"];
+        post: operations["sincronizar_api_v1_integrations_contacts__integracao_id__sync_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/integracoes/contatos/{provedor}/autorizar": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Autorizar
-         * @description URL de consentimento do provedor (o web redireciona o usuário para ela).
-         */
-        post: operations["autorizar_api_v1_integracoes_contatos__provedor__autorizar_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/integracoes/contatos/{provedor}/senha-app": {
+    "/api/v1/integrations/contacts/{provedor}/app-password": {
         parameters: {
             query?: never;
             header?: never;
@@ -604,7 +866,27 @@ export interface paths {
          * Conectar Senha App
          * @description Apple/iCloud e CardDAV genérico: conta + senha de app (validadas na hora).
          */
-        post: operations["conectar_senha_app_api_v1_integracoes_contatos__provedor__senha_app_post"];
+        post: operations["conectar_senha_app_api_v1_integrations_contacts__provedor__app_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/contacts/{provedor}/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Autorizar
+         * @description URL de consentimento do provedor (o web redireciona o usuário para ela).
+         */
+        post: operations["autorizar_api_v1_integrations_contacts__provedor__authorize_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -628,7 +910,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/monitoramentos": {
+    "/api/v1/monitors": {
         parameters: {
             query?: never;
             header?: never;
@@ -636,51 +918,35 @@ export interface paths {
             cookie?: never;
         };
         /** Listar Monitoramentos */
-        get: operations["listar_monitoramentos_api_v1_monitoramentos_get"];
+        get: operations["listar_monitoramentos_api_v1_monitors_get"];
         put?: never;
         /** Criar Monitoramento */
-        post: operations["criar_monitoramento_api_v1_monitoramentos_post"];
+        post: operations["criar_monitoramento_api_v1_monitors_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/obras": {
+    "/api/v1/monitors/searches": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Listar Obras */
-        get: operations["listar_obras_api_v1_obras_get"];
+        /** Listar Buscas */
+        get: operations["listar_buscas_api_v1_monitors_searches_get"];
         put?: never;
-        post?: never;
+        /** Criar Busca */
+        post: operations["criar_busca_api_v1_monitors_searches_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/obras/resumo": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Obras Resumo */
-        get: operations["obras_resumo_api_v1_obras_resumo_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/obras/sync": {
+    "/api/v1/monitors/searches/{busca_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -689,8 +955,59 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Obras Sync */
-        post: operations["obras_sync_api_v1_obras_sync_post"];
+        post?: never;
+        /** Remover Busca */
+        delete: operations["remover_busca_api_v1_monitors_searches__busca_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitors/{monitoramento_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remover Monitoramento */
+        delete: operations["remover_monitoramento_api_v1_monitors__monitoramento_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/municipalities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Buscar Municipios */
+        get: operations["buscar_municipios_api_v1_municipalities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/news": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Noticias */
+        get: operations["listar_noticias_api_v1_news_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -714,110 +1031,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/pastas": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar Pastas */
-        get: operations["listar_pastas_api_v1_pastas_get"];
-        put?: never;
-        /** Criar Pasta */
-        post: operations["criar_pasta_api_v1_pastas_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/pastas/{pasta_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Atualizar Pasta */
-        patch: operations["atualizar_pasta_api_v1_pastas__pasta_id__patch"];
-        trace?: never;
-    };
-    "/api/v1/pastas/{pasta_id}/propostas": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Adicionar Proposta */
-        post: operations["adicionar_proposta_api_v1_pastas__pasta_id__propostas_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/pastas/{pasta_id}/propostas/{proposta_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Remover Proposta */
-        delete: operations["remover_proposta_api_v1_pastas__pasta_id__propostas__proposta_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/perfil": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Perfil */
-        get: operations["get_perfil_api_v1_perfil_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/perfil/visao-geral": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Visao Geral Perfil */
-        get: operations["visao_geral_perfil_api_v1_perfil_visao_geral_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/planos": {
+    "/api/v1/plans": {
         parameters: {
             query?: never;
             header?: never;
@@ -825,17 +1039,17 @@ export interface paths {
             cookie?: never;
         };
         /** Listar Planos */
-        get: operations["listar_planos_api_v1_planos_get"];
+        get: operations["listar_planos_api_v1_plans_get"];
         put?: never;
         /** Criar Plano */
-        post: operations["criar_plano_api_v1_planos_post"];
+        post: operations["criar_plano_api_v1_plans_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/planos/{plano_id}": {
+    "/api/v1/plans/{plano_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -849,10 +1063,64 @@ export interface paths {
         options?: never;
         head?: never;
         /** Atualizar Plano */
-        patch: operations["atualizar_plano_api_v1_planos__plano_id__patch"];
+        patch: operations["atualizar_plano_api_v1_plans__plano_id__patch"];
         trace?: never;
     };
-    "/api/v1/propostas": {
+    "/api/v1/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Perfil */
+        get: operations["get_perfil_api_v1_profile_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Novidades Perfil
+         * @description Feed 'últimas novidades' do território, recortado pelo perfil do usuário.
+         */
+        get: operations["novidades_perfil_api_v1_profile_feed_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Visao Geral Perfil */
+        get: operations["visao_geral_perfil_api_v1_profile_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals": {
         parameters: {
             query?: never;
             header?: never;
@@ -860,7 +1128,7 @@ export interface paths {
             cookie?: never;
         };
         /** Listar Propostas */
-        get: operations["listar_propostas_api_v1_propostas_get"];
+        get: operations["listar_propostas_api_v1_proposals_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -869,7 +1137,104 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/propostas/{proposta_id}": {
+    "/api/v1/proposals/deadlines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Propostas Por Prazo
+         * @description Propostas com prazo vencendo na janela — 'quais vencem este mês?'.
+         */
+        get: operations["propostas_por_prazo_api_v1_proposals_deadlines_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/facets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Facetas Propostas
+         * @description Opções de cada filtro com contagem — alimenta os dropdowns da tela.
+         */
+        get: operations["facetas_propostas_api_v1_proposals_facets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/live-search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Live Search Endpoint */
+        post: operations["live_search_endpoint_api_v1_proposals_live_search_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/report.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Relatorio Propostas
+         * @description Baixar relatório: o mesmo recorte da tela, em CSV (';', abre no Excel).
+         */
+        get: operations["relatorio_propostas_api_v1_proposals_report_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumo Propostas
+         * @description Resumo consolidado: cards financeiros, série por ano, pipeline e vigentes.
+         */
+        get: operations["resumo_propostas_api_v1_proposals_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/{proposta_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -877,7 +1242,7 @@ export interface paths {
             cookie?: never;
         };
         /** Obter Proposta */
-        get: operations["obter_proposta_api_v1_propostas__proposta_id__get"];
+        get: operations["obter_proposta_api_v1_proposals__proposta_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -886,7 +1251,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/propostas/{proposta_id}/pdf": {
+    "/api/v1/proposals/{proposta_id}/pdf": {
         parameters: {
             query?: never;
             header?: never;
@@ -894,7 +1259,7 @@ export interface paths {
             cookie?: never;
         };
         /** Exportar Pdf */
-        get: operations["exportar_pdf_api_v1_propostas__proposta_id__pdf_get"];
+        get: operations["exportar_pdf_api_v1_proposals__proposta_id__pdf_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -903,7 +1268,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/repasses": {
+    "/api/v1/transfers": {
         parameters: {
             query?: never;
             header?: never;
@@ -911,7 +1276,7 @@ export interface paths {
             cookie?: never;
         };
         /** Listar Repasses */
-        get: operations["listar_repasses_api_v1_repasses_get"];
+        get: operations["listar_repasses_api_v1_transfers_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -920,7 +1285,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/repasses/sync": {
+    "/api/v1/transfers/amendments/report.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Relatorio Emendas
+         * @description Exporta a lista de emendas filtrada (CSV ';', abre no Excel).
+         */
+        get: operations["relatorio_emendas_api_v1_transfers_amendments_report_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transfers/amendments/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumo Emendas
+         * @description Painel de emendas: cards empenhado/pago, evolução anual, distribuição por
+         *     modalidade e por área, ranking de parlamentares e a lista detalhada.
+         */
+        get: operations["resumo_emendas_api_v1_transfers_amendments_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transfers/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Visao Geral */
+        get: operations["visao_geral_api_v1_transfers_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transfers/sync": {
         parameters: {
             query?: never;
             header?: never;
@@ -930,24 +1353,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Sync Repasses */
-        post: operations["sync_repasses_api_v1_repasses_sync_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/repasses/visao-geral": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Visao Geral */
-        get: operations["visao_geral_api_v1_repasses_visao_geral_get"];
-        put?: never;
-        post?: never;
+        post: operations["sync_repasses_api_v1_transfers_sync_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1002,6 +1408,57 @@ export interface paths {
         put?: never;
         /** Uniq Inbound */
         post: operations["uniq_inbound_api_v1_webhooks_uniq_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/works": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Obras */
+        get: operations["listar_obras_api_v1_works_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/works/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obras Resumo */
+        get: operations["obras_resumo_api_v1_works_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/works/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Obras Sync */
+        post: operations["obras_sync_api_v1_works_sync_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1115,11 +1572,8 @@ export interface components {
             payload?: {
                 [key: string]: unknown;
             } | null;
-            /**
-             * Proposta Id
-             * Format: uuid
-             */
-            proposta_id: string;
+            /** Proposta Id */
+            proposta_id?: string | null;
             /** Tipo */
             tipo?: string | null;
         };
@@ -1251,6 +1705,8 @@ export interface components {
             label: string;
             /** Origem */
             origem: string;
+            /** Provider */
+            provider?: string | null;
             /** Secreto */
             secreto: boolean;
             /** Valor */
@@ -1324,19 +1780,6 @@ export interface components {
             tags?: string[] | null;
             /** Titulo */
             titulo: string;
-        };
-        /** ConsultaAvulsaRequest */
-        ConsultaAvulsaRequest: {
-            /**
-             * Fonte
-             * @default transferegov_ff
-             */
-            fonte: string;
-            /**
-             * Municipio Ibge
-             * @description código IBGE
-             */
-            municipio_ibge: string;
         };
         /** ContatoCreate */
         ContatoCreate: {
@@ -1456,6 +1899,33 @@ export interface components {
             /** Uf */
             uf?: string | null;
         };
+        /**
+         * ConvenioVigente
+         * @description Convênio em execução com o percentual já desembolsado.
+         */
+        ConvenioVigente: {
+            /** Desembolsado */
+            desembolsado: string;
+            /** Dias Restantes */
+            dias_restantes?: number | null;
+            /** Fim Vigencia */
+            fim_vigencia?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Modalidade */
+            modalidade?: string | null;
+            /** Orgao Superior */
+            orgao_superior?: string | null;
+            /** Percentual Desembolso */
+            percentual_desembolso: number;
+            /** Titulo */
+            titulo?: string | null;
+            /** Valor Global */
+            valor_global: string;
+        };
         /** ConviteCreate */
         ConviteCreate: {
             /**
@@ -1499,6 +1969,37 @@ export interface components {
             token: string;
         };
         /**
+         * DiagnosticoFontes
+         * @description Estado real da ingestão: fontes ao vivo + providers de scraping/IA.
+         */
+        DiagnosticoFontes: {
+            /**
+             * Crawl4Ai Configurado
+             * @default false
+             */
+            crawl4ai_configurado: boolean;
+            /**
+             * Emendas Api Key Configurada
+             * @default false
+             */
+            emendas_api_key_configurada: boolean;
+            /**
+             * Firecrawl Configurado
+             * @default false
+             */
+            firecrawl_configurado: boolean;
+            /**
+             * Fontes
+             * @default []
+             */
+            fontes: components["schemas"]["FonteDiagnostico"][];
+            /**
+             * Llm Configurado
+             * @default false
+             */
+            llm_configurado: boolean;
+        };
+        /**
          * DimensaoResumo
          * @description Um eixo do ciclo (captação/recebidos/conformidade/obras) para o perfil.
          */
@@ -1517,12 +2018,89 @@ export interface components {
              */
             total: number;
         };
+        /**
+         * DistribuicaoItem
+         * @description Fatia de uma distribuição (por modalidade ou por área/função).
+         */
+        DistribuicaoItem: {
+            /** Chave */
+            chave: string;
+            /** Quantidade */
+            quantidade: number;
+            /** Valor */
+            valor: string;
+        };
+        /** EmailTesteIn */
+        EmailTesteIn: {
+            /** Destinatario */
+            destinatario?: string | null;
+        };
+        /** EmailTesteOut */
+        EmailTesteOut: {
+            /** Detalhe */
+            detalhe: string;
+            /** Enviado */
+            enviado: boolean;
+        };
+        /**
+         * EmendaItem
+         * @description Uma emenda que beneficiou o município, achatada para a tela.
+         */
+        EmendaItem: {
+            /** Ano */
+            ano?: string | null;
+            /** Area */
+            area?: string | null;
+            /** Codigo */
+            codigo: string;
+            /** Data Repasse */
+            data_repasse?: string | null;
+            /** Descricao */
+            descricao?: string | null;
+            /** Empenhado */
+            empenhado: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Modalidade */
+            modalidade?: string | null;
+            /** Municipio Nome */
+            municipio_nome?: string | null;
+            /** Numero */
+            numero?: string | null;
+            /** Orgao Superior */
+            orgao_superior?: string | null;
+            /** Pago */
+            pago: string;
+            /** Parlamentar */
+            parlamentar?: string | null;
+            /** Partido */
+            partido?: string | null;
+            /** Percentual Executado */
+            percentual_executado: number;
+            /** Uf */
+            uf?: string | null;
+        };
         /** ErrorModel */
         ErrorModel: {
             /** Detail */
             detail: string | {
                 [key: string]: string;
             };
+        };
+        /**
+         * FacetaOpcao
+         * @description Uma opção de filtro com o número de propostas no recorte atual.
+         */
+        FacetaOpcao: {
+            /** Rotulo */
+            rotulo: string;
+            /** Total */
+            total: number;
+            /** Valor */
+            valor: string;
         };
         /** FavoritoCreate */
         FavoritoCreate: {
@@ -1545,6 +2123,14 @@ export interface components {
              */
             proposta_id: string;
         };
+        /** FonteDiagnostico */
+        FonteDiagnostico: {
+            /** Fonte */
+            fonte: string;
+            /** Saudavel */
+            saudavel: boolean;
+            ultima_coleta?: components["schemas"]["UltimaColeta"] | null;
+        };
         /**
          * FonteResumo
          * @description Card por fonte no dashboard (ícone/valor/nº de movimentações).
@@ -1556,6 +2142,17 @@ export interface components {
             movimentacoes: number;
             /** Total */
             total: string;
+        };
+        /** FonteStatus */
+        FonteStatus: {
+            /** Erro */
+            erro?: string | null;
+            /** Fonte */
+            fonte: string;
+            /** Municipio Ibge */
+            municipio_ibge: string;
+            /** Status */
+            status: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1616,6 +2213,176 @@ export interface components {
             /** Direcao */
             direcao?: string | null;
         };
+        /** IslandRequest */
+        IslandRequest: {
+            /** Pergunta */
+            pergunta: string;
+        };
+        /**
+         * LiveSearchRequest
+         * @description Filtros da busca. Tudo opcional — sem município, usa os do perfil.
+         */
+        LiveSearchRequest: {
+            /** Ano */
+            ano?: string | null;
+            /** Area */
+            area?: string | null;
+            /** Fonte */
+            fonte?: string | null;
+            /**
+             * Modalidade
+             * @description tipo de instrumento
+             */
+            modalidade?: string | null;
+            /**
+             * Municipio Ibge
+             * @description código IBGE
+             */
+            municipio_ibge?: string | null;
+            /**
+             * Natureza Juridica
+             * @description municipal | estadual_df | consorcio | empresa_publica | osc
+             */
+            natureza_juridica?: string | null;
+            /** Ordenar */
+            ordenar?: string | null;
+            /**
+             * Orgao
+             * @description órgão/ministério concedente
+             */
+            orgao?: string | null;
+            /**
+             * Q
+             * @description busca por programa, órgão ou código
+             */
+            q?: string | null;
+            /**
+             * Qualificacao
+             * @description tipo de transferência
+             */
+            qualificacao?: string | null;
+            /** Situacao */
+            situacao?: string | null;
+            /** Tipo */
+            tipo?: string | null;
+            /** Valor Max */
+            valor_max?: number | string | null;
+            /** Valor Min */
+            valor_min?: number | string | null;
+        };
+        /** LiveSearchResponse */
+        LiveSearchResponse: {
+            facetas: components["schemas"]["PropostasFacetas"];
+            /** Fontes */
+            fontes: components["schemas"]["FonteStatus"][];
+            /** Propostas */
+            propostas: components["schemas"]["PropostaRead"][];
+        };
+        /** LlmChaveIn */
+        LlmChaveIn: {
+            /** Api Key */
+            api_key: string;
+        };
+        /** LlmModelosOut */
+        LlmModelosOut: {
+            /** Erro */
+            erro?: string | null;
+            /** Modelos */
+            modelos: string[];
+            /** Origem */
+            origem: string;
+            /** Provider */
+            provider: string;
+        };
+        /** LlmProviderOut */
+        LlmProviderOut: {
+            /** Chave */
+            chave: string;
+            /** Chave Mascarada */
+            chave_mascarada?: string | null;
+            /** Configurado */
+            configurado: boolean;
+            /** Docs Url */
+            docs_url: string;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Modelo Chat
+             * @default false
+             */
+            modelo_chat: boolean;
+            /**
+             * Modelo Resumo
+             * @default false
+             */
+            modelo_resumo: boolean;
+        };
+        /** ModuloItem */
+        ModuloItem: {
+            /** Ativo */
+            ativo: boolean;
+            /** Chave */
+            chave: string;
+            /** Descricao */
+            descricao?: string | null;
+            /** Label */
+            label: string;
+            /** Padrao */
+            padrao: boolean;
+        };
+        /** ModuloSet */
+        ModuloSet: {
+            /** Ativo */
+            ativo: boolean;
+            /** Chave */
+            chave: string;
+        };
+        /**
+         * MonitoramentoBuscaCreate
+         * @description Monitorar FUTURAS propostas de um município (opcionalmente por área/fonte).
+         */
+        MonitoramentoBuscaCreate: {
+            /** Area */
+            area?: string | null;
+            /**
+             * Canais
+             * @default [
+             *       "painel"
+             *     ]
+             */
+            canais: string[];
+            /** Fonte */
+            fonte?: string | null;
+            /** Municipio Ibge */
+            municipio_ibge: string;
+        };
+        /** MonitoramentoBuscaRead */
+        MonitoramentoBuscaRead: {
+            /** Area */
+            area?: string | null;
+            /** Ativo */
+            ativo: boolean;
+            /** Canais */
+            canais?: string[] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Fonte */
+            fonte?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Municipio Ibge */
+            municipio_ibge: string;
+            /** Ultimo Alerta Em */
+            ultimo_alerta_em?: string | null;
+        };
         /** MonitoramentoCreate */
         MonitoramentoCreate: {
             /**
@@ -1653,6 +2420,18 @@ export interface components {
              */
             proposta_id: string;
         };
+        /**
+         * MunicipioBusca
+         * @description Resultado da busca IBGE (nome → código) usada no onboarding conversacional.
+         */
+        MunicipioBusca: {
+            /** Ibge */
+            ibge: string;
+            /** Nome */
+            nome: string;
+            /** Uf */
+            uf?: string | null;
+        };
         /** MunicipioIn */
         MunicipioIn: {
             /** Ibge */
@@ -1672,6 +2451,59 @@ export interface components {
             nome?: string | null;
             /** Uf */
             uf?: string | null;
+        };
+        /** NoticiaRead */
+        NoticiaRead: {
+            /** Data */
+            data?: string | null;
+            /** Resumo */
+            resumo?: string | null;
+            /** Titulo */
+            titulo: string;
+            /** Url */
+            url: string;
+        };
+        /**
+         * NovidadeItem
+         * @description Uma novidade do território — proposta/verba recém-atualizada no cache.
+         */
+        NovidadeItem: {
+            /** Data */
+            data?: string | null;
+            /** Descricao */
+            descricao?: string | null;
+            /** Fonte */
+            fonte: string;
+            /** Href */
+            href: string;
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Municipio Nome */
+            municipio_nome?: string | null;
+            /** Proposta Id */
+            proposta_id?: string | null;
+            /** Tipo */
+            tipo: string;
+            /** Titulo */
+            titulo: string;
+            /** Valor */
+            valor?: string | null;
+        };
+        /**
+         * NovidadesPerfil
+         * @description Feed 'últimas novidades' do Meu painel, recortado pelo perfil (RLS).
+         */
+        NovidadesPerfil: {
+            /**
+             * Itens
+             * @default []
+             */
+            itens: components["schemas"]["NovidadeItem"][];
+            /**
+             * Sync Runs
+             * @default []
+             */
+            sync_runs: components["schemas"]["SyncRunStatus"][];
         };
         /** ObraRead */
         ObraRead: {
@@ -1751,6 +2583,13 @@ export interface components {
              */
             areas: string[];
             /**
+             * Canais Alerta
+             * @default [
+             *       "painel"
+             *     ]
+             */
+            canais_alerta: string[];
+            /**
              * Disparar Sync
              * @default false
              */
@@ -1767,8 +2606,12 @@ export interface components {
             monitorar_ativo: boolean;
             /** Municipios */
             municipios: components["schemas"]["MunicipioIn"][];
+            /** Optin Wpp */
+            optin_wpp?: boolean | null;
             /** Papel */
             papel?: string | null;
+            /** Telefone Wpp */
+            telefone_wpp?: string | null;
         };
         /** OnboardingResponse */
         OnboardingResponse: {
@@ -1776,6 +2619,32 @@ export interface components {
             municipios: number;
             /** Sync Disparado */
             sync_disparado: boolean;
+        };
+        /**
+         * OpcoesEmendas
+         * @description Valores disponíveis para os filtros da tela (só o que existe).
+         */
+        OpcoesEmendas: {
+            /**
+             * Anos
+             * @default []
+             */
+            anos: string[];
+            /**
+             * Modalidades
+             * @default []
+             */
+            modalidades: string[];
+            /**
+             * Orgaos
+             * @default []
+             */
+            orgaos: string[];
+            /**
+             * Parlamentares
+             * @default []
+             */
+            parlamentares: string[];
         };
         /** PastaCreate */
         PastaCreate: {
@@ -1832,6 +2701,11 @@ export interface components {
              */
             fontes: string[];
             /**
+             * Modulos
+             * @default []
+             */
+            modulos: string[];
+            /**
              * Monitorar Ativo
              * @default true
              */
@@ -1845,6 +2719,18 @@ export interface components {
             nome?: string | null;
             /** Papel */
             papel?: string | null;
+        };
+        /**
+         * PipelineItem
+         * @description Etapa do pipeline de propostas (agrupado por situação da fonte).
+         */
+        PipelineItem: {
+            /** Quantidade */
+            quantidade: number;
+            /** Situacao */
+            situacao: string;
+            /** Valor */
+            valor: string;
         };
         /** PlanoCreate */
         PlanoCreate: {
@@ -1904,6 +2790,17 @@ export interface components {
             preco_mensal?: number | string | null;
         };
         /**
+         * PropostaPrazo
+         * @description Proposta com prazos vencendo na janela consultada (visão estruturada).
+         */
+        PropostaPrazo: {
+            /** Prazos Na Janela */
+            prazos_na_janela: {
+                [key: string]: unknown;
+            }[];
+            proposta: components["schemas"]["PropostaRead"];
+        };
+        /**
          * PropostaRead
          * @description Representação da proposta devolvida pela API.
          */
@@ -1912,10 +2809,23 @@ export interface components {
             cache_atualizado_em?: string | null;
             /** Contrapartida */
             contrapartida?: string | null;
+            /** Dados Fonte */
+            dados_fonte?: {
+                [key: string]: unknown;
+            } | null;
             /** Data Atualizacao Fonte */
             data_atualizacao_fonte?: string | null;
+            /**
+             * Dias Restantes
+             * @description Dias até o prazo final (negativo = vencido); None sem prazo.
+             */
+            readonly dias_restantes: number | null;
             /** Emenda */
             emenda?: string | null;
+            /** Execucao */
+            execucao?: {
+                [key: string]: unknown;
+            } | null;
             /** Fonte */
             fonte: string;
             /**
@@ -1933,6 +2843,11 @@ export interface components {
             municipio_ibge?: string | null;
             /** Municipio Nome */
             municipio_nome?: string | null;
+            /**
+             * Natureza Juridica
+             * @description Slug da natureza jurídica elegível ('municipal', 'consorcio'…).
+             */
+            readonly natureza_juridica: string | null;
             /** Numero Proposta */
             numero_proposta?: string | null;
             /** Objeto */
@@ -1941,6 +2856,11 @@ export interface components {
             orgao_superior?: string | null;
             /** Pendencias */
             pendencias?: unknown[] | null;
+            /**
+             * Prazo Final
+             * @description Prazo mais próximo declarado (alimenta o contador do card).
+             */
+            readonly prazo_final: string | null;
             /** Prazos */
             prazos?: unknown[] | null;
             /** Proveniencia */
@@ -1951,6 +2871,11 @@ export interface components {
             resumo_ia?: string | null;
             /** Situacao */
             situacao?: string | null;
+            /**
+             * Tipo
+             * @description Eixo da jornada: 'cadastrada' (já existe) ou 'disponivel' (oportunidade).
+             */
+            readonly tipo: string;
             /** Titulo */
             titulo?: string | null;
             /** Uf */
@@ -1959,6 +2884,52 @@ export interface components {
             url_origem?: string | null;
             /** Valor Total */
             valor_total?: string | null;
+        };
+        /**
+         * PropostasFacetas
+         * @description Opções por dimensão de filtro — o que existe no território consultado.
+         */
+        PropostasFacetas: {
+            /**
+             * Ano
+             * @default []
+             */
+            ano: components["schemas"]["FacetaOpcao"][];
+            /**
+             * Fonte
+             * @default []
+             */
+            fonte: components["schemas"]["FacetaOpcao"][];
+            /**
+             * Modalidade
+             * @default []
+             */
+            modalidade: components["schemas"]["FacetaOpcao"][];
+            /**
+             * Natureza Juridica
+             * @default []
+             */
+            natureza_juridica: components["schemas"]["FacetaOpcao"][];
+            /**
+             * Orgao
+             * @default []
+             */
+            orgao: components["schemas"]["FacetaOpcao"][];
+            /**
+             * Qualificacao
+             * @default []
+             */
+            qualificacao: components["schemas"]["FacetaOpcao"][];
+            /**
+             * Situacao
+             * @default []
+             */
+            situacao: components["schemas"]["FacetaOpcao"][];
+            /**
+             * Tipo
+             * @default []
+             */
+            tipo: components["schemas"]["FacetaOpcao"][];
         };
         /**
          * ProvedorInfo
@@ -1975,6 +2946,22 @@ export interface components {
             rotulo: string;
             /** Tipo Auth */
             tipo_auth: string;
+        };
+        /**
+         * RankingParlamentar
+         * @description Linha do ranking de parlamentares que destinaram recursos ao município.
+         */
+        RankingParlamentar: {
+            /** Emendas */
+            emendas: number;
+            /** Empenhado */
+            empenhado: string;
+            /** Pago */
+            pago: string;
+            /** Parlamentar */
+            parlamentar: string;
+            /** Partido */
+            partido?: string | null;
         };
         /** RefreshRequest */
         RefreshRequest: {
@@ -2038,6 +3025,83 @@ export interface components {
             /** Subtotal */
             subtotal: string;
         };
+        /** ResultadoLimpeza */
+        ResultadoLimpeza: {
+            /** Removidas */
+            removidas: number;
+        };
+        /**
+         * ResumoAno
+         * @description Barra do gráfico aprovado × desembolsado por ano.
+         */
+        ResumoAno: {
+            /** Ano */
+            ano: string;
+            /** Aprovado */
+            aprovado: string;
+            /** Desembolsado */
+            desembolsado: string;
+        };
+        /**
+         * ResumoCaptacao
+         * @description Resumo consolidado: cards, série anual, pipeline e convênios vigentes.
+         */
+        ResumoCaptacao: {
+            cards: components["schemas"]["ResumoCards"];
+            /** Convenios Vigentes */
+            convenios_vigentes: components["schemas"]["ConvenioVigente"][];
+            /** Pipeline */
+            pipeline: components["schemas"]["PipelineItem"][];
+            /** Por Ano */
+            por_ano: components["schemas"]["ResumoAno"][];
+        };
+        /**
+         * ResumoCards
+         * @description Cartões financeiros do topo do resumo.
+         */
+        ResumoCards: {
+            /** Convenios Em Execucao */
+            convenios_em_execucao: number;
+            /** Convenios Iniciados */
+            convenios_iniciados: number;
+            /** Oportunidades Abertas */
+            oportunidades_abertas: number;
+            /** Transferencias */
+            transferencias: number;
+            /** Valor A Utilizar */
+            valor_a_utilizar: string;
+            /** Valor Conveniado */
+            valor_conveniado: string;
+            /** Valor Desembolsado */
+            valor_desembolsado: string;
+            /** Valor Empenhado */
+            valor_empenhado: string;
+        };
+        /**
+         * ResumoEmendas
+         * @description Painel de emendas: cards, gráficos, ranking, lista e opções de filtro.
+         */
+        ResumoEmendas: {
+            /** Emendas */
+            emendas: number;
+            /** Empenhado */
+            empenhado: string;
+            /** Itens */
+            itens: components["schemas"]["EmendaItem"][];
+            opcoes: components["schemas"]["OpcoesEmendas"];
+            /** Pago */
+            pago: string;
+            /** Percentual Executado */
+            percentual_executado: number;
+            /** Por Ano */
+            por_ano: components["schemas"]["SerieAnoEmendas"][];
+            /** Por Area */
+            por_area: components["schemas"]["DistribuicaoItem"][];
+            /** Por Modalidade */
+            por_modalidade: components["schemas"]["DistribuicaoItem"][];
+            /** Ranking Parlamentares */
+            ranking_parlamentares: components["schemas"]["RankingParlamentar"][];
+        };
         /** SecaoResumo */
         SecaoResumo: {
             /** A Comprovar */
@@ -2050,6 +3114,18 @@ export interface components {
             secao: string;
             /** Total */
             total: number;
+        };
+        /**
+         * SerieAnoEmendas
+         * @description Ponto do gráfico de evolução anual (pago × empenhado).
+         */
+        SerieAnoEmendas: {
+            /** Ano */
+            ano: string;
+            /** Empenhado */
+            empenhado: string;
+            /** Pago */
+            pago: string;
         };
         /** SituacaoResumo */
         SituacaoResumo: {
@@ -2133,6 +3209,20 @@ export interface components {
             /** Status */
             status: string;
         };
+        /**
+         * SyncRunStatus
+         * @description Última execução de coleta por fonte — o painel mostra o estado honesto.
+         */
+        SyncRunStatus: {
+            /** Finalizado Em */
+            finalizado_em?: string | null;
+            /** Fonte */
+            fonte?: string | null;
+            /** Registros */
+            registros?: number | null;
+            /** Status */
+            status?: string | null;
+        };
         /** TokenPair */
         TokenPair: {
             /** Access Token */
@@ -2144,6 +3234,17 @@ export interface components {
              * @default bearer
              */
             token_type: string;
+        };
+        /** UltimaColeta */
+        UltimaColeta: {
+            /** Erro */
+            erro?: string | null;
+            /** Finalizado Em */
+            finalizado_em?: string | null;
+            /** Registros */
+            registros?: number | null;
+            /** Status */
+            status?: string | null;
         };
         /** UniqInbound */
         UniqInbound: {
@@ -2374,7 +3475,208 @@ export interface operations {
             };
         };
     };
-    admin_add_conhecimento_api_v1_admin_conhecimento_post: {
+    listar_llm_providers_api_v1_admin_config_llm_providers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LlmProviderOut"][];
+                };
+            };
+        };
+    };
+    definir_llm_chave_api_v1_admin_config_llm__provider_id__chave_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LlmChaveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LlmModelosOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_llm_modelos_api_v1_admin_config_llm__provider_id__modelos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LlmModelosOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    testar_email_api_v1_admin_email_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailTesteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailTesteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_listar_convites_api_v1_admin_invites_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteRead"][];
+                };
+            };
+        };
+    };
+    admin_criar_convite_api_v1_admin_invites_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConviteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_excluir_convite_api_v1_admin_invites__convite_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                convite_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_add_conhecimento_api_v1_admin_knowledge_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2409,7 +3711,7 @@ export interface operations {
             };
         };
     };
-    admin_listar_convites_api_v1_admin_convites_get: {
+    listar_modulos_api_v1_admin_modules_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2424,12 +3726,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConviteRead"][];
+                    "application/json": components["schemas"]["ModuloItem"][];
                 };
             };
         };
     };
-    admin_criar_convite_api_v1_admin_convites_post: {
+    definir_modulo_api_v1_admin_modules_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -2438,17 +3740,17 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ConviteCreate"];
+                "application/json": components["schemas"]["ModuloSet"];
             };
         };
         responses: {
             /** @description Successful Response */
-            201: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConviteRead"];
+                    "application/json": components["schemas"]["ModuloItem"][];
                 };
             };
             /** @description Validation Error */
@@ -2462,7 +3764,47 @@ export interface operations {
             };
         };
     };
-    admin_listar_usuarios_api_v1_admin_usuarios_get: {
+    zerar_propostas_api_v1_admin_proposals_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoLimpeza"];
+                };
+            };
+        };
+    };
+    diagnostico_fontes_api_v1_admin_sources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiagnosticoFontes"];
+                };
+            };
+        };
+    };
+    admin_listar_usuarios_api_v1_admin_users_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2482,7 +3824,7 @@ export interface operations {
             };
         };
     };
-    admin_criar_usuario_api_v1_admin_usuarios_post: {
+    admin_criar_usuario_api_v1_admin_users_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2515,7 +3857,36 @@ export interface operations {
             };
         };
     };
-    admin_atualizar_usuario_api_v1_admin_usuarios__usuario_id__patch: {
+    admin_excluir_usuario_api_v1_admin_users__usuario_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                usuario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_atualizar_usuario_api_v1_admin_users__usuario_id__patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -2550,7 +3921,7 @@ export interface operations {
             };
         };
     };
-    admin_atribuir_plano_api_v1_admin_usuarios__usuario_id__plano_patch: {
+    admin_atribuir_plano_api_v1_admin_users__usuario_id__plan_patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -2583,7 +3954,7 @@ export interface operations {
             };
         };
     };
-    listar_alertas_api_v1_alertas_get: {
+    listar_alertas_api_v1_alerts_get: {
         parameters: {
             query?: {
                 nao_lidos?: boolean;
@@ -2614,7 +3985,29 @@ export interface operations {
             };
         };
     };
-    marcar_lido_api_v1_alertas__alerta_id__lido_post: {
+    varredura_alertas_api_v1_alerts_scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    marcar_lido_api_v1_alerts__alerta_id__read_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2643,7 +4036,7 @@ export interface operations {
             };
         };
     };
-    aceitar_convite_api_v1_auth_aceitar_convite_post: {
+    aceitar_convite_api_v1_auth_accept_invite_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2934,7 +4327,7 @@ export interface operations {
             };
         };
     };
-    conformidade_resumo_api_v1_conformidade_get: {
+    conformidade_resumo_api_v1_compliance_get: {
         parameters: {
             query?: {
                 /** @description código IBGE (7 dígitos) */
@@ -2966,7 +4359,7 @@ export interface operations {
             };
         };
     };
-    conformidade_sync_api_v1_conformidade_sync_post: {
+    conformidade_sync_api_v1_compliance_sync_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3001,40 +4394,7 @@ export interface operations {
             };
         };
     };
-    consulta_avulsa_endpoint_api_v1_consulta_avulsa_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConsultaAvulsaRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PropostaRead"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    listar_contatos_api_v1_contatos_get: {
+    listar_contatos_api_v1_contacts_get: {
         parameters: {
             query?: {
                 /** @description nome, organização, cargo ou e-mail */
@@ -3072,7 +4432,7 @@ export interface operations {
             };
         };
     };
-    criar_contato_api_v1_contatos_post: {
+    criar_contato_api_v1_contacts_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3105,7 +4465,7 @@ export interface operations {
             };
         };
     };
-    exportar_contatos_api_v1_contatos_exportar_get: {
+    exportar_contatos_api_v1_contacts_export_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3125,7 +4485,7 @@ export interface operations {
             };
         };
     };
-    importar_contatos_api_v1_contatos_importar_post: {
+    importar_contatos_api_v1_contacts_import_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3158,7 +4518,7 @@ export interface operations {
             };
         };
     };
-    obter_contato_api_v1_contatos__contato_id__get: {
+    obter_contato_api_v1_contacts__contato_id__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3189,7 +4549,7 @@ export interface operations {
             };
         };
     };
-    remover_contato_api_v1_contatos__contato_id__delete: {
+    remover_contato_api_v1_contacts__contato_id__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -3218,7 +4578,7 @@ export interface operations {
             };
         };
     };
-    atualizar_contato_api_v1_contatos__contato_id__patch: {
+    atualizar_contato_api_v1_contacts__contato_id__patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -3253,7 +4613,7 @@ export interface operations {
             };
         };
     };
-    copiloto_chat_api_v1_copiloto_chat_post: {
+    copiloto_chat_api_v1_copilot_chat_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3286,7 +4646,40 @@ export interface operations {
             };
         };
     };
-    listar_favoritos_api_v1_favoritos_get: {
+    copiloto_island_api_v1_copilot_island_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IslandRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_favoritos_api_v1_favorites_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3306,7 +4699,7 @@ export interface operations {
             };
         };
     };
-    adicionar_favorito_api_v1_favoritos_post: {
+    adicionar_favorito_api_v1_favorites_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3341,7 +4734,27 @@ export interface operations {
             };
         };
     };
-    remover_favorito_api_v1_favoritos__proposta_id__delete: {
+    listar_propostas_favoritas_api_v1_favorites_proposals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropostaRead"][];
+                };
+            };
+        };
+    };
+    remover_favorito_api_v1_favorites__proposta_id__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -3370,7 +4783,193 @@ export interface operations {
             };
         };
     };
-    listar_integracoes_api_v1_integracoes_contatos_get: {
+    listar_pastas_api_v1_folders_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PastaRead"][];
+                };
+            };
+        };
+    };
+    criar_pasta_api_v1_folders_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PastaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PastaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    atualizar_pasta_api_v1_folders__pasta_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pasta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PastaUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PastaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_propostas_da_pasta_api_v1_folders__pasta_id__proposals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pasta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    adicionar_proposta_api_v1_folders__pasta_id__proposals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pasta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PastaPropostaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_proposta_api_v1_folders__pasta_id__proposals__proposta_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pasta_id: string;
+                proposta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_integracoes_api_v1_integrations_contacts_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3390,7 +4989,7 @@ export interface operations {
             };
         };
     };
-    concluir_oauth_api_v1_integracoes_contatos_callback_post: {
+    concluir_oauth_api_v1_integrations_contacts_callback_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3423,7 +5022,7 @@ export interface operations {
             };
         };
     };
-    listar_provedores_api_v1_integracoes_contatos_provedores_get: {
+    listar_provedores_api_v1_integrations_contacts_providers_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3443,7 +5042,7 @@ export interface operations {
             };
         };
     };
-    sincronizar_todas_api_v1_integracoes_contatos_sync_post: {
+    sincronizar_todas_api_v1_integrations_contacts_sync_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3463,7 +5062,7 @@ export interface operations {
             };
         };
     };
-    desconectar_api_v1_integracoes_contatos__integracao_id__delete: {
+    desconectar_api_v1_integrations_contacts__integracao_id__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -3492,7 +5091,7 @@ export interface operations {
             };
         };
     };
-    atualizar_integracao_api_v1_integracoes_contatos__integracao_id__patch: {
+    atualizar_integracao_api_v1_integrations_contacts__integracao_id__patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -3527,7 +5126,7 @@ export interface operations {
             };
         };
     };
-    sincronizar_api_v1_integracoes_contatos__integracao_id__sync_post: {
+    sincronizar_api_v1_integrations_contacts__integracao_id__sync_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3558,40 +5157,7 @@ export interface operations {
             };
         };
     };
-    autorizar_api_v1_integracoes_contatos__provedor__autorizar_post: {
-        parameters: {
-            query?: {
-                redirect_uri?: string | null;
-            };
-            header?: never;
-            path: {
-                provedor: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AutorizacaoOAuth"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    conectar_senha_app_api_v1_integracoes_contatos__provedor__senha_app_post: {
+    conectar_senha_app_api_v1_integrations_contacts__provedor__app_password_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3626,6 +5192,39 @@ export interface operations {
             };
         };
     };
+    autorizar_api_v1_integrations_contacts__provedor__authorize_post: {
+        parameters: {
+            query?: {
+                redirect_uri?: string | null;
+            };
+            header?: never;
+            path: {
+                provedor: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutorizacaoOAuth"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     me_api_v1_me_get: {
         parameters: {
             query?: never;
@@ -3646,7 +5245,7 @@ export interface operations {
             };
         };
     };
-    listar_monitoramentos_api_v1_monitoramentos_get: {
+    listar_monitoramentos_api_v1_monitors_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3666,7 +5265,7 @@ export interface operations {
             };
         };
     };
-    criar_monitoramento_api_v1_monitoramentos_post: {
+    criar_monitoramento_api_v1_monitors_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3699,14 +5298,9 @@ export interface operations {
             };
         };
     };
-    listar_obras_api_v1_obras_get: {
+    listar_buscas_api_v1_monitors_searches_get: {
         parameters: {
-            query?: {
-                /** @description código IBGE (7 dígitos) */
-                municipio?: string | null;
-                fonte?: string | null;
-                situacao?: string | null;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -3719,53 +5313,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ObraRead"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["MonitoramentoBuscaRead"][];
                 };
             };
         };
     };
-    obras_resumo_api_v1_obras_resumo_get: {
-        parameters: {
-            query?: {
-                /** @description código IBGE (7 dígitos) */
-                municipio?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ObrasResumo"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    obras_sync_api_v1_obras_sync_post: {
+    criar_busca_api_v1_monitors_searches_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3774,9 +5327,98 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SyncObrasRequest"];
+                "application/json": components["schemas"]["MonitoramentoBuscaCreate"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoramentoBuscaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_busca_api_v1_monitors_searches__busca_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                busca_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_monitoramento_api_v1_monitors__monitoramento_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                monitoramento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    buscar_municipios_api_v1_municipalities_get: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -3784,9 +5426,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["MunicipioBusca"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_noticias_api_v1_news_get: {
+        parameters: {
+            query?: {
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticiaRead"][];
                 };
             };
             /** @description Validation Error */
@@ -3833,202 +5504,7 @@ export interface operations {
             };
         };
     };
-    listar_pastas_api_v1_pastas_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PastaRead"][];
-                };
-            };
-        };
-    };
-    criar_pasta_api_v1_pastas_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PastaCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PastaRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    atualizar_pasta_api_v1_pastas__pasta_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pasta_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PastaUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PastaRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    adicionar_proposta_api_v1_pastas__pasta_id__propostas_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pasta_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PastaPropostaCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    remover_proposta_api_v1_pastas__pasta_id__propostas__proposta_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pasta_id: string;
-                proposta_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_perfil_api_v1_perfil_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PerfilRead"];
-                };
-            };
-        };
-    };
-    visao_geral_perfil_api_v1_perfil_visao_geral_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VisaoGeralPerfil"];
-                };
-            };
-        };
-    };
-    listar_planos_api_v1_planos_get: {
+    listar_planos_api_v1_plans_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -4048,7 +5524,7 @@ export interface operations {
             };
         };
     };
-    criar_plano_api_v1_planos_post: {
+    criar_plano_api_v1_plans_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -4081,7 +5557,7 @@ export interface operations {
             };
         };
     };
-    atualizar_plano_api_v1_planos__plano_id__patch: {
+    atualizar_plano_api_v1_plans__plano_id__patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -4116,15 +5592,91 @@ export interface operations {
             };
         };
     };
-    listar_propostas_api_v1_propostas_get: {
+    get_perfil_api_v1_profile_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PerfilRead"];
+                };
+            };
+        };
+    };
+    novidades_perfil_api_v1_profile_feed_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NovidadesPerfil"];
+                };
+            };
+        };
+    };
+    visao_geral_perfil_api_v1_profile_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisaoGeralPerfil"];
+                };
+            };
+        };
+    };
+    listar_propostas_api_v1_proposals_get: {
         parameters: {
             query?: {
                 /** @description código IBGE (7 dígitos) */
                 municipio?: string | null;
                 fonte?: string | null;
-                /** @description reservado (áreas) — futuro */
+                /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
                 situacao?: string | null;
+                /** @description tipo de instrumento */
+                modalidade?: string | null;
+                /** @description órgão/ministério concedente */
+                orgao?: string | null;
+                /** @description municipal | estadual_df | consorcio | empresa_publica | osc */
+                natureza_juridica?: string | null;
+                /** @description tipo de transferência */
+                qualificacao?: string | null;
+                ano?: string | null;
+                /** @description busca por programa, órgão ou código */
+                q?: string | null;
+                valor_min?: number | string | null;
+                valor_max?: number | string | null;
+                tipo?: string | null;
+                /** @description mais recentes · prazo (próximo/distante) · nome A-Z · órgão A-Z · valor */
+                ordenar?: string | null;
             };
             header?: never;
             path?: never;
@@ -4152,7 +5704,223 @@ export interface operations {
             };
         };
     };
-    obter_proposta_api_v1_propostas__proposta_id__get: {
+    propostas_por_prazo_api_v1_proposals_deadlines_get: {
+        parameters: {
+            query?: {
+                dias?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropostaPrazo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    facetas_propostas_api_v1_proposals_facets_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                fonte?: string | null;
+                /** @description área de interesse (saude, educacao…) */
+                area?: string | null;
+                situacao?: string | null;
+                /** @description tipo de instrumento */
+                modalidade?: string | null;
+                /** @description órgão/ministério concedente */
+                orgao?: string | null;
+                /** @description municipal | estadual_df | consorcio | empresa_publica | osc */
+                natureza_juridica?: string | null;
+                /** @description tipo de transferência */
+                qualificacao?: string | null;
+                ano?: string | null;
+                /** @description busca por programa, órgão ou código */
+                q?: string | null;
+                valor_min?: number | string | null;
+                valor_max?: number | string | null;
+                tipo?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropostasFacetas"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    live_search_endpoint_api_v1_proposals_live_search_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveSearchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveSearchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    relatorio_propostas_api_v1_proposals_report_csv_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                fonte?: string | null;
+                /** @description área de interesse (saude, educacao…) */
+                area?: string | null;
+                situacao?: string | null;
+                /** @description tipo de instrumento */
+                modalidade?: string | null;
+                /** @description órgão/ministério concedente */
+                orgao?: string | null;
+                /** @description municipal | estadual_df | consorcio | empresa_publica | osc */
+                natureza_juridica?: string | null;
+                /** @description tipo de transferência */
+                qualificacao?: string | null;
+                ano?: string | null;
+                /** @description busca por programa, órgão ou código */
+                q?: string | null;
+                valor_min?: number | string | null;
+                valor_max?: number | string | null;
+                tipo?: string | null;
+                /** @description mais recentes · prazo (próximo/distante) · nome A-Z · órgão A-Z · valor */
+                ordenar?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resumo_propostas_api_v1_proposals_summary_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                fonte?: string | null;
+                /** @description área de interesse (saude, educacao…) */
+                area?: string | null;
+                situacao?: string | null;
+                /** @description tipo de instrumento */
+                modalidade?: string | null;
+                /** @description órgão/ministério concedente */
+                orgao?: string | null;
+                /** @description municipal | estadual_df | consorcio | empresa_publica | osc */
+                natureza_juridica?: string | null;
+                /** @description tipo de transferência */
+                qualificacao?: string | null;
+                ano?: string | null;
+                /** @description busca por programa, órgão ou código */
+                q?: string | null;
+                valor_min?: number | string | null;
+                valor_max?: number | string | null;
+                tipo?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumoCaptacao"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    obter_proposta_api_v1_proposals__proposta_id__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -4183,7 +5951,7 @@ export interface operations {
             };
         };
     };
-    exportar_pdf_api_v1_propostas__proposta_id__pdf_get: {
+    exportar_pdf_api_v1_proposals__proposta_id__pdf_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -4214,7 +5982,7 @@ export interface operations {
             };
         };
     };
-    listar_repasses_api_v1_repasses_get: {
+    listar_repasses_api_v1_transfers_get: {
         parameters: {
             query?: {
                 /** @description código IBGE (7 dígitos) */
@@ -4222,6 +5990,13 @@ export interface operations {
                 fonte?: string | null;
                 inicio?: string | null;
                 fim?: string | null;
+                /** @description só repasses de emenda */
+                emenda?: boolean | null;
+                orgao?: string | null;
+                /** @description área/função orçamentária */
+                categoria?: string | null;
+                /** @description busca textual */
+                q?: string | null;
             };
             header?: never;
             path?: never;
@@ -4249,7 +6024,122 @@ export interface operations {
             };
         };
     };
-    sync_repasses_api_v1_repasses_sync_post: {
+    relatorio_emendas_api_v1_transfers_amendments_report_csv_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                inicio?: string | null;
+                fim?: string | null;
+                ano?: string | null;
+                /** @description individual | bancada | comissão */
+                modalidade?: string | null;
+                parlamentar?: string | null;
+                orgao?: string | null;
+                /** @description busca por objeto, área, órgão ou código */
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resumo_emendas_api_v1_transfers_amendments_summary_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                inicio?: string | null;
+                fim?: string | null;
+                ano?: string | null;
+                /** @description individual | bancada | comissão */
+                modalidade?: string | null;
+                parlamentar?: string | null;
+                orgao?: string | null;
+                /** @description busca por objeto, área, órgão ou código */
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumoEmendas"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    visao_geral_api_v1_transfers_overview_get: {
+        parameters: {
+            query?: {
+                municipio?: string | null;
+                inicio?: string | null;
+                fim?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisaoGeral"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_repasses_api_v1_transfers_sync_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -4271,39 +6161,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    visao_geral_api_v1_repasses_visao_geral_get: {
-        parameters: {
-            query?: {
-                municipio?: string | null;
-                inicio?: string | null;
-                fim?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VisaoGeral"];
                 };
             };
             /** @description Validation Error */
@@ -4570,6 +6427,107 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["UniqInbound"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_obras_api_v1_works_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                fonte?: string | null;
+                situacao?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObraRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    obras_resumo_api_v1_works_summary_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObrasResumo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    obras_sync_api_v1_works_sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncObrasRequest"];
             };
         };
         responses: {

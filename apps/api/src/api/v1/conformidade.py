@@ -11,16 +11,20 @@ from ...core.users import current_active_user
 from ...models.usuario import Usuario
 from ...schemas.conformidade import ConformidadeResumo
 from ...services import conformidade as service
+from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
-router = APIRouter(tags=["conformidade"])
+# Módulo desligável pelo painel admin: desativado → todo o eixo responde 404.
+router = APIRouter(
+    tags=["conformidade"], dependencies=[Depends(require_modulo("conformidade"))]
+)
 
 
 class SyncConformidadeRequest(BaseModel):
     municipio_ibge: str = Field(min_length=7, max_length=7)
 
 
-@router.get("/conformidade", response_model=ConformidadeResumo)
+@router.get("/compliance", response_model=ConformidadeResumo)
 async def conformidade_resumo(
     municipio: str | None = Query(default=None, description="código IBGE (7 dígitos)"),
     session: AsyncSession = Depends(get_rls_db),
@@ -28,7 +32,7 @@ async def conformidade_resumo(
     return await service.resumo(session, municipio=municipio)
 
 
-@router.post("/conformidade/sync", response_model=dict)
+@router.post("/compliance/sync", response_model=dict)
 async def conformidade_sync(
     body: SyncConformidadeRequest,
     user: Usuario = Depends(current_active_user),

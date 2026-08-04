@@ -4,7 +4,7 @@ As credenciais de APLICAÇÃO (client id/secret) vêm do painel admin
 (`services/config`), como todo provider do Hub: sem elas, o provedor aparece
 como indisponível na UI em vez de estourar erro.
 
-O `redirect_uri` padrão aponta para a página do web (`/integracoes/callback`),
+O `redirect_uri` padrão aponta para a página do web (`/integrations/callback`),
 derivada de `app_base_url` — a mesma base usada nos links de e-mail.
 """
 
@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from ...services import config as config_service
 from ._http import request_json
 
-CAMINHO_CALLBACK = "/integracoes/callback"
+CAMINHO_CALLBACK = "/integrations/callback"
 
 
 @dataclass(frozen=True)

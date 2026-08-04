@@ -3,8 +3,10 @@
 import { createHubClient } from "@hub/api-client";
 
 // Origem da API (sem /api/v1). Os paths do client tipado já carregam /api/v1.
-export const API_ORIGIN =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Vazio = same-origin: o navegador chama /api/v1/* no próprio domínio da web e
+// o rewrite do next.config.mjs repassa para a API pela rede interna. Definir
+// NEXT_PUBLIC_API_URL só se a API tiver domínio público próprio.
+export const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL || "";
 
 const TOKEN_KEY = "hub_access_token";
 const REFRESH_KEY = "hub_refresh_token";
@@ -24,13 +26,129 @@ export function clearTokens(): void {
   window.localStorage.removeItem(REFRESH_KEY);
 }
 
-/** Client tipado (openapi-fetch) — injeta o Bearer automaticamente. */
-export const api = createHubClient({ baseUrl: API_ORIGIN, getToken });
+// ── Sessão com auto-refresh ─────────────────────────────────────────────────
+// O access token expira em ~15 min; sem renovação, TODA chamada vira 401 e o
+// app "apodrece" logado (painel vazio, admin negado). `garantirSessao` renova
+// com o refresh token ANTES do request quando o access está vencido/perto de
+// vencer (single-flight) e, se a sessão acabou de verdade, desloga e manda
+// para o /login em vez de deixar a UI quebrada.
+
+function _expDoToken(token: string): number | null {
+  try {
+    const payload = token.split(".")[1] ?? "";
+    const json = JSON.parse(
+      atob(payload.replace(/-/g, "+").replace(/_/g, "/")),
+    ) as { exp?: number };
+    return typeof json.exp === "number" ? json.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+function _expirado(token: string): boolean {
+  const exp = _expDoToken(token);
+  // 30s de margem para não perder o request na virada
+  return exp !== null && exp * 1000 - 30_000 < Date.now();
+}
+
+let _refreshEmCurso: Promise<string | null> | null = null;
+
+async function _renovarTokens(): Promise<string | null> {
+  const refresh = window.localStorage.getItem(REFRESH_KEY);
+  if (!refresh) return null;
+  try {
+    const resp = await fetch(`${API_ORIGIN}/api/v1/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refresh }),
+    });
+    if (!resp.ok) return null;
+    const data = (await resp.json()) as {
+      access_token: string;
+      refresh_token: string;
+    };
+    setTokens(data.access_token, data.refresh_token);
+    return data.access_token;
+  } catch {
+    return null;
+  }
+}
+
+/** Access token válido (renovando se preciso) ou null se a sessão acabou. */
+export async function garantirSessao(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  const atual = getToken();
+  if (!atual) return null;
+  if (!_expirado(atual)) return atual;
+  _refreshEmCurso ??= _renovarTokens().finally(() => {
+    _refreshEmCurso = null;
+  });
+  const novo = await _refreshEmCurso;
+  if (novo) return novo;
+  // refresh também venceu → sessão realmente encerrada
+  clearTokens();
+  const path = window.location.pathname;
+  if (path.startsWith("/panel") || path.startsWith("/admin")) {
+    window.location.href = "/login";
+  }
+  return null;
+}
+
+/** Client tipado (openapi-fetch) — injeta o Bearer, renovando quando vencido. */
+export const api = createHubClient({ baseUrl: API_ORIGIN, getToken: garantirSessao });
 
 /** Baixa o PDF de uma proposta (GET autenticado → blob → download). */
+/**
+ * Zera TODAS as propostas do sistema (admin/superuser) — uso: validação da
+ * coleta. Fetch cru autenticado (a rota é temporária e não está no client
+ * tipado). As FKs são CASCADE: favoritos/pastas/monitoramentos somem junto.
+ */
+export async function zerarPropostas(): Promise<{ removidas: number }> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/admin/proposals`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+  });
+  if (!resp.ok) throw new Error(`Falha ao zerar propostas (HTTP ${resp.status})`);
+  return resp.json();
+}
+
+/** Exclui um convite (admin). Rota fora do client tipado → fetch cru. */
+export async function excluirConvite(id: string): Promise<void> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/admin/invites/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+  });
+  if (!resp.ok) throw new Error(`Falha ao excluir convite (HTTP ${resp.status})`);
+}
+
+/** Exclui um usuário (admin). FKs CASCADE limpam favoritos/monitoramentos/etc. */
+export async function excluirUsuario(id: string): Promise<void> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/admin/users/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+  });
+  if (!resp.ok) throw new Error(`Falha ao excluir usuário (HTTP ${resp.status})`);
+}
+
+/** Dispara um e-mail de teste (admin) e devolve o resultado do provedor. */
+export async function testarEmail(
+  destinatario?: string,
+): Promise<{ enviado: boolean; detalhe: string }> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/admin/email/test`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${(await garantirSessao()) ?? ""}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ destinatario: destinatario || null }),
+  });
+  if (!resp.ok) throw new Error(`Falha ao testar e-mail (HTTP ${resp.status})`);
+  return resp.json();
+}
+
 export async function baixarPdfProposta(id: string): Promise<void> {
-  const resp = await fetch(`${API_ORIGIN}/api/v1/propostas/${id}/pdf`, {
-    headers: { Authorization: `Bearer ${getToken() ?? ""}` },
+  const resp = await fetch(`${API_ORIGIN}/api/v1/proposals/${id}/pdf`, {
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
   });
   if (!resp.ok) throw new Error("Falha ao gerar PDF");
   const blob = await resp.blob();
@@ -44,7 +162,7 @@ export async function baixarPdfProposta(id: string): Promise<void> {
 
 /** Baixa a agenda de contatos em .vcf (importável no Google/Apple/Outlook). */
 export async function baixarContatosVcf(): Promise<void> {
-  const resp = await fetch(`${API_ORIGIN}/api/v1/contatos/exportar`, {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/contacts/export`, {
     headers: { Authorization: `Bearer ${getToken() ?? ""}` },
   });
   if (!resp.ok) throw new Error("Falha ao exportar contatos");
@@ -60,11 +178,36 @@ export async function baixarContatosVcf(): Promise<void> {
 /** Importa um arquivo .vcf escolhido pelo usuário. */
 export async function importarContatosVcf(arquivo: File) {
   const conteudo = await arquivo.text();
-  const { data, error } = await api.POST("/api/v1/contatos/importar", {
+  const { data, error } = await api.POST("/api/v1/contacts/import", {
     body: { conteudo },
   });
   if (error) throw new Error("Não foi possível ler o arquivo .vcf");
   return data;
+}
+
+/**
+ * Baixa um relatório CSV da API (GET autenticado → blob → download).
+ * Usado pelos botões "Baixar relatório" da captação e das emendas.
+ */
+export async function baixarCsv(
+  path: string,
+  params: Record<string, string | number | boolean | null | undefined>,
+  filename: string,
+): Promise<void> {
+  const qs = new URLSearchParams();
+  for (const [chave, valor] of Object.entries(params)) {
+    if (valor !== null && valor !== undefined && valor !== "") qs.set(chave, String(valor));
+  }
+  const resp = await fetch(`${API_ORIGIN}${path}?${qs.toString()}`, {
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+  });
+  if (!resp.ok) throw new Error("Falha ao gerar o relatório");
+  const url = URL.createObjectURL(await resp.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 /**
@@ -75,11 +218,11 @@ export async function chatStream(
   modo: "propostas" | "copiloto",
   onDelta: (t: string) => void,
 ): Promise<void> {
-  const resp = await fetch(`${API_ORIGIN}/api/v1/copiloto/chat`, {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/copilot/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken() ?? ""}`,
+      Authorization: `Bearer ${(await garantirSessao()) ?? ""}`,
     },
     body: JSON.stringify({ pergunta, modo }),
   });
@@ -194,5 +337,46 @@ export async function atualizarPerfil(patch: {
     throw new Error(
       typeof detail === "string" ? detail : "Não foi possível salvar",
     );
+  }
+}
+
+/** Evento do agente do Dynamic Island: ferramenta em uso ou texto da resposta. */
+export type IslandEvento = { tool?: string; delta?: string };
+
+/**
+ * Copiloto do Dynamic Island (SSE) — agente com tool calling no backend.
+ * Emite {tool} quando o agente consulta uma ferramenta e {delta} com a resposta.
+ */
+export async function islandStream(
+  pergunta: string,
+  onEvento: (e: IslandEvento) => void,
+): Promise<void> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/copilot/island`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${(await garantirSessao()) ?? ""}`,
+    },
+    body: JSON.stringify({ pergunta }),
+  });
+  if (!resp.body) return;
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const linhas = buffer.split("\n\n");
+    buffer = linhas.pop() ?? "";
+    for (const linha of linhas) {
+      const m = linha.replace(/^data: /, "").trim();
+      if (!m || m === "[DONE]") continue;
+      try {
+        onEvento(JSON.parse(m) as IslandEvento);
+      } catch {
+        /* ignora linhas não-JSON */
+      }
+    }
   }
 }

@@ -1,0 +1,1132 @@
+"use client";
+
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { api, baixarCsv } from "@/lib/api/client";
+import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
+
+// mapeia a situação da proposta para o tom do badge (verde = bom andamento,
+// âmbar = em análise/pendente, vermelho = negado/cancelado)
+function tomSituacao(s?: string | null): BadgeTone {
+  const t = (s ?? "").toLowerCase();
+  if (/autoriz|aprov|execu|pago|libera|conclu|vigente|celebrad|recebid/.test(t))
+    return "success";
+  if (/cancel|rejeit|indefer|reprov|inadimpl|impedid|vencid|expirad/.test(t))
+    return "danger";
+  if (/analis|pendente|aguard|cadastr|propost|elabor|em andamento/.test(t))
+    return "warning";
+  return "neutral";
+}
+
+type Proposta = {
+  id: string;
+  id_externo: string;
+  numero_proposta?: string | null;
+  titulo?: string | null;
+  objeto?: string | null;
+  orgao_superior?: string | null;
+  modalidade?: string | null;
+  municipio_ibge?: string | null;
+  municipio_nome?: string | null;
+  uf?: string | null;
+  valor_total?: string | null;
+  situacao?: string | null;
+  fonte: string;
+  tipo?: string;
+  natureza_juridica?: string | null;
+  prazo_final?: string | null;
+  dias_restantes?: number | null;
+  resumo_ia?: string | null;
+  execucao?: {
+    valor_global?: string | null;
+    valor_empenhado?: string | null;
+    valor_liberado?: string | null;
+    valor_pago?: string | null;
+    saldo_conta?: string | null;
+    ano?: string | number | null;
+  } | null;
+};
+
+type FonteStatus = {
+  fonte: string;
+  municipio_ibge: string;
+  status: string;
+  erro?: string | null;
+};
+
+type Opcao = { valor: string; rotulo: string; total: number };
+type Facetas = {
+  fonte?: Opcao[];
+  modalidade?: Opcao[];
+  orgao?: Opcao[];
+  situacao?: Opcao[];
+  natureza_juridica?: Opcao[];
+  qualificacao?: Opcao[];
+  ano?: Opcao[];
+  tipo?: Opcao[];
+};
+
+type Pasta = { id: string; nome: string; cor?: string | null };
+type MunicipioPerfil = { ibge: string; nome?: string | null; uf?: string | null };
+
+type Filtros = {
+  municipio: string;
+  ano: string;
+  tipo: "" | "cadastrada" | "disponivel";
+  fonte: string;
+  area: string;
+  situacao: string;
+  q: string;
+  modalidade: string;
+  orgao: string;
+  naturezaJuridica: string;
+  qualificacao: string;
+  ordenar: string;
+  valorMin: string;
+  valorMax: string;
+  soFavoritas: boolean;
+  pastaId: string;
+};
+
+type Aba = { id: string; nome: string; filtros: Filtros };
+
+const FILTROS_VAZIOS: Filtros = {
+  municipio: "",
+  ano: "",
+  tipo: "",
+  fonte: "",
+  area: "",
+  situacao: "",
+  q: "",
+  modalidade: "",
+  orgao: "",
+  naturezaJuridica: "",
+  qualificacao: "",
+  ordenar: "recentes",
+  valorMin: "",
+  valorMax: "",
+  soFavoritas: false,
+  pastaId: "",
+};
+
+const AREAS = [
+  "saude",
+  "educacao",
+  "infraestrutura",
+  "assistencia_social",
+  "cultura",
+  "esporte",
+  "meio_ambiente",
+  "agricultura",
+];
+
+// Quem pode propor — os botões de natureza jurídica elegível. Os slugs vêm do
+// classificador do backend (`services/propostas.classificar_natureza_juridica`).
+const NATUREZAS: [string, string][] = [
+  ["", "Todas"],
+  ["estadual_df", "Adm. Pública Estadual/DF"],
+  ["municipal", "Adm. Pública Municipal"],
+  ["consorcio", "Consórcio Público"],
+  ["empresa_publica", "Empresa pública / economia mista"],
+  ["osc", "Organização da Sociedade Civil"],
+];
+
+const ORDENACOES: [string, string][] = [
+  ["recentes", "Mais recentes"],
+  ["prazo", "Prazo (mais próximo)"],
+  ["prazo_distante", "Prazo (mais distante)"],
+  ["nome", "Nome A-Z"],
+  ["orgao", "Órgão A-Z"],
+  ["valor", "Maior valor"],
+];
+
+const ABAS_KEY = "hub_captacao_abas";
+const ABA_ACOMPANHAMENTO = "acompanhamento";
+
+function formatBRL(v?: string | null): string {
+  if (!v) return "—";
+  const n = Number(v);
+  if (Number.isNaN(n)) return v;
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function num(v?: string | number | null): number {
+  const n = Number(v);
+  return Number.isNaN(n) ? 0 : n;
+}
+
+function abasIniciais(): Aba[] {
+  if (typeof window !== "undefined") {
+    try {
+      const salvo = window.localStorage.getItem(ABAS_KEY);
+      if (salvo) {
+        const abas = JSON.parse(salvo) as Aba[];
+        // migra abas salvas antes do filtro de município existir
+        return abas.map((a) => ({
+          ...a,
+          filtros: { ...FILTROS_VAZIOS, ...a.filtros },
+        }));
+      }
+    } catch {
+      /* estado corrompido → recomeça */
+    }
+  }
+  return [{ id: "aba-1", nome: "Geral", filtros: { ...FILTROS_VAZIOS } }];
+}
+
+/** Dropdown alimentado por faceta: só mostra o que EXISTE no recorte, com contagem. */
+function SelectFaceta({
+  rotulo,
+  valor,
+  opcoes,
+  largura,
+  aoMudar,
+}: {
+  rotulo: string;
+  valor: string;
+  opcoes?: Opcao[];
+  largura: string;
+  aoMudar: (v: string) => void;
+}) {
+  const lista = opcoes ?? [];
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="field-label">{rotulo}</span>
+      <select
+        value={valor}
+        onChange={(e) => aoMudar(e.target.value)}
+        disabled={lista.length === 0 && !valor}
+        className={`input ${largura} disabled:opacity-50`}
+      >
+        <option value="">todas</option>
+        {lista.map((o) => (
+          <option key={o.valor} value={o.valor}>
+            {o.rotulo} ({o.total})
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+export default function CaptacaoPage() {
+  const [propostas, setPropostas] = useState<Proposta[]>([]);
+  const [fontesStatus, setFontesStatus] = useState<FonteStatus[]>([]);
+  const [facetas, setFacetas] = useState<Facetas>({});
+  const [buscando, setBuscando] = useState(true);
+  const [mostrarAvancados, setMostrarAvancados] = useState(false);
+  const [favoritos, setFavoritos] = useState<Set<string>>(new Set());
+  // proposta_id -> id do monitoramento (para ligar/desligar o alerta pelo card)
+  const [alertas, setAlertas] = useState<Map<string, string>>(new Map());
+  const [pastas, setPastas] = useState<Pasta[]>([]);
+  const [pastaPropostas, setPastaPropostas] = useState<Set<string>>(new Set());
+  const [municipios, setMunicipios] = useState<MunicipioPerfil[]>([]);
+  const [abas, setAbas] = useState<Aba[]>(abasIniciais);
+  const [abaAtiva, setAbaAtiva] = useState<string>(
+    () => abasIniciais()[0]?.id ?? "aba-1",
+  );
+  const [msg, setMsg] = useState<string | null>(null);
+  const buscaSeq = useRef(0);
+
+  const acompanhando = abaAtiva === ABA_ACOMPANHAMENTO;
+  const aba: Aba = abas.find((a) => a.id === abaAtiva) ??
+    abas[0] ?? { id: "aba-1", nome: "Geral", filtros: { ...FILTROS_VAZIOS } };
+  const filtros = aba.filtros;
+  const [acompanhadas, setAcompanhadas] = useState<Proposta[]>([]);
+
+  // aba ACOMPANHAMENTO: as favoritas completas, direto da API
+  const carregarAcompanhadas = useCallback(async () => {
+    const { data } = await api.GET("/api/v1/favorites/proposals");
+    if (data) setAcompanhadas(data as Proposta[]);
+  }, []);
+  useEffect(() => {
+    if (acompanhando) void carregarAcompanhadas();
+  }, [acompanhando, carregarAcompanhadas]);
+
+  useEffect(() => {
+    window.localStorage.setItem(ABAS_KEY, JSON.stringify(abas));
+  }, [abas]);
+
+  // Busca em TEMPO REAL: a cada mudança de filtro (debounce), a API consulta as
+  // fontes oficiais ao vivo (API pública + scraping via connectors) e devolve
+  // as propostas já filtradas + o status por fonte.
+  const buscarAoVivo = useCallback(async () => {
+    const seq = ++buscaSeq.current;
+    setBuscando(true);
+    const { data, error } = await api.POST("/api/v1/proposals/live-search", {
+      body: {
+        municipio_ibge: filtros.municipio || null,
+        fonte: filtros.fonte || null,
+        area: filtros.area || null,
+        situacao: filtros.situacao || null,
+        modalidade: filtros.modalidade || null,
+        orgao: filtros.orgao || null,
+        natureza_juridica: filtros.naturezaJuridica || null,
+        qualificacao: filtros.qualificacao || null,
+        ano: filtros.ano || null,
+        q: filtros.q || null,
+        ordenar: filtros.ordenar || null,
+        valor_min: filtros.valorMin || null,
+        valor_max: filtros.valorMax || null,
+        tipo: filtros.tipo || null,
+      } as never,
+    });
+    if (seq !== buscaSeq.current) return; // resposta antiga — descarta
+    if (error) {
+      setMsg("Falha na busca em tempo real. Tente novamente.");
+    } else if (data) {
+      const resp = data as {
+        propostas: Proposta[];
+        fontes: FonteStatus[];
+        facetas?: Facetas;
+      };
+      setPropostas(resp.propostas ?? []);
+      setFontesStatus(resp.fontes ?? []);
+      setFacetas(resp.facetas ?? {});
+      setMsg(null);
+    }
+    setBuscando(false);
+  }, [filtros]);
+
+  useEffect(() => {
+    if (acompanhando) return;
+    const t = setTimeout(() => void buscarAoVivo(), 500);
+    return () => clearTimeout(t);
+  }, [buscarAoVivo, acompanhando]);
+
+  const carregarCuradoria = useCallback(async () => {
+    const [fav, pas, perf, mon] = await Promise.all([
+      api.GET("/api/v1/favorites"),
+      api.GET("/api/v1/folders"),
+      api.GET("/api/v1/profile"),
+      api.GET("/api/v1/monitors"),
+    ]);
+    if (fav.data) {
+      setFavoritos(
+        new Set(
+          (fav.data as { proposta_id: string }[]).map((f) => f.proposta_id),
+        ),
+      );
+    }
+    if (mon.data) {
+      setAlertas(
+        new Map(
+          (mon.data as { id: string; proposta_id: string }[]).map((m) => [
+            m.proposta_id,
+            m.id,
+          ]),
+        ),
+      );
+    }
+    if (pas.data) setPastas(pas.data as Pasta[]);
+    if (perf.data)
+      setMunicipios(
+        (perf.data as { municipios: MunicipioPerfil[] }).municipios ?? [],
+      );
+  }, []);
+
+  useEffect(() => {
+    void carregarCuradoria();
+  }, [carregarCuradoria]);
+
+  // conteúdo da pasta selecionada (filtro client-side)
+  useEffect(() => {
+    if (!filtros.pastaId) {
+      setPastaPropostas(new Set());
+      return;
+    }
+    void (async () => {
+      const { data } = await api.GET("/api/v1/folders/{pasta_id}/proposals", {
+        params: { path: { pasta_id: filtros.pastaId } },
+      });
+      if (data) setPastaPropostas(new Set(data as string[]));
+    })();
+  }, [filtros.pastaId]);
+
+  function setFiltros(patch: Partial<Filtros>) {
+    setAbas((prev) =>
+      prev.map((a) =>
+        a.id === aba.id ? { ...a, filtros: { ...a.filtros, ...patch } } : a,
+      ),
+    );
+  }
+
+  function novaAba() {
+    const id = `aba-${Date.now()}`;
+    setAbas((prev) => [
+      ...prev,
+      { id, nome: `Frente ${prev.length + 1}`, filtros: { ...filtros } },
+    ]);
+    setAbaAtiva(id);
+  }
+
+  function fecharAba(id: string) {
+    setAbas((prev) => {
+      const rest = prev.filter((a) => a.id !== id);
+      if (rest.length === 0)
+        return [{ id: "aba-1", nome: "Geral", filtros: { ...FILTROS_VAZIOS } }];
+      return rest;
+    });
+    if (abaAtiva === id) setAbaAtiva(abas.find((a) => a.id !== id)?.id ?? "aba-1");
+  }
+
+  function renomearAba(id: string) {
+    const nome = window.prompt("Nome da aba (projeto, área, região…):");
+    if (nome) setAbas((prev) => prev.map((a) => (a.id === id ? { ...a, nome } : a)));
+  }
+
+  async function alternarFavorito(p: Proposta) {
+    if (favoritos.has(p.id)) {
+      await api.DELETE("/api/v1/favorites/{proposta_id}", {
+        params: { path: { proposta_id: p.id } },
+      });
+      setFavoritos((prev) => {
+        const s = new Set(prev);
+        s.delete(p.id);
+        return s;
+      });
+    } else {
+      await api.POST("/api/v1/favorites", { body: { proposta_id: p.id } });
+      setFavoritos((prev) => new Set(prev).add(p.id));
+    }
+    if (acompanhando) void carregarAcompanhadas();
+  }
+
+  // liga/desliga o alerta (monitoramento) direto do card — canal painel por padrão
+  async function alternarAlerta(p: Proposta) {
+    const existente = alertas.get(p.id);
+    if (existente) {
+      await api.DELETE("/api/v1/monitors/{monitoramento_id}", {
+        params: { path: { monitoramento_id: existente } },
+      });
+      setAlertas((prev) => {
+        const m = new Map(prev);
+        m.delete(p.id);
+        return m;
+      });
+    } else {
+      const { data } = await api.POST("/api/v1/monitors", {
+        body: { proposta_id: p.id, canais: ["painel"] },
+      });
+      const novoId = (data as { id?: string } | undefined)?.id;
+      if (novoId) setAlertas((prev) => new Map(prev).set(p.id, novoId));
+    }
+  }
+
+  async function criarPasta() {
+    const nome = window.prompt("Nome da nova pasta (projeto, área ou região):");
+    if (!nome) return;
+    const { data } = await api.POST("/api/v1/folders", { body: { nome } });
+    if (data) setPastas((prev) => [...prev, data as Pasta]);
+  }
+
+  async function moverParaPasta(propostaId: string, pastaId: string) {
+    if (!pastaId) return;
+    await api.POST("/api/v1/folders/{pasta_id}/proposals", {
+      params: { path: { pasta_id: pastaId } },
+      body: { proposta_id: propostaId },
+    });
+    if (filtros.pastaId === pastaId)
+      setPastaPropostas((prev) => new Set(prev).add(propostaId));
+    setMsg("Proposta adicionada à pasta.");
+  }
+
+  // filtros de curadoria (favoritas/pasta) são do usuário, não da fonte —
+  // ficam no cliente; todo o resto viaja para a API na busca ao vivo.
+  const visiveis = useMemo(() => {
+    let lista = acompanhando ? acompanhadas : propostas;
+    if (filtros.soFavoritas) lista = lista.filter((p) => favoritos.has(p.id));
+    if (filtros.pastaId) lista = lista.filter((p) => pastaPropostas.has(p.id));
+    return lista;
+  }, [propostas, acompanhadas, acompanhando, filtros.soFavoritas, filtros.pastaId, favoritos, pastaPropostas]);
+
+  /** Contador ao lado do rótulo de um chip (vazio quando a opção é "Todas"). */
+  function contarFaceta(dim: keyof Facetas, valor: string) {
+    if (!valor) return null;
+    const total = (facetas[dim] ?? []).find((o) => o.valor === valor)?.total;
+    return total ? <span className="ml-1 opacity-60 tabular-nums">{total}</span> : null;
+  }
+
+  /** Chips de "filtros ativos" — cada um se remove ao clicar. */
+  // quantos filtros avançados estão ativos — mostra badge no toggle mesmo recolhido
+  const qtdAvancadosAtivos = [
+    filtros.naturezaJuridica,
+    filtros.modalidade,
+    filtros.orgao,
+    filtros.qualificacao,
+    filtros.situacao,
+    filtros.ano,
+    filtros.area,
+    filtros.valorMin,
+    filtros.valorMax,
+  ].filter(Boolean).length;
+
+  const ativos = useMemo(() => {
+    const rotuloDe = (dim: keyof Facetas, valor: string) =>
+      (facetas[dim] ?? []).find((o) => o.valor === valor)?.rotulo ?? valor;
+    const lista: { chave: string; rotulo: string; limpar: Partial<Filtros> }[] = [];
+    if (filtros.q) lista.push({ chave: "q", rotulo: `"${filtros.q}"`, limpar: { q: "" } });
+    if (filtros.tipo)
+      lista.push({
+        chave: "tipo",
+        rotulo: filtros.tipo === "disponivel" ? "Disponíveis" : "Cadastradas",
+        limpar: { tipo: "" },
+      });
+    if (filtros.naturezaJuridica)
+      lista.push({
+        chave: "natureza",
+        rotulo: NATUREZAS.find(([v]) => v === filtros.naturezaJuridica)?.[1] ?? "",
+        limpar: { naturezaJuridica: "" },
+      });
+    if (filtros.municipio) {
+      const m = municipios.find((x) => x.ibge === filtros.municipio);
+      lista.push({
+        chave: "municipio",
+        rotulo: m?.nome ?? filtros.municipio,
+        limpar: { municipio: "" },
+      });
+    }
+    if (filtros.modalidade)
+      lista.push({
+        chave: "modalidade",
+        rotulo: rotuloDe("modalidade", filtros.modalidade),
+        limpar: { modalidade: "" },
+      });
+    if (filtros.orgao)
+      lista.push({ chave: "orgao", rotulo: rotuloDe("orgao", filtros.orgao), limpar: { orgao: "" } });
+    if (filtros.qualificacao)
+      lista.push({
+        chave: "qualificacao",
+        rotulo: rotuloDe("qualificacao", filtros.qualificacao),
+        limpar: { qualificacao: "" },
+      });
+    if (filtros.situacao)
+      lista.push({
+        chave: "situacao",
+        rotulo: rotuloDe("situacao", filtros.situacao),
+        limpar: { situacao: "" },
+      });
+    if (filtros.ano)
+      lista.push({ chave: "ano", rotulo: `Ano ${filtros.ano}`, limpar: { ano: "" } });
+    if (filtros.fonte)
+      lista.push({ chave: "fonte", rotulo: filtros.fonte, limpar: { fonte: "" } });
+    if (filtros.area)
+      lista.push({ chave: "area", rotulo: filtros.area.replace("_", " "), limpar: { area: "" } });
+    if (filtros.valorMin)
+      lista.push({
+        chave: "valorMin",
+        rotulo: `≥ ${formatBRL(filtros.valorMin)}`,
+        limpar: { valorMin: "" },
+      });
+    if (filtros.valorMax)
+      lista.push({
+        chave: "valorMax",
+        rotulo: `≤ ${formatBRL(filtros.valorMax)}`,
+        limpar: { valorMax: "" },
+      });
+    if (filtros.soFavoritas)
+      lista.push({ chave: "fav", rotulo: "Só favoritas ★", limpar: { soFavoritas: false } });
+    if (filtros.pastaId)
+      lista.push({
+        chave: "pasta",
+        rotulo: pastas.find((p) => p.id === filtros.pastaId)?.nome ?? "pasta",
+        limpar: { pastaId: "" },
+      });
+    return lista;
+  }, [filtros, facetas, municipios, pastas]);
+
+  /** "Baixar relatório": mesmo recorte da tela, em CSV. */
+  async function baixarRelatorio() {
+    try {
+      await baixarCsv(
+        "/api/v1/proposals/report.csv",
+        {
+          municipio: filtros.municipio,
+          fonte: filtros.fonte,
+          area: filtros.area,
+          situacao: filtros.situacao,
+          modalidade: filtros.modalidade,
+          orgao: filtros.orgao,
+          natureza_juridica: filtros.naturezaJuridica,
+          qualificacao: filtros.qualificacao,
+          ano: filtros.ano,
+          q: filtros.q,
+          tipo: filtros.tipo,
+          valor_min: filtros.valorMin,
+          valor_max: filtros.valorMax,
+          ordenar: filtros.ordenar,
+        },
+        "captacao.csv",
+      );
+    } catch {
+      setMsg("Não consegui gerar o relatório agora. Tente novamente.");
+    }
+  }
+
+  // agregados de EXECUÇÃO (TransfereGov): o que foi disponibilizado × usado
+  const execucao = useMemo(() => {
+    const com = visiveis.filter((p) => p.execucao);
+    if (com.length === 0) return null;
+    const soma = (k: "valor_global" | "valor_empenhado" | "valor_liberado" | "valor_pago" | "saldo_conta") =>
+      com.reduce((acc, p) => acc + num(p.execucao?.[k]), 0);
+    const empenhado = soma("valor_empenhado");
+    const pago = soma("valor_pago");
+    return {
+      transferencias: com.length,
+      global: soma("valor_global"),
+      empenhado,
+      liberado: soma("valor_liberado"),
+      pago,
+      saldo: soma("saldo_conta"),
+      aUtilizar: Math.max(0, empenhado - pago),
+    };
+  }, [visiveis]);
+
+  const fontesOk = fontesStatus.filter((f) => f.status === "ok").length;
+  const fontesErro = Array.from(
+    new Set(fontesStatus.filter((f) => f.status === "erro").map((f) => f.fonte)),
+  );
+
+  return (
+    <>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="page-title">Captação</h1>
+          <p className="mt-1 text-sm text-ink-2">
+            Propostas e oportunidades do seu território, consultadas em tempo real
+            nas fontes oficiais (API + scraping).
+          </p>
+        </div>
+        <Link href="/panel/funding/summary" className="btn btn-ghost btn-sm">
+          Ver resumo →
+        </Link>
+      </header>
+
+      {/* abas — várias frentes de trabalho ao mesmo tempo */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {abas.map((a) => (
+          <span
+            key={a.id}
+            className={`inline-flex items-center overflow-hidden rounded-t-lg border border-b-0 border-hairline text-sm ${
+              a.id === abaAtiva ? "bg-surface-2 font-medium" : "text-ink-2"
+            }`}
+          >
+            <button
+              onClick={() => setAbaAtiva(a.id)}
+              onDoubleClick={() => renomearAba(a.id)}
+              className="px-3 py-1.5"
+              title="Duplo clique renomeia"
+            >
+              {a.nome}
+            </button>
+            {abas.length > 1 && (
+              <button
+                onClick={() => fecharAba(a.id)}
+                className="pr-2 text-ink-3 hover:text-ink"
+                aria-label={`Fechar aba ${a.nome}`}
+              >
+                ×
+              </button>
+            )}
+          </span>
+        ))}
+        {/* "Minhas Propostas" agora vive no menu lateral (/panel/my-proposals) */}
+        <button onClick={novaAba} className="btn btn-ghost btn-sm" title="Nova aba">
+          + aba
+        </button>
+      </div>
+
+      {/* filtros — cada mudança dispara a busca ao vivo */}
+      {!acompanhando && (
+      <div className="card flex flex-col gap-3 p-4">
+        {/* linha 1 — essenciais (sempre visíveis) */}
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="flex min-w-[16rem] flex-1 flex-col gap-1">
+            <span className="field-label">Buscar</span>
+            <input
+              value={filtros.q}
+              onChange={(e) => setFiltros({ q: e.target.value })}
+              placeholder="programa, órgão ou código"
+              className="input w-full"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="field-label">Município</span>
+            <select
+              value={filtros.municipio}
+              onChange={(e) => setFiltros({ municipio: e.target.value })}
+              className="input w-48"
+            >
+              <option value="">todos do perfil</option>
+              {municipios.map((m) => (
+                <option key={m.ibge} value={m.ibge}>
+                  {m.nome ?? m.ibge}
+                  {m.uf ? `/${m.uf}` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="field-label">Fonte</span>
+            <select
+              value={filtros.fonte}
+              onChange={(e) => setFiltros({ fonte: e.target.value })}
+              className="input w-44"
+            >
+              <option value="">todas</option>
+              {(facetas.fonte ?? []).map((o) => (
+                <option key={o.valor} value={o.valor}>
+                  {o.rotulo} ({o.total})
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="field-label">Ordenar por</span>
+            <select
+              value={filtros.ordenar}
+              onChange={(e) => setFiltros({ ordenar: e.target.value })}
+              className="input w-44"
+            >
+              {ORDENACOES.map(([valor, rotulo]) => (
+                <option key={valor} value={valor}>
+                  {rotulo}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            onClick={() => void baixarRelatorio()}
+            className="btn btn-ghost btn-sm mb-1"
+            title="Exporta o recorte atual em CSV"
+          >
+            ↓ Baixar relatório
+          </button>
+        </div>
+
+        {/* linha 2 — tipo (esq.) + curadoria e toggle avançados (dir.) */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {(
+              [
+                ["", "Todas"],
+                ["cadastrada", "Cadastradas"],
+                ["disponivel", "Disponíveis"],
+              ] as const
+            ).map(([valor, rotulo]) => (
+              <button
+                key={rotulo}
+                onClick={() => setFiltros({ tipo: valor })}
+                className={`rounded-full border px-3 py-1 text-sm ${
+                  filtros.tipo === valor
+                    ? "border-ink bg-ink text-surface"
+                    : "border-hairline text-ink-2 hover:text-ink"
+                }`}
+              >
+                {rotulo}
+                {contarFaceta("tipo", valor)}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-ink-2">
+              <input
+                type="checkbox"
+                checked={filtros.soFavoritas}
+                onChange={(e) => setFiltros({ soFavoritas: e.target.checked })}
+              />
+              Só favoritas ★
+            </label>
+            <select
+              value={filtros.pastaId}
+              onChange={(e) => setFiltros({ pastaId: e.target.value })}
+              className="input w-40"
+              title="Filtrar por pasta"
+            >
+              <option value="">todas as pastas</option>
+              {pastas.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nome}
+                </option>
+              ))}
+            </select>
+            <button onClick={criarPasta} className="btn btn-ghost btn-sm">
+              + pasta
+            </button>
+            <button
+              onClick={() => setMostrarAvancados((v) => !v)}
+              className="btn btn-ghost btn-sm"
+              aria-expanded={mostrarAvancados}
+            >
+              Filtros avançados
+              {qtdAvancadosAtivos > 0 && (
+                <span className="ml-1.5 rounded-full bg-ink px-1.5 text-xs text-surface">
+                  {qtdAvancadosAtivos}
+                </span>
+              )}
+              <span className="ml-1 text-ink-3">{mostrarAvancados ? "▲" : "▼"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* filtros avançados — recolhidos por padrão */}
+        {mostrarAvancados && (
+          <div className="flex flex-col gap-3 border-t border-hairline pt-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="field-label mr-1">Natureza jurídica</span>
+              {NATUREZAS.map(([valor, rotulo]) => (
+                <button
+                  key={rotulo}
+                  onClick={() => setFiltros({ naturezaJuridica: valor })}
+                  className={`rounded-full border px-3 py-1 text-sm ${
+                    filtros.naturezaJuridica === valor
+                      ? "border-ink bg-ink text-surface"
+                      : "border-hairline text-ink-2 hover:text-ink"
+                  }`}
+                >
+                  {rotulo}
+                  {contarFaceta("natureza_juridica", valor)}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-end gap-3">
+              <SelectFaceta
+                rotulo="Modalidade"
+                valor={filtros.modalidade}
+                opcoes={facetas.modalidade}
+                largura="w-44"
+                aoMudar={(v) => setFiltros({ modalidade: v })}
+              />
+              <SelectFaceta
+                rotulo="Órgão"
+                valor={filtros.orgao}
+                opcoes={facetas.orgao}
+                largura="w-56"
+                aoMudar={(v) => setFiltros({ orgao: v })}
+              />
+              <SelectFaceta
+                rotulo="Qualificação"
+                valor={filtros.qualificacao}
+                opcoes={facetas.qualificacao}
+                largura="w-44"
+                aoMudar={(v) => setFiltros({ qualificacao: v })}
+              />
+              <SelectFaceta
+                rotulo="Situação"
+                valor={filtros.situacao}
+                opcoes={facetas.situacao}
+                largura="w-44"
+                aoMudar={(v) => setFiltros({ situacao: v })}
+              />
+              <SelectFaceta
+                rotulo="Ano"
+                valor={filtros.ano}
+                opcoes={facetas.ano}
+                largura="w-28"
+                aoMudar={(v) => setFiltros({ ano: v })}
+              />
+              <label className="flex flex-col gap-1">
+                <span className="field-label">Área</span>
+                <select
+                  value={filtros.area}
+                  onChange={(e) => setFiltros({ area: e.target.value })}
+                  className="input w-40"
+                >
+                  <option value="">todas</option>
+                  {AREAS.map((a) => (
+                    <option key={a} value={a}>
+                      {a.replace("_", " ")}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="field-label">Valor mín (R$)</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={filtros.valorMin}
+                  onChange={(e) => setFiltros({ valorMin: e.target.value })}
+                  className="input w-32"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="field-label">Valor máx (R$)</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={filtros.valorMax}
+                  onChange={(e) => setFiltros({ valorMax: e.target.value })}
+                  className="input w-32"
+                />
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* filtros ativos — o que está recortando a lista agora */}
+        {ativos.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 border-t border-hairline pt-3">
+            <span className="field-label mr-1">Filtros ativos</span>
+            {ativos.map((f) => (
+              <button
+                key={f.chave}
+                onClick={() => setFiltros(f.limpar)}
+                className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-1 text-xs text-ink-2 hover:text-ink"
+                title="Remover este filtro"
+              >
+                {f.rotulo}
+                <span className="text-ink-3">×</span>
+              </button>
+            ))}
+            <button
+              onClick={() => setFiltros(FILTROS_VAZIOS)}
+              className="btn btn-ghost btn-sm"
+            >
+              Limpar tudo
+            </button>
+          </div>
+        )}
+      </div>
+      )}
+
+      {/* estado honesto da coleta ao vivo */}
+      {!acompanhando && (
+      <div className="flex flex-wrap items-center gap-2 text-sm text-ink-2">
+        {buscando ? (
+          <span className="label-mono animate-pulse">
+            Consultando fontes oficiais em tempo real…
+          </span>
+        ) : (
+          <>
+            <span className="label-mono">
+              {fontesOk} consulta{fontesOk === 1 ? "" : "s"} ok
+            </span>
+            {fontesErro.length > 0 && (
+              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-mono text-[11px] text-amber-600">
+                fora do ar agora: {fontesErro.join(", ")}
+              </span>
+            )}
+            <button
+              onClick={() => void buscarAoVivo()}
+              className="btn btn-ghost btn-sm"
+            >
+              ↻ Buscar de novo
+            </button>
+          </>
+        )}
+      </div>
+      )}
+
+      {acompanhando && (
+        <p className="text-sm text-ink-2">
+          Suas propostas favoritadas ★ — toque na estrela para parar de
+          acompanhar. Favorite na busca (abas ao lado) para adicionar aqui.
+        </p>
+      )}
+
+      {msg && <p className="text-sm text-ink-2">{msg}</p>}
+
+      {/* execução financeira (TransfereGov): quanto foi disponibilizado × usado */}
+      {execucao && (
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          {(
+            [
+              ["Transferências", String(execucao.transferencias), false],
+              ["Valor global", formatBRL(String(execucao.global)), false],
+              ["Empenhado", formatBRL(String(execucao.empenhado)), false],
+              ["Empenhado a utilizar", formatBRL(String(execucao.aUtilizar)), true],
+              ["Pago", formatBRL(String(execucao.pago)), false],
+              ["Saldo em conta", formatBRL(String(execucao.saldo)), false],
+            ] as const
+          ).map(([rotulo, valor, destaque]) => (
+            <div
+              key={rotulo}
+              className={`card p-4 ${destaque ? "ring-1 ring-lime" : ""}`}
+            >
+              <p className="field-label">{rotulo}</p>
+              <p
+                className={`mt-1 text-lg tabular-nums tracking-tight ${
+                  destaque ? "text-lime" : ""
+                }`}
+              >
+                {valor}
+              </p>
+              {destaque && (
+                <p className="mt-0.5 text-[11px] text-ink-3">
+                  verba disponibilizada ainda não utilizada
+                </p>
+              )}
+            </div>
+          ))}
+        </section>
+      )}
+
+      <section className="overflow-x-auto">
+        {visiveis.length === 0 ? (
+          <p className="text-ink-3">
+            {acompanhando
+              ? "Nenhuma favorita ainda — favorite ★ uma proposta na busca para acompanhá-la aqui."
+              : buscando
+                ? "Buscando nas fontes…"
+                : "Nenhuma proposta com esses filtros nas fontes consultadas."}
+          </p>
+        ) : (
+          <div className="card overflow-hidden">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-hairline text-left label-mono">
+                  <th className="px-4 py-3 w-8"></th>
+                  <th className="px-3 py-3">Proposta</th>
+                  <th className="px-3 py-3">Município</th>
+                  <th className="px-3 py-3">Prazo</th>
+                  <th className="px-3 py-3">Valor global</th>
+                  <th className="px-3 py-3">Empenhado</th>
+                  <th className="px-3 py-3">Situação</th>
+                  <th className="px-3 py-3">Pasta</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visiveis.map((p) => (
+                  <tr
+                    key={p.id}
+                    className="border-b border-hairline last:border-0 hover:bg-surface-2"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => alternarFavorito(p)}
+                          aria-label="Favoritar"
+                          title={favoritos.has(p.id) ? "Desfavoritar" : "Favoritar"}
+                          className={
+                            favoritos.has(p.id) ? "text-amber-500" : "text-ink-3 hover:text-amber-500"
+                          }
+                        >
+                          {favoritos.has(p.id) ? "★" : "☆"}
+                        </button>
+                        <button
+                          onClick={() => alternarAlerta(p)}
+                          aria-label="Alerta"
+                          title={
+                            alertas.has(p.id)
+                              ? "Alerta ligado — avisa quando mudar situação/prazo"
+                              : "Ligar alerta desta proposta"
+                          }
+                          className={
+                            alertas.has(p.id) ? "text-emerald-500" : "text-ink-3 hover:text-emerald-500"
+                          }
+                        >
+                          {alertas.has(p.id) ? "🔔" : "🔕"}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <Link
+                        href={`/panel/funding/${p.id}`}
+                        className="font-medium hover:underline"
+                      >
+                        {p.titulo ?? p.objeto ?? p.id_externo}
+                      </Link>
+                      <p className="mt-0.5 max-w-md text-xs text-ink-3">
+                        {[p.orgao_superior, p.modalidade, p.id_externo]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                      {p.resumo_ia && (
+                        <p className="mt-0.5 line-clamp-2 max-w-md text-xs text-ink-3">
+                          {p.resumo_ia}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 text-ink-2">
+                      {p.municipio_nome ?? p.municipio_ibge ?? "—"}
+                      {p.uf ? `/${p.uf}` : ""}
+                    </td>
+                    <td className="px-3 py-3 text-ink-2">
+                      {p.prazo_final ? (
+                        <>
+                          {p.prazo_final.slice(0, 10).split("-").reverse().join("/")}
+                          <span
+                            className={`ml-1.5 font-mono text-[10px] ${
+                              (p.dias_restantes ?? 0) < 0
+                                ? "text-ink-3"
+                                : (p.dias_restantes ?? 0) <= 30
+                                  ? "text-amber-600"
+                                  : "text-ink-3"
+                            }`}
+                          >
+                            {(p.dias_restantes ?? 0) < 0
+                              ? "vencido"
+                              : `${p.dias_restantes}d`}
+                          </span>
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-3 py-3 tabular-nums">
+                      {formatBRL(p.execucao?.valor_global ?? p.valor_total)}
+                    </td>
+                    <td className="px-3 py-3 tabular-nums">
+                      {p.execucao?.valor_empenhado != null ? (
+                        <>
+                          {formatBRL(p.execucao.valor_empenhado)}
+                          {num(p.execucao.valor_empenhado) > num(p.execucao.valor_pago) && (
+                            <span
+                              className="ml-1 align-middle text-[10px] text-lime"
+                              title="Há verba empenhada ainda não utilizada"
+                            >
+                              ●
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-3 py-3">
+                      {p.situacao ? (
+                        <StatusBadge tone={tomSituacao(p.situacao)}>
+                          {p.situacao}
+                        </StatusBadge>
+                      ) : (
+                        <span className="text-ink-3">—</span>
+                      )}
+                      <span
+                        className={`ml-1.5 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase ${
+                          p.tipo === "disponivel"
+                            ? "bg-emerald-500/10 text-emerald-600"
+                            : "bg-surface-2 text-ink-3"
+                        }`}
+                      >
+                        {p.tipo === "disponivel" ? "disponível" : "cadastrada"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <select
+                        defaultValue=""
+                        onChange={(e) => {
+                          void moverParaPasta(p.id, e.target.value);
+                          e.target.value = "";
+                        }}
+                        className="input h-8 w-28 text-xs"
+                        aria-label="Adicionar à pasta"
+                      >
+                        <option value="">+ pasta</option>
+                        {pastas.map((pa) => (
+                          <option key={pa.id} value={pa.id}>
+                            {pa.nome}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </>
+  );
+}

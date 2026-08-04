@@ -1,7 +1,7 @@
 """contatos e integracoes de agenda (google/microsoft/apple/carddav)
 
 Revision ID: b41c7de90a12
-Revises: 66ddf34515bd
+Revises: d8e9f0a1b2c3
 Create Date: 2026-08-03 12:00:00.000000
 
 Dado PESSOAL do usuário (não é cache público como propostas/repasses/obras):
@@ -16,7 +16,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "b41c7de90a12"
-down_revision: str | None = "66ddf34515bd"
+down_revision: str | None = "d8e9f0a1b2c3"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

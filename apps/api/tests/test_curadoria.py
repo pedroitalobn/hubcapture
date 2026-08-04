@@ -78,9 +78,7 @@ async def test_pastas_criar_e_vincular(seed_user, seed_municipio, seed_proposta)
         assert len(await pasta_service.listar(s, u)) == 1
 
 
-async def test_alerta_gerado_apenas_se_monitorado(
-    seed_user, seed_municipio, seed_proposta
-) -> None:
+async def test_alerta_gerado_apenas_se_monitorado(seed_user, seed_municipio, seed_proposta) -> None:
     u = await seed_user("m@m.com")
     await seed_municipio(u, "3550308")
     await seed_proposta("transferegov_ff", "P1", "3550308")
@@ -102,8 +100,6 @@ def test_detect_changes_puro() -> None:
     assert detect_changes.hash_mudou(None, "x") is False
     assert detect_changes.hash_mudou("a", "a") is False
     assert detect_changes.hash_mudou("a", "b") is True
-    payload = detect_changes.montar_payload(
-        {"situacao": "Em análise"}, {"situacao": "Aprovada"}
-    )
+    payload = detect_changes.montar_payload({"situacao": "Em análise"}, {"situacao": "Aprovada"})
     assert payload["mudou"]["situacao"] == {"antes": "Em análise", "depois": "Aprovada"}
     assert detect_changes.classificar(payload) == "status"

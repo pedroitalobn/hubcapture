@@ -10,7 +10,7 @@ from .contato import Contato
 from .convite import Convite
 from .favorito import Favorito
 from .integracao_contatos import ContatoVinculo, IntegracaoContatos
-from .monitoramento import Monitoramento
+from .monitoramento import Monitoramento, MonitoramentoBusca
 from .municipio_interesse import MunicipioInteresse
 from .obra import Obra
 from .pasta import Pasta, PastaProposta
@@ -34,6 +34,7 @@ __all__ = [
     "Pasta",
     "PastaProposta",
     "Monitoramento",
+    "MonitoramentoBusca",
     "Alerta",
     "SyncRun",
     "AuditLog",

@@ -21,9 +21,11 @@ from ...schemas.contato import (
     ImportacaoVcard,
 )
 from ...services import contatos as service
+from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
-router = APIRouter(tags=["contatos"])
+# Módulo desligável pelo painel admin: desativado → todo o eixo responde 404.
+router = APIRouter(tags=["contatos"], dependencies=[Depends(require_modulo("contatos"))])
 
 
 async def _get_ou_404(session: AsyncSession, contato_id: uuid.UUID):
@@ -35,7 +37,7 @@ async def _get_ou_404(session: AsyncSession, contato_id: uuid.UUID):
     return contato
 
 
-@router.get("/contatos", response_model=list[ContatoRead])
+@router.get("/contacts", response_model=list[ContatoRead])
 async def listar_contatos(
     busca: str | None = Query(default=None, description="nome, organização, cargo ou e-mail"),
     tag: str | None = Query(default=None),
@@ -57,7 +59,7 @@ async def listar_contatos(
     return [ContatoRead.model_validate(c) for c in rows]
 
 
-@router.post("/contatos", response_model=ContatoRead, status_code=status.HTTP_201_CREATED)
+@router.post("/contacts", response_model=ContatoRead, status_code=status.HTTP_201_CREATED)
 async def criar_contato(
     body: ContatoCreate,
     user: Usuario = Depends(current_active_user),
@@ -67,8 +69,8 @@ async def criar_contato(
     return ContatoRead.model_validate(contato)
 
 
-# Declarado ANTES de /contatos/{contato_id}: senão o path vira um uuid inválido.
-@router.get("/contatos/exportar")
+# Declarado ANTES de /contacts/{contato_id}: senão o path vira um uuid inválido.
+@router.get("/contacts/export")
 async def exportar_contatos(
     session: AsyncSession = Depends(get_rls_db),
 ) -> Response:
@@ -81,7 +83,7 @@ async def exportar_contatos(
     )
 
 
-@router.post("/contatos/importar", response_model=ImportacaoResultado)
+@router.post("/contacts/import", response_model=ImportacaoResultado)
 async def importar_contatos(
     body: ImportacaoVcard,
     user: Usuario = Depends(current_active_user),
@@ -90,7 +92,7 @@ async def importar_contatos(
     return await service.importar_vcf(session, usuario_id=user.id, conteudo=body.conteudo)
 
 
-@router.get("/contatos/{contato_id}", response_model=ContatoRead)
+@router.get("/contacts/{contato_id}", response_model=ContatoRead)
 async def obter_contato(
     contato_id: uuid.UUID,
     session: AsyncSession = Depends(get_rls_db),
@@ -98,7 +100,7 @@ async def obter_contato(
     return ContatoRead.model_validate(await _get_ou_404(session, contato_id))
 
 
-@router.patch("/contatos/{contato_id}", response_model=ContatoRead)
+@router.patch("/contacts/{contato_id}", response_model=ContatoRead)
 async def atualizar_contato(
     contato_id: uuid.UUID,
     body: ContatoUpdate,
@@ -108,7 +110,7 @@ async def atualizar_contato(
     return ContatoRead.model_validate(await service.atualizar(session, contato, body))
 
 
-@router.delete("/contatos/{contato_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/contacts/{contato_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remover_contato(
     contato_id: uuid.UUID,
     session: AsyncSession = Depends(get_rls_db),
