@@ -30,6 +30,11 @@ const CATEGORIAS: { id: string; label: string; desc: string }[] = [
   { id: "ia", label: "IA · LLMs", desc: "Modelos de linguagem e embeddings" },
   { id: "scraping", label: "Scraping", desc: "Enriquecimento e fallback de coleta" },
   { id: "fonte", label: "Fontes de dados", desc: "APIs e portais do governo" },
+  {
+    id: "integracoes",
+    label: "Integrações · Agenda",
+    desc: "Contatos do usuário no Google, Microsoft e Apple",
+  },
   { id: "whatsapp", label: "WhatsApp", desc: "Alertas e chat (Uniq)" },
   { id: "email", label: "E-mail", desc: "SMTP transacional" },
 ];
@@ -114,6 +119,24 @@ const GRUPOS: { id: string; label: string; categoria: string; prefixos: string[]
     prefixos: ["caixa_"],
   },
   { id: "ibge", label: "IBGE Localidades", categoria: "fonte", prefixos: ["ibge_"] },
+  {
+    id: "google_contatos",
+    label: "Google Contacts (OAuth)",
+    categoria: "integracoes",
+    prefixos: ["google_"],
+  },
+  {
+    id: "microsoft_contatos",
+    label: "Outlook / Microsoft 365 (OAuth)",
+    categoria: "integracoes",
+    prefixos: ["microsoft_"],
+  },
+  {
+    id: "apple_contatos",
+    label: "Apple / iCloud (CardDAV)",
+    categoria: "integracoes",
+    prefixos: ["apple_"],
+  },
   { id: "uniq", label: "Uniq (WhatsApp)", categoria: "whatsapp", prefixos: ["uniq_"] },
   {
     id: "smtp",

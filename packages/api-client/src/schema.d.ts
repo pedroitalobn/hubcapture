@@ -82,6 +82,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/email/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Testar Email
+         * @description Envia um e-mail de teste (Maileroo/SMTP) p/ validar a configuração.
+         *
+         *     Sem `destinatario`, manda para o próprio admin. Se o provedor recusar
+         *     (chave/domínio inválido), devolve o motivo — pra depurar sem adivinhar.
+         */
+        post: operations["testar_email_api_v1_admin_email_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/invites": {
         parameters: {
             query?: never;
@@ -95,6 +118,27 @@ export interface paths {
         /** Admin Criar Convite */
         post: operations["admin_criar_convite_api_v1_admin_invites_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invites/{convite_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Admin Excluir Convite
+         * @description Exclui um convite (pendente/expirado/aceito). Não afeta o usuário já
+         *     criado a partir dele — para remover o usuário, use DELETE /admin/users.
+         */
+        delete: operations["admin_excluir_convite_api_v1_admin_invites__convite_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -133,6 +177,28 @@ export interface paths {
         put: operations["definir_modulo_api_v1_admin_modules_put"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Zerar Propostas
+         * @description Zera TODAS as propostas do sistema (uso: validação — recomeçar a coleta do
+         *     zero). As FKs são ON DELETE CASCADE, então favoritos, pastas, monitoramentos,
+         *     alertas e embeddings ligados às propostas somem junto. Só superuser.
+         */
+        delete: operations["zerar_propostas_api_v1_admin_proposals_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -183,7 +249,12 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Admin Excluir Usuario
+         * @description Exclui um usuário. FKs são CASCADE (favoritos/monitoramentos/pastas/
+         *     alertas somem junto). Guarda: não permite excluir a própria conta.
+         */
+        delete: operations["admin_excluir_usuario_api_v1_admin_users__usuario_id__delete"];
         options?: never;
         head?: never;
         /** Admin Atualizar Usuario */
@@ -432,6 +503,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Contatos */
+        get: operations["listar_contatos_api_v1_contacts_get"];
+        put?: never;
+        /** Criar Contato */
+        post: operations["criar_contato_api_v1_contacts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contacts/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Exportar Contatos
+         * @description Exporta a agenda em .vcf — importável no Google/Apple/Outlook sem conectar conta.
+         */
+        get: operations["exportar_contatos_api_v1_contacts_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contacts/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Importar Contatos */
+        post: operations["importar_contatos_api_v1_contacts_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contacts/{contato_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obter Contato */
+        get: operations["obter_contato_api_v1_contacts__contato_id__get"];
+        put?: never;
+        post?: never;
+        /** Remover Contato */
+        delete: operations["remover_contato_api_v1_contacts__contato_id__delete"];
+        options?: never;
+        head?: never;
+        /** Atualizar Contato */
+        patch: operations["atualizar_contato_api_v1_contacts__contato_id__patch"];
+        trace?: never;
+    };
     "/api/v1/copilot/chat": {
         parameters: {
             query?: never;
@@ -591,6 +736,158 @@ export interface paths {
         post?: never;
         /** Remover Proposta */
         delete: operations["remover_proposta_api_v1_folders__pasta_id__proposals__proposta_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Integracoes */
+        get: operations["listar_integracoes_api_v1_integrations_contacts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/contacts/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Concluir Oauth
+         * @description Troca o `code` do provedor por tokens e grava a conta conectada.
+         */
+        post: operations["concluir_oauth_api_v1_integrations_contacts_callback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/contacts/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Provedores
+         * @description Catálogo de agendas suportadas + se a credencial de aplicação está posta.
+         */
+        get: operations["listar_provedores_api_v1_integrations_contacts_providers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/contacts/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sincronizar Todas */
+        post: operations["sincronizar_todas_api_v1_integrations_contacts_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/contacts/{integracao_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Desconectar
+         * @description Desconecta a conta. Os contatos já sincronizados ficam na agenda do Hub.
+         */
+        delete: operations["desconectar_api_v1_integrations_contacts__integracao_id__delete"];
+        options?: never;
+        head?: never;
+        /** Atualizar Integracao */
+        patch: operations["atualizar_integracao_api_v1_integrations_contacts__integracao_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/integrations/contacts/{integracao_id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sincronizar */
+        post: operations["sincronizar_api_v1_integrations_contacts__integracao_id__sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/contacts/{provedor}/app-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Conectar Senha App
+         * @description Apple/iCloud e CardDAV genérico: conta + senha de app (validadas na hora).
+         */
+        post: operations["conectar_senha_app_api_v1_integrations_contacts__provedor__app_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/contacts/{provedor}/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Autorizar
+         * @description URL de consentimento do provedor (o web redireciona o usuário para ela).
+         */
+        post: operations["autorizar_api_v1_integrations_contacts__provedor__authorize_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1285,6 +1582,13 @@ export interface components {
             /** Plano Id */
             plano_id?: string | null;
         };
+        /** AutorizacaoOAuth */
+        AutorizacaoOAuth: {
+            /** State */
+            state: string;
+            /** Url */
+            url: string;
+        };
         /** Body_login_api_v1_auth_login_post */
         Body_login_api_v1_auth_login_post: {
             /** Client Id */
@@ -1337,6 +1641,22 @@ export interface components {
             /** Token */
             token: string;
         };
+        /** CallbackOAuth */
+        CallbackOAuth: {
+            /** Code */
+            code: string;
+            /**
+             * Direcao
+             * @default bidirecional
+             */
+            direcao: string;
+            /** Provedor */
+            provedor: string;
+            /** Redirect Uri */
+            redirect_uri?: string | null;
+            /** State */
+            state?: string | null;
+        };
         /** ChatRequest */
         ChatRequest: {
             /**
@@ -1346,6 +1666,32 @@ export interface components {
             modo: string;
             /** Pergunta */
             pergunta: string;
+        };
+        /**
+         * ConectarSenhaApp
+         * @description Conexão por senha de aplicativo (Apple/iCloud e CardDAV genérico).
+         */
+        ConectarSenhaApp: {
+            /**
+             * Base Url
+             * @description CardDAV genérico: URL do servidor
+             */
+            base_url?: string | null;
+            /**
+             * Conta
+             * @description Apple ID / usuário
+             */
+            conta: string;
+            /**
+             * Direcao
+             * @default bidirecional
+             */
+            direcao: string;
+            /**
+             * Senha App
+             * @description senha de app (não é a senha da conta)
+             */
+            senha_app: string;
         };
         /** ConfigItem */
         ConfigItem: {
@@ -1434,6 +1780,124 @@ export interface components {
             tags?: string[] | null;
             /** Titulo */
             titulo: string;
+        };
+        /** ContatoCreate */
+        ContatoCreate: {
+            /** Cargo */
+            cargo?: string | null;
+            /** Emails */
+            emails?: components["schemas"]["ContatoEmail"][];
+            /** Enderecos */
+            enderecos?: components["schemas"]["ContatoEndereco"][];
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Nome */
+            nome: string;
+            /** Notas */
+            notas?: string | null;
+            /** Organizacao */
+            organizacao?: string | null;
+            /** Sobrenome */
+            sobrenome?: string | null;
+            /** Tags */
+            tags?: string[];
+            /** Telefones */
+            telefones?: components["schemas"]["ContatoTelefone"][];
+            /** Uf */
+            uf?: string | null;
+        };
+        /** ContatoEmail */
+        ContatoEmail: {
+            /** Tipo */
+            tipo?: string | null;
+            /** Valor */
+            valor: string;
+        };
+        /** ContatoEndereco */
+        ContatoEndereco: {
+            /** Cep */
+            cep?: string | null;
+            /** Cidade */
+            cidade?: string | null;
+            /** Logradouro */
+            logradouro?: string | null;
+            /** Tipo */
+            tipo?: string | null;
+            /** Uf */
+            uf?: string | null;
+        };
+        /** ContatoRead */
+        ContatoRead: {
+            /**
+             * Arquivado
+             * @default false
+             */
+            arquivado: boolean;
+            /** Cargo */
+            cargo?: string | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Emails */
+            emails?: components["schemas"]["ContatoEmail"][];
+            /** Enderecos */
+            enderecos?: components["schemas"]["ContatoEndereco"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Nome */
+            nome: string;
+            /** Notas */
+            notas?: string | null;
+            /** Organizacao */
+            organizacao?: string | null;
+            /** Origem */
+            origem: string;
+            /** Sobrenome */
+            sobrenome?: string | null;
+            /** Tags */
+            tags?: string[];
+            /** Telefones */
+            telefones?: components["schemas"]["ContatoTelefone"][];
+            /** Uf */
+            uf?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /** ContatoTelefone */
+        ContatoTelefone: {
+            /** Tipo */
+            tipo?: string | null;
+            /** Valor */
+            valor: string;
+        };
+        /** ContatoUpdate */
+        ContatoUpdate: {
+            /** Cargo */
+            cargo?: string | null;
+            /** Emails */
+            emails?: components["schemas"]["ContatoEmail"][] | null;
+            /** Enderecos */
+            enderecos?: components["schemas"]["ContatoEndereco"][] | null;
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Nome */
+            nome?: string | null;
+            /** Notas */
+            notas?: string | null;
+            /** Organizacao */
+            organizacao?: string | null;
+            /** Sobrenome */
+            sobrenome?: string | null;
+            /** Tags */
+            tags?: string[] | null;
+            /** Telefones */
+            telefones?: components["schemas"]["ContatoTelefone"][] | null;
+            /** Uf */
+            uf?: string | null;
         };
         /**
          * ConvenioVigente
@@ -1566,6 +2030,18 @@ export interface components {
             /** Valor */
             valor: string;
         };
+        /** EmailTesteIn */
+        EmailTesteIn: {
+            /** Destinatario */
+            destinatario?: string | null;
+        };
+        /** EmailTesteOut */
+        EmailTesteOut: {
+            /** Detalhe */
+            detalhe: string;
+            /** Enviado */
+            enviado: boolean;
+        };
         /**
          * EmendaItem
          * @description Uma emenda que beneficiou o município, achatada para a tela.
@@ -1682,6 +2158,60 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** ImportacaoResultado */
+        ImportacaoResultado: {
+            /** Atualizados */
+            atualizados: number;
+            /** Ignorados */
+            ignorados: number;
+            /** Importados */
+            importados: number;
+        };
+        /** ImportacaoVcard */
+        ImportacaoVcard: {
+            /**
+             * Conteudo
+             * @description conteúdo de um arquivo .vcf
+             */
+            conteudo: string;
+        };
+        /** IntegracaoRead */
+        IntegracaoRead: {
+            /**
+             * Ativo
+             * @default true
+             */
+            ativo: boolean;
+            /** Conta */
+            conta: string;
+            /** Direcao */
+            direcao: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Provedor */
+            provedor: string;
+            /** Status */
+            status: string;
+            /**
+             * Total Contatos
+             * @default 0
+             */
+            total_contatos: number;
+            /** Ultima Sync Em */
+            ultima_sync_em?: string | null;
+            /** Ultimo Erro */
+            ultimo_erro?: string | null;
+        };
+        /** IntegracaoUpdate */
+        IntegracaoUpdate: {
+            /** Ativo */
+            ativo?: boolean | null;
+            /** Direcao */
+            direcao?: string | null;
         };
         /** IslandRequest */
         IslandRequest: {
@@ -1950,6 +2480,8 @@ export interface components {
             municipio_ibge?: string | null;
             /** Municipio Nome */
             municipio_nome?: string | null;
+            /** Proposta Id */
+            proposta_id?: string | null;
             /** Tipo */
             tipo: string;
             /** Titulo */
@@ -2277,6 +2809,10 @@ export interface components {
             cache_atualizado_em?: string | null;
             /** Contrapartida */
             contrapartida?: string | null;
+            /** Dados Fonte */
+            dados_fonte?: {
+                [key: string]: unknown;
+            } | null;
             /** Data Atualizacao Fonte */
             data_atualizacao_fonte?: string | null;
             /**
@@ -2396,6 +2932,22 @@ export interface components {
             tipo: components["schemas"]["FacetaOpcao"][];
         };
         /**
+         * ProvedorInfo
+         * @description Catálogo de provedores para a tela de conexão.
+         */
+        ProvedorInfo: {
+            /** Disponivel */
+            disponivel: boolean;
+            /** Instrucoes */
+            instrucoes?: string | null;
+            /** Provedor */
+            provedor: string;
+            /** Rotulo */
+            rotulo: string;
+            /** Tipo Auth */
+            tipo_auth: string;
+        };
+        /**
          * RankingParlamentar
          * @description Linha do ranking de parlamentares que destinaram recursos ao município.
          */
@@ -2472,6 +3024,11 @@ export interface components {
             itens: components["schemas"]["RepasseRead"][];
             /** Subtotal */
             subtotal: string;
+        };
+        /** ResultadoLimpeza */
+        ResultadoLimpeza: {
+            /** Removidas */
+            removidas: number;
         };
         /**
          * ResumoAno
@@ -2597,6 +3154,60 @@ export interface components {
             fontes?: string[] | null;
             /** Municipio Ibge */
             municipio_ibge: string;
+        };
+        /**
+         * SyncResultado
+         * @description Placar de uma sincronização (por integração).
+         */
+        SyncResultado: {
+            /**
+             * Atualizados Local
+             * @default 0
+             */
+            atualizados_local: number;
+            /**
+             * Atualizados Remoto
+             * @default 0
+             */
+            atualizados_remoto: number;
+            /**
+             * Conflitos
+             * @default 0
+             */
+            conflitos: number;
+            /** Conta */
+            conta: string;
+            /** Erro */
+            erro?: string | null;
+            /**
+             * Exportados
+             * @default 0
+             */
+            exportados: number;
+            /**
+             * Importados
+             * @default 0
+             */
+            importados: number;
+            /**
+             * Integracao Id
+             * Format: uuid
+             */
+            integracao_id: string;
+            /** Provedor */
+            provedor: string;
+            /**
+             * Removidos Local
+             * @default 0
+             */
+            removidos_local: number;
+            /**
+             * Removidos Remoto
+             * @default 0
+             */
+            removidos_remoto: number;
+            /** Status */
+            status: string;
         };
         /**
          * SyncRunStatus
@@ -2950,6 +3561,39 @@ export interface operations {
             };
         };
     };
+    testar_email_api_v1_admin_email_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailTesteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailTesteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     admin_listar_convites_api_v1_admin_invites_get: {
         parameters: {
             query?: never;
@@ -2991,6 +3635,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ConviteRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_excluir_convite_api_v1_admin_invites__convite_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                convite_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -3091,6 +3764,26 @@ export interface operations {
             };
         };
     };
+    zerar_propostas_api_v1_admin_proposals_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoLimpeza"];
+                };
+            };
+        };
+    };
     diagnostico_fontes_api_v1_admin_sources_get: {
         parameters: {
             query?: never;
@@ -3152,6 +3845,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["UserRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_excluir_usuario_api_v1_admin_users__usuario_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                usuario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -3672,6 +4394,225 @@ export interface operations {
             };
         };
     };
+    listar_contatos_api_v1_contacts_get: {
+        parameters: {
+            query?: {
+                /** @description nome, organização, cargo ou e-mail */
+                busca?: string | null;
+                tag?: string | null;
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                /** @description manual|google|microsoft|apple|carddav|vcard */
+                origem?: string | null;
+                arquivados?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContatoRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    criar_contato_api_v1_contacts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContatoCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContatoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    exportar_contatos_api_v1_contacts_export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    importar_contatos_api_v1_contacts_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportacaoVcard"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportacaoResultado"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    obter_contato_api_v1_contacts__contato_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contato_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContatoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_contato_api_v1_contacts__contato_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contato_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    atualizar_contato_api_v1_contacts__contato_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contato_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContatoUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContatoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     copiloto_chat_api_v1_copilot_chat_post: {
         parameters: {
             query?: never;
@@ -4016,6 +4957,262 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_integracoes_api_v1_integrations_contacts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegracaoRead"][];
+                };
+            };
+        };
+    };
+    concluir_oauth_api_v1_integrations_contacts_callback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CallbackOAuth"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegracaoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_provedores_api_v1_integrations_contacts_providers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProvedorInfo"][];
+                };
+            };
+        };
+    };
+    sincronizar_todas_api_v1_integrations_contacts_sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncResultado"][];
+                };
+            };
+        };
+    };
+    desconectar_api_v1_integrations_contacts__integracao_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                integracao_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    atualizar_integracao_api_v1_integrations_contacts__integracao_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                integracao_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntegracaoUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegracaoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sincronizar_api_v1_integrations_contacts__integracao_id__sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                integracao_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncResultado"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    conectar_senha_app_api_v1_integrations_contacts__provedor__app_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provedor: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConectarSenhaApp"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegracaoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    autorizar_api_v1_integrations_contacts__provedor__authorize_post: {
+        parameters: {
+            query?: {
+                redirect_uri?: string | null;
+            };
+            header?: never;
+            path: {
+                provedor: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutorizacaoOAuth"];
+                };
             };
             /** @description Validation Error */
             422: {

@@ -733,7 +733,9 @@ real qual ferramenta o agente está consultando. Histórico em sessionStorage.
   favoritos→favorites · pastas→folders · monitoramentos→monitors (buscas→searches) ·
   perfil→profile (visao-geral→overview, novidades→feed) · municipios→municipalities ·
   noticias→news · copiloto→copilot · planos→plans · admin/usuarios→admin/users ·
-  convites→invites · fontes→sources · conhecimento→knowledge · aceitar-convite→accept-invite.
+  convites→invites · fontes→sources · conhecimento→knowledge · aceitar-convite→accept-invite ·
+  contatos→contacts (exportar→export, importar→import) · integracoes→integrations
+  (provedores→providers, autorizar→authorize, senha-app→app-password).
   Páginas: painel→panel (captacao→funding, repasses→transfers, conformidade→compliance,
   obras→works, alertas→alerts, chat→copilot, conta→account), cadastro→signup,
   esqueci-senha→forgot-password, redefinir-senha→reset-password, verificar-email→verify-email.
@@ -958,3 +960,47 @@ bate nas fontes REAIS e relata por fonte se respondeu, quantos registros e QUAIS
 vieram (é o que se calibra). Não precisa de banco nem da API no ar; sai com código 1 se
 alguma falhar. Calibrar connector é trabalho empírico — isto substitui descobrir pelo
 `sync_runs` depois do deploy.
+
+## 31. Agenda de contatos + sincronização com Google/Apple/Outlook
+
+Rede de pessoas do gestor (gabinetes, secretarias, técnicos, fornecedores) dentro do Hub,
+**sincronizada nos dois sentidos** com a agenda que ele já usa no celular. Dado PESSOAL
+por-tenant (RLS `FOR ALL` por `usuario_id`, como `pastas`) — não é cache público.
+Módulo desligável pelo painel admin (`contatos`, §29), rotas em inglês (§25).
+
+- **Tabelas** (migration `b41c7de90a12`): `contatos` (nome/sobrenome, organização, cargo,
+  `emails`/`telefones`/`enderecos` jsonb, `tags`, `municipio_ibge`, `origem`, `chave_dedup`,
+  `hash_conteudo`, `arquivado`) · `integracoes_contatos` (uma linha por conta conectada:
+  provedor, conta, status, `direcao`, `credenciais` **cifradas**, `sync_token`, última sync,
+  último erro) · `contato_vinculos` (de-para local↔remoto com `etag` e `hash_sincronizado`;
+  escopo herdado da integração, como `pasta_propostas`).
+- **Provedores** (`integrations/contatos/`, Protocol + registry no molde dos connectors):
+  `google.py` (People API, delta por `syncToken`) · `microsoft.py` (Graph, delta por
+  `deltaLink`) · `carddav.py` (Apple/iCloud e CardDAV genérico — Nextcloud/SOGo —, delta por
+  CTag, redirect refeito na mão para não perder o Basic) · `vcard.py` (codec vCard 3.0, usado
+  pelo CardDAV e pelo import/export `.vcf`) · `oauth.py` (authorization code + refresh).
+  Novo provedor = novo módulo com o mesmo Protocol; o motor de sync não muda.
+- **Motor** (`services/contatos_sync.py`): casamento por vínculo → `chave_dedup` (e-mail >
+  telefone > nome+organização) → criação. Três hashes (local, remoto, `hash_sincronizado`)
+  decidem quem mudou; **os dois lados mudaram → merge**, ninguém perde e-mail/telefone/tag.
+  Remoção é arquivamento (tombstone) para propagar o delete; ausência só conta como remoção
+  quando a leitura foi completa (num delta, não). Erro de provedor → `status=erro|expirada` +
+  `sync_runs`, nunca 500. `ingestion/normalizer_contato.py` faz canonização/dedup/hash/merge.
+- **Endpoints**: `GET/POST /contacts`, `GET/PATCH/DELETE /contacts/{id}` (DELETE arquiva),
+  `GET /contacts/export` (.vcf), `POST /contacts/import` ·
+  `GET /integrations/contacts/providers` · `GET /integrations/contacts` ·
+  `POST /integrations/contacts/{provedor}/authorize` (URL de consentimento) ·
+  `POST /integrations/contacts/callback` · `POST /integrations/contacts/{provedor}/app-password`
+  (Apple/CardDAV) · `PATCH/DELETE /integrations/contacts/{id}` ·
+  `POST /integrations/contacts/{id}/sync` e `POST /integrations/contacts/sync`.
+- **Config (painel admin, categoria `integracoes`)**: `google_client_id/secret`,
+  `microsoft_client_id/secret`, `microsoft_tenant`, `apple_carddav_url`. Sem elas o provedor
+  aparece **indisponível** (degrada como Firecrawl/LLM/Uniq) — e o `.vcf` continua servindo
+  de rota manual. Redirect URI dos apps OAuth: `{app_base_url}/integrations/callback`.
+  Segredos usam o Fernet compartilhado em `core/crypto.py` (o `services/config` passou a usá-lo).
+- **Job**: `jobs/contatos.sync_contatos_todos()` (cron n8n) roda cada usuário na sua sessão
+  RLS, best-effort, e limpa tombstones já propagados.
+- **Web**: `app/panel/contacts` (agenda + CRUD + busca, agendas conectadas com status/direção,
+  sincronizar, importar/exportar .vcf) e `app/integrations/callback` (conclui o OAuth). Item
+  "Agenda de contatos" no menu profile-centric — é uma lente de pessoas sobre o território,
+  não uma aba por plataforma (§19 continua valendo).

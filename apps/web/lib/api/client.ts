@@ -160,6 +160,31 @@ export async function baixarPdfProposta(id: string): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
+/** Baixa a agenda de contatos em .vcf (importável no Google/Apple/Outlook). */
+export async function baixarContatosVcf(): Promise<void> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/contacts/export`, {
+    headers: { Authorization: `Bearer ${getToken() ?? ""}` },
+  });
+  if (!resp.ok) throw new Error("Falha ao exportar contatos");
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "contatos-hub-capture.vcf";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Importa um arquivo .vcf escolhido pelo usuário. */
+export async function importarContatosVcf(arquivo: File) {
+  const conteudo = await arquivo.text();
+  const { data, error } = await api.POST("/api/v1/contacts/import", {
+    body: { conteudo },
+  });
+  if (error) throw new Error("Não foi possível ler o arquivo .vcf");
+  return data;
+}
+
 /**
  * Baixa um relatório CSV da API (GET autenticado → blob → download).
  * Usado pelos botões "Baixar relatório" da captação e das emendas.

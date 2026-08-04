@@ -94,6 +94,16 @@ class Settings(BaseSettings):
     maileroo_api_key: str = ""
     maileroo_api_url: str = "https://smtp.maileroo.com/api/v2/emails"
 
+    # ── Integrações de agenda de contatos (opcionais, painel admin) ─────────
+    # OAuth de aplicação: sem client id/secret o provedor aparece indisponível.
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    microsoft_client_id: str = ""
+    microsoft_client_secret: str = ""
+    microsoft_tenant: str = "common"  # 'common' aceita conta pessoal e corporativa
+    # Apple/iCloud é CardDAV com senha de app — não precisa de credencial de app.
+    apple_carddav_url: str = "https://contacts.icloud.com"
+
     # ── Scraping (Crawl4AI + Firecrawl) — coleta combinada / fallback ───────
     firecrawl_api_key: str = ""  # vazio = Firecrawl desabilitado
     firecrawl_base_url: str = "https://api.firecrawl.dev"

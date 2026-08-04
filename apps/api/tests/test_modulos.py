@@ -52,7 +52,13 @@ async def test_perfil_expoe_modulos_ativos(seed_user, seed_municipio) -> None:
 
     async with rls_session(u) as s:
         p = await perfil_service.get_perfil(s, _FakeUser(u))
-    assert set(p.modulos) == {"captacao", "recebidos", "copiloto", "conformidade"}
+    assert set(p.modulos) == {
+        "captacao",
+        "recebidos",
+        "copiloto",
+        "conformidade",
+        "contatos",  # agenda de contatos nasce ligada
+    }
 
 
 class _FakeUser:

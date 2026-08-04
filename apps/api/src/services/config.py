@@ -7,16 +7,14 @@ são cifrados em repouso (Fernet) e nunca retornados em claro na listagem.
 
 from __future__ import annotations
 
-import base64
-import hashlib
 import logging
 
-from cryptography.fernet import Fernet
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.config import settings
+from ..core.crypto import cifrar, decifrar, mascarar
 from ..db.session import SessionLocal
 from ..models.configuracao import Configuracao
 
@@ -146,6 +144,31 @@ CATALOGO: list[dict] = [
     _c("simec_base_url", "SIMEC base URL (obras educação)", "fonte", False),
     _c("caixa_obras_base_url", "CAIXA/SIORB base URL (obras infra)", "fonte", False),
     _c("ibge_localidades_url", "IBGE Localidades base URL (busca de municípios)", "fonte", False),
+    # Agenda de contatos — OAuth de aplicação (Google/Microsoft) e CardDAV (Apple)
+    _c("google_client_id", "Google OAuth Client ID (contatos)", "integracoes", False, "google"),
+    _c("google_client_secret", "Google OAuth Client Secret", "integracoes", True, "google"),
+    _c(
+        "microsoft_client_id",
+        "Microsoft OAuth Client ID (contatos)",
+        "integracoes",
+        False,
+        "microsoft",
+    ),
+    _c(
+        "microsoft_client_secret",
+        "Microsoft OAuth Client Secret",
+        "integracoes",
+        True,
+        "microsoft",
+    ),
+    _c(
+        "microsoft_tenant",
+        "Microsoft tenant (common/organizations/ID)",
+        "integracoes",
+        False,
+        "microsoft",
+    ),
+    _c("apple_carddav_url", "Apple/iCloud CardDAV URL", "integracoes", False, "apple"),
     _c("uniq_api_key", "Uniq API Key (WhatsApp)", "whatsapp", True),
     _c("uniq_base_url", "Uniq base URL", "whatsapp", False),
     _c("uniq_webhook_token", "Uniq webhook token", "whatsapp", True),
@@ -164,19 +187,9 @@ def chave_valida(chave: str) -> bool:
     return chave in _CATALOGO_POR_CHAVE
 
 
-def _fernet() -> Fernet:
-    raw = settings.config_secret_key or settings.jwt_secret
-    key = base64.urlsafe_b64encode(hashlib.sha256(raw.encode()).digest())
-    return Fernet(key)
-
-
 def _default(chave: str) -> str | None:
     val = getattr(settings, chave, None)
     return val or None
-
-
-def mascarar(valor: str) -> str:
-    return "••••" + valor[-4:] if len(valor) >= 4 else "••••"
 
 
 async def _row(session: AsyncSession, chave: str) -> Configuracao | None:
@@ -192,7 +205,7 @@ async def definir(session: AsyncSession, chave: str, valor: str | None) -> None:
     cifrado = False
     valor_store = valor
     if secreto and valor:
-        valor_store = _fernet().encrypt(valor.encode()).decode()
+        valor_store = cifrar(valor)
         cifrado = True
     stmt = (
         pg_insert(Configuracao)
@@ -217,7 +230,7 @@ async def get_valor(session: AsyncSession, chave: str) -> str | None:
     row = await _row(session, chave)
     if row is not None and row.valor is not None:
         if row.cifrado:
-            return _fernet().decrypt(row.valor.encode()).decode()
+            return decifrar(row.valor)
         return row.valor
     return _default(chave)
 

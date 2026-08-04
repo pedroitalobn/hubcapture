@@ -300,6 +300,24 @@
         "title": "AtribuirPlano",
         "type": "object"
       },
+      "AutorizacaoOAuth": {
+        "properties": {
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "state"
+        ],
+        "title": "AutorizacaoOAuth",
+        "type": "object"
+      },
       "Body_login_api_v1_auth_login_post": {
         "properties": {
           "client_id": {
@@ -418,6 +436,51 @@
         "title": "Body_verify_verify_api_v1_auth_verify_post",
         "type": "object"
       },
+      "CallbackOAuth": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "direcao": {
+            "default": "bidirecional",
+            "title": "Direcao",
+            "type": "string"
+          },
+          "provedor": {
+            "title": "Provedor",
+            "type": "string"
+          },
+          "redirect_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redirect Uri"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          }
+        },
+        "required": [
+          "provedor",
+          "code"
+        ],
+        "title": "CallbackOAuth",
+        "type": "object"
+      },
       "ChatRequest": {
         "properties": {
           "modo": {
@@ -434,6 +497,47 @@
           "pergunta"
         ],
         "title": "ChatRequest",
+        "type": "object"
+      },
+      "ConectarSenhaApp": {
+        "description": "Conexão por senha de aplicativo (Apple/iCloud e CardDAV genérico).",
+        "properties": {
+          "base_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "CardDAV genérico: URL do servidor",
+            "title": "Base Url"
+          },
+          "conta": {
+            "description": "Apple ID / usuário",
+            "maxLength": 255,
+            "minLength": 3,
+            "title": "Conta",
+            "type": "string"
+          },
+          "direcao": {
+            "default": "bidirecional",
+            "title": "Direcao",
+            "type": "string"
+          },
+          "senha_app": {
+            "description": "senha de app (não é a senha da conta)",
+            "minLength": 4,
+            "title": "Senha App",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conta",
+          "senha_app"
+        ],
+        "title": "ConectarSenhaApp",
         "type": "object"
       },
       "ConfigItem": {
@@ -739,6 +843,516 @@
         "title": "ConhecimentoCreate",
         "type": "object"
       },
+      "ContatoCreate": {
+        "properties": {
+          "cargo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cargo"
+          },
+          "emails": {
+            "items": {
+              "$ref": "#/components/schemas/ContatoEmail"
+            },
+            "title": "Emails",
+            "type": "array"
+          },
+          "enderecos": {
+            "items": {
+              "$ref": "#/components/schemas/ContatoEndereco"
+            },
+            "title": "Enderecos",
+            "type": "array"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "maxLength": 7,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Ibge"
+          },
+          "nome": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Nome",
+            "type": "string"
+          },
+          "notas": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notas"
+          },
+          "organizacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organizacao"
+          },
+          "sobrenome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sobrenome"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "telefones": {
+            "items": {
+              "$ref": "#/components/schemas/ContatoTelefone"
+            },
+            "title": "Telefones",
+            "type": "array"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "maxLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          }
+        },
+        "required": [
+          "nome"
+        ],
+        "title": "ContatoCreate",
+        "type": "object"
+      },
+      "ContatoEmail": {
+        "properties": {
+          "tipo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo"
+          },
+          "valor": {
+            "title": "Valor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "valor"
+        ],
+        "title": "ContatoEmail",
+        "type": "object"
+      },
+      "ContatoEndereco": {
+        "properties": {
+          "cep": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cep"
+          },
+          "cidade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cidade"
+          },
+          "logradouro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logradouro"
+          },
+          "tipo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          }
+        },
+        "title": "ContatoEndereco",
+        "type": "object"
+      },
+      "ContatoRead": {
+        "properties": {
+          "arquivado": {
+            "default": false,
+            "title": "Arquivado",
+            "type": "boolean"
+          },
+          "cargo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cargo"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "emails": {
+            "items": {
+              "$ref": "#/components/schemas/ContatoEmail"
+            },
+            "title": "Emails",
+            "type": "array"
+          },
+          "enderecos": {
+            "items": {
+              "$ref": "#/components/schemas/ContatoEndereco"
+            },
+            "title": "Enderecos",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Ibge"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "notas": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notas"
+          },
+          "organizacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organizacao"
+          },
+          "origem": {
+            "title": "Origem",
+            "type": "string"
+          },
+          "sobrenome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sobrenome"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "telefones": {
+            "items": {
+              "$ref": "#/components/schemas/ContatoTelefone"
+            },
+            "title": "Telefones",
+            "type": "array"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "origem"
+        ],
+        "title": "ContatoRead",
+        "type": "object"
+      },
+      "ContatoTelefone": {
+        "properties": {
+          "tipo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo"
+          },
+          "valor": {
+            "title": "Valor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "valor"
+        ],
+        "title": "ContatoTelefone",
+        "type": "object"
+      },
+      "ContatoUpdate": {
+        "properties": {
+          "cargo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cargo"
+          },
+          "emails": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ContatoEmail"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emails"
+          },
+          "enderecos": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ContatoEndereco"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enderecos"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "maxLength": 7,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Ibge"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "notas": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notas"
+          },
+          "organizacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organizacao"
+          },
+          "sobrenome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sobrenome"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
+          },
+          "telefones": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ContatoTelefone"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefones"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "maxLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          }
+        },
+        "title": "ContatoUpdate",
+        "type": "object"
+      },
       "ConvenioVigente": {
         "description": "Convênio em execução com o percentual já desembolsado.",
         "properties": {
@@ -1037,6 +1651,41 @@
           "quantidade"
         ],
         "title": "DistribuicaoItem",
+        "type": "object"
+      },
+      "EmailTesteIn": {
+        "properties": {
+          "destinatario": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destinatario"
+          }
+        },
+        "title": "EmailTesteIn",
+        "type": "object"
+      },
+      "EmailTesteOut": {
+        "properties": {
+          "detalhe": {
+            "title": "Detalhe",
+            "type": "string"
+          },
+          "enviado": {
+            "title": "Enviado",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enviado",
+          "detalhe"
+        ],
+        "title": "EmailTesteOut",
         "type": "object"
       },
       "EmendaItem": {
@@ -1377,6 +2026,138 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ImportacaoResultado": {
+        "properties": {
+          "atualizados": {
+            "title": "Atualizados",
+            "type": "integer"
+          },
+          "ignorados": {
+            "title": "Ignorados",
+            "type": "integer"
+          },
+          "importados": {
+            "title": "Importados",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "importados",
+          "atualizados",
+          "ignorados"
+        ],
+        "title": "ImportacaoResultado",
+        "type": "object"
+      },
+      "ImportacaoVcard": {
+        "properties": {
+          "conteudo": {
+            "description": "conteúdo de um arquivo .vcf",
+            "title": "Conteudo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conteudo"
+        ],
+        "title": "ImportacaoVcard",
+        "type": "object"
+      },
+      "IntegracaoRead": {
+        "properties": {
+          "ativo": {
+            "default": true,
+            "title": "Ativo",
+            "type": "boolean"
+          },
+          "conta": {
+            "title": "Conta",
+            "type": "string"
+          },
+          "direcao": {
+            "title": "Direcao",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "provedor": {
+            "title": "Provedor",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "total_contatos": {
+            "default": 0,
+            "title": "Total Contatos",
+            "type": "integer"
+          },
+          "ultima_sync_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ultima Sync Em"
+          },
+          "ultimo_erro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ultimo Erro"
+          }
+        },
+        "required": [
+          "id",
+          "provedor",
+          "conta",
+          "status",
+          "direcao"
+        ],
+        "title": "IntegracaoRead",
+        "type": "object"
+      },
+      "IntegracaoUpdate": {
+        "properties": {
+          "ativo": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ativo"
+          },
+          "direcao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direcao"
+          }
+        },
+        "title": "IntegracaoUpdate",
         "type": "object"
       },
       "IslandRequest": {
@@ -2160,6 +2941,17 @@
               }
             ],
             "title": "Municipio Nome"
+          },
+          "proposta_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposta Id"
           },
           "tipo": {
             "title": "Tipo",
@@ -3078,6 +3870,18 @@
             ],
             "title": "Contrapartida"
           },
+          "dados_fonte": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dados Fonte"
+          },
           "data_atualizacao_fonte": {
             "anyOf": [
               {
@@ -3436,6 +4240,46 @@
         "title": "PropostasFacetas",
         "type": "object"
       },
+      "ProvedorInfo": {
+        "description": "Catálogo de provedores para a tela de conexão.",
+        "properties": {
+          "disponivel": {
+            "title": "Disponivel",
+            "type": "boolean"
+          },
+          "instrucoes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instrucoes"
+          },
+          "provedor": {
+            "title": "Provedor",
+            "type": "string"
+          },
+          "rotulo": {
+            "title": "Rotulo",
+            "type": "string"
+          },
+          "tipo_auth": {
+            "title": "Tipo Auth",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provedor",
+          "rotulo",
+          "tipo_auth",
+          "disponivel"
+        ],
+        "title": "ProvedorInfo",
+        "type": "object"
+      },
       "RankingParlamentar": {
         "description": "Linha do ranking de parlamentares que destinaram recursos ao município.",
         "properties": {
@@ -3688,6 +4532,19 @@
           "itens"
         ],
         "title": "RepassesPorDia",
+        "type": "object"
+      },
+      "ResultadoLimpeza": {
+        "properties": {
+          "removidas": {
+            "title": "Removidas",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "removidas"
+        ],
+        "title": "ResultadoLimpeza",
         "type": "object"
       },
       "ResumoAno": {
@@ -4035,6 +4892,82 @@
           "municipio_ibge"
         ],
         "title": "SyncRepassesRequest",
+        "type": "object"
+      },
+      "SyncResultado": {
+        "description": "Placar de uma sincronização (por integração).",
+        "properties": {
+          "atualizados_local": {
+            "default": 0,
+            "title": "Atualizados Local",
+            "type": "integer"
+          },
+          "atualizados_remoto": {
+            "default": 0,
+            "title": "Atualizados Remoto",
+            "type": "integer"
+          },
+          "conflitos": {
+            "default": 0,
+            "title": "Conflitos",
+            "type": "integer"
+          },
+          "conta": {
+            "title": "Conta",
+            "type": "string"
+          },
+          "erro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erro"
+          },
+          "exportados": {
+            "default": 0,
+            "title": "Exportados",
+            "type": "integer"
+          },
+          "importados": {
+            "default": 0,
+            "title": "Importados",
+            "type": "integer"
+          },
+          "integracao_id": {
+            "format": "uuid",
+            "title": "Integracao Id",
+            "type": "string"
+          },
+          "provedor": {
+            "title": "Provedor",
+            "type": "string"
+          },
+          "removidos_local": {
+            "default": 0,
+            "title": "Removidos Local",
+            "type": "integer"
+          },
+          "removidos_remoto": {
+            "default": 0,
+            "title": "Removidos Remoto",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "integracao_id",
+          "provedor",
+          "conta",
+          "status"
+        ],
+        "title": "SyncResultado",
         "type": "object"
       },
       "SyncRunStatus": {
@@ -4885,6 +5818,53 @@
         ]
       }
     },
+    "/api/v1/admin/email/test": {
+      "post": {
+        "description": "Envia um e-mail de teste (Maileroo/SMTP) p/ validar a configuração.\n\nSem `destinatario`, manda para o próprio admin. Se o provedor recusar\n(chave/domínio inválido), devolve o motivo — pra depurar sem adivinhar.",
+        "operationId": "testar_email_api_v1_admin_email_test_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailTesteIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailTesteOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Testar Email",
+        "tags": [
+          "admin-config"
+        ]
+      }
+    },
     "/api/v1/admin/invites": {
       "get": {
         "operationId": "admin_listar_convites_api_v1_admin_invites_get",
@@ -4954,6 +5934,48 @@
           }
         ],
         "summary": "Admin Criar Convite",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/invites/{convite_id}": {
+      "delete": {
+        "description": "Exclui um convite (pendente/expirado/aceito). Não afeta o usuário já\ncriado a partir dele — para remover o usuário, use DELETE /admin/users.",
+        "operationId": "admin_excluir_convite_api_v1_admin_invites__convite_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "convite_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Convite Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Admin Excluir Convite",
         "tags": [
           "admin"
         ]
@@ -5086,6 +6108,33 @@
         ]
       }
     },
+    "/api/v1/admin/proposals": {
+      "delete": {
+        "description": "Zera TODAS as propostas do sistema (uso: validação — recomeçar a coleta do\nzero). As FKs são ON DELETE CASCADE, então favoritos, pastas, monitoramentos,\nalertas e embeddings ligados às propostas somem junto. Só superuser.",
+        "operationId": "zerar_propostas_api_v1_admin_proposals_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoLimpeza"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Zerar Propostas",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/sources": {
       "get": {
         "operationId": "diagnostico_fontes_api_v1_admin_sources_get",
@@ -5187,6 +6236,46 @@
       }
     },
     "/api/v1/admin/users/{usuario_id}": {
+      "delete": {
+        "description": "Exclui um usuário. FKs são CASCADE (favoritos/monitoramentos/pastas/\nalertas somem junto). Guarda: não permite excluir a própria conta.",
+        "operationId": "admin_excluir_usuario_api_v1_admin_users__usuario_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "usuario_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Usuario Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Admin Excluir Usuario",
+        "tags": [
+          "admin"
+        ]
+      },
       "patch": {
         "operationId": "admin_atualizar_usuario_api_v1_admin_users__usuario_id__patch",
         "parameters": [
@@ -5921,6 +7010,386 @@
         ]
       }
     },
+    "/api/v1/contacts": {
+      "get": {
+        "operationId": "listar_contatos_api_v1_contacts_get",
+        "parameters": [
+          {
+            "description": "nome, organização, cargo ou e-mail",
+            "in": "query",
+            "name": "busca",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "nome, organização, cargo ou e-mail",
+              "title": "Busca"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tag",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tag"
+            }
+          },
+          {
+            "description": "código IBGE (7 dígitos)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "código IBGE (7 dígitos)",
+              "title": "Municipio"
+            }
+          },
+          {
+            "description": "manual|google|microsoft|apple|carddav|vcard",
+            "in": "query",
+            "name": "origem",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "manual|google|microsoft|apple|carddav|vcard",
+              "title": "Origem"
+            }
+          },
+          {
+            "in": "query",
+            "name": "arquivados",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Arquivados",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ContatoRead"
+                  },
+                  "title": "Response Listar Contatos Api V1 Contacts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Contatos",
+        "tags": [
+          "contatos"
+        ]
+      },
+      "post": {
+        "operationId": "criar_contato_api_v1_contacts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContatoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContatoRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Criar Contato",
+        "tags": [
+          "contatos"
+        ]
+      }
+    },
+    "/api/v1/contacts/export": {
+      "get": {
+        "description": "Exporta a agenda em .vcf — importável no Google/Apple/Outlook sem conectar conta.",
+        "operationId": "exportar_contatos_api_v1_contacts_export_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Exportar Contatos",
+        "tags": [
+          "contatos"
+        ]
+      }
+    },
+    "/api/v1/contacts/import": {
+      "post": {
+        "operationId": "importar_contatos_api_v1_contacts_import_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportacaoVcard"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportacaoResultado"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Importar Contatos",
+        "tags": [
+          "contatos"
+        ]
+      }
+    },
+    "/api/v1/contacts/{contato_id}": {
+      "delete": {
+        "operationId": "remover_contato_api_v1_contacts__contato_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contato_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Contato Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Remover Contato",
+        "tags": [
+          "contatos"
+        ]
+      },
+      "get": {
+        "operationId": "obter_contato_api_v1_contacts__contato_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contato_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Contato Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContatoRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Obter Contato",
+        "tags": [
+          "contatos"
+        ]
+      },
+      "patch": {
+        "operationId": "atualizar_contato_api_v1_contacts__contato_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contato_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Contato Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContatoUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContatoRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Atualizar Contato",
+        "tags": [
+          "contatos"
+        ]
+      }
+    },
     "/api/v1/copilot/chat": {
       "post": {
         "operationId": "copiloto_chat_api_v1_copilot_chat_post",
@@ -6449,6 +7918,412 @@
         "summary": "Remover Proposta",
         "tags": [
           "pastas"
+        ]
+      }
+    },
+    "/api/v1/integrations/contacts": {
+      "get": {
+        "operationId": "listar_integracoes_api_v1_integrations_contacts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IntegracaoRead"
+                  },
+                  "title": "Response Listar Integracoes Api V1 Integrations Contacts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Integracoes",
+        "tags": [
+          "integracoes"
+        ]
+      }
+    },
+    "/api/v1/integrations/contacts/callback": {
+      "post": {
+        "description": "Troca o `code` do provedor por tokens e grava a conta conectada.",
+        "operationId": "concluir_oauth_api_v1_integrations_contacts_callback_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CallbackOAuth"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegracaoRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Concluir Oauth",
+        "tags": [
+          "integracoes"
+        ]
+      }
+    },
+    "/api/v1/integrations/contacts/providers": {
+      "get": {
+        "description": "Catálogo de agendas suportadas + se a credencial de aplicação está posta.",
+        "operationId": "listar_provedores_api_v1_integrations_contacts_providers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProvedorInfo"
+                  },
+                  "title": "Response Listar Provedores Api V1 Integrations Contacts Providers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Provedores",
+        "tags": [
+          "integracoes"
+        ]
+      }
+    },
+    "/api/v1/integrations/contacts/sync": {
+      "post": {
+        "operationId": "sincronizar_todas_api_v1_integrations_contacts_sync_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SyncResultado"
+                  },
+                  "title": "Response Sincronizar Todas Api V1 Integrations Contacts Sync Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Sincronizar Todas",
+        "tags": [
+          "integracoes"
+        ]
+      }
+    },
+    "/api/v1/integrations/contacts/{integracao_id}": {
+      "delete": {
+        "description": "Desconecta a conta. Os contatos já sincronizados ficam na agenda do Hub.",
+        "operationId": "desconectar_api_v1_integrations_contacts__integracao_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "integracao_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Integracao Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Desconectar",
+        "tags": [
+          "integracoes"
+        ]
+      },
+      "patch": {
+        "operationId": "atualizar_integracao_api_v1_integrations_contacts__integracao_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "integracao_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Integracao Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegracaoUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegracaoRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Atualizar Integracao",
+        "tags": [
+          "integracoes"
+        ]
+      }
+    },
+    "/api/v1/integrations/contacts/{integracao_id}/sync": {
+      "post": {
+        "operationId": "sincronizar_api_v1_integrations_contacts__integracao_id__sync_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "integracao_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Integracao Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncResultado"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Sincronizar",
+        "tags": [
+          "integracoes"
+        ]
+      }
+    },
+    "/api/v1/integrations/contacts/{provedor}/app-password": {
+      "post": {
+        "description": "Apple/iCloud e CardDAV genérico: conta + senha de app (validadas na hora).",
+        "operationId": "conectar_senha_app_api_v1_integrations_contacts__provedor__app_password_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provedor",
+            "required": true,
+            "schema": {
+              "title": "Provedor",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConectarSenhaApp"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegracaoRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Conectar Senha App",
+        "tags": [
+          "integracoes"
+        ]
+      }
+    },
+    "/api/v1/integrations/contacts/{provedor}/authorize": {
+      "post": {
+        "description": "URL de consentimento do provedor (o web redireciona o usuário para ela).",
+        "operationId": "autorizar_api_v1_integrations_contacts__provedor__authorize_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provedor",
+            "required": true,
+            "schema": {
+              "title": "Provedor",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "redirect_uri",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Redirect Uri"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutorizacaoOAuth"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Autorizar",
+        "tags": [
+          "integracoes"
         ]
       }
     },

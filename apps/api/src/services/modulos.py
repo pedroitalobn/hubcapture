@@ -49,6 +49,12 @@ MODULOS: list[dict] = [
         "padrao": False,
     },
     {
+        "chave": "contatos",
+        "label": "Agenda de contatos",
+        "descricao": "Contatos do gestor sincronizados com Google, Apple e Outlook",
+        "padrao": True,
+    },
+    {
         "chave": "copiloto",
         "label": "Copiloto",
         "descricao": "Chat com IA sobre as propostas e base de conhecimento",
