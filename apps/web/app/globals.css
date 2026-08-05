@@ -77,6 +77,13 @@
      vira verde de tinta, legível sobre bone white. */
   --ok: #2f6b4f;
   --ok-bg: rgba(47, 107, 79, 0.1);
+  /* Segmentos da barra de execução (empenhado ⊃ liberado ⊃ pago). No light,
+     lime a 30/60/100% de opacidade sobre superfície clara produzia três tons
+     quase idênticos — a barra virava uma faixa chapada. Aqui cada degrau tem
+     cor própria, com contraste real entre eles. */
+  --bar-1: #d3e8c6;
+  --bar-2: #86bd76;
+  --bar-3: #2f6b4f;
   --warn: #8a6a1f;
   --warn-bg: rgba(201, 162, 75, 0.14);
   --danger: #9b3f2c;
@@ -121,6 +128,11 @@
        o abyssal ink. */
     --ok: #cef79e;
     --ok-bg: rgba(206, 247, 158, 0.12);
+    /* No dark o lime tem contraste de sobra sobre o abyssal ink; aqui a
+       escada por opacidade funciona e mantém a assinatura da marca. */
+    --bar-1: rgba(206, 247, 158, 0.28);
+    --bar-2: rgba(206, 247, 158, 0.62);
+    --bar-3: #cef79e;
     --warn: #e0bd6a;
     --warn-bg: rgba(224, 189, 106, 0.14);
     --danger: #e08a72;
@@ -747,13 +759,16 @@ p {
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
   }
-  /* Degrau 1 — o número que justifica a tela existir (valor, prazo) */
+  /* Degrau 1 — o número que justifica a tela existir (valor, prazo).
+     O teto é 2rem: a 2,5rem "R$ 2.487.500,00" não cabia numa coluna de
+     ~275px e invadia a coluna vizinha (só a captura de tela pegou isso). */
   .value-hero {
-    font-size: clamp(1.75rem, 3.4vw, 2.5rem);
-    line-height: 1.05;
+    font-size: clamp(1.5rem, 2.6vw, 2rem);
+    line-height: 1.1;
     font-weight: 500;
     letter-spacing: -0.03em;
     font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
   }
   /* Degrau 2 — número de destaque dentro de uma seção */
   .value-lg {

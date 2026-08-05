@@ -7,7 +7,14 @@ import { api } from "@/lib/api/client";
 import { Skeleton } from "@/components/Skeleton";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { Aviso, Dado, cx } from "@/components/ui";
-import { diasAte, formatBRL, formatDate, formatDateTime, prazoLabel } from "@/lib/format";
+import {
+  diasAte,
+  formatBRL,
+  formatDate,
+  formatDateTime,
+  prazoLabel,
+  tomPrazo,
+} from "@/lib/format";
 
 type Prazo = { tipo?: string | null; data_limite?: string | null };
 type Pendencia = { descricao?: string | null; prazo?: string | null };
@@ -62,15 +69,6 @@ type Proposta = {
 function num(v?: string | number | null): number {
   const n = Number(v);
   return Number.isNaN(n) ? 0 : n;
-}
-
-/** Urgência a partir dos dias restantes — governa cor e peso do prazo. */
-function tomPrazo(dias?: number | null): "ok" | "warn" | "danger" | undefined {
-  if (dias === null || dias === undefined) return undefined;
-  if (dias < 0) return "danger";
-  if (dias <= 7) return "danger";
-  if (dias <= 30) return "warn";
-  return "ok";
 }
 
 /** De-para situação → tom do badge (mesma disciplina do resto do painel). */
@@ -308,85 +306,84 @@ export default function PropostaDetalhePage() {
       {/* ── FAIXA DE DESTAQUE ────────────────────────────────────────
           O topo da hierarquia: valor e vencimento, os dois dados que
           decidem se o gestor age hoje. Tudo o mais é subordinado. */}
-      <section className="hero-band anim-page-delayed sm:grid-cols-2 lg:grid-cols-4">
-        <div className="field">
-          <span className="field-label">Valor total</span>
-          <span className="value-hero">{formatBRL(p.valor_total)}</span>
-          {p.contrapartida && num(p.contrapartida) > 0 && (
-            <span className="num mt-0.5 text-xs text-ink-3">
-              contrapartida {formatBRL(p.contrapartida)}
+      {/* Dois degraus DENTRO da faixa: valor e prazo ocupam a linha de cima
+          inteira (é o que decide a ação de hoje); o resto desce um nível.
+          Quatro colunas de peso igual não cabiam — os números colidiam. */}
+      <section className="hero-band anim-page-delayed">
+        <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+          <div className="field">
+            <span className="field-label">Valor total</span>
+            <span className="value-hero">{formatBRL(p.valor_total)}</span>
+            {p.contrapartida && num(p.contrapartida) > 0 && (
+              <span className="num mt-1 text-xs text-ink-3">
+                contrapartida {formatBRL(p.contrapartida)}
+              </span>
+            )}
+          </div>
+
+          <div className="field">
+            <span className="field-label">
+              {dias !== null && dias !== undefined && dias < 0
+                ? "Prazo vencido"
+                : "Próximo prazo"}
             </span>
-          )}
+            {prazoFoco ? (
+              <>
+                <span className={cx("value-hero", tomDoPrazo && `tone-${tomDoPrazo}`)}>
+                  {formatDate(prazoFoco)}
+                </span>
+                <span
+                  className={cx(
+                    "mt-1 font-mono text-xs uppercase tracking-[0.04em]",
+                    tomDoPrazo ? `tone-${tomDoPrazo}` : "text-ink-3",
+                  )}
+                >
+                  {prazoLabel(prazoFoco)}
+                </span>
+              </>
+            ) : (
+              <span className="value-hero text-ink-3">—</span>
+            )}
+          </div>
         </div>
 
-        <div className="field">
-          <span className="field-label">
-            {dias !== null && dias !== undefined && dias < 0 ? "Prazo vencido" : "Prazo"}
-          </span>
-          {prazoFoco ? (
-            <>
-              <span className={cx("value-hero", tomDoPrazo && `tone-${tomDoPrazo}`)}>
-                {formatDate(prazoFoco)}
-              </span>
-              <span
-                className={cx(
-                  "mt-0.5 font-mono text-xs uppercase tracking-[0.04em]",
-                  tomDoPrazo ? `tone-${tomDoPrazo}` : "text-ink-3",
-                )}
-              >
-                {prazoLabel(prazoFoco)}
-              </span>
-            </>
-          ) : (
-            <span className="value-hero text-ink-3">—</span>
-          )}
-        </div>
+        <hr className="hairline-rule" />
 
-        <div className="field">
-          <span className="field-label">Situação</span>
-          <span className="value-lg">{p.situacao ?? "—"}</span>
-          <span className="mt-1">
-            <StatusBadge tone={tomSituacao(p.situacao)}>
-              {p.situacao ?? "sem registro"}
-            </StatusBadge>
-          </span>
-        </div>
+        <div className="data-grid">
+          <div className="field">
+            <span className="field-label">Situação</span>
+            <span className="mt-0.5">
+              <StatusBadge tone={tomSituacao(p.situacao)}>
+                {p.situacao ?? "sem registro"}
+              </StatusBadge>
+            </span>
+          </div>
 
-        <div className="field">
-          <span className="field-label">
-            {p.execucao ? "Empenhado a utilizar" : "Pendências"}
-          </span>
-          {p.execucao ? (
-            <>
-              <span
-                className={cx(
-                  "value-hero",
-                  empenhadoAUtilizar > 0 ? "tone-ok" : "text-ink-3",
-                )}
-              >
-                {formatBRL(String(empenhadoAUtilizar))}
-              </span>
-              <span className="mt-0.5 text-xs text-ink-3">
-                verba disponível e ainda não paga
-              </span>
-            </>
-          ) : (
-            <>
-              <span
-                className={cx(
-                  "value-hero",
-                  (p.pendencias ?? []).length > 0 ? "tone-warn" : "tone-ok",
-                )}
-              >
-                {(p.pendencias ?? []).length}
-              </span>
-              <span className="mt-0.5 text-xs text-ink-3">
-                {(p.pendencias ?? []).length === 0
-                  ? "nada a resolver"
-                  : "item(ns) a resolver"}
-              </span>
-            </>
+          {p.execucao && (
+            <Dado
+              rotulo="Empenhado a utilizar"
+              valor={formatBRL(String(empenhadoAUtilizar))}
+              tom={empenhadoAUtilizar > 0 ? "ok" : undefined}
+              destaque
+            />
           )}
+
+          <Dado
+            rotulo="Pendências"
+            valor={
+              (p.pendencias ?? []).length === 0
+                ? "nenhuma"
+                : `${(p.pendencias ?? []).length} a resolver`
+            }
+            tom={(p.pendencias ?? []).length > 0 ? "warn" : "ok"}
+            destaque
+          />
+
+          <Dado
+            rotulo="Modalidade"
+            valor={p.modalidade}
+            destaque
+          />
         </div>
       </section>
 
@@ -474,16 +471,16 @@ export default function PropostaDetalhePage() {
                   title="Barra sobre o valor global: empenhado, liberado e pago"
                 >
                   <div
-                    className="absolute inset-y-0 left-0 rounded-full bg-lime/30 transition-[width] duration-700 ease-out"
-                    style={{ width: pct(empenhado) }}
+                    className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out"
+                    style={{ width: pct(empenhado), background: "var(--bar-1)" }}
                   />
                   <div
-                    className="absolute inset-y-0 left-0 rounded-full bg-lime/60 transition-[width] duration-700 ease-out"
-                    style={{ width: pct(liberado) }}
+                    className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out"
+                    style={{ width: pct(liberado), background: "var(--bar-2)" }}
                   />
                   <div
-                    className="absolute inset-y-0 left-0 rounded-full bg-lime transition-[width] duration-700 ease-out"
-                    style={{ width: pct(pago) }}
+                    className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out"
+                    style={{ width: pct(pago), background: "var(--bar-3)" }}
                   />
                 </div>
                 <div className="data-grid">
