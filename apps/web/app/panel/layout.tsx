@@ -156,8 +156,17 @@ export default function PainelLayout({
         </button>
       </aside>
 
-      <main className="mx-auto flex w-full min-w-0 max-w-[1600px] flex-1 flex-col gap-6 py-2">
-        {children}
+      <main className="mx-auto flex w-full min-w-0 max-w-[1600px] flex-1 flex-col py-2">
+        {/* `key={pathname}` remonta o wrapper a cada navegação, então a
+            animação de entrada REEXECUTA — sem isso o layout persiste no App
+            Router e a transição só aconteceria no primeiro carregamento.
+            Uma linha aqui cobre todas as telas do painel. */}
+        <div
+          key={pathname}
+          className="anim-page flex min-w-0 flex-1 flex-col gap-6"
+        >
+          {children}
+        </div>
       </main>
 
       {/* Copiloto em Dynamic Island — persiste em TODAS as telas do painel,

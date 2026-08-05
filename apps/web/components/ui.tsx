@@ -4,21 +4,22 @@ export function cx(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(" ");
 }
 
-/* ─────────────────────────────────────────────────────────────── Button ── */
+/* ─────────────────────────────────────────────────────────────── Button ──
+   Delega para as classes de `globals.css` (.btn/.btn-primary/…) em vez de
+   montar a própria paleta. A versão anterior referenciava tokens que não
+   existem no @theme (bg-bg, bg-brand-700, border-line-strong, text-danger…),
+   e no Tailwind 4 utilitário desconhecido compila para NADA — o botão saía
+   sem fundo e sem borda. Uma implementação só, igual em todas as telas. */
 
-type Variante = "primary" | "secondary" | "ghost" | "danger";
+type Variante = "primary" | "secondary" | "ghost" | "accent" | "danger";
 type Tamanho = "sm" | "md";
 
 const VARIANTE: Record<Variante, string> = {
-  primary: "bg-brand text-brand-fg border-brand hover:bg-brand-700 hover:border-brand-700",
-  secondary: "bg-bg text-ink-2 border-line-strong hover:bg-surface hover:text-ink",
-  ghost: "bg-transparent text-ink-2 border-transparent hover:bg-surface hover:text-ink",
-  danger: "bg-danger-bg text-danger border-danger-line hover:bg-danger hover:text-white",
-};
-
-const TAMANHO: Record<Tamanho, string> = {
-  sm: "px-2.5 py-1 text-xs gap-1.5",
-  md: "px-4 py-2 text-sm gap-2",
+  primary: "btn-primary",
+  secondary: "btn-ghost",
+  ghost: "btn-ghost border-transparent",
+  accent: "btn-accent",
+  danger: "tone-danger-soft",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -36,10 +37,9 @@ export function Button({
     <button
       {...props}
       className={cx(
-        "inline-flex items-center justify-center rounded-md border font-medium transition",
-        "disabled:cursor-not-allowed disabled:opacity-50",
+        "btn",
         VARIANTE[variante],
-        TAMANHO[tamanho],
+        tamanho === "sm" && "btn-sm",
         className,
       )}
     />
@@ -49,18 +49,10 @@ export function Button({
 /* ────────────────────────────────────────────────────────────── Input ──── */
 
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      className={cx(
-        "rounded-md border border-line bg-bg px-3 py-2 text-sm text-ink",
-        "placeholder:text-muted focus:border-brand focus:outline-none",
-        className,
-      )}
-    />
-  );
+  return <input {...props} className={cx("input", className)} />;
 }
 
+/** Par rótulo/campo com o mesmo ritmo vertical em todo o app. */
 export function Field({
   label,
   hint,
@@ -73,11 +65,45 @@ export function Field({
   className?: string;
 }) {
   return (
-    <label className={cx("flex flex-col gap-1.5 text-sm text-ink-2", className)}>
-      <span className="font-medium text-ink">{label}</span>
+    <label className={cx("field", className)}>
+      <span className="field-label">{label}</span>
       {children}
-      {hint && <span className="text-xs text-muted">{hint}</span>}
+      {hint && <span className="text-xs text-ink-3">{hint}</span>}
     </label>
+  );
+}
+
+/** Par rótulo/valor somente-leitura — a unidade de exibição de dado. */
+export function Dado({
+  rotulo,
+  valor,
+  tom,
+  destaque,
+  className,
+}: {
+  rotulo: string;
+  valor?: ReactNode;
+  tom?: "ok" | "warn" | "danger";
+  /** `true` sobe o valor um degrau na hierarquia (.value-lg). */
+  destaque?: boolean;
+  className?: string;
+}) {
+  const vazio = valor === null || valor === undefined || valor === "";
+  return (
+    <div className={cx("field", className)}>
+      <span className="field-label">{rotulo}</span>
+      <span
+        className={cx(
+          destaque ? "value-lg" : "field-value",
+          tom === "ok" && "tone-ok",
+          tom === "warn" && "tone-warn",
+          tom === "danger" && "tone-danger",
+          vazio && "text-ink-3",
+        )}
+      >
+        {vazio ? "—" : valor}
+      </span>
+    </div>
   );
 }
 
@@ -92,11 +118,7 @@ export function Card({
   className?: string;
   as?: "div" | "section" | "article" | "li";
 }) {
-  return (
-    <As className={cx("rounded-xl border border-line bg-bg shadow-card", className)}>
-      {children}
-    </As>
-  );
+  return <As className={cx("card", className)}>{children}</As>;
 }
 
 /* ──────────────────────────────────────────────────────────── Mensagem ── */
@@ -110,12 +132,18 @@ export function Aviso({
   children: ReactNode;
 }) {
   const tons = {
-    info: "border-info-line bg-info-bg text-info",
-    ok: "border-ok-line bg-ok-bg text-ok",
-    erro: "border-danger-line bg-danger-bg text-danger",
+    info: "border-hairline text-ink-2",
+    ok: "tone-ok-soft",
+    erro: "tone-danger-soft",
   } as const;
   return (
-    <p role="status" className={cx("rounded-md border px-3 py-2 text-sm", tons[tom])}>
+    <p
+      role="status"
+      className={cx(
+        "anim-pop rounded-lg border px-3 py-2 text-sm",
+        tons[tom],
+      )}
+    >
       {children}
     </p>
   );

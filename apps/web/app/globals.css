@@ -27,6 +27,17 @@
   --color-brand: #cef79e;
   --color-brand-fg: #222f30;
 
+  /* Estado semântico — uma única fonte para badge, aviso e texto de status.
+     Antes cada componente cravava seu hex (#c9a24b no StatusBadge) ou caía
+     numa cor do Tailwind fora da paleta (emerald-600), o que quebrava a
+     harmonia entre telas. */
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+
   /* Tokens semânticos — resolvem via CSS vars que flipam no dark */
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
@@ -62,6 +73,14 @@
   --action-fg: #ffffff;
   --glow: rgba(206, 247, 158, 0.16); /* lume ambiente */
   --glow-2: rgba(139, 224, 212, 0.12); /* lume aqua */
+  /* Estado — no light o lime não legenda texto (some no branco); o "ok"
+     vira verde de tinta, legível sobre bone white. */
+  --ok: #2f6b4f;
+  --ok-bg: rgba(47, 107, 79, 0.1);
+  --warn: #8a6a1f;
+  --warn-bg: rgba(201, 162, 75, 0.14);
+  --danger: #9b3f2c;
+  --danger-bg: rgba(181, 83, 60, 0.12);
   /* Gradiente da marca — acento duplo, racionado a micro-superfícies */
   --grad-brand: linear-gradient(120deg, var(--color-lime), var(--color-aqua));
   --grad-hairline: linear-gradient(
@@ -98,6 +117,14 @@
     --action-fg: #222f30;
     --glow: rgba(206, 247, 158, 0.09);
     --glow-2: rgba(139, 224, 212, 0.08);
+    /* No dark o lime finalmente pode legendar texto — contraste alto sobre
+       o abyssal ink. */
+    --ok: #cef79e;
+    --ok-bg: rgba(206, 247, 158, 0.12);
+    --warn: #e0bd6a;
+    --warn-bg: rgba(224, 189, 106, 0.14);
+    --danger: #e08a72;
+    --danger-bg: rgba(224, 138, 114, 0.14);
     --elev-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.35);
     --elev-2: 0 2px 10px rgba(0, 0, 0, 0.5), 0 24px 60px rgba(0, 0, 0, 0.45);
     --rail: rgba(43, 56, 57, 0.55);
@@ -710,6 +737,139 @@ p {
     border-radius: 9999px;
     background: var(--grad-brand);
     transition: width 0.5s var(--ease-spring);
+  }
+
+  /* ── Hierarquia de dado ───────────────────────────────────────
+     O sistema tinha tokens de cor e de movimento, mas nenhum de
+     HIERARQUIA: todo valor saía em text-sm, do mesmo tamanho do
+     rótulo. Três degraus explícitos, todos com cifras alinhadas. */
+  .num {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  /* Degrau 1 — o número que justifica a tela existir (valor, prazo) */
+  .value-hero {
+    font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+    line-height: 1.05;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Degrau 2 — número de destaque dentro de uma seção */
+  .value-lg {
+    font-size: 1.25rem;
+    line-height: 1.2;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Degrau 3 — valor corrente de um campo (substitui o text-sm solto) */
+  .value-md {
+    font-size: 0.9375rem;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Campo e grade de dados ───────────────────────────────────
+     Um par rótulo/valor com ritmo fixo. Sem isto cada tela inventa
+     o seu espaçamento e as colunas ficam irregulares. */
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1875rem;
+    min-width: 0;
+  }
+  .field > .field-label {
+    /* o rótulo nunca quebra a altura da linha do campo vizinho */
+    line-height: 1.3;
+  }
+  .field-value {
+    font-size: 0.9375rem;
+    line-height: 1.4;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  /* Grade que alinha campos em colunas reais (não flex irregular).
+     auto-fit + minmax mantém o alinhamento em qualquer largura. */
+  .data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 0.875rem 1.5rem;
+    align-items: start;
+  }
+  /* Linha rótulo↔valor com pontilhado de ligação (prazos, pendências) */
+  .data-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .data-row:last-child {
+    border-bottom: 0;
+  }
+
+  /* ── Tons semânticos ──────────────────────────────────────────
+     Compartilhados por StatusBadge, Aviso e texto de estado. */
+  .tone-ok {
+    color: var(--ok);
+  }
+  .tone-warn {
+    color: var(--warn);
+  }
+  .tone-danger {
+    color: var(--danger);
+  }
+  .tone-ok-soft {
+    background: var(--ok-bg);
+    color: var(--ok);
+    border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent);
+  }
+  .tone-warn-soft {
+    background: var(--warn-bg);
+    color: var(--warn);
+    border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
+  }
+  .tone-danger-soft {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  }
+
+  /* ── Entrada de página ────────────────────────────────────────
+     28 das 31 telas não tinham nenhuma animação de entrada: o
+     conteúdo aparecia de bloco. Uma classe no wrapper resolve. */
+  .anim-page {
+    animation: hc-fade-up 0.4s var(--ease-spring) both;
+  }
+  .anim-page-delayed {
+    animation: hc-fade-up 0.45s var(--ease-spring) 0.06s both;
+  }
+
+  /* Faixa de destaque — o bloco de topo que carrega valor e prazo */
+  .hero-band {
+    position: relative;
+    display: grid;
+    gap: 1.25rem;
+    border-radius: 1.25rem;
+    border: 1px solid var(--hairline);
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      var(--elev-1);
+    padding: 1.375rem 1.5rem;
+    overflow: hidden;
+  }
+  .hero-band::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: var(--grad-hairline);
+    pointer-events: none;
   }
 }
 

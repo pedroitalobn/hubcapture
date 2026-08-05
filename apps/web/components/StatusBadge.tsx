@@ -9,9 +9,9 @@ export type BadgeTone =
    vem do dot de 6px (lime = ok; tons rebaixados p/ alerta/erro). */
 const DOT: Record<BadgeTone, string> = {
   neutral: "bg-ink-3",
-  success: "bg-lime",
-  warning: "bg-[#c9a24b]",
-  danger: "bg-[#b5533c]",
+  success: "bg-ok",
+  warning: "bg-warn",
+  danger: "bg-danger",
   info: "bg-graphite",
 };
 
