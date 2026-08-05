@@ -32,7 +32,7 @@ function RedefinirForm() {
 
   if (!token) {
     return (
-      <p className="text-sm text-red-500">
+      <p className="text-sm text-danger">
         Link inválido. Solicite um novo em{" "}
         <Link href="/forgot-password" className="underline">
           recuperar senha
@@ -45,7 +45,7 @@ function RedefinirForm() {
   if (ok) {
     return (
       <div className="card p-5 text-sm">
-        <p className="text-green-500">Senha redefinida! Redirecionando para o login…</p>
+        <p className="text-ok">Senha redefinida! Redirecionando para o login…</p>
       </div>
     );
   }
@@ -65,7 +65,7 @@ function RedefinirForm() {
           placeholder="Mínimo de 8 caracteres"
         />
       </label>
-      {erro && <p className="text-sm text-red-500">{erro}</p>}
+      {erro && <p className="text-sm text-danger">{erro}</p>}
       <button type="submit" disabled={carregando} className="btn btn-primary mt-2">
         {carregando ? "Salvando…" : "Redefinir senha"}
       </button>

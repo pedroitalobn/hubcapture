@@ -44,7 +44,7 @@ function AceitarForm() {
 
   if (!token) {
     return (
-      <p className="text-sm text-red-500">
+      <p className="text-sm text-danger">
         Link de convite inválido. Peça um novo convite ao administrador ou{" "}
         <Link href="/signup" className="underline">
           crie uma conta
@@ -79,7 +79,7 @@ function AceitarForm() {
           placeholder="Mínimo de 8 caracteres"
         />
       </label>
-      {erro && <p className="text-sm text-red-500">{erro}</p>}
+      {erro && <p className="text-sm text-danger">{erro}</p>}
       <button type="submit" disabled={carregando} className="btn btn-primary mt-2">
         {carregando ? "Entrando…" : "Aceitar convite e entrar"}
       </button>

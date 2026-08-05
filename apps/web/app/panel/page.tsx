@@ -434,8 +434,8 @@ function MeuPainel() {
                         }
                         className={`shrink-0 pl-4 text-lg ${
                           favoritas.has(n.proposta_id)
-                            ? "text-amber-500"
-                            : "text-ink-3 hover:text-amber-500"
+                            ? "text-warn"
+                            : "text-ink-3 hover:text-warn"
                         }`}
                       >
                         {favoritas.has(n.proposta_id) ? "★" : "☆"}

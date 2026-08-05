@@ -68,7 +68,7 @@ function Callback() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-3 px-4 text-center">
       <h1 className="text-xl font-bold">Conectando sua agenda…</h1>
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-ink-3">
         {erro ?? "Só um instante — estamos finalizando a autorização."}
       </p>
     </main>
@@ -77,7 +77,7 @@ function Callback() {
 
 export default function CallbackPage() {
   return (
-    <Suspense fallback={<main className="p-8 text-sm text-gray-500">Carregando…</main>}>
+    <Suspense fallback={<main className="p-8 text-sm text-ink-3">Carregando…</main>}>
       <Callback />
     </Suspense>
   );

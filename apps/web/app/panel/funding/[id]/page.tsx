@@ -4,6 +4,17 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
+import { Skeleton } from "@/components/Skeleton";
+import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
+import { Aviso, Dado, cx } from "@/components/ui";
+import {
+  diasAte,
+  formatBRL,
+  formatDate,
+  formatDateTime,
+  prazoLabel,
+  tomPrazo,
+} from "@/lib/format";
 
 type Prazo = { tipo?: string | null; data_limite?: string | null };
 type Pendencia = { descricao?: string | null; prazo?: string | null };
@@ -32,6 +43,11 @@ type Proposta = {
   proveniencia?: Record<string, string> | null;
   resumo_ia?: string | null;
   tipo?: string;
+  // computados pela API — a tela antes descartava os três
+  prazo_final?: string | null;
+  dias_restantes?: number | null;
+  natureza_juridica?: string | null;
+  cache_atualizado_em?: string | null;
   execucao?: {
     valor_global?: string | null;
     valor_empenhado?: string | null;
@@ -53,6 +69,15 @@ type Proposta = {
 function num(v?: string | number | null): number {
   const n = Number(v);
   return Number.isNaN(n) ? 0 : n;
+}
+
+/** De-para situação → tom do badge (mesma disciplina do resto do painel). */
+function tomSituacao(situacao?: string | null): BadgeTone {
+  const s = (situacao ?? "").toLowerCase();
+  if (/aprovad|celebrad|vigente|conclu/.test(s)) return "success";
+  if (/pendenc|análise|analise|aguardand|diligenc/.test(s)) return "warning";
+  if (/rejeitad|cancelad|impedid|arquivad/.test(s)) return "danger";
+  return "neutral";
 }
 
 // rótulo legível a partir da chave crua da fonte (ex.: valor_total_repasse_plano_acao
@@ -84,11 +109,15 @@ function DadosCompletos({ dados }: { dados: Record<string, unknown> }) {
     const entradas = Object.entries(obj).filter(([, v]) => v !== null && v !== "");
     if (entradas.length === 0) return null;
     return (
-      <div key={titulo ?? "raiz"} className="mb-4 last:mb-0">
-        {titulo && <p className="field-label mb-2 font-medium">{humanizar(titulo)}</p>}
-        <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+      <div key={titulo ?? "raiz"} className="mb-5 last:mb-0">
+        {titulo && (
+          <p className="field-label mb-2.5 border-b border-hairline pb-1.5">
+            {humanizar(titulo)}
+          </p>
+        )}
+        <div className="data-grid">
           {entradas.map(([k, v]) => (
-            <Campo key={k} rotulo={humanizar(k)} valor={valorLegivel(v)} />
+            <Dado key={k} rotulo={humanizar(k)} valor={valorLegivel(v)} />
           ))}
         </div>
       </div>
@@ -102,34 +131,20 @@ function DadosCompletos({ dados }: { dados: Record<string, unknown> }) {
   );
 }
 
-function formatBRL(v?: string | null): string {
-  if (!v) return "—";
-  const n = Number(v);
-  if (Number.isNaN(n)) return v;
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
 function Secao({
   titulo,
   children,
+  className,
 }: {
   titulo: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <section className="card p-5">
-      <h2 className="label-mono mb-3">{titulo}</h2>
+    <section className={cx("card p-5", className)}>
+      <h2 className="label-mono mb-3.5 border-b border-hairline pb-2">{titulo}</h2>
       {children}
     </section>
-  );
-}
-
-function Campo({ rotulo, valor }: { rotulo: string; valor?: string | null }) {
-  return (
-    <div>
-      <p className="field-label">{rotulo}</p>
-      <p className="text-sm">{valor || "—"}</p>
-    </div>
   );
 }
 
@@ -138,6 +153,20 @@ const CANAIS = [
   ["email", "E-mail"],
   ["wpp", "WhatsApp"],
 ] as const;
+
+function Carregando() {
+  return (
+    <div className="flex flex-col gap-5">
+      <Skeleton className="h-4 w-24" />
+      <Skeleton className="h-9 w-2/3" />
+      <Skeleton className="h-36 w-full" />
+      <div className="grid gap-5 md:grid-cols-2">
+        <Skeleton className="h-44 w-full" />
+        <Skeleton className="h-44 w-full" />
+      </div>
+    </div>
+  );
+}
 
 export default function PropostaDetalhePage() {
   const params = useParams<{ id: string }>();
@@ -178,14 +207,14 @@ export default function PropostaDetalhePage() {
   }, [params.id]);
 
   async function alternarFavorito() {
-    if (favorita) {
-      await api.DELETE("/api/v1/favorites/{proposta_id}", {
-        params: { path: { proposta_id: params.id } },
-      });
-    } else {
-      await api.POST("/api/v1/favorites", { body: { proposta_id: params.id } });
-    }
-    setFavorita(!favorita);
+    const proximo = !favorita;
+    setFavorita(proximo); // otimista — a estrela responde na hora
+    const { error } = proximo
+      ? await api.POST("/api/v1/favorites", { body: { proposta_id: params.id } })
+      : await api.DELETE("/api/v1/favorites/{proposta_id}", {
+          params: { path: { proposta_id: params.id } },
+        });
+    if (error) setFavorita(!proximo); // rollback silencioso
   }
 
   async function monitorar() {
@@ -202,226 +231,410 @@ export default function PropostaDetalhePage() {
 
   if (erro) {
     return (
-      <>
-        <p className="text-ink-2">{erro}</p>
+      <div className="flex flex-col items-start gap-4">
+        <Aviso tom="erro">{erro}</Aviso>
         <Link href="/panel/funding" className="btn btn-ghost btn-sm">
           ← Voltar à captação
         </Link>
-      </>
+      </div>
     );
   }
-  if (!p) return <p className="text-ink-3">Carregando…</p>;
+  if (!p) return <Carregando />;
+
+  // Prazo em foco: o computado pela API, com retaguarda no primeiro prazo bruto.
+  const prazoFoco =
+    p.prazo_final ?? (p.prazos ?? []).map((x) => x.data_limite).filter(Boolean)[0] ?? null;
+  const dias = p.dias_restantes ?? diasAte(prazoFoco);
+  const tomDoPrazo = tomPrazo(dias);
+  const disponivel = p.tipo === "disponivel";
+  const empenhadoAUtilizar = p.execucao
+    ? Math.max(0, num(p.execucao.valor_empenhado) - num(p.execucao.valor_pago))
+    : 0;
 
   return (
-    <>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+    <div className="flex flex-col gap-5">
+      {/* ── Cabeçalho compacto: contexto, não protagonismo ───────────── */}
+      <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+        <div className="min-w-0">
           <Link
             href="/panel/funding"
-            className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 hover:text-ink"
+            className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 transition-colors hover:text-ink"
           >
             ← Captação
           </Link>
-          <h1 className="page-title mt-1">
-            {p.titulo ?? p.objeto ?? p.id_externo}
+          <h1 className="page-title mt-1.5">
+            {p.titulo ?? p.objeto ?? p.numero_proposta ?? p.id_externo}
           </h1>
-          <p className="mt-1 text-sm text-ink-2">
-            {p.municipio_nome ?? p.municipio_ibge}
-            {p.uf ? `/${p.uf}` : ""} · {p.fonte} ·{" "}
-            <span
-              className={
-                p.tipo === "disponivel" ? "text-emerald-600" : "text-ink-2"
-              }
-            >
-              {p.tipo === "disponivel" ? "oportunidade disponível" : "cadastrada"}
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink-2">
+            <span>
+              {p.municipio_nome ?? p.municipio_ibge}
+              {p.uf ? `/${p.uf}` : ""}
             </span>
-          </p>
+            <span className="text-ink-3">·</span>
+            <span className="font-mono text-xs uppercase tracking-[0.04em]">
+              {p.fonte}
+            </span>
+            <StatusBadge tone={disponivel ? "success" : "neutral"}>
+              {disponivel ? "oportunidade disponível" : "cadastrada"}
+            </StatusBadge>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={alternarFavorito} className="btn btn-ghost">
+        {/* Ações agrupadas — nunca um botão grande solto no canto */}
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            onClick={alternarFavorito}
+            aria-pressed={favorita}
+            className={cx("btn btn-sm", favorita ? "btn-accent" : "btn-ghost")}
+          >
             {favorita ? "★ Favorita" : "☆ Favoritar"}
           </button>
+          {p.url_origem && (
+            <a
+              href={p.url_origem}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-ghost btn-sm"
+            >
+              Fonte oficial ↗
+            </a>
+          )}
         </div>
       </header>
 
-      {msg && <p className="text-sm text-emerald-600">{msg}</p>}
+      {msg && <Aviso tom="ok">{msg}</Aviso>}
+
+      {/* ── FAIXA DE DESTAQUE ────────────────────────────────────────
+          O topo da hierarquia: valor e vencimento, os dois dados que
+          decidem se o gestor age hoje. Tudo o mais é subordinado. */}
+      {/* Dois degraus DENTRO da faixa: valor e prazo ocupam a linha de cima
+          inteira (é o que decide a ação de hoje); o resto desce um nível.
+          Quatro colunas de peso igual não cabiam — os números colidiam. */}
+      <section className="hero-band anim-page-delayed">
+        <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+          <div className="field">
+            <span className="field-label">Valor total</span>
+            <span className="value-hero">{formatBRL(p.valor_total)}</span>
+            {p.contrapartida && num(p.contrapartida) > 0 && (
+              <span className="num mt-1 text-xs text-ink-3">
+                contrapartida {formatBRL(p.contrapartida)}
+              </span>
+            )}
+          </div>
+
+          <div className="field">
+            <span className="field-label">
+              {dias !== null && dias !== undefined && dias < 0
+                ? "Prazo vencido"
+                : "Próximo prazo"}
+            </span>
+            {prazoFoco ? (
+              <>
+                <span className={cx("value-hero", tomDoPrazo && `tone-${tomDoPrazo}`)}>
+                  {formatDate(prazoFoco)}
+                </span>
+                <span
+                  className={cx(
+                    "mt-1 font-mono text-xs uppercase tracking-[0.04em]",
+                    tomDoPrazo ? `tone-${tomDoPrazo}` : "text-ink-3",
+                  )}
+                >
+                  {prazoLabel(prazoFoco)}
+                </span>
+              </>
+            ) : (
+              <span className="value-hero text-ink-3">—</span>
+            )}
+          </div>
+        </div>
+
+        <hr className="hairline-rule" />
+
+        <div className="data-grid">
+          <div className="field">
+            <span className="field-label">Situação</span>
+            <span className="mt-0.5">
+              <StatusBadge tone={tomSituacao(p.situacao)}>
+                {p.situacao ?? "sem registro"}
+              </StatusBadge>
+            </span>
+          </div>
+
+          {p.execucao && (
+            <Dado
+              rotulo="Empenhado a utilizar"
+              valor={formatBRL(String(empenhadoAUtilizar))}
+              tom={empenhadoAUtilizar > 0 ? "ok" : undefined}
+              destaque
+            />
+          )}
+
+          <Dado
+            rotulo="Pendências"
+            valor={
+              (p.pendencias ?? []).length === 0
+                ? "nenhuma"
+                : `${(p.pendencias ?? []).length} a resolver`
+            }
+            tom={(p.pendencias ?? []).length > 0 ? "warn" : "ok"}
+            destaque
+          />
+
+          <Dado
+            rotulo="Modalidade"
+            valor={p.modalidade}
+            destaque
+          />
+        </div>
+      </section>
 
       {p.resumo_ia && (
         <Secao titulo="Resumo inteligente">
-          <p className="text-sm leading-relaxed">{p.resumo_ia}</p>
+          <p className="text-sm leading-relaxed text-ink-2">{p.resumo_ia}</p>
         </Secao>
       )}
 
-      <div className="grid gap-5 md:grid-cols-2">
-        <Secao titulo="Dados gerais">
-          <div className="grid grid-cols-2 gap-3">
-            <Campo rotulo="Nº da proposta" valor={p.numero_proposta ?? p.id_externo} />
-            <Campo rotulo="Órgão superior" valor={p.orgao_superior} />
-            <Campo rotulo="Modalidade" valor={p.modalidade} />
-            <Campo rotulo="Emenda" valor={p.emenda} />
-            <Campo rotulo="Atualizado na fonte" valor={p.data_atualizacao_fonte} />
-            {p.url_origem && (
-              <div>
-                <p className="field-label">Origem</p>
-                <a
-                  href={p.url_origem}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm underline"
-                >
-                  abrir na fonte oficial ↗
-                </a>
-              </div>
-            )}
-          </div>
-          {p.objeto && (
-            <p className="mt-3 text-sm text-ink-2">{p.objeto}</p>
-          )}
-        </Secao>
-
-        <Secao titulo="Valores">
-          <div className="grid grid-cols-2 gap-3">
-            <Campo rotulo="Valor total" valor={formatBRL(p.valor_total)} />
-            <Campo rotulo="Contrapartida" valor={formatBRL(p.contrapartida)} />
-          </div>
-        </Secao>
-
-        {p.execucao && (
-          <Secao titulo={`Execução financeira — TransfereGov${p.execucao.ano ? ` (${p.execucao.ano})` : ""}`}>
-            {(() => {
-              const global = num(p.execucao!.valor_global ?? p.valor_total);
-              const empenhado = num(p.execucao!.valor_empenhado);
-              const liberado = num(p.execucao!.valor_liberado);
-              const pago = num(p.execucao!.valor_pago);
-              const pct = (v: number) =>
-                global > 0 ? `${Math.min(100, (v / global) * 100)}%` : "0%";
-              return (
-                <div className="flex flex-col gap-3">
-                  {/* barra: global (trilho) ▸ empenhado ▸ liberado ▸ pago */}
-                  <div
-                    className="relative h-3 overflow-hidden rounded-full bg-surface-2"
-                    title="Barra sobre o valor global: empenhado, liberado e pago"
-                  >
-                    <div
-                      className="absolute inset-y-0 left-0 rounded-full bg-lime/30"
-                      style={{ width: pct(empenhado) }}
-                    />
-                    <div
-                      className="absolute inset-y-0 left-0 rounded-full bg-lime/60"
-                      style={{ width: pct(liberado) }}
-                    />
-                    <div
-                      className="absolute inset-y-0 left-0 rounded-full bg-lime"
-                      style={{ width: pct(pago) }}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    <Campo rotulo="Valor global" valor={formatBRL(p.execucao!.valor_global)} />
-                    <Campo rotulo="Empenhado" valor={formatBRL(p.execucao!.valor_empenhado)} />
-                    <Campo rotulo="Liberado" valor={formatBRL(p.execucao!.valor_liberado)} />
-                    <Campo rotulo="Pago" valor={formatBRL(p.execucao!.valor_pago)} />
-                    <Campo rotulo="Saldo em conta" valor={formatBRL(p.execucao!.saldo_conta)} />
-                    <div>
-                      <p className="field-label">Empenhado a utilizar</p>
-                      <p className="text-sm font-medium text-lime">
-                        {formatBRL(String(Math.max(0, empenhado - pago)))}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    <Campo rotulo="Tipo" valor={p.execucao!.tipo_transferencia} />
-                    <Campo rotulo="Ente recebedor" valor={p.execucao!.ente_recebedor} />
-                    <Campo rotulo="Assinatura" valor={p.execucao!.data_assinatura} />
-                    <Campo rotulo="Início da vigência" valor={p.execucao!.data_inicio_vigencia} />
-                    <Campo rotulo="Fim da vigência" valor={p.execucao!.data_fim_vigencia} />
-                    <Campo rotulo="Natureza jurídica" valor={p.execucao!.natureza_juridica} />
-                  </div>
-                </div>
-              );
-            })()}
-          </Secao>
-        )}
-
-        <Secao titulo="Situação e movimentação">
-          <div className="grid gap-3">
-            <Campo rotulo="Situação" valor={p.situacao} />
-            <Campo rotulo="Última movimentação" valor={p.movimentacao} />
-          </div>
-        </Secao>
-
+      {/* ── Prazos e pendências: segundo degrau, largura inteira ────── */}
+      <div className="stagger grid gap-5 md:grid-cols-2">
         <Secao titulo="Prazos">
           {(p.prazos ?? []).length === 0 ? (
             <p className="text-sm text-ink-3">Sem prazos registrados.</p>
           ) : (
-            <ul className="space-y-1.5 text-sm">
-              {p.prazos!.map((pr, i) => (
-                <li key={i} className="flex justify-between gap-3">
-                  <span>{pr.tipo ?? "prazo"}</span>
-                  <span className="font-mono">{pr.data_limite ?? "—"}</span>
-                </li>
-              ))}
+            <ul>
+              {p.prazos!.map((pr, i) => {
+                const d = diasAte(pr.data_limite);
+                const tom = tomPrazo(d);
+                return (
+                  <li key={i} className="data-row">
+                    <span className="text-sm">{pr.tipo ?? "prazo"}</span>
+                    <span className="flex shrink-0 items-baseline gap-2">
+                      <span className={cx("num text-sm", tom && `tone-${tom}`)}>
+                        {formatDate(pr.data_limite)}
+                      </span>
+                      <span
+                        className={cx(
+                          "font-mono text-[11px] uppercase tracking-[0.04em]",
+                          tom ? `tone-${tom}` : "text-ink-3",
+                        )}
+                      >
+                        {prazoLabel(pr.data_limite)}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Secao>
 
         <Secao titulo="Pendências">
           {(p.pendencias ?? []).length === 0 ? (
-            <p className="text-sm text-ink-3">Sem pendências.</p>
+            <p className="tone-ok text-sm">✓ Sem pendências.</p>
           ) : (
-            <ul className="space-y-1.5 text-sm">
-              {p.pendencias!.map((pe, i) => (
-                <li key={i} className="flex justify-between gap-3">
-                  <span>{pe.descricao ?? "—"}</span>
-                  <span className="font-mono">{pe.prazo ?? ""}</span>
-                </li>
-              ))}
+            <ul>
+              {p.pendencias!.map((pe, i) => {
+                const d = diasAte(pe.prazo);
+                const tom = tomPrazo(d);
+                return (
+                  <li key={i} className="data-row">
+                    <span className="text-sm">{pe.descricao ?? "—"}</span>
+                    {pe.prazo && (
+                      <span className={cx("num shrink-0 text-sm", tom && `tone-${tom}`)}>
+                        {formatDate(pe.prazo)}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Secao>
+      </div>
 
-        <Secao titulo="Acompanhar e ser avisado">
-          {monitorando ? (
-            <p className="text-sm text-emerald-600">
-              ✓ Você monitora esta proposta — aviso quando mudar status ou prazo.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-wrap gap-3 text-sm">
-                {CANAIS.map(([valor, rotulo]) => (
-                  <label key={valor} className="flex items-center gap-1.5">
-                    <input
-                      type="checkbox"
-                      checked={canais.includes(valor)}
-                      disabled={valor === "painel"}
-                      onChange={(e) =>
-                        setCanais((prev) =>
-                          e.target.checked
-                            ? [...prev, valor]
-                            : prev.filter((c) => c !== valor),
-                        )
-                      }
-                    />
-                    {rotulo}
-                  </label>
-                ))}
+      {/* ── Execução financeira: largura inteira, a barra precisa dela ─ */}
+      {p.execucao && (
+        <Secao
+          titulo={`Execução financeira — TransfereGov${
+            p.execucao.ano ? ` (${p.execucao.ano})` : ""
+          }`}
+        >
+          {(() => {
+            const global = num(p.execucao!.valor_global ?? p.valor_total);
+            const empenhado = num(p.execucao!.valor_empenhado);
+            const liberado = num(p.execucao!.valor_liberado);
+            const pago = num(p.execucao!.valor_pago);
+            const pct = (v: number) =>
+              global > 0 ? `${Math.min(100, (v / global) * 100)}%` : "0%";
+            return (
+              <div className="flex flex-col gap-4">
+                <div
+                  className="relative h-3 overflow-hidden rounded-full bg-surface-2"
+                  title="Barra sobre o valor global: empenhado, liberado e pago"
+                >
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out"
+                    style={{ width: pct(empenhado), background: "var(--bar-1)" }}
+                  />
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out"
+                    style={{ width: pct(liberado), background: "var(--bar-2)" }}
+                  />
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out"
+                    style={{ width: pct(pago), background: "var(--bar-3)" }}
+                  />
+                </div>
+                <div className="data-grid">
+                  <Dado
+                    rotulo="Valor global"
+                    valor={formatBRL(p.execucao!.valor_global)}
+                    destaque
+                  />
+                  <Dado
+                    rotulo="Empenhado"
+                    valor={formatBRL(p.execucao!.valor_empenhado)}
+                    destaque
+                  />
+                  <Dado rotulo="Liberado" valor={formatBRL(p.execucao!.valor_liberado)} />
+                  <Dado rotulo="Pago" valor={formatBRL(p.execucao!.valor_pago)} />
+                  <Dado
+                    rotulo="Saldo em conta"
+                    valor={formatBRL(p.execucao!.saldo_conta)}
+                  />
+                  <Dado
+                    rotulo="Empenhado a utilizar"
+                    valor={formatBRL(String(empenhadoAUtilizar))}
+                    tom={empenhadoAUtilizar > 0 ? "ok" : undefined}
+                    destaque
+                  />
+                </div>
+                <hr className="hairline-rule" />
+                <div className="data-grid">
+                  <Dado rotulo="Tipo" valor={p.execucao!.tipo_transferencia} />
+                  <Dado rotulo="Ente recebedor" valor={p.execucao!.ente_recebedor} />
+                  <Dado
+                    rotulo="Natureza jurídica"
+                    valor={p.natureza_juridica ?? p.execucao!.natureza_juridica}
+                  />
+                  <Dado
+                    rotulo="Assinatura"
+                    valor={formatDate(p.execucao!.data_assinatura)}
+                  />
+                  <Dado
+                    rotulo="Início da vigência"
+                    valor={formatDate(p.execucao!.data_inicio_vigencia)}
+                  />
+                  <Dado
+                    rotulo="Fim da vigência"
+                    valor={formatDate(p.execucao!.data_fim_vigencia)}
+                    tom={tomPrazo(diasAte(p.execucao!.data_fim_vigencia))}
+                  />
+                </div>
               </div>
-              <button onClick={monitorar} className="btn btn-primary self-start">
-                Monitorar proposta-chave
-              </button>
-            </div>
+            );
+          })()}
+        </Secao>
+      )}
+
+      <div className="stagger grid gap-5 md:grid-cols-2">
+        <Secao titulo="Dados gerais">
+          <div className="data-grid">
+            <Dado
+              rotulo="Nº da proposta"
+              valor={p.numero_proposta ?? p.id_externo}
+            />
+            <Dado rotulo="Identificador na fonte" valor={p.id_externo} />
+            <Dado rotulo="Órgão superior" valor={p.orgao_superior} />
+            <Dado rotulo="Modalidade" valor={p.modalidade} />
+            <Dado rotulo="Emenda" valor={p.emenda} />
+            <Dado rotulo="Natureza jurídica" valor={p.natureza_juridica} />
+            <Dado rotulo="Município (IBGE)" valor={p.municipio_ibge} />
+            <Dado
+              rotulo="Atualizado na fonte"
+              valor={formatDate(p.data_atualizacao_fonte)}
+            />
+            <Dado
+              rotulo="Cache atualizado"
+              valor={formatDateTime(p.cache_atualizado_em)}
+            />
+          </div>
+          {p.objeto && (
+            <>
+              <hr className="hairline-rule my-4" />
+              <div className="field">
+                <span className="field-label">Objeto</span>
+                <p className="text-sm leading-relaxed text-ink-2">{p.objeto}</p>
+              </div>
+            </>
           )}
         </Secao>
 
-        {p.dados_fonte && Object.keys(p.dados_fonte).length > 0 && (
-          <Secao titulo="Dados completos da fonte">
-            <p className="field-label mb-3 text-ink-3">
-              Todos os campos como vêm da origem — a mesma informação que você veria
-              direto no site oficial.
-            </p>
-            <DadosCompletos dados={p.dados_fonte} />
-          </Secao>
-        )}
+        <Secao titulo="Situação e movimentação">
+          <div className="flex flex-col gap-4">
+            <div className="field">
+              <span className="field-label">Situação</span>
+              <span className="value-lg">{p.situacao ?? "—"}</span>
+            </div>
+            <div className="field">
+              <span className="field-label">Última movimentação</span>
+              <p className="text-sm leading-relaxed text-ink-2">
+                {p.movimentacao ?? "Sem movimentação registrada."}
+              </p>
+            </div>
+          </div>
+        </Secao>
       </div>
+
+      <Secao titulo="Acompanhar e ser avisado">
+        {monitorando ? (
+          <p className="tone-ok text-sm">
+            ✓ Você monitora esta proposta — aviso quando mudar status ou prazo.
+          </p>
+        ) : (
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="flex flex-wrap gap-2">
+              {CANAIS.map(([valor, rotulo]) => {
+                const ativo = canais.includes(valor);
+                const fixo = valor === "painel";
+                return (
+                  <button
+                    key={valor}
+                    type="button"
+                    disabled={fixo}
+                    aria-pressed={ativo}
+                    onClick={() =>
+                      setCanais((prev) =>
+                        prev.includes(valor)
+                          ? prev.filter((c) => c !== valor)
+                          : [...prev, valor],
+                      )
+                    }
+                    className={cx(
+                      "chip",
+                      ativo && "chip-active",
+                      fixo && "cursor-default opacity-70",
+                    )}
+                  >
+                    {rotulo}
+                  </button>
+                );
+              })}
+            </div>
+            <button onClick={monitorar} className="btn btn-primary btn-sm">
+              Monitorar proposta-chave
+            </button>
+          </div>
+        )}
+      </Secao>
+
+      {p.dados_fonte && Object.keys(p.dados_fonte).length > 0 && (
+        <Secao titulo="Dados completos da fonte">
+          <p className="mb-4 text-xs text-ink-3">
+            Todos os campos como vêm da origem — a mesma informação que você veria
+            direto no site oficial.
+          </p>
+          <DadosCompletos dados={p.dados_fonte} />
+        </Secao>
+      )}
 
       {p.proveniencia && Object.keys(p.proveniencia).length > 0 && (
         <Secao titulo="Proveniência dos dados (API × painel)">
@@ -429,14 +642,21 @@ export default function PropostaDetalhePage() {
             {Object.entries(p.proveniencia).map(([campo, origem]) => (
               <span
                 key={campo}
-                className="rounded-full border border-hairline px-2 py-0.5 font-mono text-[11px] text-ink-2"
+                className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-0.5 font-mono text-[11px] text-ink-2"
               >
+                <span
+                  className={cx(
+                    "h-1.5 w-1.5 rounded-full",
+                    origem === "api" ? "bg-aqua" : "bg-lime",
+                  )}
+                  aria-hidden
+                />
                 {campo}: {origem}
               </span>
             ))}
           </div>
         </Secao>
       )}
-    </>
+    </div>
   );
 }

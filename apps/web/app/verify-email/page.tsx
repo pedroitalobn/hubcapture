@@ -31,7 +31,7 @@ function VerificarConteudo() {
   if (estado === "ok")
     return (
       <div className="card p-5 text-sm">
-        <p className="text-green-500">E-mail confirmado! Sua conta está ativa.</p>
+        <p className="text-ok">E-mail confirmado! Sua conta está ativa.</p>
         <Link href="/login" className="btn btn-primary btn-sm mt-4">
           Entrar
         </Link>
@@ -39,7 +39,7 @@ function VerificarConteudo() {
     );
   return (
     <div className="card p-5 text-sm">
-      <p className="text-red-500">Link inválido ou expirado.</p>
+      <p className="text-danger">Link inválido ou expirado.</p>
       <Link href="/login" className="btn btn-ghost btn-sm mt-4">
         Voltar para o login
       </Link>

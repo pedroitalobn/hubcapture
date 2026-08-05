@@ -85,7 +85,10 @@ export default function AdminLayout({
         })}
       </nav>
 
-      <div className="flex flex-1 flex-col gap-6">{children}</div>
+      {/* mesma mecânica do painel: chave por rota reexecuta a entrada */}
+      <div key={pathname} className="anim-page flex flex-1 flex-col gap-6">
+        {children}
+      </div>
     </div>
   );
 }

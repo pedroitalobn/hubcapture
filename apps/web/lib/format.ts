@@ -82,6 +82,26 @@ export function prazoLabel(iso?: string | null, hoje = new Date()): string {
   return `vencido há ${Math.abs(d)} dias`;
 }
 
+export type TomPrazo = "ok" | "warn" | "danger";
+
+/**
+ * Urgência de um prazo → tom semântico. Uma regra só para todo o app: a lista
+ * de captação pintava vencido de `text-ink-3` (cinza, REBAIXADO) enquanto
+ * "≤30 dias" saía em âmbar — o dado mais urgente era o menos visível.
+ * Aceita a data ou os dias já computados pela API (`dias_restantes`).
+ */
+export function tomPrazo(
+  entrada?: string | number | null,
+  hoje = new Date(),
+): TomPrazo | undefined {
+  const d =
+    typeof entrada === "number" ? entrada : diasAte(entrada ?? null, hoje);
+  if (d === null || d === undefined) return undefined;
+  if (d <= 7) return "danger"; // vencido ou vencendo nesta semana
+  if (d <= 30) return "warn";
+  return "ok";
+}
+
 /** Tempo relativo curto ("há 2 h", "há 3 d") para feeds de alerta. */
 export function haQuantoTempo(iso?: string | null, agora = new Date()): string {
   if (!iso) return "—";

@@ -82,11 +82,13 @@ function MiniMapa({ obras }: { obras: Obra[] }) {
         const x = ((Number(o.longitude) - minLo) / spanLo) * 92 + 4;
         const y = 96 - ((Number(o.latitude) - minLa) / spanLa) * 92;
         const tone = SIT_TONE[o.situacao ?? ""] ?? "neutral";
+        // mesmos tons do StatusBadge — o ponto no mapa e o badge da lista
+        // precisam falar a mesma língua de cor.
         const dot: Record<string, string> = {
-          info: "bg-blue-500",
-          warning: "bg-brand",
-          success: "bg-green-500",
-          danger: "bg-red-500",
+          info: "bg-aqua",
+          warning: "bg-warn",
+          success: "bg-ok",
+          danger: "bg-danger",
           neutral: "bg-ink-3",
         };
         return (

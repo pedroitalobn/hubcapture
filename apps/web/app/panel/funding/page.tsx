@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, baixarCsv } from "@/lib/api/client";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
+import { formatBRL, formatDate, prazoLabel, tomPrazo } from "@/lib/format";
+import { cx } from "@/components/ui";
 
 // mapeia a situação da proposta para o tom do badge (verde = bom andamento,
 // âmbar = em análise/pendente, vermelho = negado/cancelado)
@@ -142,13 +144,6 @@ const ORDENACOES: [string, string][] = [
 
 const ABAS_KEY = "hub_captacao_abas";
 const ABA_ACOMPANHAMENTO = "acompanhamento";
-
-function formatBRL(v?: string | null): string {
-  if (!v) return "—";
-  const n = Number(v);
-  if (Number.isNaN(n)) return v;
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
 
 function num(v?: string | number | null): number {
   const n = Number(v);
@@ -903,7 +898,7 @@ export default function CaptacaoPage() {
               {fontesOk} consulta{fontesOk === 1 ? "" : "s"} ok
             </span>
             {fontesErro.length > 0 && (
-              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-mono text-[11px] text-amber-600">
+              <span className="rounded-full bg-warn/10 px-2 py-0.5 font-mono text-[11px] text-warn">
                 fora do ar agora: {fontesErro.join(", ")}
               </span>
             )}
@@ -929,7 +924,7 @@ export default function CaptacaoPage() {
 
       {/* execução financeira (TransfereGov): quanto foi disponibilizado × usado */}
       {execucao && (
-        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        <section className="stagger grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
           {(
             [
               ["Transferências", String(execucao.transferencias), false],
@@ -944,16 +939,15 @@ export default function CaptacaoPage() {
               key={rotulo}
               className={`card p-4 ${destaque ? "ring-1 ring-lime" : ""}`}
             >
-              <p className="field-label">{rotulo}</p>
-              <p
-                className={`mt-1 text-lg tabular-nums tracking-tight ${
-                  destaque ? "text-lime" : ""
-                }`}
-              >
+              {/* min-h de 2 linhas: sem isto o rótulo que quebra ("Empenhado a
+                  utilizar") empurra só o seu valor para baixo e a fileira de
+                  números deixa de alinhar. */}
+              <p className="field-label min-h-[2.2em] leading-tight">{rotulo}</p>
+              <p className={cx("value-lg mt-1", destaque && "tone-ok")}>
                 {valor}
               </p>
               {destaque && (
-                <p className="mt-0.5 text-[11px] text-ink-3">
+                <p className="mt-1 text-[11px] leading-tight text-ink-3">
                   verba disponibilizada ainda não utilizada
                 </p>
               )}
@@ -980,8 +974,8 @@ export default function CaptacaoPage() {
                   <th className="px-3 py-3">Proposta</th>
                   <th className="px-3 py-3">Município</th>
                   <th className="px-3 py-3">Prazo</th>
-                  <th className="px-3 py-3">Valor global</th>
-                  <th className="px-3 py-3">Empenhado</th>
+                  <th className="px-3 py-3 text-right">Valor global</th>
+                  <th className="px-3 py-3 text-right">Empenhado</th>
                   <th className="px-3 py-3">Situação</th>
                   <th className="px-3 py-3">Pasta</th>
                 </tr>
@@ -999,7 +993,7 @@ export default function CaptacaoPage() {
                           aria-label="Favoritar"
                           title={favoritos.has(p.id) ? "Desfavoritar" : "Favoritar"}
                           className={
-                            favoritos.has(p.id) ? "text-amber-500" : "text-ink-3 hover:text-amber-500"
+                            favoritos.has(p.id) ? "text-warn" : "text-ink-3 hover:text-warn"
                           }
                         >
                           {favoritos.has(p.id) ? "★" : "☆"}
@@ -1012,11 +1006,30 @@ export default function CaptacaoPage() {
                               ? "Alerta ligado — avisa quando mudar situação/prazo"
                               : "Ligar alerta desta proposta"
                           }
-                          className={
-                            alertas.has(p.id) ? "text-emerald-500" : "text-ink-3 hover:text-emerald-500"
-                          }
+                          className={cx(
+                            "transition-colors",
+                            alertas.has(p.id)
+                              ? "tone-ok"
+                              : "text-ink-3 hover:text-ink",
+                          )}
                         >
-                          {alertas.has(p.id) ? "🔔" : "🔕"}
+                          {/* o emoji 🔕 renderizava como pictograma vermelho
+                              cortado e lia como estado de ERRO; o glifo abaixo
+                              herda currentColor e segue o tema. */}
+                          <svg
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill={alertas.has(p.id) ? "currentColor" : "none"}
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden
+                          >
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                            <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+                          </svg>
                         </button>
                       </div>
                     </td>
@@ -1044,36 +1057,42 @@ export default function CaptacaoPage() {
                     </td>
                     <td className="px-3 py-3 text-ink-2">
                       {p.prazo_final ? (
-                        <>
-                          {p.prazo_final.slice(0, 10).split("-").reverse().join("/")}
-                          <span
-                            className={`ml-1.5 font-mono text-[10px] ${
-                              (p.dias_restantes ?? 0) < 0
-                                ? "text-ink-3"
-                                : (p.dias_restantes ?? 0) <= 30
-                                  ? "text-amber-600"
-                                  : "text-ink-3"
-                            }`}
-                          >
-                            {(p.dias_restantes ?? 0) < 0
-                              ? "vencido"
-                              : `${p.dias_restantes}d`}
-                          </span>
-                        </>
+                        (() => {
+                          // uma regra só (lib/format::tomPrazo) — antes o vencido
+                          // saía em cinza, menos visível que "vence em 30 dias".
+                          const tom = tomPrazo(
+                            p.dias_restantes ?? p.prazo_final,
+                          );
+                          return (
+                            <span className="flex flex-col">
+                              <span className={cx("num", tom && `tone-${tom}`)}>
+                                {formatDate(p.prazo_final)}
+                              </span>
+                              <span
+                                className={cx(
+                                  "font-mono text-[10px] uppercase tracking-[0.04em]",
+                                  tom ? `tone-${tom}` : "text-ink-3",
+                                )}
+                              >
+                                {prazoLabel(p.prazo_final)}
+                              </span>
+                            </span>
+                          );
+                        })()
                       ) : (
-                        "—"
+                        <span className="text-ink-3">—</span>
                       )}
                     </td>
-                    <td className="px-3 py-3 tabular-nums">
+                    <td className="num px-3 py-3 text-right">
                       {formatBRL(p.execucao?.valor_global ?? p.valor_total)}
                     </td>
-                    <td className="px-3 py-3 tabular-nums">
+                    <td className="num px-3 py-3 text-right">
                       {p.execucao?.valor_empenhado != null ? (
                         <>
                           {formatBRL(p.execucao.valor_empenhado)}
                           {num(p.execucao.valor_empenhado) > num(p.execucao.valor_pago) && (
                             <span
-                              className="ml-1 align-middle text-[10px] text-lime"
+                              className="tone-ok ml-1 align-middle text-[10px]"
                               title="Há verba empenhada ainda não utilizada"
                             >
                               ●
@@ -1081,7 +1100,7 @@ export default function CaptacaoPage() {
                           )}
                         </>
                       ) : (
-                        "—"
+                        <span className="text-ink-3">—</span>
                       )}
                     </td>
                     <td className="px-3 py-3">
@@ -1095,7 +1114,7 @@ export default function CaptacaoPage() {
                       <span
                         className={`ml-1.5 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase ${
                           p.tipo === "disponivel"
-                            ? "bg-emerald-500/10 text-emerald-600"
+                            ? "bg-ok/10 text-ok"
                             : "bg-surface-2 text-ink-3"
                         }`}
                       >
