@@ -281,7 +281,7 @@ export default function ContatosPage() {
           <button
             onClick={() => void sincronizar()}
             disabled={sincronizando || integracoes.length === 0}
-            className="rounded-md bg-brand px-3 py-1.5 text-sm text-brand-fg disabled:opacity-60"
+            className="btn btn-primary btn-sm"
           >
             {sincronizando ? "Sincronizando…" : "Sincronizar tudo"}
           </button>
@@ -322,13 +322,13 @@ export default function ContatosPage() {
               <button
                 onClick={() => void sincronizar(i.id)}
                 disabled={sincronizando}
-                className="text-xs text-brand underline disabled:opacity-60"
+                className="text-xs text-ink-2 underline underline-offset-2 transition-colors hover:text-ink disabled:opacity-60"
               >
                 Sincronizar
               </button>
               <button
                 onClick={() => void desconectar(i)}
-                className="text-xs text-ink-3 underline"
+                className="text-xs text-ink-3 underline underline-offset-2 transition-colors hover:text-ink"
               >
                 Desconectar
               </button>
@@ -392,7 +392,7 @@ export default function ContatosPage() {
                 setEditando(null);
                 setNovo(true);
               }}
-              className="rounded-md bg-brand px-3 py-1.5 text-sm text-brand-fg"
+              className="btn btn-primary btn-sm"
             >
               Novo contato
             </button>
@@ -484,13 +484,13 @@ export default function ContatosPage() {
                       setNovo(false);
                       setEditando(c);
                     }}
-                    className="text-xs text-brand underline"
+                    className="text-xs text-ink-2 underline underline-offset-2 transition-colors hover:text-ink"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => void arquivar(c)}
-                    className="text-xs text-ink-3 underline"
+                    className="text-xs text-ink-3 underline underline-offset-2 transition-colors hover:text-ink"
                   >
                     Remover
                   </button>
@@ -586,11 +586,11 @@ function FormularioSenhaApp({
         <button
           type="submit"
           disabled={salvando}
-          className="rounded-md bg-brand px-3 py-1.5 text-brand-fg disabled:opacity-60"
+          className="btn btn-primary btn-sm"
         >
           {salvando ? "Conectando…" : "Conectar"}
         </button>
-        <button type="button" onClick={onCancelar} className="text-xs text-ink-3 underline">
+        <button type="button" onClick={onCancelar} className="text-xs text-ink-3 underline underline-offset-2 transition-colors hover:text-ink">
           Cancelar
         </button>
       </div>
@@ -735,11 +735,11 @@ function FormularioContato({
         <button
           type="submit"
           disabled={salvando}
-          className="rounded-md bg-brand px-3 py-1.5 text-brand-fg disabled:opacity-60"
+          className="btn btn-primary btn-sm"
         >
           {salvando ? "Salvando…" : contato ? "Salvar" : "Criar contato"}
         </button>
-        <button type="button" onClick={onCancelar} className="text-xs text-ink-3 underline">
+        <button type="button" onClick={onCancelar} className="text-xs text-ink-3 underline underline-offset-2 transition-colors hover:text-ink">
           Cancelar
         </button>
       </div>
