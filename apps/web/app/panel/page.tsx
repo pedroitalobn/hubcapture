@@ -40,7 +40,15 @@ function PanoramaFinanceiro() {
         params: { query: { ano: ano || undefined } } as never,
       })
       .then(({ data }) => {
-        if (data) setResumo(data as ResumoPainelData);
+        // `if (data)` deixava passar qualquer coisa truthy (um [] inclusive),
+        // e aí `resumo.por_ano.map` derrubava a tela inicial INTEIRA — não só
+        // este bloco, porque não há error boundary aqui. O painel é a porta de
+        // entrada do app; ele precisa degradar, não sumir.
+        const ok =
+          data &&
+          Array.isArray((data as ResumoPainelData).por_ano) &&
+          (data as ResumoPainelData).cards;
+        if (ok) setResumo(data as ResumoPainelData);
         setCarregando(false);
       });
   }, [ano]);
@@ -48,10 +56,11 @@ function PanoramaFinanceiro() {
   if (carregando && !resumo) return <SkeletonCards />;
   if (!resumo) return null;
 
-  const anos = resumo.por_ano.map((a) => a.ano);
+  const porAno = resumo.por_ano ?? [];
+  const anos = porAno.map((a) => a.ano);
   const maxAno = Math.max(
     1,
-    ...resumo.por_ano.flatMap((a) => [numBR(a.aprovado), numBR(a.desembolsado)]),
+    ...porAno.flatMap((a) => [numBR(a.aprovado), numBR(a.desembolsado)]),
   );
 
   return (
@@ -96,11 +105,11 @@ function PanoramaFinanceiro() {
         />
       </div>
 
-      {resumo.por_ano.length > 0 && (
+      {porAno.length > 0 && (
         <div className="card p-5">
           <h3 className="label-mono">Aprovado × desembolsado por ano</h3>
           <div className="mt-4 flex items-end gap-2 overflow-x-auto">
-            {resumo.por_ano.map((a) => (
+            {porAno.map((a) => (
               <div key={a.ano} className="flex min-w-[42px] flex-col items-center gap-1">
                 <div className="flex h-28 items-end gap-0.5">
                   <div
@@ -238,7 +247,10 @@ function MeuPainel() {
     if (vg) setData(vg as VisaoGeral);
     if (nov) setNovidades(nov as Novidades);
     setLoading(false);
-    return (nov as Novidades | undefined)?.itens.length ?? 0;
+    // `?.itens.length` protegia contra `nov` ausente mas NÃO contra `itens`
+    // ausente — um nível a menos de defesa do que o próprio `?.` pretendia.
+    // Sem o segundo `?.`, um feed sem `itens` derruba a tela inicial inteira.
+    return (nov as Novidades | undefined)?.itens?.length ?? 0;
   }
 
   useEffect(() => {
