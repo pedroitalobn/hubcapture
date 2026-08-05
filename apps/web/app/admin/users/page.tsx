@@ -273,7 +273,7 @@ export default function AdminUsuariosPage() {
                 <td className="px-3 py-3">
                   <button
                     onClick={() => void remover(u.id, u.email)}
-                    className="text-xs text-red-500 hover:underline"
+                    className="text-xs text-danger hover:underline"
                     title="Excluir usuário"
                   >
                     excluir

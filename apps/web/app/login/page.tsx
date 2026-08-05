@@ -75,7 +75,7 @@ export default function LoginPage() {
             placeholder="••••••••"
           />
         </label>
-        {erro && <p className="text-sm text-red-500">{erro}</p>}
+        {erro && <p className="text-sm text-danger">{erro}</p>}
         <button type="submit" disabled={carregando} className="btn btn-primary mt-2">
           {carregando ? "Entrando…" : "Entrar"}
         </button>

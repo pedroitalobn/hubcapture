@@ -95,7 +95,7 @@ export default function AdminPlanosPage() {
           Criar plano
         </button>
       </form>
-      {msg && <p className="text-sm text-red-500">{msg}</p>}
+      {msg && <p className="text-sm text-danger">{msg}</p>}
 
       <ul className="card flex flex-col divide-y divide-hairline px-5">
         {planos.map((p) => (

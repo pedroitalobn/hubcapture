@@ -481,7 +481,7 @@ export default function OnboardingPage() {
 
       {etapa === "confirmar" && !digitando && (
         <div className="anim-fade-up flex flex-col gap-2">
-          {erro && <p className="text-sm text-red-500">{erro}</p>}
+          {erro && <p className="text-sm text-danger">{erro}</p>}
           <div className="flex justify-end gap-2">
             <button onClick={() => setEtapa("papel")} className="chip">
               Recomeçar

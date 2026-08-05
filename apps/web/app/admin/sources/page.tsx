@@ -125,10 +125,10 @@ export default function AdminFontesPage() {
       </header>
 
       {/* Zona de manutenção — ferramenta de VALIDAÇÃO (destrutiva) */}
-      <section className="card anim-fade-up border border-red-500/30 bg-red-500/5 p-4">
+      <section className="card anim-fade-up border border-danger/30 bg-danger/5 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-medium text-red-500">Zona de manutenção</h2>
+            <h2 className="text-sm font-medium text-danger">Zona de manutenção</h2>
             <p className="mt-0.5 text-xs text-ink-2">
               Zerar todas as propostas para recomeçar a coleta do zero durante a
               validação. Apaga também favoritos, pastas e monitoramentos ligados.
@@ -137,7 +137,7 @@ export default function AdminFontesPage() {
           <button
             onClick={zerar}
             disabled={zerando}
-            className="btn border border-red-500/50 text-red-500 hover:bg-red-500/10"
+            className="btn border border-danger/50 text-danger hover:bg-danger/10"
           >
             {zerando ? "Zerando…" : "Zerar todas as propostas"}
           </button>
@@ -205,7 +205,7 @@ export default function AdminFontesPage() {
                           className={
                             f.ultima_coleta.status === "ok"
                               ? " text-ink-3"
-                              : " text-red-500"
+                              : " text-danger"
                           }
                         >
                           {" "}
@@ -228,7 +228,7 @@ export default function AdminFontesPage() {
           </section>
         </>
       ) : (
-        <p className="text-sm text-red-500">Não foi possível carregar o diagnóstico.</p>
+        <p className="text-sm text-danger">Não foi possível carregar o diagnóstico.</p>
       )}
     </>
   );

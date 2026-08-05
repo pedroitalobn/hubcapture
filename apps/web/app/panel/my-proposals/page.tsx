@@ -88,7 +88,7 @@ export default function MinhasPropostasPage() {
                       onClick={() => void desfavoritar(p.id)}
                       aria-label="Desfavoritar"
                       title="Remover das minhas propostas"
-                      className="text-amber-500"
+                      className="text-warn"
                     >
                       ★
                     </button>

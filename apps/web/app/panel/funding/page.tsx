@@ -903,7 +903,7 @@ export default function CaptacaoPage() {
               {fontesOk} consulta{fontesOk === 1 ? "" : "s"} ok
             </span>
             {fontesErro.length > 0 && (
-              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-mono text-[11px] text-amber-600">
+              <span className="rounded-full bg-warn/10 px-2 py-0.5 font-mono text-[11px] text-warn">
                 fora do ar agora: {fontesErro.join(", ")}
               </span>
             )}
@@ -999,7 +999,7 @@ export default function CaptacaoPage() {
                           aria-label="Favoritar"
                           title={favoritos.has(p.id) ? "Desfavoritar" : "Favoritar"}
                           className={
-                            favoritos.has(p.id) ? "text-amber-500" : "text-ink-3 hover:text-amber-500"
+                            favoritos.has(p.id) ? "text-warn" : "text-ink-3 hover:text-warn"
                           }
                         >
                           {favoritos.has(p.id) ? "★" : "☆"}
@@ -1013,7 +1013,7 @@ export default function CaptacaoPage() {
                               : "Ligar alerta desta proposta"
                           }
                           className={
-                            alertas.has(p.id) ? "text-emerald-500" : "text-ink-3 hover:text-emerald-500"
+                            alertas.has(p.id) ? "text-ok" : "text-ink-3 hover:text-ok"
                           }
                         >
                           {alertas.has(p.id) ? "🔔" : "🔕"}
@@ -1051,7 +1051,7 @@ export default function CaptacaoPage() {
                               (p.dias_restantes ?? 0) < 0
                                 ? "text-ink-3"
                                 : (p.dias_restantes ?? 0) <= 30
-                                  ? "text-amber-600"
+                                  ? "text-warn"
                                   : "text-ink-3"
                             }`}
                           >
@@ -1095,7 +1095,7 @@ export default function CaptacaoPage() {
                       <span
                         className={`ml-1.5 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase ${
                           p.tipo === "disponivel"
-                            ? "bg-emerald-500/10 text-emerald-600"
+                            ? "bg-ok/10 text-ok"
                             : "bg-surface-2 text-ink-3"
                         }`}
                       >

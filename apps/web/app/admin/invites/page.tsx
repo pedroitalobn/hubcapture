@@ -209,7 +209,7 @@ export default function AdminConvitesPage() {
                   )}
                   <button
                     onClick={() => void removerConvite(c.id, c.email)}
-                    className="ml-2 text-xs text-red-500 hover:underline"
+                    className="ml-2 text-xs text-danger hover:underline"
                     title="Excluir convite"
                   >
                     excluir

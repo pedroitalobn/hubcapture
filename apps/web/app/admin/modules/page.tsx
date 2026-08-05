@@ -57,7 +57,7 @@ export default function AdminModulosPage() {
         </p>
       </header>
 
-      {msg && <p className="text-sm text-amber-600">{msg}</p>}
+      {msg && <p className="text-sm text-warn">{msg}</p>}
 
       {modulos === null ? (
         <div className="flex flex-col gap-3">

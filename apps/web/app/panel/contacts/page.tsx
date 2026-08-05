@@ -249,14 +249,14 @@ export default function ContatosPage() {
     <>
       <header>
         <h1 className="text-2xl font-bold">Agenda de contatos</h1>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-ink-3">
           Sua rede de gabinetes, secretarias e técnicos — sincronizada com a agenda
           do seu celular (Google, Apple e Outlook).
         </p>
       </header>
 
       {msg && (
-        <p className="rounded-md bg-gray-100 px-3 py-2 text-sm text-gray-700 dark:bg-gray-900 dark:text-gray-300">
+        <p className="rounded-md bg-surface-2 px-3 py-2 text-sm text-ink">
           {msg}
         </p>
       )}
@@ -288,18 +288,18 @@ export default function ContatosPage() {
         </div>
 
         {integracoes.length === 0 && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-ink-3">
             Nenhuma conta conectada. Conecte uma abaixo — ou use o .vcf para levar
             os contatos na mão.
           </p>
         )}
 
-        <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-900">
+        <ul className="flex flex-col divide-y divide-hairline">
           {integracoes.map((i) => (
             <li key={i.id} className="flex flex-wrap items-center gap-3 py-3 text-sm">
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">{i.conta}</span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-ink-3">
                   {ORIGEM_LABEL[i.provedor] ?? i.provedor} · {i.total_contatos}{" "}
                   vinculados · {formatarQuando(i.ultima_sync_em)}
                   {i.ultimo_erro ? ` · ${i.ultimo_erro.slice(0, 80)}` : ""}
@@ -308,7 +308,7 @@ export default function ContatosPage() {
               <select
                 value={i.direcao}
                 onChange={(e) => void alterarDirecao(i, e.target.value)}
-                className="rounded-md border border-gray-300 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900"
+                className="input text-xs"
               >
                 {Object.entries(DIRECAO_LABEL).map(([valor, label]) => (
                   <option key={valor} value={valor}>
@@ -328,7 +328,7 @@ export default function ContatosPage() {
               </button>
               <button
                 onClick={() => void desconectar(i)}
-                className="text-xs text-gray-500 underline"
+                className="text-xs text-ink-3 underline"
               >
                 Desconectar
               </button>
@@ -349,7 +349,7 @@ export default function ContatosPage() {
                       ? (p.instrucoes ?? "")
                       : "Credenciais do app não configuradas (painel admin)"
                   }
-                  className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:hover:bg-gray-900"
+                  className="btn btn-ghost btn-sm"
                 >
                   Conectar {p.rotulo}
                 </button>
@@ -357,7 +357,7 @@ export default function ContatosPage() {
                 <button
                   key={p.provedor}
                   onClick={() => setConectando(p.provedor)}
-                  className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
+                  className="btn btn-ghost btn-sm"
                 >
                   Conectar {p.rotulo}
                 </button>
@@ -398,13 +398,13 @@ export default function ContatosPage() {
             </button>
             <button
               onClick={() => void baixarContatosVcf()}
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-700"
+              className="btn btn-ghost btn-sm"
             >
               Exportar .vcf
             </button>
             <button
               onClick={() => arquivoRef.current?.click()}
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-700"
+              className="btn btn-ghost btn-sm"
             >
               Importar .vcf
             </button>
@@ -425,7 +425,7 @@ export default function ContatosPage() {
             void carregarContatos(e.target.value);
           }}
           placeholder="Buscar por nome, órgão, cargo ou e-mail"
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          className="input"
         />
 
         {(novo || editando) && (
@@ -444,20 +444,20 @@ export default function ContatosPage() {
         )}
 
         {carregando ? (
-          <p className="text-sm text-gray-500">Carregando…</p>
+          <p className="text-sm text-ink-3">Carregando…</p>
         ) : contatos.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-ink-3">
             Nenhum contato ainda. Crie um, importe um .vcf ou conecte sua agenda.
           </p>
         ) : (
-          <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-900">
+          <ul className="flex flex-col divide-y divide-hairline">
             {contatos.map((c) => (
               <li key={c.id} className="flex items-start justify-between gap-3 py-3 text-sm">
                 <span className="min-w-0">
                   <span className="block truncate font-medium">
                     {[c.nome, c.sobrenome].filter(Boolean).join(" ")}
                   </span>
-                  <span className="block truncate text-xs text-gray-400">
+                  <span className="block truncate text-xs text-ink-3">
                     {[c.cargo, c.organizacao].filter(Boolean).join(" · ")}
                     {c.emails?.[0] ? ` · ${c.emails[0].valor}` : ""}
                     {c.telefones?.[0] ? ` · ${c.telefones[0].valor}` : ""}
@@ -467,7 +467,7 @@ export default function ContatosPage() {
                       {c.tags!.map((t) => (
                         <span
                           key={t}
-                          className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                          className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-ink-3"
                         >
                           {t}
                         </span>
@@ -490,7 +490,7 @@ export default function ContatosPage() {
                   </button>
                   <button
                     onClick={() => void arquivar(c)}
-                    className="text-xs text-gray-500 underline"
+                    className="text-xs text-ink-3 underline"
                   >
                     Remover
                   </button>
@@ -548,16 +548,16 @@ function FormularioSenhaApp({
   return (
     <form
       onSubmit={enviar}
-      className="flex flex-col gap-3 rounded-lg border border-gray-200 p-4 text-sm dark:border-gray-800"
+      className="card flex flex-col gap-3 p-4 text-sm"
     >
-      <p className="text-xs text-gray-500">{provedor.instrucoes}</p>
+      <p className="text-xs text-ink-3">{provedor.instrucoes}</p>
       <label className="flex flex-col gap-1">
         Conta (Apple ID / usuário)
         <input
           value={conta}
           onChange={(e) => setConta(e.target.value)}
           required
-          className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          className="input"
         />
       </label>
       <label className="flex flex-col gap-1">
@@ -567,7 +567,7 @@ function FormularioSenhaApp({
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
           required
-          className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          className="input"
         />
       </label>
       {provedor.provedor === "carddav" && (
@@ -578,7 +578,7 @@ function FormularioSenhaApp({
             onChange={(e) => setBaseUrl(e.target.value)}
             placeholder="https://nuvem.exemplo.br/remote.php/dav"
             required
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="input"
           />
         </label>
       )}
@@ -590,7 +590,7 @@ function FormularioSenhaApp({
         >
           {salvando ? "Conectando…" : "Conectar"}
         </button>
-        <button type="button" onClick={onCancelar} className="text-xs text-gray-500 underline">
+        <button type="button" onClick={onCancelar} className="text-xs text-ink-3 underline">
           Cancelar
         </button>
       </div>
@@ -661,7 +661,7 @@ function FormularioContato({
   return (
     <form
       onSubmit={enviar}
-      className="grid gap-3 rounded-lg border border-gray-200 p-4 text-sm md:grid-cols-2 dark:border-gray-800"
+      className="grid gap-3 rounded-lg border border-hairline p-4 text-sm md:grid-cols-2"
     >
       <label className="flex flex-col gap-1">
         Nome*
@@ -669,7 +669,7 @@ function FormularioContato({
           value={nome}
           onChange={(e) => setNome(e.target.value)}
           required
-          className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          className="input"
         />
       </label>
       <label className="flex flex-col gap-1">
@@ -677,7 +677,7 @@ function FormularioContato({
         <input
           value={sobrenome}
           onChange={(e) => setSobrenome(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          className="input"
         />
       </label>
       <label className="flex flex-col gap-1">
@@ -685,7 +685,7 @@ function FormularioContato({
         <input
           value={organizacao}
           onChange={(e) => setOrganizacao(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          className="input"
         />
       </label>
       <label className="flex flex-col gap-1">
@@ -693,7 +693,7 @@ function FormularioContato({
         <input
           value={cargo}
           onChange={(e) => setCargo(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          className="input"
         />
       </label>
       <label className="flex flex-col gap-1">
@@ -701,7 +701,7 @@ function FormularioContato({
         <input
           value={emails}
           onChange={(e) => setEmails(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          className="input"
         />
       </label>
       <label className="flex flex-col gap-1">
@@ -709,7 +709,7 @@ function FormularioContato({
         <input
           value={telefones}
           onChange={(e) => setTelefones(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          className="input"
         />
       </label>
       <label className="flex flex-col gap-1">
@@ -718,7 +718,7 @@ function FormularioContato({
           value={tags}
           onChange={(e) => setTags(e.target.value)}
           placeholder="gabinete, saude"
-          className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          className="input"
         />
       </label>
       <label className="flex flex-col gap-1">
@@ -728,7 +728,7 @@ function FormularioContato({
           onChange={(e) => setMunicipio(e.target.value)}
           maxLength={7}
           placeholder="3550308"
-          className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          className="input"
         />
       </label>
       <div className="flex gap-2 md:col-span-2">
@@ -739,7 +739,7 @@ function FormularioContato({
         >
           {salvando ? "Salvando…" : contato ? "Salvar" : "Criar contato"}
         </button>
-        <button type="button" onClick={onCancelar} className="text-xs text-gray-500 underline">
+        <button type="button" onClick={onCancelar} className="text-xs text-ink-3 underline">
           Cancelar
         </button>
       </div>
