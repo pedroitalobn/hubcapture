@@ -26,6 +26,8 @@ from ..schemas.conformidade import (
     SecaoResumo,
 )
 from ._sync import registrar_sync
+from ._territorio import Municipios
+from ._territorio import filtrar as filtrar_municipio
 
 _UPSERT_FIELDS = (
     "municipio_nome",
@@ -45,12 +47,12 @@ _UPSERT_FIELDS = (
 async def listar(
     session: AsyncSession,
     *,
-    municipio: str | None = None,
+    municipio: Municipios = None,
     tipo: str | None = None,
 ) -> list[Conformidade]:
     stmt = select(Conformidade)
-    if municipio:
-        stmt = stmt.where(Conformidade.municipio_ibge == municipio)
+    # um município, vários (recorte do painel) ou nenhum (todo o território)
+    stmt = filtrar_municipio(stmt, Conformidade.municipio_ibge, municipio)
     if tipo:
         stmt = stmt.where(Conformidade.tipo == tipo)
     stmt = stmt.order_by(Conformidade.secao.nullslast(), Conformidade.numero)
@@ -71,7 +73,9 @@ async def upsert(session: AsyncSession, canonica: ConformidadeCanonica) -> None:
     await session.execute(stmt)
 
 
-async def resumo(session: AsyncSession, *, municipio: str | None = None) -> ConformidadeResumo:
+async def resumo(
+    session: AsyncSession, *, municipio: Municipios = None
+) -> ConformidadeResumo:
     """KPIs do CAUC (por status/seção) + rating CAPAG."""
     rows = await listar(session, municipio=municipio)
     cauc = [r for r in rows if r.tipo == "cauc"]

@@ -1040,3 +1040,38 @@ Três problemas da tela de captação, resolvidos na camada certa de cada um.
   "FUNDO_A_FUNDO" → "Fundo a Fundo"). Texto já em caixa mista passa intacto; siglas e códigos
   numéricos são preservados. O dado gravado continua idêntico à origem — a conferência é pelo
   link "Fonte oficial ↗".
+
+## 33. Recorte de território — filtrar QUAIS dos municípios do perfil ver agora
+
+O onboarding grava N municípios; o painel precisava responder "quais desses eu quero
+olhar neste momento". O recorte é **global e um subconjunto** (não "um município ou
+todos"), vale para TODAS as lentes do menu profile-centric (§19) e nunca amplia
+visibilidade — o RLS segue sendo o limite: pedir um IBGE fora do território devolve vazio.
+
+- **Contrato** — `municipio` virou parâmetro **repetível** em toda leitura:
+  `GET /proposals` (+`/facets`, `/summary`, `/report.csv`, `/deadlines`), `GET /transfers`
+  (+`/overview`, `/amendments/summary`, `/amendments/report.csv`), `GET /works` (+`/summary`),
+  `GET /compliance`, `GET /profile/overview` e `GET /profile/feed`
+  (`?municipio=2611606&municipio=3550308`; um valor só continua valendo). Em corpo JSON:
+  `POST /proposals/live-search` usa `municipios_ibge: []` (era `municipio_ibge`) e
+  `POST /copilot/island` aceita `municipios`.
+- **Serviços** — `services/_territorio.py` é o de-para único: `ibges()` normaliza
+  `str | lista | None` (dedup, sem vazios) e `filtrar()` aplica o `IN` na query. Todos os
+  serviços de leitura (`propostas`, `repasses`, `obras`, `conformidade`, `perfil`,
+  `consulta_avulsa`) tipam o filtro como `Municipios`. Em `propostas.facetas` a dimensão
+  multi-seleção casa por **interseção** (OU dentro da dimensão, E entre dimensões) e a
+  dimensão município continua ignorando o próprio filtro — senão não daria para trocar
+  de recorte pelo dropdown.
+- **Perfil** — `visao_geral`/`novidades` recebem `municipios_filtro`; a visão geral devolve
+  em `municipios` **o recorte** (o cabeçalho mostra o que está sendo visto, não todo o
+  território).
+- **Copiloto** — `ai/agent.executar(..., municipios=...)` injeta o recorte como padrão das
+  ferramentas (o LLM só sobrepõe pedindo um município explícito) e o descreve no system
+  prompt. O island flutua sobre o painel: responde sobre o mesmo conjunto que está na tela.
+- **Web** — `lib/territorio.tsx` (`TerritorioProvider` + `useTerritorio`) carrega o perfil
+  UMA vez para todo o painel, guarda a seleção em `localStorage` (`hub_territorio_ativo`,
+  vazio = todos) e poda IBGEs que saíram do onboarding. `components/TerritorioFiltro.tsx`
+  fica no trilho lateral, junto do território: multi-seleção com "todos", atalho "só este",
+  busca a partir de 8 municípios e chips do recorte ativo. As telas leem `selecionados` e
+  mandam `paramMunicipio(...)` na chamada; o município **saiu** dos filtros locais da
+  Captação (era single-select por aba) — é escolha global agora.

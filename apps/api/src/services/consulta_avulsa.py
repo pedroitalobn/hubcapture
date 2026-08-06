@@ -29,6 +29,7 @@ from ..models.proposta import Proposta
 from ..models.sync_run import SyncRun
 from . import fontes as fontes_service
 from . import propostas as propostas_service
+from ._territorio import Municipios, ibges
 
 
 async def _garantir_municipio_avulso(
@@ -161,7 +162,7 @@ async def live_search(
     session: AsyncSession,
     *,
     usuario_id: uuid.UUID,
-    municipio: str | None = None,
+    municipio: Municipios = None,
     fonte: str | None = None,
     area: str | None = None,
     **filtros,
@@ -171,13 +172,17 @@ async def live_search(
     A coleta é a parte cara (uma das fontes baixa um CSV de ~1 GB) — daí ela ser
     ação explícita no painel. A leitura sai paginada como a da listagem: quem
     acabou de atualizar quer ver a primeira página, não as milhares de linhas.
+
+    `municipio` é o recorte do painel: um código, vários (subconjunto do
+    território escolhido na tela) ou nenhum — aí vale o território inteiro.
     """
     from ..models.preferencias import PreferenciasUsuario
 
-    if municipio:
-        ibges = [municipio]
+    escolhidos = ibges(municipio)
+    if escolhidos:
+        alvos = escolhidos
     else:
-        ibges = list(
+        alvos = list(
             (
                 await session.execute(
                     select(MunicipioInteresse.ibge).where(
@@ -196,7 +201,7 @@ async def live_search(
     fontes = _fontes_alvo(fonte, area, list(pref.fontes or []) if pref else None)
 
     status_fontes: list[dict] = []
-    for ibge in ibges:
+    for ibge in alvos:
         for f in fontes:
             try:
                 await consulta_avulsa(session, usuario_id=usuario_id, municipio_ibge=ibge, fonte=f)

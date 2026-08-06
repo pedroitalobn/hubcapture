@@ -11,6 +11,7 @@ import {
   prazoLabel,
   tomPrazo,
 } from "@/lib/format";
+import { paramMunicipio, rotuloMunicipio, useTerritorio } from "@/lib/territorio";
 import { cx } from "@/components/ui";
 
 // mapeia a situação da proposta para o tom do badge (verde = bom andamento,
@@ -80,10 +81,11 @@ type Facetas = {
 };
 
 type Pasta = { id: string; nome: string; cor?: string | null };
-type MunicipioPerfil = { ibge: string; nome?: string | null; uf?: string | null };
 
+// O município NÃO é filtro desta tela: quais dos municípios do perfil entram
+// no painel é escolha global (trilho lateral, `lib/territorio`), válida para
+// todas as lentes. Aqui só se lê o recorte ativo.
 type Filtros = {
-  municipio: string;
   uf: string;
   ano: string;
   mes: string;
@@ -107,7 +109,6 @@ type Filtros = {
 type Aba = { id: string; nome: string; filtros: Filtros };
 
 const FILTROS_VAZIOS: Filtros = {
-  municipio: "",
   uf: "",
   ano: "",
   mes: "",
@@ -194,11 +195,18 @@ function abasIniciais(): Aba[] {
       const salvo = window.localStorage.getItem(ABAS_KEY);
       if (salvo) {
         const abas = JSON.parse(salvo) as Aba[];
-        // migra abas salvas antes do filtro de município existir
-        return abas.map((a) => ({
-          ...a,
-          filtros: { ...FILTROS_VAZIOS, ...a.filtros },
-        }));
+        // Reescreve pelas chaves de HOJE: completa filtros novos e descarta os
+        // que saíram (o município virou seleção global de território).
+        return abas.map((a) => {
+          const salvos = (a.filtros ?? {}) as Record<string, unknown>;
+          const filtros = Object.fromEntries(
+            Object.entries(FILTROS_VAZIOS).map(([k, padrao]) => [
+              k,
+              salvos[k] ?? padrao,
+            ]),
+          ) as Filtros;
+          return { ...a, filtros };
+        });
       }
     } catch {
       /* estado corrompido → recomeça */
@@ -260,7 +268,8 @@ export default function CaptacaoPage() {
   const [alertas, setAlertas] = useState<Map<string, string>>(new Map());
   const [pastas, setPastas] = useState<Pasta[]>([]);
   const [pastaPropostas, setPastaPropostas] = useState<Set<string>>(new Set());
-  const [municipios, setMunicipios] = useState<MunicipioPerfil[]>([]);
+  // território ativo: quais dos municípios do perfil estão em tela agora
+  const { selecionados, ativos: municipiosAtivos } = useTerritorio();
   const [abas, setAbas] = useState<Aba[]>(abasIniciais);
   const [abaAtiva, setAbaAtiva] = useState<string>(
     () => abasIniciais()[0]?.id ?? "aba-1",
@@ -291,7 +300,9 @@ export default function CaptacaoPage() {
   // Vazio vira `undefined` para o parâmetro simplesmente não ir na query.
   const filtrosApi = useCallback(
     () => ({
-      municipio: filtros.municipio || undefined,
+      // território: o recorte global do painel (trilho lateral), não um filtro
+      // desta tela — vazio quando o usuário está vendo todos os municípios.
+      municipio: paramMunicipio(selecionados),
       uf: filtros.uf || undefined,
       fonte: filtros.fonte || undefined,
       area: filtros.area || undefined,
@@ -309,7 +320,7 @@ export default function CaptacaoPage() {
       valor_max: filtros.valorMax || undefined,
       tipo: filtros.tipo || undefined,
     }),
-    [filtros],
+    [filtros, selecionados],
   );
 
   /**
@@ -413,7 +424,7 @@ export default function CaptacaoPage() {
     const f = filtrosApi();
     const { data, error } = await api.POST("/api/v1/proposals/live-search", {
       body: {
-        municipio_ibge: f.municipio ?? null,
+        municipios_ibge: f.municipio ?? null,
         uf: f.uf ?? null,
         fonte: f.fonte ?? null,
         area: f.area ?? null,
@@ -454,10 +465,9 @@ export default function CaptacaoPage() {
   }, [filtrosApi, porPagina]);
 
   const carregarCuradoria = useCallback(async () => {
-    const [fav, pas, perf, mon] = await Promise.all([
+    const [fav, pas, mon] = await Promise.all([
       api.GET("/api/v1/favorites"),
       api.GET("/api/v1/folders"),
-      api.GET("/api/v1/profile"),
       api.GET("/api/v1/monitors"),
     ]);
     if (fav.data) {
@@ -478,10 +488,6 @@ export default function CaptacaoPage() {
       );
     }
     if (pas.data) setPastas(pas.data as Pasta[]);
-    if (perf.data)
-      setMunicipios(
-        (perf.data as { municipios: MunicipioPerfil[] }).municipios ?? [],
-      );
   }, []);
 
   useEffect(() => {
@@ -597,10 +603,18 @@ export default function CaptacaoPage() {
   // `total` do servidor não os conhece e seria um denominador mentiroso).
   const visiveis = useMemo(() => {
     let lista = acompanhando ? acompanhadas : propostas;
+    // no acompanhamento a fonte é a lista de favoritas (não passou pelo filtro
+    // da API): o recorte de território vale aqui também.
+    if (acompanhando && selecionados.length > 0) {
+      const escolhidos = new Set(selecionados);
+      lista = lista.filter(
+        (p) => p.municipio_ibge && escolhidos.has(p.municipio_ibge),
+      );
+    }
     if (filtros.soFavoritas) lista = lista.filter((p) => favoritos.has(p.id));
     if (filtros.pastaId) lista = lista.filter((p) => pastaPropostas.has(p.id));
     return lista;
-  }, [propostas, acompanhadas, acompanhando, filtros.soFavoritas, filtros.pastaId, favoritos, pastaPropostas]);
+  }, [propostas, acompanhadas, acompanhando, selecionados, filtros.soFavoritas, filtros.pastaId, favoritos, pastaPropostas]);
 
   const curadoriaAtiva = filtros.soFavoritas || !!filtros.pastaId;
 
@@ -610,25 +624,6 @@ export default function CaptacaoPage() {
     const total = (facetas[dim] ?? []).find((o) => o.valor === valor)?.total;
     return total ? <span className="ml-1 opacity-60 tabular-nums">{total}</span> : null;
   }
-
-  /**
-   * Municípios do dropdown: os do perfil (sempre selecionáveis, mesmo sem
-   * resultado agora) mais os que apareceram na coleta, com a contagem da faceta.
-   */
-  const opcoesMunicipio = useMemo(() => {
-    const daFaceta = new Map(
-      (facetas.municipio ?? []).map((o) => [o.valor, o] as const),
-    );
-    const lista = municipios.map((m) => ({
-      valor: m.ibge,
-      rotulo: `${m.nome ?? m.ibge}${m.uf ? `/${m.uf}` : ""}`,
-      total: daFaceta.get(m.ibge)?.total ?? 0,
-    }));
-    const conhecidos = new Set(lista.map((m) => m.valor));
-    for (const o of facetas.municipio ?? [])
-      if (!conhecidos.has(o.valor)) lista.push({ ...o });
-    return lista;
-  }, [municipios, facetas.municipio]);
 
   /** Chips de "filtros ativos" — cada um se remove ao clicar. */
   // quantos filtros avançados estão ativos — mostra badge no toggle mesmo recolhido
@@ -664,14 +659,6 @@ export default function CaptacaoPage() {
         rotulo: NATUREZAS.find(([v]) => v === filtros.naturezaJuridica)?.[1] ?? "",
         limpar: { naturezaJuridica: "" },
       });
-    if (filtros.municipio) {
-      const m = municipios.find((x) => x.ibge === filtros.municipio);
-      lista.push({
-        chave: "municipio",
-        rotulo: m?.nome ?? rotuloDe("municipio", filtros.municipio),
-        limpar: { municipio: "" },
-      });
-    }
     if (filtros.uf)
       lista.push({ chave: "uf", rotulo: filtros.uf, limpar: { uf: "" } });
     if (filtros.categoria)
@@ -733,7 +720,7 @@ export default function CaptacaoPage() {
         limpar: { pastaId: "" },
       });
     return lista;
-  }, [filtros, facetas, municipios, pastas]);
+  }, [filtros, facetas, pastas]);
 
   /** "Baixar relatório": mesmo recorte da tela, em CSV. */
   async function baixarRelatorio() {
@@ -741,7 +728,8 @@ export default function CaptacaoPage() {
       await baixarCsv(
         "/api/v1/proposals/report.csv",
         {
-          municipio: filtros.municipio,
+          // o relatório sai no mesmo recorte da tela, território incluído
+          municipio: selecionados,
           uf: filtros.uf,
           fonte: filtros.fonte,
           area: filtros.area,
@@ -796,9 +784,19 @@ export default function CaptacaoPage() {
         <div>
           <h1 className="page-title">Captação</h1>
           <p className="mt-1 text-sm text-ink-2">
-            Propostas e oportunidades do seu território, das fontes oficiais
-            (API + scraping). Atualiza sozinha uma vez por dia — use “Atualizar
-            fontes” para consultar agora.
+            Propostas e oportunidades de{" "}
+            {/* condiciona ao que JÁ carregou (não ao recorte salvo no
+                localStorage): antes do perfil chegar, cliente e servidor
+                precisam renderizar o mesmo texto — senão é erro de hidratação */}
+            {selecionados.length > 0 && municipiosAtivos.length > 0 ? (
+              <strong className="font-medium text-ink">
+                {municipiosAtivos.map(rotuloMunicipio).join(", ")}
+              </strong>
+            ) : (
+              "todo o seu território"
+            )}
+            , das fontes oficiais (API + scraping). Atualiza sozinha uma vez por
+            dia — use “Atualizar fontes” para consultar agora.
           </p>
         </div>
         <Link href="/panel/funding/summary" className="btn btn-ghost btn-sm">
@@ -853,22 +851,6 @@ export default function CaptacaoPage() {
               placeholder="programa, órgão ou código"
               className="input w-full"
             />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="field-label">Município</span>
-            <select
-              value={filtros.municipio}
-              onChange={(e) => setFiltros({ municipio: e.target.value })}
-              className="input w-48"
-            >
-              <option value="">todos do perfil</option>
-              {opcoesMunicipio.map((m) => (
-                <option key={m.valor} value={m.valor}>
-                  {m.rotulo}
-                  {m.total ? ` (${m.total})` : ""}
-                </option>
-              ))}
-            </select>
           </label>
           <SelectFaceta
             rotulo="UF"

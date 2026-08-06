@@ -2181,6 +2181,20 @@
       },
       "IslandRequest": {
         "properties": {
+          "municipios": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipios"
+          },
           "pergunta": {
             "title": "Pergunta",
             "type": "string"
@@ -2279,19 +2293,20 @@
             "description": "tipo de instrumento",
             "title": "Modalidade"
           },
-          "municipio_ibge": {
+          "municipios_ibge": {
             "anyOf": [
               {
-                "maxLength": 7,
-                "minLength": 7,
-                "type": "string"
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "código IBGE",
-            "title": "Municipio Ibge"
+            "description": "códigos IBGE (7 dígitos) do recorte escolhido no painel",
+            "title": "Municipios Ibge"
           },
           "natureza_juridica": {
             "anyOf": [
@@ -6572,6 +6587,27 @@
               "title": "Nao Lidos",
               "type": "boolean"
             }
+          },
+          {
+            "description": "códigos IBGE (repita o parâmetro para vários municípios)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "códigos IBGE (repita o parâmetro para vários municípios)",
+              "title": "Municipio"
+            }
           }
         ],
         "responses": {
@@ -7086,20 +7122,23 @@
         "operationId": "conformidade_resumo_api_v1_compliance_get",
         "parameters": [
           {
-            "description": "código IBGE (7 dígitos)",
+            "description": "códigos IBGE (repita o parâmetro para vários municípios)",
             "in": "query",
             "name": "municipio",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "código IBGE (7 dígitos)",
+              "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
             }
           }
@@ -9069,6 +9108,29 @@
       "get": {
         "description": "Feed 'últimas novidades' do território, recortado pelo perfil do usuário.",
         "operationId": "novidades_perfil_api_v1_profile_feed_get",
+        "parameters": [
+          {
+            "description": "códigos IBGE (repita o parâmetro para vários municípios)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "códigos IBGE (repita o parâmetro para vários municípios)",
+              "title": "Municipio"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -9079,6 +9141,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -9095,6 +9167,29 @@
     "/api/v1/profile/overview": {
       "get": {
         "operationId": "visao_geral_perfil_api_v1_profile_overview_get",
+        "parameters": [
+          {
+            "description": "códigos IBGE (repita o parâmetro para vários municípios)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "códigos IBGE (repita o parâmetro para vários municípios)",
+              "title": "Municipio"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -9105,6 +9200,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -9124,20 +9229,23 @@
         "operationId": "listar_propostas_api_v1_proposals_get",
         "parameters": [
           {
-            "description": "código IBGE (7 dígitos)",
+            "description": "códigos IBGE (repita o parâmetro para vários municípios)",
             "in": "query",
             "name": "municipio",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "código IBGE (7 dígitos)",
+              "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
             }
           },
@@ -9516,6 +9624,27 @@
               "title": "Dias",
               "type": "integer"
             }
+          },
+          {
+            "description": "códigos IBGE (repita o parâmetro para vários municípios)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "códigos IBGE (repita o parâmetro para vários municípios)",
+              "title": "Municipio"
+            }
           }
         ],
         "responses": {
@@ -9561,20 +9690,23 @@
         "operationId": "facetas_propostas_api_v1_proposals_facets_get",
         "parameters": [
           {
-            "description": "código IBGE (7 dígitos)",
+            "description": "códigos IBGE (repita o parâmetro para vários municípios)",
             "in": "query",
             "name": "municipio",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "código IBGE (7 dígitos)",
+              "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
             }
           },
@@ -9937,20 +10069,23 @@
         "operationId": "relatorio_propostas_api_v1_proposals_report_csv_get",
         "parameters": [
           {
-            "description": "código IBGE (7 dígitos)",
+            "description": "códigos IBGE (repita o parâmetro para vários municípios)",
             "in": "query",
             "name": "municipio",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "código IBGE (7 dígitos)",
+              "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
             }
           },
@@ -10284,20 +10419,23 @@
         "operationId": "resumo_propostas_api_v1_proposals_summary_get",
         "parameters": [
           {
-            "description": "código IBGE (7 dígitos)",
+            "description": "códigos IBGE (repita o parâmetro para vários municípios)",
             "in": "query",
             "name": "municipio",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "código IBGE (7 dígitos)",
+              "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
             }
           },
@@ -10707,20 +10845,23 @@
         "operationId": "listar_repasses_api_v1_transfers_get",
         "parameters": [
           {
-            "description": "código IBGE (7 dígitos)",
+            "description": "códigos IBGE (repita o parâmetro para vários municípios)",
             "in": "query",
             "name": "municipio",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "código IBGE (7 dígitos)",
+              "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
             }
           },
@@ -10888,20 +11029,23 @@
         "operationId": "relatorio_emendas_api_v1_transfers_amendments_report_csv_get",
         "parameters": [
           {
-            "description": "código IBGE (7 dígitos)",
+            "description": "códigos IBGE (repita o parâmetro para vários municípios)",
             "in": "query",
             "name": "municipio",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "código IBGE (7 dígitos)",
+              "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
             }
           },
@@ -11062,20 +11206,23 @@
         "operationId": "resumo_emendas_api_v1_transfers_amendments_summary_get",
         "parameters": [
           {
-            "description": "código IBGE (7 dígitos)",
+            "description": "códigos IBGE (repita o parâmetro para vários municípios)",
             "in": "query",
             "name": "municipio",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "código IBGE (7 dígitos)",
+              "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
             }
           },
@@ -11237,18 +11384,23 @@
         "operationId": "visao_geral_api_v1_transfers_overview_get",
         "parameters": [
           {
+            "description": "códigos IBGE (repita o parâmetro para vários municípios)",
             "in": "query",
             "name": "municipio",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
+              "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
             }
           },
@@ -11713,20 +11865,23 @@
         "operationId": "listar_obras_api_v1_works_get",
         "parameters": [
           {
-            "description": "código IBGE (7 dígitos)",
+            "description": "códigos IBGE (repita o parâmetro para vários municípios)",
             "in": "query",
             "name": "municipio",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "código IBGE (7 dígitos)",
+              "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
             }
           },
@@ -11805,20 +11960,23 @@
         "operationId": "obras_resumo_api_v1_works_summary_get",
         "parameters": [
           {
-            "description": "código IBGE (7 dígitos)",
+            "description": "códigos IBGE (repita o parâmetro para vários municípios)",
             "in": "query",
             "name": "municipio",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "código IBGE (7 dígitos)",
+              "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
             }
           }

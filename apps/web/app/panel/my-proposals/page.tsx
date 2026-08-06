@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api/client";
+import { useTerritorio } from "@/lib/territorio";
 
 type Proposta = {
   id: string;
@@ -26,6 +27,7 @@ function brl(v?: string | null): string {
 }
 
 export default function MinhasPropostasPage() {
+  const { selecionados } = useTerritorio();
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [carregando, setCarregando] = useState(true);
 
@@ -39,6 +41,16 @@ export default function MinhasPropostasPage() {
   useEffect(() => {
     void carregar();
   }, [carregar]);
+
+  // A lista já vem só das favoritas do usuário; o recorte de território do
+  // painel se aplica aqui em memória (a API não precisa ser chamada de novo).
+  const visiveis = useMemo(() => {
+    if (selecionados.length === 0) return propostas;
+    const escolhidos = new Set(selecionados);
+    return propostas.filter(
+      (p) => p.municipio_ibge && escolhidos.has(p.municipio_ibge),
+    );
+  }, [propostas, selecionados]);
 
   async function desfavoritar(id: string) {
     await api.DELETE("/api/v1/favorites/{proposta_id}", {
@@ -59,10 +71,12 @@ export default function MinhasPropostasPage() {
 
       {carregando ? (
         <p className="text-sm text-ink-3">Carregando…</p>
-      ) : propostas.length === 0 ? (
+      ) : visiveis.length === 0 ? (
         <div className="card p-8 text-center">
           <p className="text-sm text-ink-2">
-            Você ainda não favoritou nenhuma proposta.
+            {propostas.length === 0
+              ? "Você ainda não favoritou nenhuma proposta."
+              : "Nenhuma proposta favoritada nos municípios filtrados — ajuste o território no menu lateral."}
           </p>
           <Link href="/panel/funding" className="btn btn-primary mt-4 inline-flex">
             Ir para a Captação
@@ -81,7 +95,7 @@ export default function MinhasPropostasPage() {
               </tr>
             </thead>
             <tbody>
-              {propostas.map((p) => (
+              {visiveis.map((p) => (
                 <tr key={p.id} className="border-b border-hairline last:border-0 hover:bg-surface-2">
                   <td className="px-4 py-3">
                     <button

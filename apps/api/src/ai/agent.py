@@ -17,7 +17,7 @@ resposta HTTP (a sessão do request precisa estar viva; ver api/v1/copiloto.py).
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from datetime import date
 from decimal import Decimal
 from typing import Any
@@ -30,8 +30,10 @@ from ..services import llm_providers, rag
 from ..services import modulos as modulos_service
 from ..services import noticias as noticias_service
 from ..services import obras as obras_service
+from ..services import perfil as perfil_service
 from ..services import propostas as propostas_service
 from ..services import repasses as repasses_service
+from ..services._territorio import ibges as territorio_ibges
 
 MAX_RODADAS = 4
 SYSTEM = (
@@ -94,7 +96,9 @@ async def _tool_propostas(session: AsyncSession, _u: Usuario, args: dict) -> dic
 
 async def _tool_prazos(session: AsyncSession, _u: Usuario, args: dict) -> dict[str, Any]:
     dias = int(args.get("dias") or 30)
-    rows = await propostas_service.listar_por_prazo(session, dias=dias)
+    rows = await propostas_service.listar_por_prazo(
+        session, dias=dias, municipio=args.get("municipio")
+    )
     return {
         "janela_dias": dias,
         "vencendo": [
@@ -350,8 +354,27 @@ def _formatar_fallback(nome: str, dado: dict[str, Any]) -> str:
     return json.dumps(dado, ensure_ascii=False, default=str)
 
 
+async def _contexto_territorio(session: AsyncSession, territorio: Sequence[str]) -> str:
+    """Frase de contexto com o recorte de município ativo no painel (ou vazia)."""
+    if not territorio:
+        return ""
+    municipios = await perfil_service.municipios_do_recorte(session, territorio)
+    nomes = ", ".join(f"{m.nome or m.ibge}{f'/{m.uf}' if m.uf else ''}" for m in municipios)
+    if not nomes:
+        return ""
+    return (
+        f" O painel está filtrado no(s) município(s): {nomes} — responda sobre esse "
+        "recorte, e diga qual é ele quando fizer diferença."
+    )
+
+
 async def _executar_tool(
-    session: AsyncSession, usuario: Usuario, nome: str, args: dict
+    session: AsyncSession,
+    usuario: Usuario,
+    nome: str,
+    args: dict,
+    *,
+    territorio: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     tool = TOOLS.get(nome)
     if tool is None:
@@ -359,6 +382,11 @@ async def _executar_tool(
     modulo = tool.get("modulo")
     if modulo is not None and not await modulos_service.esta_ativo(modulo):
         return {"erro": f"MODULO_DESATIVADO: {modulo}"}
+    # O island flutua SOBRE o painel: se a tela está filtrada em alguns dos
+    # municípios do perfil, a ferramenta consulta o mesmo recorte (o LLM só
+    # sobrepõe isso se pedir um município explicitamente).
+    if territorio and not args.get("municipio"):
+        args = {**args, "municipio": list(territorio)}
     try:
         return await tool["executor"](session, usuario, args)
     except Exception as exc:  # ferramenta nunca derruba o agente
@@ -366,9 +394,19 @@ async def _executar_tool(
 
 
 async def executar(
-    session: AsyncSession, usuario: Usuario, pergunta: str
+    session: AsyncSession,
+    usuario: Usuario,
+    pergunta: str,
+    *,
+    municipios: Sequence[str] | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
-    """Loop do agente. Eventos: {'tool': nome} e {'delta': texto}."""
+    """Loop do agente. Eventos: {'tool': nome} e {'delta': texto}.
+
+    `municipios` é o recorte de território ativo no painel (quais dos
+    municípios do perfil o usuário está vendo): entra como padrão das
+    ferramentas e no contexto da conversa.
+    """
+    territorio = territorio_ibges(municipios)
     params = await llm_providers.params_para("llm_model_chat", "claude-sonnet-5")
     if params is not None:
         try:
@@ -387,7 +425,7 @@ async def executar(
             yield {"delta": "Nenhum módulo de dados está ativo na plataforma no momento."}
             return
         yield {"tool": nome}
-        dado = await _executar_tool(session, usuario, nome, {})
+        dado = await _executar_tool(session, usuario, nome, {}, territorio=territorio)
         yield {"delta": _formatar_fallback(nome, dado)}
         return
 
@@ -397,7 +435,9 @@ async def executar(
     mensagens: list[dict] = [
         {
             "role": "system",
-            "content": SYSTEM.format(papel=usuario.papel or "executivo") + f" Hoje é {hoje}.",
+            "content": SYSTEM.format(papel=usuario.papel or "executivo")
+            + f" Hoje é {hoje}."
+            + await _contexto_territorio(session, territorio),
         },
         {"role": "user", "content": pergunta},
     ]
@@ -421,7 +461,7 @@ async def executar(
             except json.JSONDecodeError:
                 args = {}
             yield {"tool": nome}
-            dado = await _executar_tool(session, usuario, nome, args)
+            dado = await _executar_tool(session, usuario, nome, args, territorio=territorio)
             mensagens.append(
                 {
                     "role": "tool",

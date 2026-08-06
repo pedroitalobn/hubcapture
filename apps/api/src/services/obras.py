@@ -23,6 +23,8 @@ from ..models.municipio_interesse import MunicipioInteresse
 from ..models.obra import Obra
 from ..schemas.obra import ObraCanonica, ObraRead, ObrasResumo, SituacaoResumo
 from ._sync import registrar_sync
+from ._territorio import Municipios
+from ._territorio import filtrar as filtrar_municipio
 
 FONTES_PADRAO = ("sismob", "simec", "caixa")
 
@@ -53,13 +55,13 @@ _UPSERT_FIELDS = (
 async def listar(
     session: AsyncSession,
     *,
-    municipio: str | None = None,
+    municipio: Municipios = None,
     fonte: str | None = None,
     situacao: str | None = None,
 ) -> list[Obra]:
     stmt = select(Obra)
-    if municipio:
-        stmt = stmt.where(Obra.municipio_ibge == municipio)
+    # um município, vários (recorte do painel) ou nenhum (todo o território)
+    stmt = filtrar_municipio(stmt, Obra.municipio_ibge, municipio)
     if fonte:
         stmt = stmt.where(Obra.fonte == fonte)
     if situacao:
@@ -80,7 +82,7 @@ async def upsert(session: AsyncSession, canonica: ObraCanonica) -> None:
     await session.execute(stmt)
 
 
-async def resumo(session: AsyncSession, *, municipio: str | None = None) -> ObrasResumo:
+async def resumo(session: AsyncSession, *, municipio: Municipios = None) -> ObrasResumo:
     """KPIs de execução + quebra por situação + obras (com geo p/ o mapa)."""
     obras = await listar(session, municipio=municipio)
 

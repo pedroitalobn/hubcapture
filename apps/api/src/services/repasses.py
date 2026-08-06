@@ -34,6 +34,8 @@ from ..schemas.repasse import (
     VisaoGeral,
 )
 from ._sync import registrar_sync
+from ._territorio import Municipios
+from ._territorio import filtrar as filtrar_municipio
 
 _UPSERT_FIELDS = (
     "municipio_ibge",
@@ -64,7 +66,7 @@ def _signed(valor: Decimal | None, natureza: str | None) -> Decimal:
 async def listar(
     session: AsyncSession,
     *,
-    municipio: str | None = None,
+    municipio: Municipios = None,
     fonte: str | None = None,
     inicio: date | None = None,
     fim: date | None = None,
@@ -74,8 +76,8 @@ async def listar(
     q: str | None = None,
 ) -> list[Repasse]:
     stmt = select(Repasse)
-    if municipio:
-        stmt = stmt.where(Repasse.municipio_ibge == municipio)
+    # um município, vários (recorte do painel) ou nenhum (todo o território)
+    stmt = filtrar_municipio(stmt, Repasse.municipio_ibge, municipio)
     if fonte:
         stmt = stmt.where(Repasse.fonte == fonte)
     if inicio:
@@ -119,7 +121,7 @@ async def upsert(session: AsyncSession, canonico: RepasseCanonico) -> None:
 async def visao_geral(
     session: AsyncSession,
     *,
-    municipio: str | None = None,
+    municipio: Municipios = None,
     inicio: date | None = None,
     fim: date | None = None,
 ) -> VisaoGeral:
@@ -239,7 +241,7 @@ def _emenda_item(r: Repasse) -> EmendaItem:
 async def listar_emendas(
     session: AsyncSession,
     *,
-    municipio: str | None = None,
+    municipio: Municipios = None,
     inicio: date | None = None,
     fim: date | None = None,
     orgao: str | None = None,

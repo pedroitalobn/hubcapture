@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
+import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 type Alerta = {
   id: string;
@@ -22,8 +23,6 @@ type Busca = {
   canais?: string[] | null;
   ultimo_alerta_em?: string | null;
 };
-
-type MunicipioPerfil = { ibge: string; nome?: string | null; uf?: string | null };
 
 const TIPO_LABEL: Record<string, string> = {
   status: "Mudança de status",
@@ -55,9 +54,10 @@ function descricao(a: Alerta): string {
 }
 
 export default function AlertasPage() {
+  // território do perfil + recorte ativo no painel (trilho lateral)
+  const { municipios, selecionados } = useTerritorio();
   const [alertas, setAlertas] = useState<Alerta[]>([]);
   const [buscas, setBuscas] = useState<Busca[]>([]);
-  const [municipios, setMunicipios] = useState<MunicipioPerfil[]>([]);
   const [soNaoLidos, setSoNaoLidos] = useState(true);
   const [varrendo, setVarrendo] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -68,20 +68,20 @@ export default function AlertasPage() {
   const [novosCanais, setNovosCanais] = useState<string[]>(["painel"]);
 
   const carregar = useCallback(async () => {
-    const [al, bu, pe] = await Promise.all([
+    const [al, bu] = await Promise.all([
       api.GET("/api/v1/alerts", {
-        params: { query: { nao_lidos: soNaoLidos } },
+        params: {
+          query: {
+            nao_lidos: soNaoLidos,
+            municipio: paramMunicipio(selecionados),
+          },
+        },
       }),
       api.GET("/api/v1/monitors/searches"),
-      api.GET("/api/v1/profile"),
     ]);
     if (al.data) setAlertas(al.data as Alerta[]);
     if (bu.data) setBuscas((bu.data as Busca[]).filter((b) => b.ativo));
-    if (pe.data)
-      setMunicipios(
-        (pe.data as { municipios: MunicipioPerfil[] }).municipios ?? [],
-      );
-  }, [soNaoLidos]);
+  }, [soNaoLidos, selecionados]);
 
   useEffect(() => {
     void carregar();
