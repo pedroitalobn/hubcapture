@@ -9,6 +9,7 @@ import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
 import { formatBRL } from "@/lib/format";
+import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 interface FonteResumo {
   fonte: string;
@@ -46,6 +47,7 @@ const FONTE_LABEL: Record<string, string> = {
 };
 
 export default function RepassesPage() {
+  const { selecionados } = useTerritorio();
   const [preset, setPreset] = useState<RangePreset>("30d");
   const [data, setData] = useState<VisaoGeral | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +59,12 @@ export default function RepassesPage() {
   const carregar = useCallback(async () => {
     setLoading(true);
     const { data: vg, error } = await api.GET("/api/v1/transfers/overview", {
-      params: { query: { inicio: presetToInicio(preset) } },
+      params: {
+        query: {
+          inicio: presetToInicio(preset),
+          municipio: paramMunicipio(selecionados),
+        },
+      },
     });
     if (error) {
       setMsg("Falha ao carregar a visão geral.");
@@ -65,7 +72,7 @@ export default function RepassesPage() {
       setData(vg as VisaoGeral);
     }
     setLoading(false);
-  }, [preset]);
+  }, [preset, selecionados]);
 
   useEffect(() => {
     void carregar();

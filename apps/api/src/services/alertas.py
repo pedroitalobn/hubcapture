@@ -9,19 +9,36 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.alerta import Alerta
+from ..models.proposta import Proposta
 from . import monitoramentos as mon_service
+from ._territorio import Municipios, ibges
 
 
 async def listar(
-    session: AsyncSession, usuario_id: uuid.UUID, apenas_nao_lidos: bool = False
+    session: AsyncSession,
+    usuario_id: uuid.UUID,
+    apenas_nao_lidos: bool = False,
+    municipio: Municipios = None,
 ) -> list[Alerta]:
     stmt = select(Alerta).where(Alerta.usuario_id == usuario_id)
     if apenas_nao_lidos:
         stmt = stmt.where(Alerta.lido.is_(False))
+    escolhidos = ibges(municipio)
+    if escolhidos:
+        # O município do alerta vem do payload (nova_proposta/oportunidade) ou,
+        # nos de mudança (payload só com o diff), da proposta ligada — que o RLS
+        # já restringe ao território. Sem nenhum dos dois, o alerta fica de fora
+        # do recorte, como qualquer item sem município.
+        stmt = stmt.outerjoin(Proposta, Proposta.id == Alerta.proposta_id).where(
+            or_(
+                Alerta.payload["municipio_ibge"].astext.in_(escolhidos),
+                Proposta.municipio_ibge.in_(escolhidos),
+            )
+        )
     stmt = stmt.order_by(Alerta.created_at.desc())
     result = await session.execute(stmt)
     return list(result.scalars().all())

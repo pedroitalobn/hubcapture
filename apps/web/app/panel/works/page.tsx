@@ -8,6 +8,7 @@ import { StatCard } from "@/components/StatCard";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { api } from "@/lib/api/client";
 import { formatBRL } from "@/lib/format";
+import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 interface Obra {
   id: string;
@@ -113,6 +114,7 @@ export default function ObrasPage() {
 }
 
 function ObrasConteudo() {
+  const { selecionados } = useTerritorio();
   const [data, setData] = useState<Resumo | null>(null);
   const [loading, setLoading] = useState(true);
   const [sit, setSit] = useState<string | null>(null);
@@ -123,11 +125,11 @@ function ObrasConteudo() {
   const carregar = useCallback(async () => {
     setLoading(true);
     const { data: d, error } = await api.GET("/api/v1/works/summary", {
-      params: { query: {} },
+      params: { query: { municipio: paramMunicipio(selecionados) } },
     });
     if (!error) setData(d as Resumo);
     setLoading(false);
-  }, []);
+  }, [selecionados]);
 
   useEffect(() => {
     void carregar();

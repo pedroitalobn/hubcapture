@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
 import { formatBRL, humanizarCaixa } from "@/lib/format";
+import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 // ── Panorama financeiro do território (números + gráfico) ───────────────────
 // Reusa /proposals/summary (mesma fonte da página de resumo da Captação) para
@@ -29,6 +30,7 @@ function numBR(v?: string | number | null): number {
 }
 
 function PanoramaFinanceiro() {
+  const { selecionados } = useTerritorio();
   const [resumo, setResumo] = useState<ResumoPainelData | null>(null);
   const [ano, setAno] = useState("");
   const [carregando, setCarregando] = useState(true);
@@ -37,7 +39,12 @@ function PanoramaFinanceiro() {
     setCarregando(true);
     void api
       .GET("/api/v1/proposals/summary", {
-        params: { query: { ano: ano || undefined } } as never,
+        params: {
+          query: {
+            ano: ano || undefined,
+            municipio: paramMunicipio(selecionados),
+          },
+        } as never,
       })
       .then(({ data }) => {
         // `if (data)` deixava passar qualquer coisa truthy (um [] inclusive),
@@ -51,7 +58,7 @@ function PanoramaFinanceiro() {
         if (ok) setResumo(data as ResumoPainelData);
         setCarregando(false);
       });
-  }, [ano]);
+  }, [ano, selecionados]);
 
   if (carregando && !resumo) return <SkeletonCards />;
   if (!resumo) return null;
@@ -277,6 +284,8 @@ function lerAnosSalvos(): string[] | null {
 function MeuPainel() {
   const searchParams = useSearchParams();
   const sincronizando = searchParams.get("sync") === "1";
+  // recorte de município escolhido no trilho lateral (vazio = todo o território)
+  const { selecionados } = useTerritorio();
 
   const [data, setData] = useState<VisaoGeral | null>(null);
   const [novidades, setNovidades] = useState<Novidades | null>(null);
@@ -293,10 +302,13 @@ function MeuPainel() {
   const [anosSel, setAnosSel] = useState<string[]>([String(ANO_ATUAL)]);
   const prefCarregada = useRef(false);
 
-  async function carregar() {
+  // O recorte de município entra em TODA consulta do painel: trocar o
+  // território no trilho lateral refaz visão geral, feed e oportunidades.
+  const carregar = useCallback(async () => {
+    const municipio = paramMunicipio(selecionados);
     const [{ data: vg }, { data: nov }] = await Promise.all([
-      api.GET("/api/v1/profile/overview"),
-      api.GET("/api/v1/profile/feed"),
+      api.GET("/api/v1/profile/overview", { params: { query: { municipio } } }),
+      api.GET("/api/v1/profile/feed", { params: { query: { municipio } } }),
     ]);
     if (vg) setData(vg as VisaoGeral);
     if (nov) setNovidades(nov as Novidades);
@@ -305,25 +317,39 @@ function MeuPainel() {
     // ausente — um nível a menos de defesa do que o próprio `?.` pretendia.
     // Sem o segundo `?.`, um feed sem `itens` derruba a tela inicial inteira.
     return (nov as Novidades | undefined)?.itens?.length ?? 0;
-  }
+  }, [selecionados]);
 
   useEffect(() => {
     void carregar();
+  }, [carregar]);
+
+  useEffect(() => {
     // painel informativo (notícias oficiais) + alertas não lidos — best-effort
     void (async () => {
       const [not, al] = await Promise.all([
         api.GET("/api/v1/news", { params: { query: { limite: 5 } } }),
-        api.GET("/api/v1/alerts", { params: { query: { nao_lidos: true } } }),
+        api.GET("/api/v1/alerts", {
+          params: {
+            query: { nao_lidos: true, municipio: paramMunicipio(selecionados) },
+          },
+        }),
       ]);
       if (not.data) setNoticias(not.data as Noticia[]);
       if (al.data) setNaoLidos((al.data as Alerta[]).length);
     })();
+  }, [selecionados]);
+
+  useEffect(() => {
     // Oportunidades DISPONÍVEIS para o território, em TEMPO REAL: a API
     // consulta as fontes ao vivo (live-search) filtrando tipo=disponivel.
+    setBuscandoOportunidades(true);
     void (async () => {
       const [ls, fav] = await Promise.all([
         api.POST("/api/v1/proposals/live-search", {
-          body: { tipo: "disponivel" } as never,
+          body: {
+            tipo: "disponivel",
+            municipios_ibge: paramMunicipio(selecionados) ?? null,
+          } as never,
         }),
         api.GET("/api/v1/favorites"),
       ]);
@@ -339,8 +365,7 @@ function MeuPainel() {
         );
       setBuscandoOportunidades(false);
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selecionados]);
 
   // Restaura a preferência salva uma única vez, no cliente.
   useEffect(() => {
@@ -396,8 +421,7 @@ function MeuPainel() {
       if (n > 0 || tentativas.current >= 15) clearInterval(timer);
     }, 8000);
     return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sincronizando]);
+  }, [sincronizando, carregar]);
 
   const semTerritorio = !loading && (data?.municipios.length ?? 0) === 0;
   const itens = novidades?.itens ?? [];

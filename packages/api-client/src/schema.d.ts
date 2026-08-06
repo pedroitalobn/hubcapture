@@ -2228,6 +2228,8 @@ export interface components {
         };
         /** IslandRequest */
         IslandRequest: {
+            /** Municipios */
+            municipios?: string[] | null;
             /** Pergunta */
             pergunta: string;
         };
@@ -2260,10 +2262,10 @@ export interface components {
              */
             modalidade?: string | null;
             /**
-             * Municipio Ibge
-             * @description código IBGE
+             * Municipios Ibge
+             * @description códigos IBGE (7 dígitos) do recorte escolhido no painel
              */
-            municipio_ibge?: string | null;
+            municipios_ibge?: string[] | null;
             /**
              * Natureza Juridica
              * @description municipal | estadual_df | consorcio | empresa_publica | osc
@@ -4042,6 +4044,8 @@ export interface operations {
         parameters: {
             query?: {
                 nao_lidos?: boolean;
+                /** @description códigos IBGE (repita o parâmetro para vários municípios) */
+                municipio?: string[] | null;
             };
             header?: never;
             path?: never;
@@ -4414,8 +4418,8 @@ export interface operations {
     conformidade_resumo_api_v1_compliance_get: {
         parameters: {
             query?: {
-                /** @description código IBGE (7 dígitos) */
-                municipio?: string | null;
+                /** @description códigos IBGE (repita o parâmetro para vários municípios) */
+                municipio?: string[] | null;
             };
             header?: never;
             path?: never;
@@ -5698,7 +5702,10 @@ export interface operations {
     };
     novidades_perfil_api_v1_profile_feed_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description códigos IBGE (repita o parâmetro para vários municípios) */
+                municipio?: string[] | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5714,11 +5721,23 @@ export interface operations {
                     "application/json": components["schemas"]["NovidadesPerfil"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     visao_geral_perfil_api_v1_profile_overview_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description códigos IBGE (repita o parâmetro para vários municípios) */
+                municipio?: string[] | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5734,13 +5753,22 @@ export interface operations {
                     "application/json": components["schemas"]["VisaoGeralPerfil"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     listar_propostas_api_v1_proposals_get: {
         parameters: {
             query?: {
-                /** @description código IBGE (7 dígitos) */
-                municipio?: string | null;
+                /** @description códigos IBGE (repita o parâmetro para vários municípios) */
+                municipio?: string[] | null;
                 /** @description unidade federativa */
                 uf?: string | null;
                 fonte?: string | null;
@@ -5802,6 +5830,8 @@ export interface operations {
         parameters: {
             query?: {
                 dias?: number;
+                /** @description códigos IBGE (repita o parâmetro para vários municípios) */
+                municipio?: string[] | null;
             };
             header?: never;
             path?: never;
@@ -5832,8 +5862,8 @@ export interface operations {
     facetas_propostas_api_v1_proposals_facets_get: {
         parameters: {
             query?: {
-                /** @description código IBGE (7 dígitos) */
-                municipio?: string | null;
+                /** @description códigos IBGE (repita o parâmetro para vários municípios) */
+                municipio?: string[] | null;
                 /** @description unidade federativa */
                 uf?: string | null;
                 fonte?: string | null;
@@ -5921,8 +5951,8 @@ export interface operations {
     relatorio_propostas_api_v1_proposals_report_csv_get: {
         parameters: {
             query?: {
-                /** @description código IBGE (7 dígitos) */
-                municipio?: string | null;
+                /** @description códigos IBGE (repita o parâmetro para vários municípios) */
+                municipio?: string[] | null;
                 /** @description unidade federativa */
                 uf?: string | null;
                 fonte?: string | null;
@@ -5979,8 +6009,8 @@ export interface operations {
     resumo_propostas_api_v1_proposals_summary_get: {
         parameters: {
             query?: {
-                /** @description código IBGE (7 dígitos) */
-                municipio?: string | null;
+                /** @description códigos IBGE (repita o parâmetro para vários municípios) */
+                municipio?: string[] | null;
                 /** @description unidade federativa */
                 uf?: string | null;
                 fonte?: string | null;
@@ -6097,8 +6127,8 @@ export interface operations {
     listar_repasses_api_v1_transfers_get: {
         parameters: {
             query?: {
-                /** @description código IBGE (7 dígitos) */
-                municipio?: string | null;
+                /** @description códigos IBGE (repita o parâmetro para vários municípios) */
+                municipio?: string[] | null;
                 fonte?: string | null;
                 inicio?: string | null;
                 fim?: string | null;
@@ -6139,8 +6169,8 @@ export interface operations {
     relatorio_emendas_api_v1_transfers_amendments_report_csv_get: {
         parameters: {
             query?: {
-                /** @description código IBGE (7 dígitos) */
-                municipio?: string | null;
+                /** @description códigos IBGE (repita o parâmetro para vários municípios) */
+                municipio?: string[] | null;
                 inicio?: string | null;
                 fim?: string | null;
                 ano?: string | null;
@@ -6180,8 +6210,8 @@ export interface operations {
     resumo_emendas_api_v1_transfers_amendments_summary_get: {
         parameters: {
             query?: {
-                /** @description código IBGE (7 dígitos) */
-                municipio?: string | null;
+                /** @description códigos IBGE (repita o parâmetro para vários municípios) */
+                municipio?: string[] | null;
                 inicio?: string | null;
                 fim?: string | null;
                 ano?: string | null;
@@ -6221,7 +6251,8 @@ export interface operations {
     visao_geral_api_v1_transfers_overview_get: {
         parameters: {
             query?: {
-                municipio?: string | null;
+                /** @description códigos IBGE (repita o parâmetro para vários municípios) */
+                municipio?: string[] | null;
                 inicio?: string | null;
                 fim?: string | null;
             };
@@ -6567,8 +6598,8 @@ export interface operations {
     listar_obras_api_v1_works_get: {
         parameters: {
             query?: {
-                /** @description código IBGE (7 dígitos) */
-                municipio?: string | null;
+                /** @description códigos IBGE (repita o parâmetro para vários municípios) */
+                municipio?: string[] | null;
                 fonte?: string | null;
                 situacao?: string | null;
             };
@@ -6601,8 +6632,8 @@ export interface operations {
     obras_resumo_api_v1_works_summary_get: {
         parameters: {
             query?: {
-                /** @description código IBGE (7 dígitos) */
-                municipio?: string | null;
+                /** @description códigos IBGE (repita o parâmetro para vários municípios) */
+                municipio?: string[] | null;
             };
             header?: never;
             path?: never;

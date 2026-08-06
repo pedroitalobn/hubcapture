@@ -33,7 +33,9 @@ class SyncRepassesRequest(BaseModel):
 class FiltrosEmendas(BaseModel):
     """Filtros da tela de emendas (modalidade, ano, parlamentar, órgão)."""
 
-    municipio: str | None = Field(default=None, description="código IBGE (7 dígitos)")
+    municipio: list[str] | None = Field(
+        default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
+    )
     inicio: date | None = None
     fim: date | None = None
     ano: str | None = Field(default=None, max_length=4)
@@ -45,7 +47,9 @@ class FiltrosEmendas(BaseModel):
 
 @router.get("/transfers", response_model=list[RepasseRead])
 async def listar_repasses(
-    municipio: str | None = Query(default=None, description="código IBGE (7 dígitos)"),
+    municipio: list[str] | None = Query(
+        default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
+    ),
     fonte: str | None = Query(default=None),
     inicio: date | None = Query(default=None),
     fim: date | None = Query(default=None),
@@ -95,7 +99,9 @@ async def relatorio_emendas(
 
 @router.get("/transfers/overview", response_model=VisaoGeral)
 async def visao_geral(
-    municipio: str | None = Query(default=None),
+    municipio: list[str] | None = Query(
+        default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
+    ),
     inicio: date | None = Query(default=None),
     fim: date | None = Query(default=None),
     session: AsyncSession = Depends(get_rls_db),

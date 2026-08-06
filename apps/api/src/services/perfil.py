@@ -11,8 +11,9 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
+from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.conformidade import Conformidade
@@ -34,6 +35,8 @@ from ..schemas.perfil import (
 )
 from . import fontes as fontes_service
 from . import modulos as modulos_service
+from ._territorio import Municipios
+from ._territorio import filtrar as filtrar_municipio
 
 # Áreas de interesse → fontes que as servem. Usado só como RECORTE do feed de
 # novidades (a navegação continua profile-centric; fonte nunca vira aba).
@@ -63,11 +66,21 @@ def _brl(v: Decimal | None) -> str:
     return f"R$ {n:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
 
 
-async def _municipios(session: AsyncSession) -> list[MunicipioPerfil]:
-    rows = (
-        await session.execute(select(MunicipioInteresse).order_by(MunicipioInteresse.nome))
-    ).scalars()
+async def _municipios(
+    session: AsyncSession, municipios: Municipios = None
+) -> list[MunicipioPerfil]:
+    """Território do usuário — inteiro, ou só o recorte escolhido no painel."""
+    stmt = select(MunicipioInteresse).order_by(MunicipioInteresse.nome)
+    stmt = filtrar_municipio(stmt, MunicipioInteresse.ibge, municipios)
+    rows = (await session.execute(stmt)).scalars()
     return [MunicipioPerfil.model_validate(m) for m in rows]
+
+
+async def municipios_do_recorte(
+    session: AsyncSession, municipios: Municipios = None
+) -> list[MunicipioPerfil]:
+    """Municípios do território — todos, ou só os do recorte ativo no painel."""
+    return await _municipios(session, municipios)
 
 
 async def _preferencias(session: AsyncSession, usuario_id) -> PreferenciasUsuario | None:
@@ -92,11 +105,19 @@ async def get_perfil(session: AsyncSession, usuario: Usuario) -> PerfilRead:
     )
 
 
-async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerfil:
+async def visao_geral(
+    session: AsyncSession, usuario: Usuario, *, municipios_filtro: Municipios = None
+) -> VisaoGeralPerfil:
+    """'Meu painel' por dimensão. `municipios_filtro` recorta o território para
+    os municípios que o usuário escolheu ver AGORA (subconjunto do onboarding)."""
     pref = await _preferencias(session, usuario.id)
-    municipios = await _municipios(session)
+    municipios = await _municipios(session, municipios_filtro)
     # Módulos desligados no painel admin nem são consultados nem aparecem.
     ativos = await modulos_service.ativos(session)
+
+    def _no_territorio(stmt: Select[Any], coluna: ColumnElement[Any]) -> Select[Any]:
+        """Recorte do painel sobre o que o RLS já limitou ao território."""
+        return filtrar_municipio(stmt, coluna, municipios_filtro)
 
     dimensoes: list[DimensaoResumo] = []
 
@@ -104,9 +125,12 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
         # Captação (propostas) — RLS já restringe ao território do usuário.
         prop_n, prop_valor = (
             await session.execute(
-                select(
-                    func.count(Proposta.id),
-                    func.coalesce(func.sum(Proposta.valor_total), 0),
+                _no_territorio(
+                    select(
+                        func.count(Proposta.id),
+                        func.coalesce(func.sum(Proposta.valor_total), 0),
+                    ),
+                    Proposta.municipio_ibge,
                 )
             )
         ).one()
@@ -124,7 +148,10 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
         # Recebidos (repasses).
         rep_n, rep_valor = (
             await session.execute(
-                select(func.count(Repasse.id), func.coalesce(func.sum(Repasse.valor), 0))
+                _no_territorio(
+                    select(func.count(Repasse.id), func.coalesce(func.sum(Repasse.valor), 0)),
+                    Repasse.municipio_ibge,
+                )
             )
         ).one()
         dimensoes.append(
@@ -139,10 +166,19 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
 
     if ativos.get("conformidade"):
         # Conformidade fiscal — destaque é o que falta comprovar.
-        conf_n = (await session.execute(select(func.count(Conformidade.id)))).scalar_one()
+        conf_n = (
+            await session.execute(
+                _no_territorio(select(func.count(Conformidade.id)), Conformidade.municipio_ibge)
+            )
+        ).scalar_one()
         conf_pendentes = (
             await session.execute(
-                select(func.count(Conformidade.id)).where(Conformidade.status == "a_comprovar")
+                _no_territorio(
+                    select(func.count(Conformidade.id)).where(
+                        Conformidade.status == "a_comprovar"
+                    ),
+                    Conformidade.municipio_ibge,
+                )
             )
         ).scalar_one()
         dimensoes.append(
@@ -157,9 +193,18 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
 
     if ativos.get("obras"):
         # Obras (execução) — destaque é o que está em andamento.
-        obras_n = (await session.execute(select(func.count(Obra.id)))).scalar_one()
+        obras_n = (
+            await session.execute(
+                _no_territorio(select(func.count(Obra.id)), Obra.municipio_ibge)
+            )
+        ).scalar_one()
         obras_exec = (
-            await session.execute(select(func.count(Obra.id)).where(Obra.situacao == "em_execucao"))
+            await session.execute(
+                _no_territorio(
+                    select(func.count(Obra.id)).where(Obra.situacao == "em_execucao"),
+                    Obra.municipio_ibge,
+                )
+            )
         ).scalar_one()
         dimensoes.append(
             DimensaoResumo(
@@ -190,19 +235,27 @@ def _fontes_do_perfil(pref: PreferenciasUsuario | None) -> set[str]:
 
 
 async def novidades(
-    session: AsyncSession, usuario: Usuario, *, limite: int = 20
+    session: AsyncSession,
+    usuario: Usuario,
+    *,
+    limite: int = 20,
+    municipios_filtro: Municipios = None,
 ) -> NovidadesPerfil:
     """Últimas novidades do território: propostas (captação) e verbas (recebidos).
 
     O RLS já recorta pelo(s) município(s) do usuário; aqui aplicamos o recorte
-    fino do perfil (fontes escolhidas + fontes das áreas de interesse) e
-    intercalamos os dois eixos por data, mais recente primeiro.
+    do painel (`municipios_filtro` — quais dos municípios do perfil o usuário
+    quer ver agora) e o recorte fino do perfil (fontes escolhidas + fontes das
+    áreas de interesse), intercalando os dois eixos por data, mais recente
+    primeiro.
     """
     pref = await _preferencias(session, usuario.id)
     fontes = _fontes_do_perfil(pref)
 
     stmt_p = select(Proposta).order_by(Proposta.cache_atualizado_em.desc().nullslast())
     stmt_r = select(Repasse).order_by(Repasse.data_repasse.desc().nullslast())
+    stmt_p = filtrar_municipio(stmt_p, Proposta.municipio_ibge, municipios_filtro)
+    stmt_r = filtrar_municipio(stmt_r, Repasse.municipio_ibge, municipios_filtro)
     if fontes:
         stmt_p = stmt_p.where(Proposta.fonte.in_(fontes))
         stmt_r = stmt_r.where(Repasse.fonte.in_(fontes))

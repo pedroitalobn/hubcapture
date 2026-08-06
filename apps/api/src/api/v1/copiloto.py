@@ -85,6 +85,8 @@ async def copiloto_chat(
 
 class IslandRequest(BaseModel):
     pergunta: str
+    # recorte de território ativo no painel (quais municípios o usuário vê agora)
+    municipios: list[str] | None = None
 
 
 @router.post("/copilot/island")
@@ -96,7 +98,12 @@ async def copiloto_island(
     """Agente do Dynamic Island (tool calling). O loop de ferramentas roda AQUI,
     com a sessão RLS do request viva; o stream só replaye os eventos coletados
     (mesma razão do RAG pré-stream acima)."""
-    eventos = [e async for e in ai_agent.executar(session, user, body.pergunta)]
+    eventos = [
+        e
+        async for e in ai_agent.executar(
+            session, user, body.pergunta, municipios=body.municipios
+        )
+    ]
 
     async def gen() -> AsyncIterator[str]:
         for ev in eventos:

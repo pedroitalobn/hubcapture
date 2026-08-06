@@ -26,7 +26,9 @@ class SyncConformidadeRequest(BaseModel):
 
 @router.get("/compliance", response_model=ConformidadeResumo)
 async def conformidade_resumo(
-    municipio: str | None = Query(default=None, description="código IBGE (7 dígitos)"),
+    municipio: list[str] | None = Query(
+        default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
+    ),
     session: AsyncSession = Depends(get_rls_db),
 ) -> ConformidadeResumo:
     return await service.resumo(session, municipio=municipio)

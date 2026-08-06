@@ -6,6 +6,7 @@ import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api, baixarCsv } from "@/lib/api/client";
 import { formatBRL, formatDate } from "@/lib/format";
+import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 interface EmendaItem {
   id: string;
@@ -64,14 +65,19 @@ function num(v?: string | null): number {
 }
 
 export default function EmendasPage() {
+  const { selecionados } = useTerritorio();
   const [resumo, setResumo] = useState<ResumoEmendas | null>(null);
   const [filtros, setFiltros] = useState<Filtros>(VAZIO);
   const [carregando, setCarregando] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
 
+  // o recorte de território do painel entra junto dos filtros da tela
   const query = useMemo(
-    () => Object.fromEntries(Object.entries(filtros).filter(([, v]) => v !== "")),
-    [filtros],
+    () => ({
+      ...Object.fromEntries(Object.entries(filtros).filter(([, v]) => v !== "")),
+      municipio: paramMunicipio(selecionados),
+    }),
+    [filtros, selecionados],
   );
 
   const carregar = useCallback(async () => {
@@ -93,7 +99,11 @@ export default function EmendasPage() {
 
   async function exportar() {
     try {
-      await baixarCsv("/api/v1/transfers/amendments/report.csv", filtros, "emendas.csv");
+      await baixarCsv(
+        "/api/v1/transfers/amendments/report.csv",
+        { ...filtros, municipio: selecionados },
+        "emendas.csv",
+      );
     } catch {
       setMsg("Não consegui gerar o relatório agora.");
     }

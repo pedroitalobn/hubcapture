@@ -32,8 +32,10 @@ router = APIRouter(
 class LiveSearchRequest(BaseModel):
     """Filtros da busca. Tudo opcional — sem município, usa os do perfil."""
 
-    municipio_ibge: str | None = Field(
-        default=None, min_length=7, max_length=7, description="código IBGE"
+    # Recorte do painel: quais dos municípios do perfil o usuário quer ver
+    # agora. Lista vazia/ausente = todos os do território.
+    municipios_ibge: list[str] | None = Field(
+        default=None, description="códigos IBGE (7 dígitos) do recorte escolhido no painel"
     )
     uf: str | None = Field(default=None, min_length=2, max_length=2)
     fonte: str | None = None
@@ -85,17 +87,17 @@ async def live_search_endpoint(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> LiveSearchResponse:
-    filtros = body.model_dump(exclude={"municipio_ibge"})
+    filtros = body.model_dump(exclude={"municipios_ibge"})
     rows, total, status_fontes = await service.live_search(
-        session, usuario_id=user.id, municipio=body.municipio_ibge, **filtros
+        session, usuario_id=user.id, municipio=body.municipios_ibge, **filtros
     )
     # mesmas dimensões da listagem, sem repetir a lista de filtros à mão (a
     # versão anterior esquecia toda dimensão nova até alguém notar na tela).
     # Paginação fora: a faceta conta o recorte INTEIRO, não a página.
     facetas = await propostas_service.facetas(
         session,
-        municipio=body.municipio_ibge,
-        **body.model_dump(exclude={"municipio_ibge", "ordenar", "limite", "offset"}),
+        municipio=body.municipios_ibge,
+        **body.model_dump(exclude={"municipios_ibge", "ordenar", "limite", "offset"}),
     )
     return LiveSearchResponse(
         propostas=[PropostaRead.model_validate(r) for r in rows],
