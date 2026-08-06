@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
@@ -225,6 +225,55 @@ function dataBr(iso: string | null | undefined): string | null {
   return y && m && d ? `${d}/${m}/${y}` : iso;
 }
 
+// ── Filtro de ano das novidades ─────────────────────────────────────────────
+// Pills com os 4 anos mais recentes + "Outros" (todo o resto). A escolha é do
+// usuário e PERSISTE entre visitas — só muda quando ele mexe. Sem preferência
+// salva, abre no ano vigente, que é o que interessa no dia a dia.
+const ANOS_KEY = "hub_painel_anos";
+const OUTROS = "outros";
+const ANO_ATUAL = new Date().getFullYear();
+const ANOS_PILLS = [0, 1, 2, 3].map((i) => ANO_ATUAL - i);
+
+/** Ano do item pelo prefixo do ISO (YYYY-MM-DD); null se ausente/inválido. */
+function anoDoItem(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const ano = Number(iso.slice(0, 4));
+  return Number.isInteger(ano) && ano > 1900 ? ano : null;
+}
+
+/**
+ * Chave de filtro do item: o próprio ano quando ele está entre as pills, senão
+ * OUTROS. Item SEM data cai em OUTROS de propósito — assim ele continua
+ * alcançável por uma pill em vez de sumir do painel sem nenhuma forma de exibir.
+ */
+function chaveDoItem(iso: string | null | undefined): string {
+  const ano = anoDoItem(iso);
+  return ano != null && ANOS_PILLS.includes(ano) ? String(ano) : OUTROS;
+}
+
+/**
+ * Lê a preferência salva, descartando o que não existe mais na janela atual —
+ * um "2023" salvo vira inválido quando a janela anda, e sem esta poda o painel
+ * abriria filtrando por um ano sem pill, parecendo vazio sem motivo aparente.
+ * Devolve null quando não há preferência utilizável (o chamador usa o padrão).
+ */
+function lerAnosSalvos(): string[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const salvo = window.localStorage.getItem(ANOS_KEY);
+    if (!salvo) return null;
+    const bruto = JSON.parse(salvo) as unknown;
+    if (!Array.isArray(bruto)) return null;
+    const validas = new Set([...ANOS_PILLS.map(String), OUTROS]);
+    const limpo = bruto.filter(
+      (c): c is string => typeof c === "string" && validas.has(c),
+    );
+    return limpo.length > 0 ? limpo : null;
+  } catch {
+    return null; // preferência corrompida → volta ao padrão
+  }
+}
+
 function MeuPainel() {
   const searchParams = useSearchParams();
   const sincronizando = searchParams.get("sync") === "1";
@@ -238,6 +287,11 @@ function MeuPainel() {
   const [favoritas, setFavoritas] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const tentativas = useRef(0);
+  // Começa no ano vigente e só então aplica o que estiver salvo (no efeito
+  // abaixo). Ler o localStorage já no initializer divergiria do HTML do
+  // servidor, que não tem acesso a ele — erro de hidratação.
+  const [anosSel, setAnosSel] = useState<string[]>([String(ANO_ATUAL)]);
+  const prefCarregada = useRef(false);
 
   async function carregar() {
     const [{ data: vg }, { data: nov }] = await Promise.all([
@@ -288,6 +342,34 @@ function MeuPainel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Restaura a preferência salva uma única vez, no cliente.
+  useEffect(() => {
+    const salvo = lerAnosSalvos();
+    if (salvo) setAnosSel(salvo);
+    prefCarregada.current = true;
+  }, []);
+
+  // Persiste a escolha. O guard evita o efeito rodar ANTES da restauração e
+  // gravar o padrão por cima do que o usuário já tinha escolhido.
+  useEffect(() => {
+    if (!prefCarregada.current) return;
+    try {
+      window.localStorage.setItem(ANOS_KEY, JSON.stringify(anosSel));
+    } catch {
+      /* storage cheio/bloqueado: o filtro segue valendo nesta sessão */
+    }
+  }, [anosSel]);
+
+  function alternarAno(chave: string) {
+    setAnosSel((prev) => {
+      const marcado = prev.includes(chave);
+      // Nunca deixa a seleção vazia: sem nenhuma pill ativa a lista ficaria
+      // vazia sem o usuário ter pedido isso, parecendo perda de dados.
+      if (marcado && prev.length === 1) return prev;
+      return marcado ? prev.filter((c) => c !== chave) : [...prev, chave];
+    });
+  }
+
   async function alternarFavorita(id: string) {
     if (favoritas.has(id)) {
       await api.DELETE("/api/v1/favorites/{proposta_id}", {
@@ -319,6 +401,23 @@ function MeuPainel() {
 
   const semTerritorio = !loading && (data?.municipios.length ?? 0) === 0;
   const itens = novidades?.itens ?? [];
+  // Quantos itens cada pill representa — mostra de cara em que ano há novidade,
+  // e deixa explícito o que está sendo escondido pelo filtro.
+  const contagemPorAno = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const n of itens) {
+      const k = chaveDoItem(n.data);
+      mapa.set(k, (mapa.get(k) ?? 0) + 1);
+    }
+    return mapa;
+  }, [itens]);
+  const itensFiltrados = useMemo(
+    () => itens.filter((n) => anosSel.includes(chaveDoItem(n.data))),
+    [itens, anosSel],
+  );
+  // Há dados, mas o filtro escondeu tudo: precisa de um vazio próprio, senão o
+  // usuário lê a mensagem de "ainda não há novidades" e conclui que perdeu dados.
+  const vazioPorFiltro = itens.length > 0 && itensFiltrados.length === 0;
   const falhas = (novidades?.sync_runs ?? []).filter((r) => r.status === "erro");
   const aguardandoDados =
     sincronizando && itens.length === 0 && tentativas.current < 15;
@@ -402,7 +501,61 @@ function MeuPainel() {
               )}
             </div>
 
-            {itens.length === 0 ? (
+            {/* Filtro por ano. Multisseleção: os 4 anos mais recentes + "Outros"
+                pro que ficou fora da janela (e itens sem data). */}
+            <div
+              role="group"
+              aria-label="Filtrar novidades por ano"
+              className="flex flex-wrap items-center gap-2"
+            >
+              {[...ANOS_PILLS.map(String), OUTROS].map((chave) => {
+                const ativo = anosSel.includes(chave);
+                const total = contagemPorAno.get(chave) ?? 0;
+                const rotulo = chave === OUTROS ? "Outros" : chave;
+                return (
+                  <button
+                    key={chave}
+                    type="button"
+                    onClick={() => alternarAno(chave)}
+                    aria-pressed={ativo}
+                    title={
+                      chave === OUTROS
+                        ? `Demais anos (anteriores a ${ANOS_PILLS[ANOS_PILLS.length - 1]}) e itens sem data`
+                        : `Novidades de ${chave}`
+                    }
+                    className={`chip ${ativo ? "chip-active" : ""}`}
+                  >
+                    {rotulo}
+                    {/* Some quando zero pra não poluir a linha com "(0)". */}
+                    {total > 0 && (
+                      <span className="tabular-nums opacity-70">{total}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {vazioPorFiltro ? (
+              <div className="card flex flex-wrap items-center justify-between gap-3 p-6 text-sm text-ink-2">
+                <p>
+                  Nenhuma novidade em{" "}
+                  {anosSel
+                    .map((c) => (c === OUTROS ? "Outros" : c))
+                    .join(", ")}
+                  . Há {itens.length}{" "}
+                  {itens.length === 1 ? "novidade" : "novidades"} em outros anos.
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setAnosSel([...ANOS_PILLS.map(String), OUTROS])
+                  }
+                  className="btn btn-ghost btn-sm"
+                >
+                  Ver todos os anos
+                </button>
+              </div>
+            ) : itens.length === 0 ? (
               <div className="card p-6 text-sm text-ink-2">
                 {aguardandoDados ? (
                   <p>
@@ -429,7 +582,7 @@ function MeuPainel() {
               </div>
             ) : (
               <ol className="card stagger divide-y divide-hairline p-0">
-                {itens.map((n, i) => (
+                {itensFiltrados.map((n, i) => (
                   <li
                     key={i}
                     className="flex items-center gap-2 pr-3 transition-colors hover:bg-surface-2"
