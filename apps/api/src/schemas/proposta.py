@@ -37,6 +37,13 @@ class PropostaCanonica(BaseModel):
     hash_conteudo: str | None = None
 
 
+class CategoriaTag(BaseModel):
+    """Pílula de categoria: o slug (filtrável) e o rótulo (exibível)."""
+
+    slug: str
+    rotulo: str
+
+
 class PropostaRead(BaseModel):
     """Representação da proposta devolvida pela API."""
 
@@ -66,7 +73,23 @@ class PropostaRead(BaseModel):
     execucao: dict | None = None
     dados_fonte: dict | None = None
     resumo_ia: str | None = None
+    categorias_ia: list[str] | None = None
     cache_atualizado_em: datetime | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def categorias(self) -> list[CategoriaTag]:
+        """Pílulas prontas para exibição (slug + rótulo) — o painel não traduz nada.
+
+        Sem curadoria gravada, classifica na hora pelo texto: proposta recém
+        coletada já chega ao painel com pílula.
+        """
+        from ..ai import categorias as categorias_ai
+
+        slugs = self.categorias_ia or categorias_ai.classificar(
+            self.titulo, self.objeto, self.orgao_superior, self.modalidade
+        )
+        return [CategoriaTag(**c) for c in categorias_ai.rotular(slugs)]
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -125,13 +148,17 @@ class FacetaOpcao(BaseModel):
 class PropostasFacetas(BaseModel):
     """Opções por dimensão de filtro — o que existe no território consultado."""
 
+    municipio: list[FacetaOpcao] = []
+    uf: list[FacetaOpcao] = []
     fonte: list[FacetaOpcao] = []
     modalidade: list[FacetaOpcao] = []
     orgao: list[FacetaOpcao] = []
     situacao: list[FacetaOpcao] = []
     natureza_juridica: list[FacetaOpcao] = []
     qualificacao: list[FacetaOpcao] = []
+    categoria: list[FacetaOpcao] = []
     ano: list[FacetaOpcao] = []
+    mes: list[FacetaOpcao] = []
     tipo: list[FacetaOpcao] = []
 
 

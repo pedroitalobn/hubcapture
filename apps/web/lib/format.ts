@@ -1,3 +1,77 @@
+/* ─────────────────────────────────────────── Caixa alta das fontes ────────
+   As bases do governo gravam quase tudo em CAIXA ALTA ("MTUR/SECULT - ALDIR
+   BLANC - MUNICÍPIOS", "DISPONIBILIZADO", "FUNDO_A_FUNDO"). Jogado direto na
+   tela, isso grita, quebra o ritmo tipográfico e é mais lento de ler. Aqui a
+   normalização é de APRESENTAÇÃO: o dado gravado continua idêntico à origem —
+   quem quiser conferir tem o link "Fonte oficial ↗". */
+
+// Siglas que continuam em caixa alta (com 3 letras ou menos, a regra já mantém:
+// UF, SUS, UBS, FNS…). Só entram aqui as de 4+ letras.
+const SIGLAS = new Set([
+  "MTUR", "SECULT", "FNDE", "FNS", "SERPRO", "SIMEC", "SISMOB", "SIORB", "SICONFI",
+  "CAUC", "CAPAG", "CNPJ", "IBGE", "SAMU", "CRAS", "CREAS", "SUAS", "PNAE", "PNATE",
+  "SIAFI", "SICONV", "SIGEF", "CEP", "PAC", "OGU", "APF", "LOA", "LDO", "PPA", "FPM",
+  "ICMS", "IPVA", "FUNDEB", "PNATE", "CAPS", "SUS",
+]);
+
+// Conectivos que ficam minúsculos quando não abrem o texto.
+const CONECTIVOS = new Set([
+  "de", "da", "do", "das", "dos", "e", "em", "no", "na", "nos", "nas", "a", "o",
+  "as", "os", "ao", "aos", "à", "às", "para", "por", "com", "sem", "sob", "sobre",
+  "entre", "ou", "pelo", "pela", "pelos", "pelas", "num", "numa", "d'água",
+]);
+
+// Palavras curtas que NÃO são sigla — sem isto a regra "3 letras ou menos = sigla"
+// deixaria "(UMA)" e "LEI" gritando no meio de uma frase normalizada.
+const CURTAS_COMUNS = new Set([
+  "um", "uma", "uns", "que", "não", "nao", "sua", "seu", "até", "ate", "são",
+  "sao", "ano", "rua", "dia", "mês", "mes", "sim", "tem", "ser", "ter", "foi",
+  "faz", "vai", "mil", "via", "lei", "seq", "nº", "n°", "seis", "seu",
+]);
+
+/** É predominantemente CAIXA ALTA? (ignora dígitos e pontuação) */
+function ehCaixaAlta(texto: string): boolean {
+  const letras = texto.replace(/[^\p{L}]/gu, "");
+  if (letras.length < 2) return false;
+  const maiusculas = letras.replace(/[^\p{Lu}]/gu, "").length;
+  return maiusculas / letras.length >= 0.8;
+}
+
+function palavra(token: string, primeira: boolean): string {
+  if (/\d/.test(token)) return token; // códigos e datas ficam como vieram
+  const nu = token.replace(/[^\p{L}]/gu, "");
+  if (!nu) return token;
+  const minusculo = token.toLowerCase();
+  const capitalizada = minusculo.charAt(0).toUpperCase() + minusculo.slice(1);
+  // conectivo antes de sigla: "EM ANÁLISE" abre a frase com "Em", não com "EM"
+  if (CONECTIVOS.has(minusculo)) return primeira ? capitalizada : minusculo;
+  if (SIGLAS.has(nu.toUpperCase())) return token.toUpperCase();
+  if (nu.length <= 3 && !CURTAS_COMUNS.has(minusculo)) return token.toUpperCase();
+  return capitalizada;
+}
+
+/**
+ * "MTUR/SECULT - ALDIR BLANC - MUNICÍPIOS" → "MTUR/SECULT - Aldir Blanc -
+ * Municípios"; "FUNDO_A_FUNDO" → "Fundo a Fundo"; "DISPONIBILIZADO" →
+ * "Disponibilizado". Texto que já vem em caixa mista passa intacto.
+ */
+export function humanizarCaixa(texto?: string | null): string {
+  if (texto === null || texto === undefined) return "";
+  const bruto = String(texto).replace(/_/g, " ").trim();
+  if (!bruto || !ehCaixaAlta(bruto)) return String(texto);
+  let primeira = true;
+  // separa mantendo os delimitadores (espaço, / , - , ( ) etc.)
+  return bruto
+    .split(/([^\p{L}\p{N}]+)/u)
+    .map((parte) => {
+      if (!/[\p{L}\p{N}]/u.test(parte)) return parte; // delimitador
+      const saida = palavra(parte, primeira);
+      primeira = false;
+      return saida;
+    })
+    .join("");
+}
+
 /** Formata um valor (string decimal vinda da API) em BRL. */
 export function formatBRL(v?: string | number | null): string {
   if (v === null || v === undefined || v === "") return "—";

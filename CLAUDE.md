@@ -1004,3 +1004,39 @@ Módulo desligável pelo painel admin (`contatos`, §29), rotas em inglês (§25
   sincronizar, importar/exportar .vcf) e `app/integrations/callback` (conclui o OAuth). Item
   "Agenda de contatos" no menu profile-centric — é uma lente de pessoas sobre o território,
   não uma aba por plataforma (§19 continua valendo).
+
+## 32. Curadoria (pílulas de categoria) + filtros e leitura dos campos da fonte
+
+Três problemas da tela de captação, resolvidos na camada certa de cada um.
+
+- **Pílulas de categoria (IA + determinístico)**: taxonomia FECHADA em
+  `ai/categorias.py` (saúde, educação, infraestrutura, saneamento, mobilidade, cultura,
+  esporte, assistência social, agricultura, meio ambiente, segurança, habitação, turismo,
+  tecnologia, gestão). Duas camadas sobre ela: `classificar()` (palavra-chave, **sem rede**,
+  casamento por palavra — `\bTERMO\b`, ou `\bTERMO` com `*`; sem isso "cultura" casa dentro de
+  "agriCULTURA") e `ai/resumo.gerar_curadoria()` (LiteLLM: resumo + categorias refinadas numa
+  chamada só, com fallback para o determinístico em qualquer falha). Coluna
+  `propostas.categorias_ia` jsonb (migration `e1a2b3c4d5f6`) — dado DERIVADO, fica **fora** do
+  `_UPSERT_FIELDS` para um re-sync não apagar a curadoria. Jobs em `jobs/curadoria.py`:
+  `classificar_pendentes` (roda no fim de toda coleta, dentro do request) e `curar_com_ia`
+  (lote pequeno, só no 1º sync/cron — nunca no request). A API entrega
+  `PropostaRead.categorias` = `[{slug, rotulo}]`, pronta para exibir e filtrável por slug.
+  Adicionar categoria = um item em `CATEGORIAS`; filtro, faceta, CSV e pílula acompanham.
+- **Filtros do painel (além de ano)**: novas dimensões `municipio`, `uf`, `mes` e `categoria`
+  em `services/propostas._DIMENSOES` — somadas a fonte, modalidade, órgão, situação, natureza
+  jurídica, tipo de transferência (`qualificacao`) e tipo. `mes_de()` usa o mês do **prazo
+  final**; sem prazo, o da atualização na fonte. `facetas()` não manda mais nenhuma dimensão
+  para o SQL: o recorte base é território (RLS) + área/busca/faixa de valor, e cada dimensão é
+  contada ignorando o próprio filtro (senão o dropdown de município fecharia em cima da opção
+  escolhida). Dimensão pode ser **multivalorada** (`categoria`). Ano/mês ordenam
+  cronologicamente, não por contagem.
+- **Campos de extensão longa**: `components/TextoExpansivel.tsx` recorta o valor em N linhas e
+  só mostra **Ampliar** quando há corte de verdade (medido no DOM, não por contagem de
+  caracteres); ampliado, o texto rola dentro de si em vez de esticar a página. Em
+  `app/panel/funding/[id]`, "Dados completos da fonte" separa campos curtos (grade) de longos
+  (linha inteira) e ganha **Ampliar tudo**; `objeto` e `movimentacao` usam o mesmo componente.
+- **CAIXA ALTA das fontes**: `lib/format.humanizarCaixa()` normaliza só na APRESENTAÇÃO
+  ("MTUR/SECULT - ALDIR BLANC - MUNICÍPIOS" → "MTUR/SECULT - Aldir Blanc - Municípios";
+  "FUNDO_A_FUNDO" → "Fundo a Fundo"). Texto já em caixa mista passa intacto; siglas e códigos
+  numéricos são preservados. O dado gravado continua idêntico à origem — a conferência é pelo
+  link "Fonte oficial ↗".

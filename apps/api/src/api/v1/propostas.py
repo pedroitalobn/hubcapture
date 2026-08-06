@@ -39,6 +39,9 @@ class FiltrosProposta(BaseModel):
     """Filtros da captação — compartilhados por lista, facetas, resumo e relatório."""
 
     municipio: str | None = Field(default=None, description="código IBGE (7 dígitos)")
+    uf: str | None = Field(
+        default=None, min_length=2, max_length=2, description="unidade federativa"
+    )
     fonte: str | None = None
     area: str | None = Field(default=None, description="área de interesse (saude, educacao…)")
     situacao: str | None = None
@@ -48,7 +51,15 @@ class FiltrosProposta(BaseModel):
         default=None, description="municipal | estadual_df | consorcio | empresa_publica | osc"
     )
     qualificacao: str | None = Field(default=None, description="tipo de transferência")
+    categoria: str | None = Field(
+        default=None, description="pílula de categoria (saude, infraestrutura, cultura…)"
+    )
     ano: str | None = Field(default=None, max_length=4)
+    mes: str | None = Field(
+        default=None,
+        pattern="^(0[1-9]|1[0-2])$",
+        description="mês do prazo final (ou da atualização na fonte)",
+    )
     q: str | None = Field(default=None, description="busca por programa, órgão ou código")
     valor_min: Decimal | None = Field(default=None, ge=0)
     valor_max: Decimal | None = Field(default=None, ge=0)

@@ -15,6 +15,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..ai import categorias as categorias_ai
 from ..models.proposta import Proposta
 from ..schemas.proposta import PropostaCanonica
 
@@ -131,6 +132,43 @@ def prazo_final_de(p: Proposta) -> date | None:
     return min(datas) if datas else None
 
 
+# ── Mês de referência ───────────────────────────────────────────────────────
+# Companheiro do filtro de ano. Para captação o mês que importa é o do PRAZO
+# (é ele que decide a ação); sem prazo declarado, cai no mês de atualização na
+# fonte — que é o que a lista mostra como "movimentação".
+MESES: tuple[tuple[str, str], ...] = (
+    ("01", "Janeiro"),
+    ("02", "Fevereiro"),
+    ("03", "Março"),
+    ("04", "Abril"),
+    ("05", "Maio"),
+    ("06", "Junho"),
+    ("07", "Julho"),
+    ("08", "Agosto"),
+    ("09", "Setembro"),
+    ("10", "Outubro"),
+    ("11", "Novembro"),
+    ("12", "Dezembro"),
+)
+
+
+def mes_de(p: Proposta) -> str | None:
+    """Mês de referência ('01'…'12'): o do prazo final; senão o da atualização."""
+    referencia = prazo_final_de(p) or p.data_atualizacao_fonte
+    return f"{referencia.month:02d}" if referencia else None
+
+
+def categorias_de(p: Proposta) -> list[str]:
+    """Pílulas da proposta (slugs). Usa as curadas; classifica na hora se faltarem.
+
+    O fallback importa: propostas que entraram antes da curadoria — ou logo agora,
+    numa busca ao vivo — continuam filtráveis por categoria sem esperar o job.
+    """
+    if isinstance(p.categorias_ia, list) and p.categorias_ia:
+        return [str(c) for c in p.categorias_ia]
+    return categorias_ai.classificar(p.titulo, p.objeto, p.orgao_superior, p.modalidade)
+
+
 # ── Ordenação (benchmark: mais recentes · prazo · nome A-Z · órgão A-Z) ──────
 ORDENACOES = ("recentes", "prazo", "prazo_distante", "nome", "orgao", "valor")
 
@@ -170,6 +208,7 @@ async def listar(
     session: AsyncSession,
     *,
     municipio: str | None = None,
+    uf: str | None = None,
     fonte: str | None = None,
     situacao: str | None = None,
     area: str | None = None,
@@ -182,11 +221,15 @@ async def listar(
     natureza_juridica: str | None = None,
     qualificacao: str | None = None,
     ano: str | None = None,
+    mes: str | None = None,
+    categoria: str | None = None,
     ordenar: str | None = None,
 ) -> list[Proposta]:
     stmt = select(Proposta)
     if municipio:
         stmt = stmt.where(Proposta.municipio_ibge == municipio)
+    if uf:
+        stmt = stmt.where(Proposta.uf == uf.upper())
     if fonte:
         stmt = stmt.where(Proposta.fonte == fonte)
     if situacao:
@@ -220,6 +263,10 @@ async def listar(
         rows = [p for p in rows if qualificacao_de(p) == qualificacao]
     if ano:
         rows = [p for p in rows if ano_de(p) == str(ano)]
+    if mes:
+        rows = [p for p in rows if mes_de(p) == str(mes).zfill(2)]
+    if categoria:
+        rows = [p for p in rows if categoria in categorias_de(p)]
     return _ordenar(rows, ordenar)
 
 
@@ -261,28 +308,44 @@ async def listar_por_prazo(
 # preso na opção escolhida).
 
 _DIMENSOES: dict[str, object] = {
+    "municipio": lambda p: p.municipio_ibge,
+    "uf": lambda p: p.uf,
     "fonte": lambda p: p.fonte,
     "modalidade": lambda p: p.modalidade,
     "orgao": lambda p: p.orgao_superior,
     "situacao": lambda p: p.situacao,
     "natureza_juridica": natureza_juridica_de,
     "qualificacao": qualificacao_de,
+    "categoria": categorias_de,  # multivalorada: uma proposta tem até 3 pílulas
     "ano": ano_de,
+    "mes": mes_de,
     "tipo": lambda p: classificar_tipo(p.situacao),
 }
 
 _ROTULOS: dict[str, dict[str, str]] = {
     "natureza_juridica": dict(NATUREZAS_JURIDICAS),
     "tipo": {"cadastrada": "Cadastradas", "disponivel": "Disponíveis"},
+    "categoria": categorias_ai.ROTULOS,
+    "mes": dict(MESES),
 }
+
+# Dimensões cronológicas ordenam pelo VALOR, não pela contagem: um dropdown de
+# meses fora de ordem é ilegível. Ano do mais recente para o mais antigo.
+_ORDEM_CRONOLOGICA: dict[str, bool] = {"ano": True, "mes": False}  # dim -> decrescente
+
+
+def _valores(dim: str, p: Proposta) -> list[str]:
+    """Valores de uma proposta na dimensão (lista: cobre as multivaloradas)."""
+    bruto = _DIMENSOES[dim](p)  # type: ignore[operator]
+    itens = bruto if isinstance(bruto, list) else [bruto]
+    return [str(v) for v in itens if v not in (None, "")]
 
 
 def _casa(p: Proposta, filtros: dict[str, str | None], ignorar: str | None = None) -> bool:
     for dim, valor in filtros.items():
         if not valor or dim == ignorar:
             continue
-        extrator = _DIMENSOES[dim]
-        if extrator(p) != valor:  # type: ignore[operator]
+        if valor not in _valores(dim, p):
             return False
     return True
 
@@ -290,32 +353,42 @@ def _casa(p: Proposta, filtros: dict[str, str | None], ignorar: str | None = Non
 async def facetas(
     session: AsyncSession,
     *,
-    municipio: str | None = None,
     area: str | None = None,
     q: str | None = None,
     valor_min: Decimal | None = None,
     valor_max: Decimal | None = None,
     **filtros: str | None,
 ) -> dict[str, list[dict]]:
-    """Opções disponíveis por dimensão (valor, rótulo, total) para os dropdowns."""
-    filtros = {dim: filtros.get(dim) for dim in _DIMENSOES}
-    rows = await listar(
-        session, municipio=municipio, area=area, q=q, valor_min=valor_min, valor_max=valor_max
-    )
+    """Opções disponíveis por dimensão (valor, rótulo, total) para os dropdowns.
+
+    Nenhum filtro de dimensão entra no SQL aqui: o recorte base é só território
+    (RLS) + área/busca/faixa de valor, e cada dimensão é contada IGNORANDO o
+    próprio filtro — senão o dropdown de município (ou de mês, ou de órgão)
+    passaria a listar apenas a opção já escolhida.
+    """
+    dimensoes = {dim: filtros.get(dim) for dim in _DIMENSOES}
+    rows = await listar(session, area=area, q=q, valor_min=valor_min, valor_max=valor_max)
+    # município não tem rótulo fixo — sai do próprio recorte (nome/UF)
+    nomes_municipio = {
+        p.municipio_ibge: f"{p.municipio_nome or p.municipio_ibge}{f'/{p.uf}' if p.uf else ''}"
+        for p in rows
+        if p.municipio_ibge
+    }
     resultado: dict[str, list[dict]] = {}
-    for dim, extrator in _DIMENSOES.items():
+    for dim in _DIMENSOES:
         contagem: dict[str, int] = {}
         for p in rows:
-            if not _casa(p, filtros, ignorar=dim):
+            if not _casa(p, dimensoes, ignorar=dim):
                 continue
-            valor = extrator(p)  # type: ignore[operator]
-            if valor in (None, ""):
-                continue
-            contagem[str(valor)] = contagem.get(str(valor), 0) + 1
-        rotulos = _ROTULOS.get(dim, {})
+            for valor in _valores(dim, p):
+                contagem[valor] = contagem.get(valor, 0) + 1
+        rotulos = nomes_municipio if dim == "municipio" else _ROTULOS.get(dim, {})
+        if dim in _ORDEM_CRONOLOGICA:
+            itens = sorted(contagem.items(), reverse=_ORDEM_CRONOLOGICA[dim])
+        else:
+            itens = sorted(contagem.items(), key=lambda kv: (-kv[1], kv[0]))
         resultado[dim] = [
-            {"valor": v, "rotulo": rotulos.get(v, v), "total": n}
-            for v, n in sorted(contagem.items(), key=lambda kv: (-kv[1], kv[0]))
+            {"valor": v, "rotulo": rotulos.get(v, v), "total": n} for v, n in itens
         ]
     return resultado
 
@@ -438,11 +511,13 @@ _COLUNAS_RELATORIO = (
     "modalidade",
     "natureza_juridica",
     "qualificacao",
+    "categorias",
     "municipio",
     "uf",
     "situacao",
     "tipo",
     "ano",
+    "mes",
     "valor_total",
     "valor_global",
     "valor_empenhado",
@@ -476,11 +551,15 @@ def gerar_csv(rows: list[Proposta]) -> str:
                 "modalidade": p.modalidade or "",
                 "natureza_juridica": natureza_juridica_de(p) or "",
                 "qualificacao": qualificacao_de(p) or "",
+                "categorias": ", ".join(
+                    categorias_ai.ROTULOS.get(c, c) for c in categorias_de(p)
+                ),
                 "municipio": p.municipio_nome or p.municipio_ibge or "",
                 "uf": p.uf or "",
                 "situacao": p.situacao or "",
                 "tipo": classificar_tipo(p.situacao),
                 "ano": ano_de(p) or "",
+                "mes": dict(MESES).get(mes_de(p) or "", ""),
                 "valor_total": p.valor_total or "",
                 "valor_global": ex.get("valor_global", ""),
                 "valor_empenhado": ex.get("valor_empenhado", ""),

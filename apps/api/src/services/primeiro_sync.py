@@ -24,6 +24,7 @@ import logging
 import uuid
 
 from ..db.session import rls_session
+from ..jobs import curadoria as curadoria_job
 from . import conformidade as conformidade_service
 from . import consulta_avulsa as consulta_service
 from . import fontes as fontes_service
@@ -92,6 +93,14 @@ async def executar(
                     )
             except Exception:
                 log.warning("1º sync captação falhou: %s/%s", fonte, ibge, exc_info=True)
+
+        # 1b) Curadoria por IA (resumo + pílulas refinadas) do que acabou de
+        # entrar. Fora do request de propósito: é a única etapa que chama LLM.
+        try:
+            async with rls_session(usuario_id) as s:
+                await curadoria_job.curar_com_ia(s)
+        except Exception:
+            log.warning("1º sync curadoria falhou: %s", ibge, exc_info=True)
 
         # 2) Recebidos — uma fonte por sessão para isolar falhas.
         for fonte in _fontes_recebidos(fontes):

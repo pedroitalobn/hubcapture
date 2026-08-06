@@ -22,6 +22,7 @@ from ..connectors.base import get_connector
 from ..core.config import settings
 from ..db.session import SessionLocal
 from ..ingestion.merge import merge_record
+from ..jobs import curadoria as curadoria_job
 from ..models.audit_log import AuditLog
 from ..models.municipio_interesse import MunicipioInteresse
 from ..models.proposta import Proposta
@@ -97,6 +98,9 @@ async def consulta_avulsa(
             canonica = merge_record(record)
             await propostas_service.upsert(session, canonica)
             n += 1
+        # pílulas de categoria do que acabou de entrar: determinístico, sem rede
+        # (o resumo por IA é outro pass, fora do request — jobs/curadoria).
+        await curadoria_job.classificar_pendentes(session)
     except Exception as exc:  # nunca engolir: registra incidente e propaga
         await _registrar_sync(
             usuario_id=usuario_id,
