@@ -6,6 +6,7 @@ import { StatCard } from "@/components/StatCard";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { SkeletonCards } from "@/components/Skeleton";
 import { api } from "@/lib/api/client";
+import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 interface Requisito {
   id: string;
@@ -52,6 +53,7 @@ export default function ConformidadePage() {
 }
 
 function ConformidadeConteudo() {
+  const { selecionados } = useTerritorio();
   const [data, setData] = useState<Resumo | null>(null);
   const [loading, setLoading] = useState(true);
   const [ibge, setIbge] = useState("");
@@ -61,11 +63,11 @@ function ConformidadeConteudo() {
   const carregar = useCallback(async () => {
     setLoading(true);
     const { data: d, error } = await api.GET("/api/v1/compliance", {
-      params: { query: {} },
+      params: { query: { municipio: paramMunicipio(selecionados) } },
     });
     if (!error) setData(d as Resumo);
     setLoading(false);
-  }, []);
+  }, [selecionados]);
 
   useEffect(() => {
     void carregar();

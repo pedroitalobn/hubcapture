@@ -37,7 +37,12 @@ router = APIRouter(tags=["propostas"], dependencies=[Depends(require_modulo("cap
 class FiltrosProposta(BaseModel):
     """Filtros da captação — compartilhados por lista, facetas, resumo e relatório."""
 
-    municipio: str | None = Field(default=None, description="código IBGE (7 dígitos)")
+    # Multi-seleção: o painel recorta o território para os municípios que o
+    # usuário quer ver agora (`?municipio=2611606&municipio=3550308`). Um valor
+    # só continua valendo — vira uma lista de um item.
+    municipio: list[str] | None = Field(
+        default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
+    )
     uf: str | None = Field(
         default=None, min_length=2, max_length=2, description="unidade federativa"
     )
@@ -135,10 +140,13 @@ async def relatorio_propostas(
 @router.get("/proposals/deadlines", response_model=list[PropostaPrazo])
 async def propostas_por_prazo(
     dias: int = Query(default=30, ge=1, le=365),
+    municipio: list[str] | None = Query(
+        default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
+    ),
     session: AsyncSession = Depends(get_rls_db),
 ) -> list[PropostaPrazo]:
     """Propostas com prazo vencendo na janela — 'quais vencem este mês?'."""
-    rows = await propostas_service.listar_por_prazo(session, dias=dias)
+    rows = await propostas_service.listar_por_prazo(session, dias=dias, municipio=municipio)
     return [
         PropostaPrazo(proposta=PropostaRead.model_validate(p), prazos_na_janela=prazos)
         for p, prazos in rows

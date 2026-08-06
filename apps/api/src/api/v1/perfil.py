@@ -7,7 +7,7 @@ São a fonte de verdade da navegação profile-centric do web.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.users import current_active_user
@@ -27,18 +27,27 @@ async def get_perfil(
     return await service.get_perfil(session, user)
 
 
+# O painel filtra QUAIS dos municípios do perfil o usuário quer ver agora —
+# repetir o parâmetro seleciona vários; omitir vale o território inteiro.
+_MUNICIPIO_QUERY = Query(
+    default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
+)
+
+
 @router.get("/profile/overview", response_model=VisaoGeralPerfil)
 async def visao_geral_perfil(
+    municipio: list[str] | None = _MUNICIPIO_QUERY,
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> VisaoGeralPerfil:
-    return await service.visao_geral(session, user)
+    return await service.visao_geral(session, user, municipios_filtro=municipio)
 
 
 @router.get("/profile/feed", response_model=NovidadesPerfil)
 async def novidades_perfil(
+    municipio: list[str] | None = _MUNICIPIO_QUERY,
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> NovidadesPerfil:
     """Feed 'últimas novidades' do território, recortado pelo perfil do usuário."""
-    return await service.novidades(session, user)
+    return await service.novidades(session, user, municipios_filtro=municipio)

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { islandStream } from "@/lib/api/client";
+import { useTerritorio } from "@/lib/territorio";
 
 /**
  * Dynamic Island do Copiloto — pill flutuante que PERSISTE em todas as telas do
@@ -54,6 +55,8 @@ function historicoInicial(): Msg[] {
 }
 
 export default function DynamicIsland() {
+  // o island flutua sobre o painel: pergunta sempre no recorte que está em tela
+  const { selecionados } = useTerritorio();
   const [aberta, setAberta] = useState(false);
   const [mensagens, setMensagens] = useState<Msg[]>(historicoInicial);
   const [pergunta, setPergunta] = useState("");
@@ -78,13 +81,17 @@ export default function DynamicIsland() {
     const tools: string[] = [];
     let resposta = "";
     try {
-      await islandStream(q, (ev) => {
-        if (ev.tool) {
-          tools.push(ev.tool);
-          setStatusTool(ev.tool);
-        }
-        if (ev.delta) resposta += ev.delta;
-      });
+      await islandStream(
+        q,
+        (ev) => {
+          if (ev.tool) {
+            tools.push(ev.tool);
+            setStatusTool(ev.tool);
+          }
+          if (ev.delta) resposta += ev.delta;
+        },
+        selecionados,
+      );
       setMensagens((m) => [
         ...m,
         {

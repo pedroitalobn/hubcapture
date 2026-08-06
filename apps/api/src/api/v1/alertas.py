@@ -31,10 +31,15 @@ async def varredura_alertas(
 @router.get("/alerts", response_model=list[AlertaRead])
 async def listar_alertas(
     nao_lidos: bool = Query(default=False),
+    municipio: list[str] | None = Query(
+        default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
+    ),
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> list[AlertaRead]:
-    rows = await service.listar(session, user.id, apenas_nao_lidos=nao_lidos)
+    rows = await service.listar(
+        session, user.id, apenas_nao_lidos=nao_lidos, municipio=municipio
+    )
     return [AlertaRead.model_validate(r) for r in rows]
 
 

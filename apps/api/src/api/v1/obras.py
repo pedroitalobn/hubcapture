@@ -24,7 +24,9 @@ class SyncObrasRequest(BaseModel):
 
 @router.get("/works", response_model=list[ObraRead])
 async def listar_obras(
-    municipio: str | None = Query(default=None, description="código IBGE (7 dígitos)"),
+    municipio: list[str] | None = Query(
+        default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
+    ),
     fonte: str | None = Query(default=None),
     situacao: str | None = Query(default=None),
     session: AsyncSession = Depends(get_rls_db),
@@ -35,7 +37,9 @@ async def listar_obras(
 
 @router.get("/works/summary", response_model=ObrasResumo)
 async def obras_resumo(
-    municipio: str | None = Query(default=None, description="código IBGE (7 dígitos)"),
+    municipio: list[str] | None = Query(
+        default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
+    ),
     session: AsyncSession = Depends(get_rls_db),
 ) -> ObrasResumo:
     return await service.resumo(session, municipio=municipio)

@@ -223,12 +223,15 @@ export async function importarContatosVcf(arquivo: File) {
  */
 export async function baixarCsv(
   path: string,
-  params: Record<string, string | number | boolean | null | undefined>,
+  params: Record<string, string | number | boolean | string[] | null | undefined>,
   filename: string,
 ): Promise<void> {
   const qs = new URLSearchParams();
   for (const [chave, valor] of Object.entries(params)) {
-    if (valor !== null && valor !== undefined && valor !== "") qs.set(chave, String(valor));
+    if (valor === null || valor === undefined || valor === "") continue;
+    // lista = parâmetro repetido (?municipio=A&municipio=B), como a API espera
+    if (Array.isArray(valor)) valor.forEach((v) => v !== "" && qs.append(chave, String(v)));
+    else qs.set(chave, String(valor));
   }
   const resp = await fetch(`${API_ORIGIN}${path}?${qs.toString()}`, {
     headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
@@ -382,6 +385,8 @@ export type IslandEvento = { tool?: string; delta?: string };
 export async function islandStream(
   pergunta: string,
   onEvento: (e: IslandEvento) => void,
+  /** Recorte de território do painel — o agente responde sobre o mesmo conjunto. */
+  municipios?: string[],
 ): Promise<void> {
   const resp = await fetch(`${API_ORIGIN}/api/v1/copilot/island`, {
     method: "POST",
@@ -389,7 +394,7 @@ export async function islandStream(
       "Content-Type": "application/json",
       Authorization: `Bearer ${(await garantirSessao()) ?? ""}`,
     },
-    body: JSON.stringify({ pergunta }),
+    body: JSON.stringify({ pergunta, municipios: municipios?.length ? municipios : null }),
   });
   if (!resp.body) return;
   const reader = resp.body.getReader();

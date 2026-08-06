@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import unicodedata
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
@@ -18,6 +19,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..ai import categorias as categorias_ai
 from ..models.proposta import Proposta
 from ..schemas.proposta import PropostaCanonica
+from ._territorio import Municipios
+from ._territorio import condicao as condicao_municipio
+from ._territorio import filtrar as filtrar_municipio
+
+# Valor de um filtro de dimensão: um valor, vários (multi-seleção) ou nenhum.
+Filtro = str | Sequence[str] | None
 
 # campos que o upsert atualiza em conflito (fonte,id_externo)
 _UPSERT_FIELDS = (
@@ -221,7 +228,7 @@ _ORDEM_SQL = (Proposta.cache_atualizado_em.desc().nullslast(), Proposta.id)
 
 def _condicoes(
     *,
-    municipio: str | None,
+    municipio: Municipios,
     uf: str | None,
     fonte: str | None,
     situacao: str | None,
@@ -234,8 +241,11 @@ def _condicoes(
 ) -> list:
     """Recorte que o SQL sabe fazer (o resto é pós-filtro em Python)."""
     condicoes = []
-    if municipio:
-        condicoes.append(Proposta.municipio_ibge == municipio)
+    # território: um município, vários (o painel recorta um subconjunto do
+    # perfil) ou nenhum — aí o RLS já limita ao território do usuário.
+    recorte = condicao_municipio(Proposta.municipio_ibge, municipio)
+    if recorte is not None:
+        condicoes.append(recorte)
     if uf:
         condicoes.append(Proposta.uf == uf.upper())
     if fonte:
@@ -264,7 +274,7 @@ def _condicoes(
 async def listar_pagina(
     session: AsyncSession,
     *,
-    municipio: str | None = None,
+    municipio: Municipios = None,
     uf: str | None = None,
     fonte: str | None = None,
     situacao: str | None = None,
@@ -371,13 +381,14 @@ def _prazos_na_janela(p: Proposta, inicio: date, fim: date) -> list[dict]:
 
 
 async def listar_por_prazo(
-    session: AsyncSession, *, dias: int = 30
+    session: AsyncSession, *, dias: int = 30, municipio: Municipios = None
 ) -> list[tuple[Proposta, list[dict]]]:
     """Propostas com prazo vencendo na janela [hoje, hoje+dias] — consulta
     estruturada (não-RAG) que alimenta o painel e a resposta do chat."""
     hoje = date.today()
     fim = hoje + timedelta(days=dias)
     stmt = select(Proposta).where(Proposta.prazos.isnot(None))
+    stmt = filtrar_municipio(stmt, Proposta.municipio_ibge, municipio)
     rows = (await session.execute(stmt)).scalars().all()
     com_prazo = []
     for p in rows:
@@ -427,11 +438,26 @@ def _valores(dim: str, p: Proposta) -> list[str]:
     return [str(v) for v in itens if v not in (None, "")]
 
 
-def _casa(p: Proposta, filtros: dict[str, str | None], ignorar: str | None = None) -> bool:
+def _escolhidos(valor: Filtro) -> list[str]:
+    """Filtro de uma dimensão: um valor, vários (multi-seleção) ou nenhum.
+
+    Município chega como lista quando o painel recorta o território; as demais
+    dimensões chegam como string — os dois casos viram a mesma lista aqui.
+    """
+    if valor is None:
+        return []
+    brutos = [valor] if isinstance(valor, str) else list(valor)
+    return [str(v) for v in brutos if str(v)]
+
+
+def _casa(p: Proposta, filtros: dict[str, Filtro], ignorar: str | None = None) -> bool:
     for dim, valor in filtros.items():
-        if not valor or dim == ignorar:
+        escolhidos = _escolhidos(valor)
+        if not escolhidos or dim == ignorar:
             continue
-        if valor not in _valores(dim, p):
+        # multi-seleção casa por interseção: a proposta entra se bate com QUALQUER
+        # valor escolhido (é um OU dentro da dimensão, E entre dimensões).
+        if not set(escolhidos) & set(_valores(dim, p)):
             return False
     return True
 
@@ -443,7 +469,7 @@ async def facetas(
     q: str | None = None,
     valor_min: Decimal | None = None,
     valor_max: Decimal | None = None,
-    **filtros: str | None,
+    **filtros: Filtro,
 ) -> dict[str, list[dict]]:
     """Opções disponíveis por dimensão (valor, rótulo, total) para os dropdowns.
 

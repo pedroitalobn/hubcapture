@@ -5,21 +5,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/AuthShell";
 import DynamicIsland from "@/components/DynamicIsland";
+import { TerritorioFiltro } from "@/components/TerritorioFiltro";
 import { api, clearTokens, getToken } from "@/lib/api/client";
-
-interface MunicipioPerfil {
-  ibge: string;
-  nome?: string | null;
-  uf?: string | null;
-  modo: string;
-}
-interface Perfil {
-  nome?: string | null;
-  papel?: string | null;
-  municipios: MunicipioPerfil[];
-  areas: string[];
-  modulos?: string[];
-}
+import { TerritorioProvider, useTerritorio } from "@/lib/territorio";
 
 // A navegação NÃO é por fonte de dados — é o ciclo do recurso público, sempre
 // recortado pelo território do usuário (via RLS). Cada item é uma LENTE sobre
@@ -53,9 +41,19 @@ export default function PainelLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // O território (municípios do perfil + recorte ativo) é estado de TODO o
+  // painel: o provider carrega o perfil uma vez e as telas leem daqui.
+  return (
+    <TerritorioProvider>
+      <PainelShell>{children}</PainelShell>
+    </TerritorioProvider>
+  );
+}
+
+function PainelShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [perfil, setPerfil] = useState<Perfil | null>(null);
+  const { perfil, municipios, selecionados } = useTerritorio();
   const [admin, setAdmin] = useState(false);
 
   useEffect(() => {
@@ -64,11 +62,7 @@ export default function PainelLayout({
       return;
     }
     void (async () => {
-      const [{ data }, me] = await Promise.all([
-        api.GET("/api/v1/profile"),
-        api.GET("/api/v1/users/me"),
-      ]);
-      if (data) setPerfil(data as Perfil);
+      const me = await api.GET("/api/v1/users/me");
       setAdmin(Boolean((me.data as { is_superuser?: boolean } | undefined)?.is_superuser));
     })();
   }, [router]);
@@ -77,14 +71,6 @@ export default function PainelLayout({
     clearTokens();
     router.replace("/login");
   }
-
-  const municipios = perfil?.municipios ?? [];
-  const territorio =
-    municipios.length === 0
-      ? "Nenhum município — configure o onboarding"
-      : municipios
-          .map((m) => (m.nome ? `${m.nome}${m.uf ? `/${m.uf}` : ""}` : m.ibge))
-          .join(" · ");
 
   return (
     <div className="flex min-h-screen w-full flex-col gap-5 p-4 sm:p-6 md:flex-row md:gap-6 lg:p-8">
@@ -98,10 +84,17 @@ export default function PainelLayout({
           </p>
         </div>
 
-        {/* Território do perfil — a chave de tudo é o município, não a fonte. */}
+        {/* Território do perfil — a chave de tudo é o município, não a fonte.
+            O filtro escolhe QUAIS dos municípios do onboarding entram no
+            painel agora; o recorte vale para todas as lentes do menu. */}
         <div className="border-t border-hairline pt-4 text-sm">
-          <p className="label-mono mb-1.5">Território</p>
-          <p className="text-ink-2">{territorio}</p>
+          <p className="label-mono mb-1.5">
+            Território
+            {selecionados.length > 0 && municipios.length > 1 && (
+              <span className="ml-1.5 normal-case text-ink-2">(filtrado)</span>
+            )}
+          </p>
+          <TerritorioFiltro />
           {(perfil?.areas ?? []).length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {perfil!.areas.map((a) => (
