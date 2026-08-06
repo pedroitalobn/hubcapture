@@ -154,6 +154,61 @@ async def test_ordenacao_por_prazo(seed_user, seed_municipio) -> None:
         assert [p.id_externo for p in distantes] == ["LONGE", "PERTO", "SEMPRAZO"]
 
 
+# ── paginação (o painel carrega de página em página) ────────────────────────
+async def test_paginacao_caminho_rapido(seed_user, seed_municipio) -> None:
+    """Sem pós-filtro e na ordenação do SQL, o LIMIT/OFFSET desce ao banco."""
+    u = await seed_user("pagina@x.com")
+    await seed_municipio(u, "3550308")
+    for i in range(5):
+        await _seed(f"P{i}", "3550308")
+
+    async with rls_session(u) as s:
+        primeira, total = await prop_service.listar_pagina(s, limite=2)
+        assert total == 5  # o total é do recorte, não da página
+        assert len(primeira) == 2
+
+        segunda, total_2 = await prop_service.listar_pagina(s, limite=2, offset=2)
+        assert total_2 == 5
+        # páginas não se sobrepõem nem pulam linhas — mesmo com
+        # `cache_atualizado_em` empatado (todas gravadas no mesmo instante)
+        terceira, _ = await prop_service.listar_pagina(s, limite=2, offset=4)
+        vistos = [p.id_externo for p in [*primeira, *segunda, *terceira]]
+        assert sorted(vistos) == ["P0", "P1", "P2", "P3", "P4"]
+
+        # sem limite continua devolvendo tudo (facetas, resumo e CSV dependem)
+        todas, total_3 = await prop_service.listar_pagina(s)
+        assert len(todas) == total_3 == 5
+
+
+async def test_paginacao_depois_do_pos_filtro(seed_user, seed_municipio) -> None:
+    """Com filtro/ordenação que rodam em Python, a página sai DEPOIS deles.
+
+    Aqui está a armadilha: um LIMIT ingênuo no SQL recortaria o conjunto
+    pré-filtro e devolveria a página errada (e um total inflado).
+    """
+    u = await seed_user("pagina2@x.com")
+    await seed_municipio(u, "3550308")
+    # 3 de 2025 (entram no filtro de ano) e 2 de 2024 (não entram)
+    for nome in ("Creche", "Ambulância", "Escola"):
+        await _seed(nome, "3550308", titulo=nome, execucao=EXEC_MUNICIPAL)
+    for nome in ("Praça", "Ponte"):
+        await _seed(nome, "3550308", titulo=nome, execucao=EXEC_CONSORCIO)
+
+    async with rls_session(u) as s:
+        # ano=2025 é pós-filtro em Python; ordenar=nome também reordena depois
+        pagina, total = await prop_service.listar_pagina(
+            s, ano="2025", ordenar="nome", limite=2
+        )
+        assert total == 3  # só as de 2025 — não as 5 do SQL
+        assert [p.titulo for p in pagina] == ["Ambulância", "Creche"]
+
+        resto, total_2 = await prop_service.listar_pagina(
+            s, ano="2025", ordenar="nome", limite=2, offset=2
+        )
+        assert total_2 == 3
+        assert [p.titulo for p in resto] == ["Escola"]
+
+
 # ── facetas: as opções dos dropdowns, com contagem ──────────────────────────
 async def test_facetas_ignoram_a_propria_dimensao(seed_user, seed_municipio) -> None:
     u = await seed_user("facetas@x.com")

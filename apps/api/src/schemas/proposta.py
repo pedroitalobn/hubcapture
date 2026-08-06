@@ -127,6 +127,19 @@ class PropostaRead(BaseModel):
         return (prazo - date.today()).days if prazo else None
 
 
+class PropostasPagina(BaseModel):
+    """Uma página da listagem + o total do recorte (o 'carregar mais' do painel).
+
+    `total` é do recorte inteiro, já com os filtros aplicados — é ele que diz se
+    ainda há próxima página, não o tamanho de `itens`.
+    """
+
+    itens: list[PropostaRead]
+    total: int
+    limite: int | None = None
+    offset: int = 0
+
+
 class PropostaPrazo(BaseModel):
     """Proposta com prazos vencendo na janela consultada (visão estruturada)."""
 
