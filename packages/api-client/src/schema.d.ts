@@ -1127,7 +1127,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Listar Propostas */
+        /**
+         * Listar Propostas
+         * @description Página da listagem lida do banco (cache-first) + total do recorte.
+         */
         get: operations["listar_propostas_api_v1_proposals_get"];
         put?: never;
         post?: never;
@@ -2247,6 +2250,11 @@ export interface components {
             categoria?: string | null;
             /** Fonte */
             fonte?: string | null;
+            /**
+             * Limite
+             * @description itens da página devolvida (sem limite: tudo)
+             */
+            limite?: number | null;
             /** Mes */
             mes?: string | null;
             /**
@@ -2264,6 +2272,11 @@ export interface components {
              * @description municipal | estadual_df | consorcio | empresa_publica | osc
              */
             natureza_juridica?: string | null;
+            /**
+             * Offset
+             * @default 0
+             */
+            offset: number;
             /** Ordenar */
             ordenar?: string | null;
             /**
@@ -2299,6 +2312,8 @@ export interface components {
             fontes: components["schemas"]["FonteStatus"][];
             /** Propostas */
             propostas: components["schemas"]["PropostaRead"][];
+            /** Total */
+            total: number;
         };
         /** LlmChaveIn */
         LlmChaveIn: {
@@ -2982,6 +2997,26 @@ export interface components {
              * @default []
              */
             uf: components["schemas"]["FacetaOpcao"][];
+        };
+        /**
+         * PropostasPagina
+         * @description Uma página da listagem + o total do recorte (o 'carregar mais' do painel).
+         *
+         *     `total` é do recorte inteiro, já com os filtros aplicados — é ele que diz se
+         *     ainda há próxima página, não o tamanho de `itens`.
+         */
+        PropostasPagina: {
+            /** Itens */
+            itens: components["schemas"]["PropostaRead"][];
+            /** Limite */
+            limite?: number | null;
+            /**
+             * Offset
+             * @default 0
+             */
+            offset: number;
+            /** Total */
+            total: number;
         };
         /**
          * ProvedorInfo
@@ -5735,6 +5770,10 @@ export interface operations {
                 tipo?: string | null;
                 /** @description mais recentes · prazo (próximo/distante) · nome A-Z · órgão A-Z · valor */
                 ordenar?: string | null;
+                /** @description itens por página (sem limite: tudo) */
+                limite?: number | null;
+                /** @description itens já carregados */
+                offset?: number;
             };
             header?: never;
             path?: never;
@@ -5748,7 +5787,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PropostaRead"][];
+                    "application/json": components["schemas"]["PropostasPagina"];
                 };
             };
             /** @description Validation Error */

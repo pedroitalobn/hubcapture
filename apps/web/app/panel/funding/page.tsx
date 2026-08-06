@@ -163,6 +163,27 @@ const ORDENACOES: [string, string][] = [
 const ABAS_KEY = "hub_captacao_abas";
 const ABA_ACOMPANHAMENTO = "acompanhamento";
 
+// ── Paginação da lista ──────────────────────────────────────────────────────
+// A tela lê do BANCO, de página em página. Antes ela chamava
+// `/proposals/live-search` a CADA carregamento: isso coletava nas fontes ao
+// vivo (uma delas baixa um CSV de ~1 GB) e devolvia as milhares de propostas de
+// uma vez só. A coleta virou a ação explícita "Atualizar fontes" — e o worker
+// faz o sweep diário, então a lista não envelhece por isso.
+const POR_PAGINA_KEY = "hub_captacao_por_pagina";
+const POR_PAGINA_OPCOES = [10, 30, 50, 100];
+const POR_PAGINA_PADRAO = 30;
+
+/** Preferência salva de itens por vez; null quando não há uma utilizável. */
+function lerPorPaginaSalvo(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const salvo = Number(window.localStorage.getItem(POR_PAGINA_KEY));
+    return POR_PAGINA_OPCOES.includes(salvo) ? salvo : null;
+  } catch {
+    return null; // preferência corrompida/bloqueada → volta ao padrão
+  }
+}
+
 function num(v?: string | number | null): number {
   const n = Number(v);
   return Number.isNaN(n) ? 0 : n;
@@ -224,6 +245,13 @@ function SelectFaceta({
 
 export default function CaptacaoPage() {
   const [propostas, setPropostas] = useState<Proposta[]>([]);
+  // total do recorte no banco — `propostas` é só o que já foi carregado dele
+  const [total, setTotal] = useState(0);
+  const [porPagina, setPorPagina] = useState(POR_PAGINA_PADRAO);
+  const [carregandoMais, setCarregandoMais] = useState(false);
+  const [atualizando, setAtualizando] = useState(false);
+  const prefCarregada = useRef(false);
+  const sentinela = useRef<HTMLDivElement | null>(null);
   const [fontesStatus, setFontesStatus] = useState<FonteStatus[]>([]);
   const [facetas, setFacetas] = useState<Facetas>({});
   const [buscando, setBuscando] = useState(true);
@@ -260,55 +288,171 @@ export default function CaptacaoPage() {
     window.localStorage.setItem(ABAS_KEY, JSON.stringify(abas));
   }, [abas]);
 
-  // Busca em TEMPO REAL: a cada mudança de filtro (debounce), a API consulta as
-  // fontes oficiais ao vivo (API pública + scraping via connectors) e devolve
-  // as propostas já filtradas + o status por fonte.
-  const buscarAoVivo = useCallback(async () => {
-    const seq = ++buscaSeq.current;
-    setBuscando(true);
-    const { data, error } = await api.POST("/api/v1/proposals/live-search", {
-      body: {
-        municipio_ibge: filtros.municipio || null,
-        uf: filtros.uf || null,
-        fonte: filtros.fonte || null,
-        area: filtros.area || null,
-        categoria: filtros.categoria || null,
-        situacao: filtros.situacao || null,
-        modalidade: filtros.modalidade || null,
-        orgao: filtros.orgao || null,
-        natureza_juridica: filtros.naturezaJuridica || null,
-        qualificacao: filtros.qualificacao || null,
-        ano: filtros.ano || null,
-        mes: filtros.mes || null,
-        q: filtros.q || null,
-        ordenar: filtros.ordenar || null,
-        valor_min: filtros.valorMin || null,
-        valor_max: filtros.valorMax || null,
-        tipo: filtros.tipo || null,
-      } as never,
-    });
-    if (seq !== buscaSeq.current) return; // resposta antiga — descarta
-    if (error) {
-      setMsg("Falha na busca em tempo real. Tente novamente.");
-    } else if (data) {
-      const resp = data as {
-        propostas: Proposta[];
-        fontes: FonteStatus[];
-        facetas?: Facetas;
-      };
-      setPropostas(resp.propostas ?? []);
-      setFontesStatus(resp.fontes ?? []);
-      setFacetas(resp.facetas ?? {});
-      setMsg(null);
-    }
-    setBuscando(false);
-  }, [filtros]);
+  // Os filtros que viajam para a API (os de curadoria ficam no cliente).
+  // Vazio vira `undefined` para o parâmetro simplesmente não ir na query.
+  const filtrosApi = useCallback(
+    () => ({
+      municipio: filtros.municipio || undefined,
+      uf: filtros.uf || undefined,
+      fonte: filtros.fonte || undefined,
+      area: filtros.area || undefined,
+      categoria: filtros.categoria || undefined,
+      situacao: filtros.situacao || undefined,
+      modalidade: filtros.modalidade || undefined,
+      orgao: filtros.orgao || undefined,
+      natureza_juridica: filtros.naturezaJuridica || undefined,
+      qualificacao: filtros.qualificacao || undefined,
+      ano: filtros.ano || undefined,
+      mes: filtros.mes || undefined,
+      q: filtros.q || undefined,
+      ordenar: filtros.ordenar || undefined,
+      valor_min: filtros.valorMin || undefined,
+      valor_max: filtros.valorMax || undefined,
+      tipo: filtros.tipo || undefined,
+    }),
+    [filtros],
+  );
 
+  /**
+   * Carrega uma página do banco. `offset` 0 substitui a lista (troca de filtro);
+   * maior que 0 ANEXA (é o "carregar mais"/rolagem infinita).
+   *
+   * As facetas só vão junto na primeira página: elas contam o recorte inteiro,
+   * então não mudam de uma página para a outra.
+   */
+  const carregarPagina = useCallback(
+    async (offset: number) => {
+      const seq = ++buscaSeq.current;
+      if (offset === 0) setBuscando(true);
+      else setCarregandoMais(true);
+      const query = { ...filtrosApi(), limite: porPagina, offset };
+      const [lista, facs] = await Promise.all([
+        api.GET("/api/v1/proposals", { params: { query } as never }),
+        offset === 0
+          ? api.GET("/api/v1/proposals/facets", {
+              params: { query: filtrosApi() } as never,
+            })
+          : Promise.resolve(null),
+      ]);
+      if (seq !== buscaSeq.current) return; // resposta antiga — descarta
+      if (lista.error) {
+        setMsg("Não consegui carregar as propostas. Tente novamente.");
+      } else if (lista.data) {
+        const pagina = lista.data as { itens: Proposta[]; total: number };
+        setPropostas((prev) =>
+          offset === 0 ? (pagina.itens ?? []) : [...prev, ...(pagina.itens ?? [])],
+        );
+        setTotal(pagina.total ?? 0);
+        if (facs?.data) setFacetas(facs.data as Facetas);
+        setMsg(null);
+      }
+      setBuscando(false);
+      setCarregandoMais(false);
+    },
+    [filtrosApi, porPagina],
+  );
+
+  // troca de filtro (ou de itens por vez) recomeça da primeira página
   useEffect(() => {
     if (acompanhando) return;
-    const t = setTimeout(() => void buscarAoVivo(), 500);
+    const t = setTimeout(() => void carregarPagina(0), 400);
     return () => clearTimeout(t);
-  }, [buscarAoVivo, acompanhando]);
+  }, [carregarPagina, acompanhando]);
+
+  const temMais = propostas.length < total;
+
+  const carregarMais = useCallback(() => {
+    if (buscando || carregandoMais || !temMais) return;
+    void carregarPagina(propostas.length);
+  }, [buscando, carregandoMais, temMais, carregarPagina, propostas.length]);
+
+  // rolagem infinita: a sentinela no fim da lista puxa a próxima página. O
+  // botão "Carregar mais" continua ali — quem usa teclado ou tem a rolagem
+  // presa em outro contêiner não fica sem saída.
+  useEffect(() => {
+    const alvo = sentinela.current;
+    if (!alvo || acompanhando || !temMais) return;
+    const obs = new IntersectionObserver(
+      (entradas) => {
+        if (entradas[0]?.isIntersecting) carregarMais();
+      },
+      { rootMargin: "300px" }, // começa a buscar antes de chegar ao fim
+    );
+    obs.observe(alvo);
+    return () => obs.disconnect();
+  }, [carregarMais, acompanhando, temMais]);
+
+  // Restaura a preferência de itens por vez uma única vez, no cliente (ler o
+  // localStorage no initializer divergiria do HTML do servidor → hidratação).
+  useEffect(() => {
+    const salvo = lerPorPaginaSalvo();
+    if (salvo) setPorPagina(salvo);
+    prefCarregada.current = true;
+  }, []);
+
+  // Persiste a escolha. O guard evita gravar o padrão por cima da preferência
+  // do usuário antes de ela ter sido restaurada.
+  useEffect(() => {
+    if (!prefCarregada.current) return;
+    try {
+      window.localStorage.setItem(POR_PAGINA_KEY, String(porPagina));
+    } catch {
+      /* storage cheio/bloqueado: vale só nesta sessão */
+    }
+  }, [porPagina]);
+
+  /**
+   * "Atualizar fontes" — a coleta ao vivo, agora sob demanda. É a parte cara
+   * (API pública + scraping, e um CSV de ~1 GB numa das fontes), por isso saiu
+   * do caminho de todo carregamento de tela. Grava no banco e já devolve a
+   * primeira página do recorte atualizado.
+   */
+  const atualizarFontes = useCallback(async () => {
+    const seq = ++buscaSeq.current;
+    setAtualizando(true);
+    setMsg("Consultando as fontes oficiais… pode levar alguns minutos.");
+    const f = filtrosApi();
+    const { data, error } = await api.POST("/api/v1/proposals/live-search", {
+      body: {
+        municipio_ibge: f.municipio ?? null,
+        uf: f.uf ?? null,
+        fonte: f.fonte ?? null,
+        area: f.area ?? null,
+        categoria: f.categoria ?? null,
+        situacao: f.situacao ?? null,
+        modalidade: f.modalidade ?? null,
+        orgao: f.orgao ?? null,
+        natureza_juridica: f.natureza_juridica ?? null,
+        qualificacao: f.qualificacao ?? null,
+        ano: f.ano ?? null,
+        mes: f.mes ?? null,
+        q: f.q ?? null,
+        ordenar: f.ordenar ?? null,
+        valor_min: f.valor_min ?? null,
+        valor_max: f.valor_max ?? null,
+        tipo: f.tipo ?? null,
+        limite: porPagina,
+        offset: 0,
+      } as never,
+    });
+    setAtualizando(false);
+    if (seq !== buscaSeq.current) return; // o usuário mexeu no filtro no meio
+    if (error) {
+      setMsg("Falha ao atualizar as fontes. Tente de novo em instantes.");
+      return;
+    }
+    const resp = data as {
+      propostas: Proposta[];
+      total: number;
+      fontes: FonteStatus[];
+      facetas?: Facetas;
+    };
+    setPropostas(resp.propostas ?? []);
+    setTotal(resp.total ?? 0);
+    setFontesStatus(resp.fontes ?? []);
+    setFacetas(resp.facetas ?? {});
+    setMsg(null);
+  }, [filtrosApi, porPagina]);
 
   const carregarCuradoria = useCallback(async () => {
     const [fav, pas, perf, mon] = await Promise.all([
@@ -447,14 +591,19 @@ export default function CaptacaoPage() {
     setMsg("Proposta adicionada à pasta.");
   }
 
-  // filtros de curadoria (favoritas/pasta) são do usuário, não da fonte —
-  // ficam no cliente; todo o resto viaja para a API na busca ao vivo.
+  // Filtros de curadoria (favoritas/pasta) são do usuário, não da fonte — ficam
+  // no cliente; todo o resto viaja para a API. ATENÇÃO: por serem client-side,
+  // eles recortam só o que JÁ foi carregado, não o recorte inteiro do banco.
+  // Por isso, com um deles ligado, o contador passa a falar em "carregadas" (o
+  // `total` do servidor não os conhece e seria um denominador mentiroso).
   const visiveis = useMemo(() => {
     let lista = acompanhando ? acompanhadas : propostas;
     if (filtros.soFavoritas) lista = lista.filter((p) => favoritos.has(p.id));
     if (filtros.pastaId) lista = lista.filter((p) => pastaPropostas.has(p.id));
     return lista;
   }, [propostas, acompanhadas, acompanhando, filtros.soFavoritas, filtros.pastaId, favoritos, pastaPropostas]);
+
+  const curadoriaAtiva = filtros.soFavoritas || !!filtros.pastaId;
 
   /** Contador ao lado do rótulo de um chip (vazio quando a opção é "Todas"). */
   function contarFaceta(dim: keyof Facetas, valor: string) {
@@ -648,8 +797,9 @@ export default function CaptacaoPage() {
         <div>
           <h1 className="page-title">Captação</h1>
           <p className="mt-1 text-sm text-ink-2">
-            Propostas e oportunidades do seu território, consultadas em tempo real
-            nas fontes oficiais (API + scraping).
+            Propostas e oportunidades do seu território, das fontes oficiais
+            (API + scraping). Atualiza sozinha uma vez por dia — use “Atualizar
+            fontes” para consultar agora.
           </p>
         </div>
         <Link href="/panel/funding/summary" className="btn btn-ghost btn-sm">
@@ -966,14 +1116,49 @@ export default function CaptacaoPage() {
       </div>
       )}
 
-      {/* estado honesto da coleta ao vivo */}
+      {/* estado honesto da lista: o que já veio, de quanto, e a coleta sob demanda */}
       {!acompanhando && (
       <div className="flex flex-wrap items-center gap-2 text-sm text-ink-2">
         {buscando ? (
-          <span className="label-mono animate-pulse">
-            Consultando fontes oficiais em tempo real…
+          <span className="label-mono animate-pulse">Carregando propostas…</span>
+        ) : curadoriaAtiva ? (
+          <span className="label-mono">
+            {visiveis.length} de {propostas.length} carregada
+            {propostas.length === 1 ? "" : "s"} · {total} no total
           </span>
         ) : (
+          <span className="label-mono">
+            {propostas.length} de {total} propost{total === 1 ? "a" : "as"}
+          </span>
+        )}
+
+        <label className="flex items-center gap-1.5">
+          <span className="field-label">Por vez</span>
+          <select
+            value={porPagina}
+            onChange={(e) => setPorPagina(Number(e.target.value))}
+            className="input h-8 w-20 text-xs"
+            aria-label="Propostas por vez"
+          >
+            {POR_PAGINA_OPCOES.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <button
+          onClick={() => void atualizarFontes()}
+          disabled={atualizando}
+          className="btn btn-ghost btn-sm disabled:opacity-50"
+          title="Consulta as fontes oficiais agora e grava o que houver de novo. A lista já é atualizada sozinha uma vez por dia."
+        >
+          {atualizando ? "Consultando fontes…" : "↻ Atualizar fontes"}
+        </button>
+
+        {/* só faz sentido depois de uma atualização — é dela que vem o status */}
+        {fontesStatus.length > 0 && !atualizando && (
           <>
             <span className="label-mono">
               {fontesOk} consulta{fontesOk === 1 ? "" : "s"} ok
@@ -983,12 +1168,6 @@ export default function CaptacaoPage() {
                 fora do ar agora: {fontesErro.join(", ")}
               </span>
             )}
-            <button
-              onClick={() => void buscarAoVivo()}
-              className="btn btn-ghost btn-sm"
-            >
-              ↻ Buscar de novo
-            </button>
           </>
         )}
       </div>
@@ -1043,8 +1222,8 @@ export default function CaptacaoPage() {
             {acompanhando
               ? "Nenhuma favorita ainda — favorite ★ uma proposta na busca para acompanhá-la aqui."
               : buscando
-                ? "Buscando nas fontes…"
-                : "Nenhuma proposta com esses filtros nas fontes consultadas."}
+                ? "Carregando propostas…"
+                : "Nenhuma proposta com esses filtros. Tente afrouxar o recorte ou ↻ Atualizar fontes."}
           </p>
         ) : (
           <div className="card overflow-hidden">
@@ -1250,6 +1429,33 @@ export default function CaptacaoPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Fim da lista: a sentinela dispara a próxima página ao entrar na tela
+            e o botão faz o mesmo por clique. */}
+        {!acompanhando && propostas.length > 0 && (
+          <div ref={sentinela} className="flex flex-col items-center gap-2 py-6">
+            {temMais ? (
+              <>
+                <button
+                  onClick={carregarMais}
+                  disabled={carregandoMais}
+                  className="btn btn-ghost btn-sm disabled:opacity-50"
+                >
+                  {carregandoMais
+                    ? "Carregando…"
+                    : `Carregar mais (${total - propostas.length} restantes)`}
+                </button>
+                <span className="label-mono text-ink-3">
+                  {propostas.length} de {total}
+                </span>
+              </>
+            ) : (
+              <span className="label-mono text-ink-3">
+                Fim da lista — {total} propost{total === 1 ? "a" : "as"}
+              </span>
+            )}
           </div>
         )}
       </section>

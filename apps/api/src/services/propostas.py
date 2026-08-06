@@ -11,7 +11,7 @@ import uuid
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -204,7 +204,64 @@ def _busca_textual(termo: str):
     )
 
 
-async def listar(
+# ── Paginação ───────────────────────────────────────────────────────────────
+# Os filtros derivados de jsonb/situação e quase todas as ordenações rodam em
+# Python DEPOIS do SELECT. Descer LIMIT/OFFSET ao banco quando ainda há etapa
+# posterior pagina o conjunto ERRADO (a página sai do recorte pré-filtro, e o
+# total seria o do SQL, não o da tela). Só usamos o caminho rápido quando nada
+# acontece depois do SELECT — sem `tipo`/`natureza_juridica`/`qualificacao`/
+# `ano`/`mes`/`categoria`; nos demais casos, filtra tudo e fatia em Python.
+_ORDENACOES_SQL = (None, "recentes")  # `_ordenar` devolve a ordem do SQL nessas
+
+# `cache_atualizado_em` empata em massa (uma coleta grava milhares de linhas no
+# mesmo instante); sem desempate estável o LIMIT/OFFSET repete e pula linhas
+# entre páginas — daí o `id` no fim da ordenação.
+_ORDEM_SQL = (Proposta.cache_atualizado_em.desc().nullslast(), Proposta.id)
+
+
+def _condicoes(
+    *,
+    municipio: str | None,
+    uf: str | None,
+    fonte: str | None,
+    situacao: str | None,
+    area: str | None,
+    valor_min: Decimal | None,
+    valor_max: Decimal | None,
+    q: str | None,
+    modalidade: str | None,
+    orgao: str | None,
+) -> list:
+    """Recorte que o SQL sabe fazer (o resto é pós-filtro em Python)."""
+    condicoes = []
+    if municipio:
+        condicoes.append(Proposta.municipio_ibge == municipio)
+    if uf:
+        condicoes.append(Proposta.uf == uf.upper())
+    if fonte:
+        condicoes.append(Proposta.fonte == fonte)
+    if situacao:
+        condicoes.append(Proposta.situacao == situacao)
+    if modalidade:
+        condicoes.append(Proposta.modalidade == modalidade)
+    if orgao:
+        condicoes.append(Proposta.orgao_superior == orgao)
+    if q and q.strip():
+        condicoes.append(_busca_textual(q))
+    if area:
+        from .perfil import AREA_FONTES
+
+        fontes_area = AREA_FONTES.get(area)
+        if fontes_area:
+            condicoes.append(Proposta.fonte.in_(fontes_area))
+    if valor_min is not None:
+        condicoes.append(Proposta.valor_total >= valor_min)
+    if valor_max is not None:
+        condicoes.append(Proposta.valor_total <= valor_max)
+    return condicoes
+
+
+async def listar_pagina(
     session: AsyncSession,
     *,
     municipio: str | None = None,
@@ -224,35 +281,53 @@ async def listar(
     mes: str | None = None,
     categoria: str | None = None,
     ordenar: str | None = None,
-) -> list[Proposta]:
-    stmt = select(Proposta)
-    if municipio:
-        stmt = stmt.where(Proposta.municipio_ibge == municipio)
-    if uf:
-        stmt = stmt.where(Proposta.uf == uf.upper())
-    if fonte:
-        stmt = stmt.where(Proposta.fonte == fonte)
-    if situacao:
-        stmt = stmt.where(Proposta.situacao == situacao)
-    if modalidade:
-        stmt = stmt.where(Proposta.modalidade == modalidade)
-    if orgao:
-        stmt = stmt.where(Proposta.orgao_superior == orgao)
-    if q and q.strip():
-        stmt = stmt.where(_busca_textual(q))
-    if area:
-        from .perfil import AREA_FONTES
+    limite: int | None = None,
+    offset: int = 0,
+) -> tuple[list[Proposta], int]:
+    """Uma página do recorte e o total dele (o total ignora limite/offset).
 
-        fontes_area = AREA_FONTES.get(area)
-        if fontes_area:
-            stmt = stmt.where(Proposta.fonte.in_(fontes_area))
-    if valor_min is not None:
-        stmt = stmt.where(Proposta.valor_total >= valor_min)
-    if valor_max is not None:
-        stmt = stmt.where(Proposta.valor_total <= valor_max)
-    stmt = stmt.order_by(Proposta.cache_atualizado_em.desc().nullslast())
-    result = await session.execute(stmt)
-    rows = list(result.scalars().all())
+    Sem `limite`/`offset` devolve o recorte inteiro — é assim que facetas,
+    resumo e relatório continuam enxergando tudo.
+    """
+    condicoes = _condicoes(
+        municipio=municipio,
+        uf=uf,
+        fonte=fonte,
+        situacao=situacao,
+        area=area,
+        valor_min=valor_min,
+        valor_max=valor_max,
+        q=q,
+        modalidade=modalidade,
+        orgao=orgao,
+    )
+    stmt = select(Proposta).where(*condicoes).order_by(*_ORDEM_SQL)
+
+    pos_filtros = (
+        tipo in ("cadastrada", "disponivel"),
+        natureza_juridica,
+        qualificacao,
+        ano,
+        mes,
+        categoria,
+    )
+    paginando = limite is not None or offset
+    if paginando and not any(pos_filtros) and ordenar in _ORDENACOES_SQL:
+        # caminho rápido: o banco pagina e conta
+        total = int(
+            (
+                await session.execute(
+                    select(func.count()).select_from(Proposta).where(*condicoes)
+                )
+            ).scalar_one()
+        )
+        if offset:
+            stmt = stmt.offset(offset)
+        if limite is not None:
+            stmt = stmt.limit(limite)
+        return list((await session.execute(stmt)).scalars().all()), total
+
+    rows = list((await session.execute(stmt)).scalars().all())
     # filtros derivados de jsonb/situação ficam em Python (o recorte já é do
     # território pelo RLS, então o conjunto é pequeno)
     if tipo in ("cadastrada", "disponivel"):
@@ -267,7 +342,18 @@ async def listar(
         rows = [p for p in rows if mes_de(p) == str(mes).zfill(2)]
     if categoria:
         rows = [p for p in rows if categoria in categorias_de(p)]
-    return _ordenar(rows, ordenar)
+    rows = _ordenar(rows, ordenar)
+    total = len(rows)
+    if paginando:
+        fim = offset + limite if limite is not None else None
+        rows = rows[offset:fim]
+    return rows, total
+
+
+async def listar(session: AsyncSession, **filtros) -> list[Proposta]:
+    """O recorte inteiro (sem total). Ver `listar_pagina` para os filtros."""
+    rows, _ = await listar_pagina(session, **filtros)
+    return rows
 
 
 def _prazos_na_janela(p: Proposta, inicio: date, fim: date) -> list[dict]:

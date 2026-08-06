@@ -2241,6 +2241,20 @@
             ],
             "title": "Fonte"
           },
+          "limite": {
+            "anyOf": [
+              {
+                "maximum": 200.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "itens da página devolvida (sem limite: tudo)",
+            "title": "Limite"
+          },
           "mes": {
             "anyOf": [
               {
@@ -2290,6 +2304,12 @@
             ],
             "description": "municipal | estadual_df | consorcio | empresa_publica | osc",
             "title": "Natureza Juridica"
+          },
+          "offset": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
           },
           "ordenar": {
             "anyOf": [
@@ -2429,10 +2449,15 @@
             },
             "title": "Propostas",
             "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
           }
         },
         "required": [
           "propostas",
+          "total",
           "fontes",
           "facetas"
         ],
@@ -4350,6 +4375,44 @@
           }
         },
         "title": "PropostasFacetas",
+        "type": "object"
+      },
+      "PropostasPagina": {
+        "description": "Uma página da listagem + o total do recorte (o 'carregar mais' do painel).\n\n`total` é do recorte inteiro, já com os filtros aplicados — é ele que diz se\nainda há próxima página, não o tamanho de `itens`.",
+        "properties": {
+          "itens": {
+            "items": {
+              "$ref": "#/components/schemas/PropostaRead"
+            },
+            "title": "Itens",
+            "type": "array"
+          },
+          "limite": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limite"
+          },
+          "offset": {
+            "default": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "itens",
+          "total"
+        ],
+        "title": "PropostasPagina",
         "type": "object"
       },
       "ProvedorInfo": {
@@ -9057,6 +9120,7 @@
     },
     "/api/v1/proposals": {
       "get": {
+        "description": "Página da listagem lida do banco (cache-first) + total do recorte.",
         "operationId": "listar_propostas_api_v1_proposals_get",
         "parameters": [
           {
@@ -9368,6 +9432,39 @@
               "description": "mais recentes · prazo (próximo/distante) · nome A-Z · órgão A-Z · valor",
               "title": "Ordenar"
             }
+          },
+          {
+            "description": "itens por página (sem limite: tudo)",
+            "in": "query",
+            "name": "limite",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 200,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "itens por página (sem limite: tudo)",
+              "title": "Limite"
+            }
+          },
+          {
+            "description": "itens já carregados",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "itens já carregados",
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -9375,11 +9472,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/PropostaRead"
-                  },
-                  "title": "Response Listar Propostas Api V1 Proposals Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/PropostasPagina"
                 }
               }
             },

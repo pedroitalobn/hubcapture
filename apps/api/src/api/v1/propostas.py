@@ -22,6 +22,7 @@ from ...schemas.proposta import (
     PropostaPrazo,
     PropostaRead,
     PropostasFacetas,
+    PropostasPagina,
     ResumoCaptacao,
 )
 from ...services import pdf as pdf_service
@@ -72,13 +73,28 @@ class FiltrosListagem(FiltrosProposta):
     )
 
 
-@router.get("/proposals", response_model=list[PropostaRead])
+class FiltrosPagina(FiltrosListagem):
+    """Só a listagem pagina — facetas, resumo e relatório enxergam o recorte todo."""
+
+    limite: int | None = Field(
+        default=None, ge=1, le=200, description="itens por página (sem limite: tudo)"
+    )
+    offset: int = Field(default=0, ge=0, description="itens já carregados")
+
+
+@router.get("/proposals", response_model=PropostasPagina)
 async def listar_propostas(
-    filtros: Annotated[FiltrosListagem, Query()],
+    filtros: Annotated[FiltrosPagina, Query()],
     session: AsyncSession = Depends(get_rls_db),
-) -> list[PropostaRead]:
-    rows = await propostas_service.listar(session, **filtros.model_dump())
-    return [PropostaRead.model_validate(r) for r in rows]
+) -> PropostasPagina:
+    """Página da listagem lida do banco (cache-first) + total do recorte."""
+    rows, total = await propostas_service.listar_pagina(session, **filtros.model_dump())
+    return PropostasPagina(
+        itens=[PropostaRead.model_validate(r) for r in rows],
+        total=total,
+        limite=filtros.limite,
+        offset=filtros.offset,
+    )
 
 
 @router.get("/proposals/facets", response_model=PropostasFacetas)
