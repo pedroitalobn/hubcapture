@@ -4,7 +4,13 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, baixarCsv } from "@/lib/api/client";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
-import { formatBRL, formatDate, prazoLabel, tomPrazo } from "@/lib/format";
+import {
+  formatBRL,
+  formatDate,
+  humanizarCaixa,
+  prazoLabel,
+  tomPrazo,
+} from "@/lib/format";
 import { cx } from "@/components/ui";
 
 // mapeia a situação da proposta para o tom do badge (verde = bom andamento,
@@ -39,6 +45,7 @@ type Proposta = {
   prazo_final?: string | null;
   dias_restantes?: number | null;
   resumo_ia?: string | null;
+  categorias?: { slug: string; rotulo: string }[] | null;
   execucao?: {
     valor_global?: string | null;
     valor_empenhado?: string | null;
@@ -58,13 +65,17 @@ type FonteStatus = {
 
 type Opcao = { valor: string; rotulo: string; total: number };
 type Facetas = {
+  municipio?: Opcao[];
+  uf?: Opcao[];
   fonte?: Opcao[];
   modalidade?: Opcao[];
   orgao?: Opcao[];
   situacao?: Opcao[];
   natureza_juridica?: Opcao[];
   qualificacao?: Opcao[];
+  categoria?: Opcao[];
   ano?: Opcao[];
+  mes?: Opcao[];
   tipo?: Opcao[];
 };
 
@@ -73,10 +84,13 @@ type MunicipioPerfil = { ibge: string; nome?: string | null; uf?: string | null 
 
 type Filtros = {
   municipio: string;
+  uf: string;
   ano: string;
+  mes: string;
   tipo: "" | "cadastrada" | "disponivel";
   fonte: string;
   area: string;
+  categoria: string;
   situacao: string;
   q: string;
   modalidade: string;
@@ -94,10 +108,13 @@ type Aba = { id: string; nome: string; filtros: Filtros };
 
 const FILTROS_VAZIOS: Filtros = {
   municipio: "",
+  uf: "",
   ano: "",
+  mes: "",
   tipo: "",
   fonte: "",
   area: "",
+  categoria: "",
   situacao: "",
   q: "",
   modalidade: "",
@@ -251,14 +268,17 @@ export default function CaptacaoPage() {
     const { data, error } = await api.POST("/api/v1/proposals/live-search", {
       body: {
         municipio_ibge: filtros.municipio || null,
+        uf: filtros.uf || null,
         fonte: filtros.fonte || null,
         area: filtros.area || null,
+        categoria: filtros.categoria || null,
         situacao: filtros.situacao || null,
         modalidade: filtros.modalidade || null,
         orgao: filtros.orgao || null,
         natureza_juridica: filtros.naturezaJuridica || null,
         qualificacao: filtros.qualificacao || null,
         ano: filtros.ano || null,
+        mes: filtros.mes || null,
         q: filtros.q || null,
         ordenar: filtros.ordenar || null,
         valor_min: filtros.valorMin || null,
@@ -442,6 +462,25 @@ export default function CaptacaoPage() {
     return total ? <span className="ml-1 opacity-60 tabular-nums">{total}</span> : null;
   }
 
+  /**
+   * Municípios do dropdown: os do perfil (sempre selecionáveis, mesmo sem
+   * resultado agora) mais os que apareceram na coleta, com a contagem da faceta.
+   */
+  const opcoesMunicipio = useMemo(() => {
+    const daFaceta = new Map(
+      (facetas.municipio ?? []).map((o) => [o.valor, o] as const),
+    );
+    const lista = municipios.map((m) => ({
+      valor: m.ibge,
+      rotulo: `${m.nome ?? m.ibge}${m.uf ? `/${m.uf}` : ""}`,
+      total: daFaceta.get(m.ibge)?.total ?? 0,
+    }));
+    const conhecidos = new Set(lista.map((m) => m.valor));
+    for (const o of facetas.municipio ?? [])
+      if (!conhecidos.has(o.valor)) lista.push({ ...o });
+    return lista;
+  }, [municipios, facetas.municipio]);
+
   /** Chips de "filtros ativos" — cada um se remove ao clicar. */
   // quantos filtros avançados estão ativos — mostra badge no toggle mesmo recolhido
   const qtdAvancadosAtivos = [
@@ -449,8 +488,11 @@ export default function CaptacaoPage() {
     filtros.modalidade,
     filtros.orgao,
     filtros.qualificacao,
+    filtros.categoria,
     filtros.situacao,
+    filtros.uf,
     filtros.ano,
+    filtros.mes,
     filtros.area,
     filtros.valorMin,
     filtros.valorMax,
@@ -477,10 +519,24 @@ export default function CaptacaoPage() {
       const m = municipios.find((x) => x.ibge === filtros.municipio);
       lista.push({
         chave: "municipio",
-        rotulo: m?.nome ?? filtros.municipio,
+        rotulo: m?.nome ?? rotuloDe("municipio", filtros.municipio),
         limpar: { municipio: "" },
       });
     }
+    if (filtros.uf)
+      lista.push({ chave: "uf", rotulo: filtros.uf, limpar: { uf: "" } });
+    if (filtros.categoria)
+      lista.push({
+        chave: "categoria",
+        rotulo: rotuloDe("categoria", filtros.categoria),
+        limpar: { categoria: "" },
+      });
+    if (filtros.mes)
+      lista.push({
+        chave: "mes",
+        rotulo: rotuloDe("mes", filtros.mes),
+        limpar: { mes: "" },
+      });
     if (filtros.modalidade)
       lista.push({
         chave: "modalidade",
@@ -537,14 +593,17 @@ export default function CaptacaoPage() {
         "/api/v1/proposals/report.csv",
         {
           municipio: filtros.municipio,
+          uf: filtros.uf,
           fonte: filtros.fonte,
           area: filtros.area,
+          categoria: filtros.categoria,
           situacao: filtros.situacao,
           modalidade: filtros.modalidade,
           orgao: filtros.orgao,
           natureza_juridica: filtros.naturezaJuridica,
           qualificacao: filtros.qualificacao,
           ano: filtros.ano,
+          mes: filtros.mes,
           q: filtros.q,
           tipo: filtros.tipo,
           valor_min: filtros.valorMin,
@@ -653,14 +712,21 @@ export default function CaptacaoPage() {
               className="input w-48"
             >
               <option value="">todos do perfil</option>
-              {municipios.map((m) => (
-                <option key={m.ibge} value={m.ibge}>
-                  {m.nome ?? m.ibge}
-                  {m.uf ? `/${m.uf}` : ""}
+              {opcoesMunicipio.map((m) => (
+                <option key={m.valor} value={m.valor}>
+                  {m.rotulo}
+                  {m.total ? ` (${m.total})` : ""}
                 </option>
               ))}
             </select>
           </label>
+          <SelectFaceta
+            rotulo="UF"
+            valor={filtros.uf}
+            opcoes={facetas.uf}
+            largura="w-24"
+            aoMudar={(v) => setFiltros({ uf: v })}
+          />
           <label className="flex flex-col gap-1">
             <span className="field-label">Fonte</span>
             <select
@@ -800,11 +866,18 @@ export default function CaptacaoPage() {
                 aoMudar={(v) => setFiltros({ orgao: v })}
               />
               <SelectFaceta
-                rotulo="Qualificação"
+                rotulo="Tipo de transferência"
                 valor={filtros.qualificacao}
                 opcoes={facetas.qualificacao}
-                largura="w-44"
+                largura="w-48"
                 aoMudar={(v) => setFiltros({ qualificacao: v })}
+              />
+              <SelectFaceta
+                rotulo="Categoria"
+                valor={filtros.categoria}
+                opcoes={facetas.categoria}
+                largura="w-52"
+                aoMudar={(v) => setFiltros({ categoria: v })}
               />
               <SelectFaceta
                 rotulo="Situação"
@@ -819,6 +892,13 @@ export default function CaptacaoPage() {
                 opcoes={facetas.ano}
                 largura="w-28"
                 aoMudar={(v) => setFiltros({ ano: v })}
+              />
+              <SelectFaceta
+                rotulo="Mês (prazo)"
+                valor={filtros.mes}
+                opcoes={facetas.mes}
+                largura="w-36"
+                aoMudar={(v) => setFiltros({ mes: v })}
               />
               <label className="flex flex-col gap-1">
                 <span className="field-label">Área</span>
@@ -1038,13 +1118,37 @@ export default function CaptacaoPage() {
                         href={`/panel/funding/${p.id}`}
                         className="font-medium hover:underline"
                       >
-                        {p.titulo ?? p.objeto ?? p.id_externo}
+                        {humanizarCaixa(p.titulo ?? p.objeto ?? p.id_externo)}
                       </Link>
                       <p className="mt-0.5 max-w-md text-xs text-ink-3">
-                        {[p.orgao_superior, p.modalidade, p.id_externo]
+                        {[
+                          humanizarCaixa(p.orgao_superior),
+                          humanizarCaixa(p.modalidade),
+                          p.id_externo,
+                        ]
                           .filter(Boolean)
                           .join(" · ")}
                       </p>
+                      {/* pílulas de categoria — clicar filtra a lista por ela */}
+                      {(p.categorias ?? []).length > 0 && (
+                        <span className="mt-1 flex flex-wrap gap-1">
+                          {p.categorias!.map((c) => (
+                            <button
+                              key={c.slug}
+                              onClick={() => setFiltros({ categoria: c.slug })}
+                              title={`Filtrar por ${c.rotulo}`}
+                              className={cx(
+                                "rounded-full border px-2 py-0.5 text-[11px] transition-colors",
+                                filtros.categoria === c.slug
+                                  ? "border-ink bg-ink text-surface"
+                                  : "border-hairline text-ink-3 hover:text-ink",
+                              )}
+                            >
+                              {c.rotulo}
+                            </button>
+                          ))}
+                        </span>
+                      )}
                       {p.resumo_ia && (
                         <p className="mt-0.5 line-clamp-2 max-w-md text-xs text-ink-3">
                           {p.resumo_ia}
@@ -1052,7 +1156,7 @@ export default function CaptacaoPage() {
                       )}
                     </td>
                     <td className="px-3 py-3 text-ink-2">
-                      {p.municipio_nome ?? p.municipio_ibge ?? "—"}
+                      {humanizarCaixa(p.municipio_nome ?? p.municipio_ibge) || "—"}
                       {p.uf ? `/${p.uf}` : ""}
                     </td>
                     <td className="px-3 py-3 text-ink-2">
@@ -1106,7 +1210,7 @@ export default function CaptacaoPage() {
                     <td className="px-3 py-3">
                       {p.situacao ? (
                         <StatusBadge tone={tomSituacao(p.situacao)}>
-                          {p.situacao}
+                          {humanizarCaixa(p.situacao)}
                         </StatusBadge>
                       ) : (
                         <span className="text-ink-3">—</span>

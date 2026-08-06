@@ -35,6 +35,7 @@ class LiveSearchRequest(BaseModel):
     municipio_ibge: str | None = Field(
         default=None, min_length=7, max_length=7, description="código IBGE"
     )
+    uf: str | None = Field(default=None, min_length=2, max_length=2)
     fonte: str | None = None
     area: str | None = None
     situacao: str | None = None
@@ -44,7 +45,11 @@ class LiveSearchRequest(BaseModel):
         default=None, description="municipal | estadual_df | consorcio | empresa_publica | osc"
     )
     qualificacao: str | None = Field(default=None, description="tipo de transferência")
+    categoria: str | None = Field(
+        default=None, description="pílula de categoria (saude, infraestrutura, cultura…)"
+    )
     ano: str | None = Field(default=None, max_length=4)
+    mes: str | None = Field(default=None, pattern="^(0[1-9]|1[0-2])$")
     q: str | None = Field(default=None, description="busca por programa, órgão ou código")
     valor_min: Decimal | None = Field(default=None, ge=0)
     valor_max: Decimal | None = Field(default=None, ge=0)
@@ -78,21 +83,12 @@ async def live_search_endpoint(
     rows, status_fontes = await service.live_search(
         session, usuario_id=user.id, municipio=body.municipio_ibge, **filtros
     )
+    # mesmas dimensões da listagem, sem repetir a lista de filtros à mão (a
+    # versão anterior esquecia toda dimensão nova até alguém notar na tela)
     facetas = await propostas_service.facetas(
         session,
         municipio=body.municipio_ibge,
-        area=body.area,
-        q=body.q,
-        valor_min=body.valor_min,
-        valor_max=body.valor_max,
-        fonte=body.fonte,
-        situacao=body.situacao,
-        modalidade=body.modalidade,
-        orgao=body.orgao,
-        natureza_juridica=body.natureza_juridica,
-        qualificacao=body.qualificacao,
-        ano=body.ano,
-        tipo=body.tipo,
+        **body.model_dump(exclude={"municipio_ibge", "ordenar"}),
     )
     return LiveSearchResponse(
         propostas=[PropostaRead.model_validate(r) for r in rows],

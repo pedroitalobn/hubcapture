@@ -4,6 +4,8 @@ relatório CSV — e a lente de emendas parlamentares sobre os recebidos."""
 
 from __future__ import annotations
 
+from datetime import date
+
 from sqlalchemy import text
 
 from src.db.session import rls_session
@@ -42,14 +44,19 @@ async def _seed(
     valor: str = "100000",
     execucao: str | None = None,
     prazos: str | None = None,
+    uf: str | None = None,
+    municipio_nome: str | None = None,
+    data_fonte: str | None = None,
+    categorias: str | None = None,
 ) -> None:
     async with _owner_engine.begin() as conn:
         await conn.execute(
             text(
                 "INSERT INTO propostas (fonte, id_externo, titulo, orgao_superior, "
-                "modalidade, situacao, municipio_ibge, valor_total, execucao, prazos, "
-                "cache_atualizado_em) VALUES (:f,:e,:t,:o,:m,:s,:ibge,:v,"
-                "CAST(:ex AS jsonb), CAST(:p AS jsonb), now())"
+                "modalidade, situacao, municipio_ibge, municipio_nome, uf, valor_total, "
+                "execucao, prazos, data_atualizacao_fonte, categorias_ia, "
+                "cache_atualizado_em) VALUES (:f,:e,:t,:o,:m,:s,:ibge,:nome,:uf,:v,"
+                "CAST(:ex AS jsonb), CAST(:p AS jsonb), :d, CAST(:cat AS jsonb), now())"
             ),
             {
                 "f": fonte,
@@ -59,9 +66,13 @@ async def _seed(
                 "m": modalidade,
                 "s": situacao,
                 "ibge": ibge,
+                "nome": municipio_nome,
+                "uf": uf,
                 "v": valor,
                 "ex": execucao,
                 "p": prazos,
+                "d": date.fromisoformat(data_fonte) if data_fonte else None,
+                "cat": categorias,
             },
         )
 
@@ -155,9 +166,10 @@ async def test_facetas_ignoram_a_propria_dimensao(seed_user, seed_municipio) -> 
         assert {o["valor"] for o in facetas["modalidade"]} == {"Convênio", "Termo de Compromisso"}
         assert {o["valor"] for o in facetas["natureza_juridica"]} == {"municipal", "consorcio"}
         assert all(o["total"] == 1 for o in facetas["modalidade"])
-        assert facetas["natureza_juridica"][0]["rotulo"] in dict(
-            prop_service.NATUREZAS_JURIDICAS
-        ).values()
+        assert (
+            facetas["natureza_juridica"][0]["rotulo"]
+            in dict(prop_service.NATUREZAS_JURIDICAS).values()
+        )
 
         # com um filtro aplicado, a dimensão FILTRADA continua mostrando tudo
         # (senão o dropdown ficaria preso), mas as outras encolhem
@@ -167,6 +179,99 @@ async def test_facetas_ignoram_a_propria_dimensao(seed_user, seed_municipio) -> 
             "Termo de Compromisso",
         }
         assert {o["valor"] for o in com_filtro["natureza_juridica"]} == {"municipal"}
+
+
+# ── dimensões novas do painel: UF, mês, município e categoria ───────────────
+async def test_filtra_por_uf_mes_e_categoria(seed_user, seed_municipio) -> None:
+    u = await seed_user("dimensoes@x.com")
+    await seed_municipio(u, "3550308")
+    await seed_municipio(u, "2311801")
+    await _seed(
+        "SP1",
+        "3550308",
+        titulo="Ampliação de UBS",
+        uf="SP",
+        municipio_nome="São Paulo",
+        prazos='[{"tipo":"envio","data_limite":"2030-03-20"}]',
+    )
+    await _seed(
+        "CE1",
+        "2311801",
+        titulo="Pavimentação de vias urbanas",
+        orgao="Ministério das Cidades",
+        uf="CE",
+        municipio_nome="Russas",
+        data_fonte="2030-07-05",
+    )
+
+    async with rls_session(u) as s:
+        assert [p.id_externo for p in await prop_service.listar(s, uf="SP")] == ["SP1"]
+        assert [p.id_externo for p in await prop_service.listar(s, uf="ce")] == ["CE1"]
+
+        # mês: o do prazo final quando existe…
+        assert [p.id_externo for p in await prop_service.listar(s, mes="03")] == ["SP1"]
+        # …e o da atualização na fonte quando não há prazo declarado
+        assert [p.id_externo for p in await prop_service.listar(s, mes="07")] == ["CE1"]
+        assert await prop_service.listar(s, mes="12") == []
+
+        # categoria: pílula derivada do texto, mesmo sem curadoria gravada
+        assert [p.id_externo for p in await prop_service.listar(s, categoria="saude")] == ["SP1"]
+        assert [p.id_externo for p in await prop_service.listar(s, categoria="infraestrutura")] == [
+            "CE1"
+        ]
+
+        # município continua recortando (agora também como dimensão de faceta)
+        assert [p.id_externo for p in await prop_service.listar(s, municipio="2311801")] == ["CE1"]
+
+
+async def test_categoria_curada_vence_a_classificacao_na_hora(seed_user, seed_municipio) -> None:
+    """`categorias_ia` gravada (pela IA) manda; sem ela, classifica pelo texto."""
+    u = await seed_user("curada@x.com")
+    await seed_municipio(u, "3550308")
+    await _seed("CUR", "3550308", titulo="Ampliação de UBS", categorias='["cultura"]')
+
+    async with rls_session(u) as s:
+        assert [p.id_externo for p in await prop_service.listar(s, categoria="cultura")] == ["CUR"]
+        assert await prop_service.listar(s, categoria="saude") == []
+
+
+async def test_facetas_das_dimensoes_novas(seed_user, seed_municipio) -> None:
+    u = await seed_user("facetas-novas@x.com")
+    await seed_municipio(u, "3550308")
+    await seed_municipio(u, "2311801")
+    await _seed(
+        "SP1",
+        "3550308",
+        titulo="Ampliação de UBS",
+        uf="SP",
+        municipio_nome="São Paulo",
+        data_fonte="2030-03-10",
+    )
+    await _seed(
+        "CE1",
+        "2311801",
+        titulo="Pavimentação de vias",
+        uf="CE",
+        municipio_nome="Russas",
+        data_fonte="2030-07-05",
+    )
+
+    async with rls_session(u) as s:
+        facetas = await prop_service.facetas(s)
+        # município: rótulo legível (nome/UF), não o código IBGE cru
+        assert {o["valor"] for o in facetas["municipio"]} == {"3550308", "2311801"}
+        assert {"São Paulo/SP", "Russas/CE"} == {o["rotulo"] for o in facetas["municipio"]}
+        assert {o["valor"] for o in facetas["uf"]} == {"SP", "CE"}
+        assert {o["valor"] for o in facetas["categoria"]} == {"saude", "infraestrutura"}
+        assert dict(prop_service.MESES)["03"] == "Março"
+        # meses saem em ordem cronológica, não por contagem
+        assert [o["valor"] for o in facetas["mes"]] == ["03", "07"]
+        assert [o["rotulo"] for o in facetas["mes"]] == ["Março", "Julho"]
+
+        # o filtro de município não pode fechar o próprio dropdown de município
+        com_municipio = await prop_service.facetas(s, municipio="2311801")
+        assert {o["valor"] for o in com_municipio["municipio"]} == {"3550308", "2311801"}
+        assert {o["valor"] for o in com_municipio["uf"]} == {"CE"}
 
 
 # ── resumo consolidado ──────────────────────────────────────────────────────

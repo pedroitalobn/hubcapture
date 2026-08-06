@@ -1657,6 +1657,16 @@ export interface components {
             /** State */
             state?: string | null;
         };
+        /**
+         * CategoriaTag
+         * @description Pílula de categoria: o slug (filtrável) e o rótulo (exibível).
+         */
+        CategoriaTag: {
+            /** Rotulo */
+            rotulo: string;
+            /** Slug */
+            slug: string;
+        };
         /** ChatRequest */
         ChatRequest: {
             /**
@@ -2227,8 +2237,15 @@ export interface components {
             ano?: string | null;
             /** Area */
             area?: string | null;
+            /**
+             * Categoria
+             * @description pílula de categoria (saude, infraestrutura, cultura…)
+             */
+            categoria?: string | null;
             /** Fonte */
             fonte?: string | null;
+            /** Mes */
+            mes?: string | null;
             /**
              * Modalidade
              * @description tipo de instrumento
@@ -2265,6 +2282,8 @@ export interface components {
             situacao?: string | null;
             /** Tipo */
             tipo?: string | null;
+            /** Uf */
+            uf?: string | null;
             /** Valor Max */
             valor_max?: number | string | null;
             /** Valor Min */
@@ -2807,6 +2826,16 @@ export interface components {
         PropostaRead: {
             /** Cache Atualizado Em */
             cache_atualizado_em?: string | null;
+            /**
+             * Categorias
+             * @description Pílulas prontas para exibição (slug + rótulo) — o painel não traduz nada.
+             *
+             *     Sem curadoria gravada, classifica na hora pelo texto: proposta recém
+             *     coletada já chega ao painel com pílula.
+             */
+            readonly categorias: components["schemas"]["CategoriaTag"][];
+            /** Categorias Ia */
+            categorias_ia?: string[] | null;
             /** Contrapartida */
             contrapartida?: string | null;
             /** Dados Fonte */
@@ -2896,15 +2925,30 @@ export interface components {
              */
             ano: components["schemas"]["FacetaOpcao"][];
             /**
+             * Categoria
+             * @default []
+             */
+            categoria: components["schemas"]["FacetaOpcao"][];
+            /**
              * Fonte
              * @default []
              */
             fonte: components["schemas"]["FacetaOpcao"][];
             /**
+             * Mes
+             * @default []
+             */
+            mes: components["schemas"]["FacetaOpcao"][];
+            /**
              * Modalidade
              * @default []
              */
             modalidade: components["schemas"]["FacetaOpcao"][];
+            /**
+             * Municipio
+             * @default []
+             */
+            municipio: components["schemas"]["FacetaOpcao"][];
             /**
              * Natureza Juridica
              * @default []
@@ -2930,6 +2974,11 @@ export interface components {
              * @default []
              */
             tipo: components["schemas"]["FacetaOpcao"][];
+            /**
+             * Uf
+             * @default []
+             */
+            uf: components["schemas"]["FacetaOpcao"][];
         };
         /**
          * ProvedorInfo
@@ -5657,6 +5706,8 @@ export interface operations {
             query?: {
                 /** @description código IBGE (7 dígitos) */
                 municipio?: string | null;
+                /** @description unidade federativa */
+                uf?: string | null;
                 fonte?: string | null;
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
@@ -5669,7 +5720,11 @@ export interface operations {
                 natureza_juridica?: string | null;
                 /** @description tipo de transferência */
                 qualificacao?: string | null;
+                /** @description pílula de categoria (saude, infraestrutura, cultura…) */
+                categoria?: string | null;
                 ano?: string | null;
+                /** @description mês do prazo final (ou da atualização na fonte) */
+                mes?: string | null;
                 /** @description busca por programa, órgão ou código */
                 q?: string | null;
                 valor_min?: number | string | null;
@@ -5740,6 +5795,8 @@ export interface operations {
             query?: {
                 /** @description código IBGE (7 dígitos) */
                 municipio?: string | null;
+                /** @description unidade federativa */
+                uf?: string | null;
                 fonte?: string | null;
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
@@ -5752,7 +5809,11 @@ export interface operations {
                 natureza_juridica?: string | null;
                 /** @description tipo de transferência */
                 qualificacao?: string | null;
+                /** @description pílula de categoria (saude, infraestrutura, cultura…) */
+                categoria?: string | null;
                 ano?: string | null;
+                /** @description mês do prazo final (ou da atualização na fonte) */
+                mes?: string | null;
                 /** @description busca por programa, órgão ou código */
                 q?: string | null;
                 valor_min?: number | string | null;
@@ -5823,6 +5884,8 @@ export interface operations {
             query?: {
                 /** @description código IBGE (7 dígitos) */
                 municipio?: string | null;
+                /** @description unidade federativa */
+                uf?: string | null;
                 fonte?: string | null;
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
@@ -5835,7 +5898,11 @@ export interface operations {
                 natureza_juridica?: string | null;
                 /** @description tipo de transferência */
                 qualificacao?: string | null;
+                /** @description pílula de categoria (saude, infraestrutura, cultura…) */
+                categoria?: string | null;
                 ano?: string | null;
+                /** @description mês do prazo final (ou da atualização na fonte) */
+                mes?: string | null;
                 /** @description busca por programa, órgão ou código */
                 q?: string | null;
                 valor_min?: number | string | null;
@@ -5875,6 +5942,8 @@ export interface operations {
             query?: {
                 /** @description código IBGE (7 dígitos) */
                 municipio?: string | null;
+                /** @description unidade federativa */
+                uf?: string | null;
                 fonte?: string | null;
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
@@ -5887,7 +5956,11 @@ export interface operations {
                 natureza_juridica?: string | null;
                 /** @description tipo de transferência */
                 qualificacao?: string | null;
+                /** @description pílula de categoria (saude, infraestrutura, cultura…) */
+                categoria?: string | null;
                 ano?: string | null;
+                /** @description mês do prazo final (ou da atualização na fonte) */
+                mes?: string | null;
                 /** @description busca por programa, órgão ou código */
                 q?: string | null;
                 valor_min?: number | string | null;

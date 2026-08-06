@@ -6,12 +6,14 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { Skeleton } from "@/components/Skeleton";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
+import { TextoExpansivel } from "@/components/TextoExpansivel";
 import { Aviso, Dado, cx } from "@/components/ui";
 import {
   diasAte,
   formatBRL,
   formatDate,
   formatDateTime,
+  humanizarCaixa,
   prazoLabel,
   tomPrazo,
 } from "@/lib/format";
@@ -42,6 +44,8 @@ type Proposta = {
   url_origem?: string | null;
   proveniencia?: Record<string, string> | null;
   resumo_ia?: string | null;
+  /** Pílulas de categoria (curadoria) — slug filtrável + rótulo exibível. */
+  categorias?: { slug: string; rotulo: string }[] | null;
   tipo?: string;
   // computados pela API — a tela antes descartava os três
   prazo_final?: string | null;
@@ -92,13 +96,60 @@ function humanizar(chave: string): string {
 
 function valorLegivel(v: unknown): string {
   if (v === null || v === undefined || v === "") return "—";
-  if (typeof v === "object") return JSON.stringify(v);
-  return String(v);
+  if (Array.isArray(v)) {
+    // lista de escalares vira "a · b · c"; de objetos, JSON indentado legível
+    return v.every((x) => x === null || typeof x !== "object")
+      ? v.map((x) => humanizarCaixa(String(x))).join(" · ")
+      : JSON.stringify(v, null, 2);
+  }
+  if (typeof v === "object") return JSON.stringify(v, null, 2);
+  return humanizarCaixa(String(v));
+}
+
+// A partir daqui o valor deixa de caber numa célula da grade e passa a ocupar a
+// linha inteira, recortado e com botão de ampliar. O limiar é de caracteres
+// (grosseiro de propósito): quem decide se HÁ corte é a medição no DOM, dentro
+// do TextoExpansivel — isto aqui só escolhe o layout.
+const LIMIAR_CAMPO_LONGO = 160;
+
+function ehLongo(valor: string): boolean {
+  return valor.length > LIMIAR_CAMPO_LONGO || valor.includes("\n");
+}
+
+/** Um campo do registro-fonte: curto vira par rótulo/valor; longo, bloco amplo. */
+function CampoFonte({
+  rotulo,
+  valor,
+  abrirTudo,
+}: {
+  rotulo: string;
+  valor: string;
+  abrirTudo: boolean;
+}) {
+  if (!ehLongo(valor)) return <Dado rotulo={rotulo} valor={valor} />;
+  return (
+    <div className="field col-span-full">
+      <span className="field-label">{rotulo}</span>
+      <TextoExpansivel
+        // remonta ao alternar "ampliar tudo" — o botão da seção manda no campo
+        key={abrirTudo ? "aberto" : "fechado"}
+        texto={valor}
+        abertoInicial={abrirTudo}
+        linhas={3}
+      />
+    </div>
+  );
 }
 
 // Renderiza TODOS os campos do registro-fonte. `dados_fonte` costuma vir agrupado
 // ({plano_acao:{...}, programa:{...}}); se um valor for objeto, vira subgrupo.
-function DadosCompletos({ dados }: { dados: Record<string, unknown> }) {
+function DadosCompletos({
+  dados,
+  abrirTudo,
+}: {
+  dados: Record<string, unknown>;
+  abrirTudo: boolean;
+}) {
   const grupos = Object.entries(dados).filter(
     ([, v]) => v && typeof v === "object" && !Array.isArray(v),
   );
@@ -106,8 +157,16 @@ function DadosCompletos({ dados }: { dados: Record<string, unknown> }) {
     ([, v]) => !(v && typeof v === "object" && !Array.isArray(v)),
   );
   const bloco = (titulo: string | null, obj: Record<string, unknown>) => {
-    const entradas = Object.entries(obj).filter(([, v]) => v !== null && v !== "");
+    const entradas = Object.entries(obj)
+      .filter(([, v]) => v !== null && v !== "")
+      .map(([k, v]) => [k, valorLegivel(v)] as const);
     if (entradas.length === 0) return null;
+    // curtos primeiro: assim a grade fecha suas colunas antes de o campo de
+    // extensão tomar a linha inteira (senão sobram buracos no meio da grade)
+    const ordenadas = [
+      ...entradas.filter(([, v]) => !ehLongo(v)),
+      ...entradas.filter(([, v]) => ehLongo(v)),
+    ];
     return (
       <div key={titulo ?? "raiz"} className="mb-5 last:mb-0">
         {titulo && (
@@ -116,8 +175,8 @@ function DadosCompletos({ dados }: { dados: Record<string, unknown> }) {
           </p>
         )}
         <div className="data-grid">
-          {entradas.map(([k, v]) => (
-            <Dado key={k} rotulo={humanizar(k)} valor={valorLegivel(v)} />
+          {ordenadas.map(([k, v]) => (
+            <CampoFonte key={k} rotulo={humanizar(k)} valor={v} abrirTudo={abrirTudo} />
           ))}
         </div>
       </div>
@@ -133,16 +192,22 @@ function DadosCompletos({ dados }: { dados: Record<string, unknown> }) {
 
 function Secao({
   titulo,
+  acao,
   children,
   className,
 }: {
   titulo: string;
+  /** Controle no canto direito do cabeçalho (ex.: "Ampliar tudo"). */
+  acao?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
   return (
     <section className={cx("card p-5", className)}>
-      <h2 className="label-mono mb-3.5 border-b border-hairline pb-2">{titulo}</h2>
+      <div className="mb-3.5 flex items-center justify-between gap-3 border-b border-hairline pb-2">
+        <h2 className="label-mono">{titulo}</h2>
+        {acao}
+      </div>
       {children}
     </section>
   );
@@ -176,6 +241,8 @@ export default function PropostaDetalhePage() {
   const [monitorando, setMonitorando] = useState(false);
   const [canais, setCanais] = useState<string[]>(["painel"]);
   const [msg, setMsg] = useState<string | null>(null);
+  // "Ampliar tudo" da seção de dados da fonte (campos de extensão longa)
+  const [abrirTudo, setAbrirTudo] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -263,11 +330,13 @@ export default function PropostaDetalhePage() {
             ← Captação
           </Link>
           <h1 className="page-title mt-1.5">
-            {p.titulo ?? p.objeto ?? p.numero_proposta ?? p.id_externo}
+            {humanizarCaixa(
+              p.titulo ?? p.objeto ?? p.numero_proposta ?? p.id_externo,
+            )}
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink-2">
             <span>
-              {p.municipio_nome ?? p.municipio_ibge}
+              {humanizarCaixa(p.municipio_nome ?? p.municipio_ibge)}
               {p.uf ? `/${p.uf}` : ""}
             </span>
             <span className="text-ink-3">·</span>
@@ -278,6 +347,20 @@ export default function PropostaDetalhePage() {
               {disponivel ? "oportunidade disponível" : "cadastrada"}
             </StatusBadge>
           </div>
+          {/* pílulas de categoria (curadoria) — do que esta proposta trata */}
+          {(p.categorias ?? []).length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {p.categorias!.map((c) => (
+                <span
+                  key={c.slug}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-0.5 text-xs text-ink-2"
+                >
+                  <span className="brand-dot" aria-hidden />
+                  {c.rotulo}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         {/* Ações agrupadas — nunca um botão grande solto no canto */}
         <div className="flex shrink-0 items-center gap-2">
@@ -354,7 +437,7 @@ export default function PropostaDetalhePage() {
             <span className="field-label">Situação</span>
             <span className="mt-0.5">
               <StatusBadge tone={tomSituacao(p.situacao)}>
-                {p.situacao ?? "sem registro"}
+                {humanizarCaixa(p.situacao) || "sem registro"}
               </StatusBadge>
             </span>
           </div>
@@ -381,7 +464,7 @@ export default function PropostaDetalhePage() {
 
           <Dado
             rotulo="Modalidade"
-            valor={p.modalidade}
+            valor={humanizarCaixa(p.modalidade)}
             destaque
           />
         </div>
@@ -405,7 +488,7 @@ export default function PropostaDetalhePage() {
                 const tom = tomPrazo(d);
                 return (
                   <li key={i} className="data-row">
-                    <span className="text-sm">{pr.tipo ?? "prazo"}</span>
+                    <span className="text-sm">{humanizarCaixa(pr.tipo) || "prazo"}</span>
                     <span className="flex shrink-0 items-baseline gap-2">
                       <span className={cx("num text-sm", tom && `tone-${tom}`)}>
                         {formatDate(pr.data_limite)}
@@ -436,7 +519,7 @@ export default function PropostaDetalhePage() {
                 const tom = tomPrazo(d);
                 return (
                   <li key={i} className="data-row">
-                    <span className="text-sm">{pe.descricao ?? "—"}</span>
+                    <span className="text-sm">{humanizarCaixa(pe.descricao) || "—"}</span>
                     {pe.prazo && (
                       <span className={cx("num shrink-0 text-sm", tom && `tone-${tom}`)}>
                         {formatDate(pe.prazo)}
@@ -509,11 +592,19 @@ export default function PropostaDetalhePage() {
                 </div>
                 <hr className="hairline-rule" />
                 <div className="data-grid">
-                  <Dado rotulo="Tipo" valor={p.execucao!.tipo_transferencia} />
-                  <Dado rotulo="Ente recebedor" valor={p.execucao!.ente_recebedor} />
+                  <Dado
+                    rotulo="Tipo"
+                    valor={humanizarCaixa(p.execucao!.tipo_transferencia)}
+                  />
+                  <Dado
+                    rotulo="Ente recebedor"
+                    valor={humanizarCaixa(p.execucao!.ente_recebedor)}
+                  />
                   <Dado
                     rotulo="Natureza jurídica"
-                    valor={p.natureza_juridica ?? p.execucao!.natureza_juridica}
+                    valor={humanizarCaixa(
+                      p.natureza_juridica ?? p.execucao!.natureza_juridica,
+                    )}
                   />
                   <Dado
                     rotulo="Assinatura"
@@ -543,8 +634,8 @@ export default function PropostaDetalhePage() {
               valor={p.numero_proposta ?? p.id_externo}
             />
             <Dado rotulo="Identificador na fonte" valor={p.id_externo} />
-            <Dado rotulo="Órgão superior" valor={p.orgao_superior} />
-            <Dado rotulo="Modalidade" valor={p.modalidade} />
+            <Dado rotulo="Órgão superior" valor={humanizarCaixa(p.orgao_superior)} />
+            <Dado rotulo="Modalidade" valor={humanizarCaixa(p.modalidade)} />
             <Dado rotulo="Emenda" valor={p.emenda} />
             <Dado rotulo="Natureza jurídica" valor={p.natureza_juridica} />
             <Dado rotulo="Município (IBGE)" valor={p.municipio_ibge} />
@@ -562,7 +653,8 @@ export default function PropostaDetalhePage() {
               <hr className="hairline-rule my-4" />
               <div className="field">
                 <span className="field-label">Objeto</span>
-                <p className="text-sm leading-relaxed text-ink-2">{p.objeto}</p>
+                {/* o objeto é o outro campo de extensão livre da fonte */}
+                <TextoExpansivel texto={humanizarCaixa(p.objeto)} linhas={4} />
               </div>
             </>
           )}
@@ -572,13 +664,17 @@ export default function PropostaDetalhePage() {
           <div className="flex flex-col gap-4">
             <div className="field">
               <span className="field-label">Situação</span>
-              <span className="value-lg">{p.situacao ?? "—"}</span>
+              <span className="value-lg">{humanizarCaixa(p.situacao) || "—"}</span>
             </div>
             <div className="field">
               <span className="field-label">Última movimentação</span>
-              <p className="text-sm leading-relaxed text-ink-2">
-                {p.movimentacao ?? "Sem movimentação registrada."}
-              </p>
+              {p.movimentacao ? (
+                <TextoExpansivel texto={humanizarCaixa(p.movimentacao)} linhas={4} />
+              ) : (
+                <p className="text-sm leading-relaxed text-ink-3">
+                  Sem movimentação registrada.
+                </p>
+              )}
             </div>
           </div>
         </Secao>
@@ -627,12 +723,25 @@ export default function PropostaDetalhePage() {
       </Secao>
 
       {p.dados_fonte && Object.keys(p.dados_fonte).length > 0 && (
-        <Secao titulo="Dados completos da fonte">
+        <Secao
+          titulo="Dados completos da fonte"
+          acao={
+            <button
+              type="button"
+              onClick={() => setAbrirTudo((v) => !v)}
+              aria-expanded={abrirTudo}
+              className="btn btn-ghost btn-sm"
+            >
+              {abrirTudo ? "Recolher tudo ↑" : "Ampliar tudo ↓"}
+            </button>
+          }
+        >
           <p className="mb-4 text-xs text-ink-3">
             Todos os campos como vêm da origem — a mesma informação que você veria
-            direto no site oficial.
+            direto no site oficial. Campos longos entram recortados; use{" "}
+            <span className="font-mono">Ampliar</span> para ler por inteiro.
           </p>
-          <DadosCompletos dados={p.dados_fonte} />
+          <DadosCompletos dados={p.dados_fonte} abrirTudo={abrirTudo} />
         </Secao>
       )}
 

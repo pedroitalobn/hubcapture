@@ -6,7 +6,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
-import { formatBRL } from "@/lib/format";
+import { formatBRL, humanizarCaixa } from "@/lib/format";
 
 // ── Panorama financeiro do território (números + gráfico) ───────────────────
 // Reusa /proposals/summary (mesma fonte da página de resumo da Captação) para
@@ -458,15 +458,21 @@ function MeuPainel() {
                       className="flex flex-1 flex-col gap-1 px-2 py-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm text-ink">{n.titulo}</p>
+                        <p className="truncate text-sm text-ink">
+                          {humanizarCaixa(n.titulo)}
+                        </p>
                         <p className="mt-0.5 flex flex-wrap gap-x-2 text-[12px] text-ink-3">
                           <span className="font-mono uppercase tracking-[0.04em]">
                             {n.tipo === "captacao" ? "Captação" : "Recebido"}
                           </span>
                           <span>{FONTE_LABEL[n.fonte] ?? n.fonte}</span>
-                          {n.municipio_nome && <span>{n.municipio_nome}</span>}
+                          {n.municipio_nome && (
+                            <span>{humanizarCaixa(n.municipio_nome)}</span>
+                          )}
                           {n.descricao && (
-                            <span className="truncate">{n.descricao}</span>
+                            <span className="truncate">
+                              {humanizarCaixa(n.descricao)}
+                            </span>
                           )}
                         </p>
                       </div>

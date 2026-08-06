@@ -481,6 +481,25 @@
         "title": "CallbackOAuth",
         "type": "object"
       },
+      "CategoriaTag": {
+        "description": "Pílula de categoria: o slug (filtrável) e o rótulo (exibível).",
+        "properties": {
+          "rotulo": {
+            "title": "Rotulo",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "rotulo"
+        ],
+        "title": "CategoriaTag",
+        "type": "object"
+      },
       "ChatRequest": {
         "properties": {
           "modo": {
@@ -2199,6 +2218,18 @@
             ],
             "title": "Area"
           },
+          "categoria": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "pílula de categoria (saude, infraestrutura, cultura…)",
+            "title": "Categoria"
+          },
           "fonte": {
             "anyOf": [
               {
@@ -2209,6 +2240,18 @@
               }
             ],
             "title": "Fonte"
+          },
+          "mes": {
+            "anyOf": [
+              {
+                "pattern": "^(0[1-9]|1[0-2])$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mes"
           },
           "modalidade": {
             "anyOf": [
@@ -2318,6 +2361,19 @@
               }
             ],
             "title": "Tipo"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "maxLength": 2,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
           },
           "valor_max": {
             "anyOf": [
@@ -3858,6 +3914,29 @@
             ],
             "title": "Cache Atualizado Em"
           },
+          "categorias": {
+            "description": "Pílulas prontas para exibição (slug + rótulo) — o painel não traduz nada.\n\nSem curadoria gravada, classifica na hora pelo texto: proposta recém\ncoletada já chega ao painel com pílula.",
+            "items": {
+              "$ref": "#/components/schemas/CategoriaTag"
+            },
+            "readOnly": true,
+            "title": "Categorias",
+            "type": "array"
+          },
+          "categorias_ia": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Categorias Ia"
+          },
           "contrapartida": {
             "anyOf": [
               {
@@ -4161,6 +4240,7 @@
           "id",
           "fonte",
           "id_externo",
+          "categorias",
           "tipo",
           "natureza_juridica",
           "prazo_final",
@@ -4180,6 +4260,14 @@
             "title": "Ano",
             "type": "array"
           },
+          "categoria": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FacetaOpcao"
+            },
+            "title": "Categoria",
+            "type": "array"
+          },
           "fonte": {
             "default": [],
             "items": {
@@ -4188,12 +4276,28 @@
             "title": "Fonte",
             "type": "array"
           },
+          "mes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FacetaOpcao"
+            },
+            "title": "Mes",
+            "type": "array"
+          },
           "modalidade": {
             "default": [],
             "items": {
               "$ref": "#/components/schemas/FacetaOpcao"
             },
             "title": "Modalidade",
+            "type": "array"
+          },
+          "municipio": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FacetaOpcao"
+            },
+            "title": "Municipio",
             "type": "array"
           },
           "natureza_juridica": {
@@ -4234,6 +4338,14 @@
               "$ref": "#/components/schemas/FacetaOpcao"
             },
             "title": "Tipo",
+            "type": "array"
+          },
+          "uf": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FacetaOpcao"
+            },
+            "title": "Uf",
             "type": "array"
           }
         },
@@ -8966,6 +9078,26 @@
             }
           },
           {
+            "description": "unidade federativa",
+            "in": "query",
+            "name": "uf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2,
+                  "minLength": 2,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "unidade federativa",
+              "title": "Uf"
+            }
+          },
+          {
             "in": "query",
             "name": "fonte",
             "required": false,
@@ -9088,6 +9220,24 @@
             }
           },
           {
+            "description": "pílula de categoria (saude, infraestrutura, cultura…)",
+            "in": "query",
+            "name": "categoria",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "pílula de categoria (saude, infraestrutura, cultura…)",
+              "title": "Categoria"
+            }
+          },
+          {
             "in": "query",
             "name": "ano",
             "required": false,
@@ -9102,6 +9252,25 @@
                 }
               ],
               "title": "Ano"
+            }
+          },
+          {
+            "description": "mês do prazo final (ou da atualização na fonte)",
+            "in": "query",
+            "name": "mes",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(0[1-9]|1[0-2])$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "mês do prazo final (ou da atualização na fonte)",
+              "title": "Mes"
             }
           },
           {
@@ -9317,6 +9486,26 @@
             }
           },
           {
+            "description": "unidade federativa",
+            "in": "query",
+            "name": "uf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2,
+                  "minLength": 2,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "unidade federativa",
+              "title": "Uf"
+            }
+          },
+          {
             "in": "query",
             "name": "fonte",
             "required": false,
@@ -9439,6 +9628,24 @@
             }
           },
           {
+            "description": "pílula de categoria (saude, infraestrutura, cultura…)",
+            "in": "query",
+            "name": "categoria",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "pílula de categoria (saude, infraestrutura, cultura…)",
+              "title": "Categoria"
+            }
+          },
+          {
             "in": "query",
             "name": "ano",
             "required": false,
@@ -9453,6 +9660,25 @@
                 }
               ],
               "title": "Ano"
+            }
+          },
+          {
+            "description": "mês do prazo final (ou da atualização na fonte)",
+            "in": "query",
+            "name": "mes",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(0[1-9]|1[0-2])$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "mês do prazo final (ou da atualização na fonte)",
+              "title": "Mes"
             }
           },
           {
@@ -9636,6 +9862,26 @@
             }
           },
           {
+            "description": "unidade federativa",
+            "in": "query",
+            "name": "uf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2,
+                  "minLength": 2,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "unidade federativa",
+              "title": "Uf"
+            }
+          },
+          {
             "in": "query",
             "name": "fonte",
             "required": false,
@@ -9758,6 +10004,24 @@
             }
           },
           {
+            "description": "pílula de categoria (saude, infraestrutura, cultura…)",
+            "in": "query",
+            "name": "categoria",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "pílula de categoria (saude, infraestrutura, cultura…)",
+              "title": "Categoria"
+            }
+          },
+          {
             "in": "query",
             "name": "ano",
             "required": false,
@@ -9772,6 +10036,25 @@
                 }
               ],
               "title": "Ano"
+            }
+          },
+          {
+            "description": "mês do prazo final (ou da atualização na fonte)",
+            "in": "query",
+            "name": "mes",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(0[1-9]|1[0-2])$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "mês do prazo final (ou da atualização na fonte)",
+              "title": "Mes"
             }
           },
           {
@@ -9926,6 +10209,26 @@
             }
           },
           {
+            "description": "unidade federativa",
+            "in": "query",
+            "name": "uf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2,
+                  "minLength": 2,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "unidade federativa",
+              "title": "Uf"
+            }
+          },
+          {
             "in": "query",
             "name": "fonte",
             "required": false,
@@ -10048,6 +10351,24 @@
             }
           },
           {
+            "description": "pílula de categoria (saude, infraestrutura, cultura…)",
+            "in": "query",
+            "name": "categoria",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "pílula de categoria (saude, infraestrutura, cultura…)",
+              "title": "Categoria"
+            }
+          },
+          {
             "in": "query",
             "name": "ano",
             "required": false,
@@ -10062,6 +10383,25 @@
                 }
               ],
               "title": "Ano"
+            }
+          },
+          {
+            "description": "mês do prazo final (ou da atualização na fonte)",
+            "in": "query",
+            "name": "mes",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(0[1-9]|1[0-2])$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "mês do prazo final (ou da atualização na fonte)",
+              "title": "Mes"
             }
           },
           {
