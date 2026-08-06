@@ -11,7 +11,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import Date, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import DateTime
@@ -39,6 +39,10 @@ class Proposta(Base):
     fonte: Mapped[str] = mapped_column(String(32), index=True)
     id_externo: Mapped[str] = mapped_column(String(255))
     numero_proposta: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Classificação temporal canônica: ano em que a proposta foi CRIADA na fonte.
+    # Nunca derivar de `data_atualizacao_fonte` — uma proposta de 2022 que recebeu
+    # movimentação em 2026 continua sendo de 2022.
+    ano: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     titulo: Mapped[str | None] = mapped_column(Text, nullable=True)
     objeto: Mapped[str | None] = mapped_column(Text, nullable=True)
     orgao_superior: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -53,6 +57,7 @@ class Proposta(Base):
     prazos: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     pendencias: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     movimentacao: Mapped[str | None] = mapped_column(Text, nullable=True)
+    data_criacao_fonte: Mapped[date | None] = mapped_column(Date, nullable=True)
     data_atualizacao_fonte: Mapped[date | None] = mapped_column(Date, nullable=True)
     url_origem: Mapped[str | None] = mapped_column(Text, nullable=True)
     proveniencia: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

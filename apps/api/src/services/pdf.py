@@ -24,6 +24,7 @@ def gerar_pdf_proposta(p: Proposta) -> bytes:
     linhas = [
         ("Fonte", p.fonte),
         ("Nº proposta", p.numero_proposta or p.id_externo),
+        ("Ano (criação)", str(p.ano or "—")),
         ("Órgão", p.orgao_superior or "—"),
         ("Modalidade", p.modalidade or "—"),
         ("Município (IBGE)", p.municipio_ibge or "—"),

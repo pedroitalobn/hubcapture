@@ -276,6 +276,37 @@
         "title": "AlertaRead",
         "type": "object"
       },
+      "AnoResumo": {
+        "description": "Uma faixa da classificação por ano — sempre o ano de CRIAÇÃO da proposta.",
+        "properties": {
+          "ano": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ano"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "valor_total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Total",
+            "type": "string"
+          }
+        },
+        "required": [
+          "total",
+          "valor_total"
+        ],
+        "title": "AnoResumo",
+        "type": "object"
+      },
       "AtribuirPlano": {
         "properties": {
           "plano_id": {
@@ -1850,6 +1881,17 @@
       "PropostaRead": {
         "description": "Representação da proposta devolvida pela API.",
         "properties": {
+          "ano": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ano"
+          },
           "cache_atualizado_em": {
             "anyOf": [
               {
@@ -1885,6 +1927,18 @@
               }
             ],
             "title": "Data Atualizacao Fonte"
+          },
+          "data_criacao_fonte": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Criacao Fonte"
           },
           "emenda": {
             "anyOf": [
@@ -5000,6 +5054,24 @@
               ],
               "title": "Situacao"
             }
+          },
+          {
+            "description": "ano de CRIAÇÃO da proposta",
+            "in": "query",
+            "name": "ano",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ano de CRIAÇÃO da proposta",
+              "title": "Ano"
+            }
           }
         ],
         "responses": {
@@ -5034,6 +5106,99 @@
           }
         ],
         "summary": "Listar Propostas",
+        "tags": [
+          "propostas"
+        ]
+      }
+    },
+    "/api/v1/propostas/anos": {
+      "get": {
+        "description": "Safras por ano de criação (para as abas/chips de ano no painel).",
+        "operationId": "listar_anos_api_v1_propostas_anos_get",
+        "parameters": [
+          {
+            "description": "código IBGE (7 dígitos)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "código IBGE (7 dígitos)",
+              "title": "Municipio"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fonte"
+            }
+          },
+          {
+            "in": "query",
+            "name": "situacao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Situacao"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AnoResumo"
+                  },
+                  "title": "Response Listar Anos Api V1 Propostas Anos Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Anos",
         "tags": [
           "propostas"
         ]

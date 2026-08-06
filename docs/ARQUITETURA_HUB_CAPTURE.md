@@ -242,6 +242,7 @@ Proposta
 ├── fonte (transferegov_ff | transferegov_esp | transferegov_disc | fns | fnde | serpro)
 ├── id_externo (NR_CONVENIO / id_programa / id_plano_acao…)
 ├── numero_proposta        (ex: 043210/2025)
+├── ano                    (ano de CRIAÇÃO na fonte — chave da classificação por safra)
 ├── titulo / objeto
 ├── orgao_superior         (FNS, FNDE, MTur…)
 ├── modalidade             (Voluntária, Fundo a Fundo, Especial…)
@@ -253,7 +254,8 @@ Proposta
 ├── prazos[]               (diligência, resposta — com data-limite)
 ├── pendencias[]
 ├── movimentacao           (última movimentação — tipicamente do scraping)
-├── data_atualizacao_fonte (D-1)
+├── data_criacao_fonte     (quando a proposta nasceu na fonte — origem do `ano`)
+├── data_atualizacao_fonte (D-1 — recência de movimentação; NUNCA classifica por ano)
 ├── url_origem
 ├── proveniencia {campo: fonte}   (api | scrape — auditoria do merge)
 ├── resumo_ia              (gerado pelo Motor Hub)

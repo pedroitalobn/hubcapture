@@ -165,6 +165,7 @@ propostas (
   fonte                 text,     -- transferegov_ff|_esp|_disc|fns|fnde|serpro
   id_externo            text,     -- NR_CONVENIO / id_programa / id_plano_acao
   numero_proposta       text,
+  ano                   int,      -- ano de CRIAÇÃO na fonte (classificação canônica)
   titulo                text,
   objeto                text,
   orgao_superior        text,
@@ -179,7 +180,8 @@ propostas (
   prazos                jsonb,    -- [{tipo, data_limite}]
   pendencias            jsonb,    -- [{descricao, prazo}]
   movimentacao          text,     -- última movimentação (tipicamente scraping)
-  data_atualizacao_fonte date,    -- D-1
+  data_criacao_fonte    date,     -- quando nasceu na fonte (origem do `ano`)
+  data_atualizacao_fonte date,    -- D-1 (última movimentação — NUNCA classifica)
   url_origem            text,
   proveniencia          jsonb,    -- {campo: 'api'|'scrape'} — auditoria do merge
   resumo_ia             text,
@@ -398,6 +400,13 @@ docker compose up -d --build
 
 ## 12. Quando estiver em dúvida
 - Território sempre por `municipio_ibge` (7 dígitos).
+- **Tempo de proposta sempre por `ano` (ano de CRIAÇÃO na fonte)**: filtrar, ordenar,
+  agrupar ou rotular safra usa `ano`/`data_criacao_fonte`. `data_atualizacao_fonte` e
+  `cache_atualizado_em` são recência de movimentação e nunca classificam — senão uma
+  proposta criada em 2022 que se mexeu em 2026 aparece como 2026. O normalizador deriva
+  o ano nesta ordem: data de criação da fonte → campo de ano da fonte (`ano_proposta`,
+  `ano_plano_acao`, …) → sufixo do nº de proposta (`NNNNNN/AAAA`). `ano` fica fora do
+  `hash_conteudo` (é imutável; entraria como falso alerta de mudança).
 - Novo campo de proposta? Adicione ao schema canônico (seção 4) e ao merge (seção 5).
 - Nova fonte? Novo connector implementando o Protocol — não reescreva o core.
 - Não sabe uma decisão de produto? Pergunte antes de assumir.

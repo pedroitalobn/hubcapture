@@ -7,7 +7,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...schemas.proposta import PropostaRead
+from ...schemas.proposta import AnoResumo, PropostaRead
 from ...services import pdf as pdf_service
 from ...services import propostas as propostas_service
 from ..deps import get_rls_db
@@ -21,12 +21,27 @@ async def listar_propostas(
     fonte: str | None = Query(default=None),
     area: str | None = Query(default=None, description="reservado (áreas) — futuro"),
     situacao: str | None = Query(default=None),
+    ano: int | None = Query(default=None, description="ano de CRIAÇÃO da proposta"),
     session: AsyncSession = Depends(get_rls_db),
 ) -> list[PropostaRead]:
     rows = await propostas_service.listar(
-        session, municipio=municipio, fonte=fonte, situacao=situacao
+        session, municipio=municipio, fonte=fonte, situacao=situacao, ano=ano
     )
     return [PropostaRead.model_validate(r) for r in rows]
+
+
+# precede /propostas/{proposta_id} (senão 'anos' cairia na rota de UUID)
+@router.get("/propostas/anos", response_model=list[AnoResumo])
+async def listar_anos(
+    municipio: str | None = Query(default=None, description="código IBGE (7 dígitos)"),
+    fonte: str | None = Query(default=None),
+    situacao: str | None = Query(default=None),
+    session: AsyncSession = Depends(get_rls_db),
+) -> list[AnoResumo]:
+    """Safras por ano de criação (para as abas/chips de ano no painel)."""
+    return await propostas_service.anos(
+        session, municipio=municipio, fonte=fonte, situacao=situacao
+    )
 
 
 @router.get("/propostas/{proposta_id}", response_model=PropostaRead)
