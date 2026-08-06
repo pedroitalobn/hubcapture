@@ -97,7 +97,6 @@ export async function garantirSessao(): Promise<string | null> {
 /** Client tipado (openapi-fetch) — injeta o Bearer, renovando quando vencido. */
 export const api = createHubClient({ baseUrl: API_ORIGIN, getToken: garantirSessao });
 
-/** Baixa o PDF de uma proposta (GET autenticado → blob → download). */
 /**
  * Zera TODAS as propostas do sistema (admin/superuser) — uso: validação da
  * coleta. Fetch cru autenticado (a rota é temporária e não está no client
@@ -146,18 +145,51 @@ export async function testarEmail(
   return resp.json();
 }
 
-export async function baixarPdfProposta(id: string): Promise<void> {
+/** Nome do arquivo servido pela API (`Content-Disposition`), com retaguarda. */
+function nomeDoArquivo(resp: Response, padrao: string): string {
+  const disp = resp.headers.get("Content-Disposition") ?? "";
+  return /filename="?([^"';]+)"?/.exec(disp)?.[1]?.trim() || padrao;
+}
+
+export type ResultadoEspelho = "compartilhado" | "baixado";
+
+/**
+ * Espelho da proposta em PDF — o documento que o gestor encaminha.
+ *
+ * No celular abre a folha nativa de compartilhamento (WhatsApp, e-mail) com o
+ * arquivo anexado; onde isso não existe, baixa. É a mesma ação em toda a UI, e
+ * por isso mora aqui e não em cada tela.
+ */
+export async function exportarEspelhoProposta(
+  id: string,
+): Promise<ResultadoEspelho> {
   const resp = await fetch(`${API_ORIGIN}/api/v1/proposals/${id}/pdf`, {
     headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
   });
-  if (!resp.ok) throw new Error("Falha ao gerar PDF");
+  if (!resp.ok) throw new Error("Não foi possível gerar o espelho em PDF");
   const blob = await resp.blob();
+  const nome = nomeDoArquivo(resp, `espelho-proposta-${id}.pdf`);
+
+  const arquivo = new File([blob], nome, { type: "application/pdf" });
+  // `canShare` com o arquivo é a checagem que importa: há navegador com
+  // navigator.share que recusa anexos, e aí a folha abriria sem o PDF.
+  if (navigator.canShare?.({ files: [arquivo] })) {
+    try {
+      await navigator.share({ files: [arquivo], title: nome });
+      return "compartilhado";
+    } catch (e) {
+      // usuário fechou a folha de compartilhamento — não é erro nem download
+      if ((e as Error)?.name === "AbortError") return "compartilhado";
+    }
+  }
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `proposta-${id}.pdf`;
+  a.download = nome;
   a.click();
   URL.revokeObjectURL(url);
+  return "baixado";
 }
 
 /** Baixa a agenda de contatos em .vcf (importável no Google/Apple/Outlook). */

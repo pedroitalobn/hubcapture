@@ -1040,3 +1040,43 @@ Três problemas da tela de captação, resolvidos na camada certa de cada um.
   "FUNDO_A_FUNDO" → "Fundo a Fundo"). Texto já em caixa mista passa intacto; siglas e códigos
   numéricos são preservados. O dado gravado continua idêntico à origem — a conferência é pelo
   link "Fonte oficial ↗".
+
+## 33. Espelho da proposta em PDF — atalho de exportação (compartilhar)
+
+A rota de PDF existia desde a §17, mas sem porta na UI (a §25 tirou o botão) e o
+documento era uma tabela cinza de 11 linhas. Agora é o **espelho**: a proposta
+diagramada com a identidade do Hub, a UM clique, onde quer que ela apareça.
+
+- **`services/pdf.py`** (reescrito) monta o mesmo conteúdo da tela de detalhe:
+  banda da marca (abyss + `brand-dot` em gradiente lime→aqua + fio de gradiente),
+  faixa de destaque (valor e prazo, os dois dados que decidem a ação de hoje),
+  barra empilhada da execução financeira (pago ⊂ liberado ⊂ empenhado sobre o
+  global) com legenda nas cores dos segmentos, pílulas de categoria/tipo, prazos e
+  pendências com tom de urgência (mesma escada de `lib/format.ts::tomPrazo`),
+  dados gerais, situação/movimentação, **QR da fonte oficial** para conferência e
+  anexo com o registro-fonte completo. Rodapé com "página X de Y" (canvas de duas
+  passadas) e data de emissão em toda página.
+- **Paleta e tipografia**: tokens do tema CLARO de `globals.css` (o espelho é
+  impresso e reencaminhado, nunca segue o tema escuro). Só fontes Type1 embutidas
+  no reportlab — a imagem da API é `python:3.12-slim`, sem nenhuma TTF; o "mono"
+  dos rótulos é reproduzido com caixa alta + `charSpace`. **Atenção**: `Tc` é
+  estado GRÁFICO do PDF — sem zerar depois de desenhar com tracking, a banda vaza
+  espaçamento para a página inteira e todo o texto transborda os cards (o layout
+  fica certo e o desenho, errado).
+- **Tetos de conteúdo** (`_MAX_*`): um card é UMA célula de tabela e não se parte
+  entre páginas; sem teto, um `objeto` de 8 mil caracteres ou 40 pendências
+  derrubam a exportação inteira com `LayoutError`. Os limites saem da largura de
+  cada bloco e todo corte remete à fonte oficial — nada some em silêncio.
+- **`services/texto.py`**: `humanizar_caixa` — espelho em Python do
+  `lib/format.ts::humanizarCaixa`, para o PDF não sair gritando enquanto a tela
+  não grita.
+- **Endpoint**: `GET /proposals/{id}/pdf` ganhou nome de arquivo legível
+  (`espelho-091234-2024-mossoro.pdf`), `?inline=true` (visualizar em vez de
+  baixar) e `Cache-Control: no-store` (o documento carrega a data de emissão).
+- **Web** — `components/BotaoEspelho.tsx` é o atalho único: no celular abre a
+  folha nativa de compartilhamento com o PDF anexado (`navigator.share` com
+  `canShare({files})`), no desktop baixa. Formato `botao` no cabeçalho do detalhe
+  (com **atalho de teclado "P"**, ignorado quando o foco está num campo) e
+  `icone` nas listas — Captação, Minhas propostas e feed do Meu painel. Cliente:
+  `exportarEspelhoProposta` em `lib/api/client.ts` (lê o nome do
+  `Content-Disposition`).

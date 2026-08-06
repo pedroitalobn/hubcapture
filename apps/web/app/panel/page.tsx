@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
@@ -587,24 +588,28 @@ function MeuPainel() {
                     key={i}
                     className="flex items-center gap-2 pr-3 transition-colors hover:bg-surface-2"
                   >
-                    {/* favoritar direto do painel (só propostas de captação) */}
+                    {/* favoritar e exportar direto do painel (só propostas de
+                        captação — repasse não tem espelho) */}
                     {n.proposta_id && (
-                      <button
-                        onClick={() => void alternarFavorita(n.proposta_id!)}
-                        aria-label="Favoritar"
-                        title={
-                          favoritas.has(n.proposta_id)
-                            ? "Desfavoritar"
-                            : "Favoritar esta proposta"
-                        }
-                        className={`shrink-0 pl-4 text-lg ${
-                          favoritas.has(n.proposta_id)
-                            ? "text-warn"
-                            : "text-ink-3 hover:text-warn"
-                        }`}
-                      >
-                        {favoritas.has(n.proposta_id) ? "★" : "☆"}
-                      </button>
+                      <span className="flex shrink-0 items-center gap-2 pl-4">
+                        <button
+                          onClick={() => void alternarFavorita(n.proposta_id!)}
+                          aria-label="Favoritar"
+                          title={
+                            favoritas.has(n.proposta_id)
+                              ? "Desfavoritar"
+                              : "Favoritar esta proposta"
+                          }
+                          className={`text-lg ${
+                            favoritas.has(n.proposta_id)
+                              ? "text-warn"
+                              : "text-ink-3 hover:text-warn"
+                          }`}
+                        >
+                          {favoritas.has(n.proposta_id) ? "★" : "☆"}
+                        </button>
+                        <BotaoEspelho propostaId={n.proposta_id} formato="icone" />
+                      </span>
                     )}
                     <Link
                       href={n.href}

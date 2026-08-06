@@ -10565,6 +10565,7 @@
     },
     "/api/v1/proposals/{proposta_id}/pdf": {
       "get": {
+        "description": "Espelho da proposta em PDF — a peça que o gestor encaminha a quem decide.",
         "operationId": "exportar_pdf_api_v1_proposals__proposta_id__pdf_get",
         "parameters": [
           {
@@ -10575,6 +10576,18 @@
               "format": "uuid",
               "title": "Proposta Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "abrir no visualizador em vez de baixar (pré-visualização)",
+            "in": "query",
+            "name": "inline",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "abrir no visualizador em vez de baixar (pré-visualização)",
+              "title": "Inline",
+              "type": "boolean"
             }
           }
         ],

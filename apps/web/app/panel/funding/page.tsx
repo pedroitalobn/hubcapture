@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, baixarCsv } from "@/lib/api/client";
+import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import {
   formatBRL,
@@ -1050,7 +1051,7 @@ export default function CaptacaoPage() {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-hairline text-left label-mono">
-                  <th className="px-4 py-3 w-8"></th>
+                  <th className="w-20 px-4 py-3"></th>
                   <th className="px-3 py-3">Proposta</th>
                   <th className="px-3 py-3">Município</th>
                   <th className="px-3 py-3">Prazo</th>
@@ -1111,6 +1112,8 @@ export default function CaptacaoPage() {
                             <path d="M13.7 21a2 2 0 0 1-3.4 0" />
                           </svg>
                         </button>
+                        {/* espelho em PDF direto da lista — sem abrir a proposta */}
+                        <BotaoEspelho propostaId={p.id} formato="icone" />
                       </div>
                     </td>
                     <td className="px-3 py-3">

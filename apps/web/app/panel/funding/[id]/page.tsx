@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
+import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { Skeleton } from "@/components/Skeleton";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { TextoExpansivel } from "@/components/TextoExpansivel";
@@ -371,6 +372,8 @@ export default function PropostaDetalhePage() {
           >
             {favorita ? "★ Favorita" : "☆ Favoritar"}
           </button>
+          {/* atalho "P": o gestor exporta sem tirar a mão do teclado */}
+          <BotaoEspelho propostaId={params.id} atalho="p" onResultado={setMsg} />
           {p.url_origem && (
             <a
               href={p.url_origem}
