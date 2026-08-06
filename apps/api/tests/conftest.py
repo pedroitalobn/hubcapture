@@ -115,14 +115,32 @@ async def seed_repasse() -> Callable[..., Awaitable[None]]:
 
 @pytest_asyncio.fixture
 async def seed_proposta() -> Callable[..., Awaitable[None]]:
-    async def _seed(fonte: str, id_externo: str, ibge: str, titulo: str = "P") -> None:
+    async def _seed(
+        fonte: str,
+        id_externo: str,
+        ibge: str,
+        titulo: str = "P",
+        *,
+        ano: int | None = None,
+        data_atualizacao_fonte: str | None = None,
+        valor_total: str | None = None,
+    ) -> None:
         async with _owner_engine.begin() as conn:
             await conn.execute(
                 text(
                     "INSERT INTO propostas (fonte, id_externo, titulo, municipio_ibge, "
-                    "cache_atualizado_em) VALUES (:f,:e,:t,:ibge, now())"
+                    "ano, data_atualizacao_fonte, valor_total, cache_atualizado_em) "
+                    "VALUES (:f,:e,:t,:ibge,:ano,:atual,:valor, now())"
                 ),
-                {"f": fonte, "e": id_externo, "t": titulo, "ibge": ibge},
+                {
+                    "f": fonte, "e": id_externo, "t": titulo, "ibge": ibge,
+                    "ano": ano, "valor": valor_total,
+                    "atual": (
+                        date.fromisoformat(data_atualizacao_fonte)
+                        if data_atualizacao_fonte
+                        else None
+                    ),
+                },
             )
 
     return _seed

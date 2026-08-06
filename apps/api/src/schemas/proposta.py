@@ -15,6 +15,7 @@ class PropostaCanonica(BaseModel):
     fonte: str
     id_externo: str
     numero_proposta: str | None = None
+    ano: int | None = None  # ano de CRIAÇÃO na fonte (classificação canônica)
     titulo: str | None = None
     objeto: str | None = None
     orgao_superior: str | None = None
@@ -29,6 +30,7 @@ class PropostaCanonica(BaseModel):
     prazos: list | None = None
     pendencias: list | None = None
     movimentacao: str | None = None
+    data_criacao_fonte: date | None = None
     data_atualizacao_fonte: date | None = None
     url_origem: str | None = None
     proveniencia: dict | None = None
@@ -44,6 +46,7 @@ class PropostaRead(BaseModel):
     fonte: str
     id_externo: str
     numero_proposta: str | None = None
+    ano: int | None = None
     titulo: str | None = None
     objeto: str | None = None
     orgao_superior: str | None = None
@@ -58,8 +61,17 @@ class PropostaRead(BaseModel):
     prazos: list | None = None
     pendencias: list | None = None
     movimentacao: str | None = None
+    data_criacao_fonte: date | None = None
     data_atualizacao_fonte: date | None = None
     url_origem: str | None = None
     proveniencia: dict | None = None
     resumo_ia: str | None = None
     cache_atualizado_em: datetime | None = None
+
+
+class AnoResumo(BaseModel):
+    """Uma faixa da classificação por ano — sempre o ano de CRIAÇÃO da proposta."""
+
+    ano: int | None = None  # None = a fonte não informou o ano de criação
+    total: int
+    valor_total: Decimal

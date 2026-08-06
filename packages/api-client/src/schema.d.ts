@@ -643,6 +643,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/propostas/anos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Anos
+         * @description Safras por ano de criação (para as abas/chips de ano no painel).
+         */
+        get: operations["listar_anos_api_v1_propostas_anos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/propostas/{proposta_id}": {
         parameters: {
             query?: never;
@@ -896,6 +916,18 @@ export interface components {
             proposta_id: string;
             /** Tipo */
             tipo?: string | null;
+        };
+        /**
+         * AnoResumo
+         * @description Uma faixa da classificação por ano — sempre o ano de CRIAÇÃO da proposta.
+         */
+        AnoResumo: {
+            /** Ano */
+            ano?: number | null;
+            /** Total */
+            total: number;
+            /** Valor Total */
+            valor_total: string;
         };
         /** AtribuirPlano */
         AtribuirPlano: {
@@ -1461,12 +1493,16 @@ export interface components {
          * @description Representação da proposta devolvida pela API.
          */
         PropostaRead: {
+            /** Ano */
+            ano?: number | null;
             /** Cache Atualizado Em */
             cache_atualizado_em?: string | null;
             /** Contrapartida */
             contrapartida?: string | null;
             /** Data Atualizacao Fonte */
             data_atualizacao_fonte?: string | null;
+            /** Data Criacao Fonte */
+            data_criacao_fonte?: string | null;
             /** Emenda */
             emenda?: string | null;
             /** Fonte */
@@ -3133,6 +3169,8 @@ export interface operations {
                 /** @description reservado (áreas) — futuro */
                 area?: string | null;
                 situacao?: string | null;
+                /** @description ano de CRIAÇÃO da proposta */
+                ano?: number | null;
             };
             header?: never;
             path?: never;
@@ -3147,6 +3185,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PropostaRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_anos_api_v1_propostas_anos_get: {
+        parameters: {
+            query?: {
+                /** @description código IBGE (7 dígitos) */
+                municipio?: string | null;
+                fonte?: string | null;
+                situacao?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnoResumo"][];
                 };
             };
             /** @description Validation Error */
