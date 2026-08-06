@@ -10,6 +10,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
 
@@ -63,18 +64,63 @@ export default function LoginPage() {
             placeholder="voce@exemplo.gov.br"
           />
         </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="field-label">Senha</span>
-          <input
-            type="password"
-            required
-            autoComplete="current-password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            className="input"
-            placeholder="••••••••"
-          />
-        </label>
+        {/* Campo de senha com alternância de visibilidade. Usa htmlFor em vez de
+            envolver o input num <label>, como no campo de e-mail acima: com o
+            botão dentro, o clique nele seria reencaminhado ao input pela
+            ativação do label (controle interativo aninhado em label é
+            anti-padrão de acessibilidade). */}
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="senha" className="field-label">
+            Senha
+          </label>
+          <div className="relative">
+            <input
+              id="senha"
+              type={mostrarSenha ? "text" : "password"}
+              required
+              autoComplete="current-password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              // pr-11 reserva a área do botão pra senha longa não passar por baixo dele
+              className="input pr-11"
+              placeholder="••••••••"
+            />
+            <button
+              type="button" // sem isto o botão herdaria type=submit e enviaria o form
+              onClick={() => setMostrarSenha((v) => !v)}
+              // O rótulo anuncia a AÇÃO e aria-pressed o estado atual, pra
+              // leitor de tela não depender do ícone.
+              aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+              aria-pressed={mostrarSenha}
+              title={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+              className="absolute inset-y-0 right-0 flex items-center rounded-r-lg px-3 text-ink-3 transition-colors hover:text-ink focus-visible:outline-none focus-visible:text-ink"
+            >
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                {mostrarSenha ? (
+                  <>
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </>
+                ) : (
+                  <>
+                    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </>
+                )}
+              </svg>
+            </button>
+          </div>
+        </div>
         {erro && <p className="text-sm text-danger">{erro}</p>}
         <button type="submit" disabled={carregando} className="btn btn-primary mt-2">
           {carregando ? "Entrando…" : "Entrar"}
