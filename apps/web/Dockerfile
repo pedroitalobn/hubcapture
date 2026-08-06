@@ -32,6 +32,21 @@ RUN pnpm --filter web build
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# Bind em 0.0.0.0. O server.js do Next standalone faz
+# `const hostname = process.env.HOSTNAME || '0.0.0.0'`, e o Docker injeta
+# HOSTNAME com o ID do container em TODO container — então, sem esta linha, o
+# Next escuta só no IP do container e recusa conexão em localhost.
+#
+# Isso derrubava o site a cada deploy: o healthcheck do compose bate em
+# http://localhost:3000/, falhava sempre (ECONNREFUSED), o container virava
+# unhealthy e o Traefik removia o router do app.hubcapture.com.br — 404, mesmo
+# com o app rodando e respondendo 200 pelo IP do container.
+#
+# Precisa ficar AQUI e não no .env do Dokploy: o .env do compose só interpola
+# ${VAR}; sem um bloco `environment:` no serviço, a variável não chega ao
+# processo. Definido no Dockerfile, o valor vale pra imagem e vence a injeção
+# automática do Docker.
+ENV HOSTNAME=0.0.0.0
 COPY --from=builder /repo/apps/web/.next/standalone ./
 COPY --from=builder /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder /repo/apps/web/public ./apps/web/public
