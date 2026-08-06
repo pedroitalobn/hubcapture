@@ -35,6 +35,40 @@ services:
       retries: 10
     restart: unless-stopped
 
+  # Refresh diário do banco. Processo SEPARADO da api de propósito: o sweep leva
+  # minutos e não pode disputar o event loop que atende request. Reusa a imagem
+  # da api (mesmo código/deps), só troca o comando.
+  #
+  # Sem este serviço o banco congela: hoje os dados só ficam frescos porque toda
+  # abertura do painel coleta ao vivo — e é justamente isso que estamos tirando
+  # do caminho do request. Ver src/jobs/refresh_diario.py.
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: hubcapture-worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      DATABASE_URL: postgresql+asyncpg://hubcapture_app:${APP_DB_PASSWORD:-app_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
+      DATABASE_MIGRATOR_URL: postgresql+asyncpg://${POSTGRES_USER:-hubcapture}:${POSTGRES_PASSWORD:-postgres_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
+      # 06:00 UTC ≈ 03:00 em Brasília — fora do horário de uso.
+      REFRESH_DIARIO_HORA_UTC: ${REFRESH_DIARIO_HORA_UTC:-6}
+      REFRESH_DIARIO_ATIVO: ${REFRESH_DIARIO_ATIVO:-1}
+    # Sobrescreve o entrypoint da api (que sobe o uvicorn) — aqui o processo é o
+    # agendador. Sem `--` o módulo herdaria o boot HTTP e subiria uma 2ª API.
+    entrypoint: ["/app/apps/api/.venv/bin/python", "-m", "src.jobs.refresh_diario"]
+    working_dir: /app/apps/api
+    # NÃO entra na dokploy-network: o worker não recebe tráfego, só fala com o
+    # banco e com as fontes externas. Menos superfície exposta.
+    networks:
+      - default
+    restart: unless-stopped
+
   api:
     build:
       context: .
