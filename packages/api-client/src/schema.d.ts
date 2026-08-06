@@ -1261,7 +1261,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Exportar Pdf */
+        /**
+         * Exportar Pdf
+         * @description Espelho da proposta em PDF — a peça que o gestor encaminha a quem decide.
+         */
         get: operations["exportar_pdf_api_v1_proposals__proposta_id__pdf_get"];
         put?: never;
         post?: never;
@@ -6095,7 +6098,10 @@ export interface operations {
     };
     exportar_pdf_api_v1_proposals__proposta_id__pdf_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description abrir no visualizador em vez de baixar (pré-visualização) */
+                inline?: boolean;
+            };
             header?: never;
             path: {
                 proposta_id: string;
