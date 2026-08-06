@@ -57,6 +57,10 @@ class LiveSearchRequest(BaseModel):
     ordenar: str | None = Field(
         default=None, pattern="^(recentes|prazo|prazo_distante|nome|orgao|valor)$"
     )
+    limite: int | None = Field(
+        default=None, ge=1, le=200, description="itens da página devolvida (sem limite: tudo)"
+    )
+    offset: int = Field(default=0, ge=0)
 
 
 class FonteStatus(BaseModel):
@@ -68,6 +72,8 @@ class FonteStatus(BaseModel):
 
 class LiveSearchResponse(BaseModel):
     propostas: list[PropostaRead]
+    # total do recorte (a lista acima é só a página pedida em `limite`/`offset`)
+    total: int
     fontes: list[FonteStatus]
     # opções dos dropdowns já do recorte recém-coletado (evita 2ª chamada)
     facetas: PropostasFacetas
@@ -80,18 +86,20 @@ async def live_search_endpoint(
     session: AsyncSession = Depends(get_rls_db),
 ) -> LiveSearchResponse:
     filtros = body.model_dump(exclude={"municipio_ibge"})
-    rows, status_fontes = await service.live_search(
+    rows, total, status_fontes = await service.live_search(
         session, usuario_id=user.id, municipio=body.municipio_ibge, **filtros
     )
     # mesmas dimensões da listagem, sem repetir a lista de filtros à mão (a
-    # versão anterior esquecia toda dimensão nova até alguém notar na tela)
+    # versão anterior esquecia toda dimensão nova até alguém notar na tela).
+    # Paginação fora: a faceta conta o recorte INTEIRO, não a página.
     facetas = await propostas_service.facetas(
         session,
         municipio=body.municipio_ibge,
-        **body.model_dump(exclude={"municipio_ibge", "ordenar"}),
+        **body.model_dump(exclude={"municipio_ibge", "ordenar", "limite", "offset"}),
     )
     return LiveSearchResponse(
         propostas=[PropostaRead.model_validate(r) for r in rows],
+        total=total,
         fontes=[FonteStatus(**s) for s in status_fontes],
         facetas=PropostasFacetas.model_validate(facetas),
     )

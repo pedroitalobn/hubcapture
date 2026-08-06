@@ -257,13 +257,14 @@ async def test_live_search_usa_cache_fresco_e_reporta_erro(seed_user, seed_munic
     await _seed_proposta_completa("transferegov_ff", "LV1", "3550308")
 
     async with rls_session(u) as s:
-        rows, status = await ca.live_search(s, usuario_id=u, fonte="transferegov_ff")
+        rows, total, status = await ca.live_search(s, usuario_id=u, fonte="transferegov_ff")
         assert [p.id_externo for p in rows] == ["LV1"]
+        assert total == 1
         assert status == [{"fonte": "transferegov_ff", "municipio_ibge": "3550308", "status": "ok"}]
 
     # fonte desconhecida → status de erro, sem derrubar a busca
     async with rls_session(u) as s:
-        rows, status = await ca.live_search(s, usuario_id=u, fonte="nao_existe")
+        rows, total, status = await ca.live_search(s, usuario_id=u, fonte="nao_existe")
         assert status[0]["status"] == "erro"
 
 

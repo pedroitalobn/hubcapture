@@ -166,7 +166,12 @@ async def live_search(
     area: str | None = None,
     **filtros,
 ):
-    """Coleta ao vivo nas fontes relevantes e devolve (propostas, status_fontes)."""
+    """Coleta ao vivo nas fontes e devolve (página, total do recorte, status).
+
+    A coleta é a parte cara (uma das fontes baixa um CSV de ~1 GB) — daí ela ser
+    ação explícita no painel. A leitura sai paginada como a da listagem: quem
+    acabou de atualizar quer ver a primeira página, não as milhares de linhas.
+    """
     from ..models.preferencias import PreferenciasUsuario
 
     if municipio:
@@ -206,7 +211,7 @@ async def live_search(
                     }
                 )
 
-    rows = await propostas_service.listar(
+    rows, total = await propostas_service.listar_pagina(
         session, municipio=municipio, fonte=fonte, area=area, **filtros
     )
-    return rows, status_fontes
+    return rows, total, status_fontes
