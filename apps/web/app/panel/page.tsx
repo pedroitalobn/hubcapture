@@ -234,13 +234,17 @@ function dataBr(iso: string | null | undefined): string | null {
 }
 
 // ── Filtro de ano das novidades ─────────────────────────────────────────────
-// Pills com os 4 anos mais recentes + "Outros" (todo o resto). A escolha é do
-// usuário e PERSISTE entre visitas — só muda quando ele mexe. Sem preferência
-// salva, abre no ano vigente, que é o que interessa no dia a dia.
+// Pills derivadas dos anos que EXISTEM no feed carregado (mais recentes
+// primeiro) + "Outros" para o excedente e itens sem data. Pill de ano sem
+// nenhum item não é renderizada — filtro que nunca muda a lista parece
+// quebrado. A escolha do usuário PERSISTE entre visitas; sem preferência
+// salva, abre no ano mais recente com dados.
 const ANOS_KEY = "hub_painel_anos";
 const OUTROS = "outros";
-const ANO_ATUAL = new Date().getFullYear();
-const ANOS_PILLS = [0, 1, 2, 3].map((i) => ANO_ATUAL - i);
+const MAX_PILLS_ANO = 4;
+// Janela pedida à API: o padrão de 20 itens só alcança o ano corrente, o que
+// deixava as pills dos anos anteriores permanentemente vazias.
+const FEED_LIMITE = 120;
 
 /** Ano do item pelo prefixo do ISO (YYYY-MM-DD); null se ausente/inválido. */
 function anoDoItem(iso: string | null | undefined): number | null {
@@ -250,20 +254,9 @@ function anoDoItem(iso: string | null | undefined): number | null {
 }
 
 /**
- * Chave de filtro do item: o próprio ano quando ele está entre as pills, senão
- * OUTROS. Item SEM data cai em OUTROS de propósito — assim ele continua
- * alcançável por uma pill em vez de sumir do painel sem nenhuma forma de exibir.
- */
-function chaveDoItem(iso: string | null | undefined): string {
-  const ano = anoDoItem(iso);
-  return ano != null && ANOS_PILLS.includes(ano) ? String(ano) : OUTROS;
-}
-
-/**
- * Lê a preferência salva, descartando o que não existe mais na janela atual —
- * um "2023" salvo vira inválido quando a janela anda, e sem esta poda o painel
- * abriria filtrando por um ano sem pill, parecendo vazio sem motivo aparente.
- * Devolve null quando não há preferência utilizável (o chamador usa o padrão).
+ * Lê a preferência salva. A validação fina (a pill ainda existe no feed de
+ * hoje?) acontece na seleção efetiva, porque o conjunto de pills agora depende
+ * dos DADOS carregados — aqui só se descarta lixo estrutural.
  */
 function lerAnosSalvos(): string[] | null {
   if (typeof window === "undefined") return null;
@@ -272,9 +265,8 @@ function lerAnosSalvos(): string[] | null {
     if (!salvo) return null;
     const bruto = JSON.parse(salvo) as unknown;
     if (!Array.isArray(bruto)) return null;
-    const validas = new Set([...ANOS_PILLS.map(String), OUTROS]);
     const limpo = bruto.filter(
-      (c): c is string => typeof c === "string" && validas.has(c),
+      (c): c is string => typeof c === "string" && (c === OUTROS || /^\d{4}$/.test(c)),
     );
     return limpo.length > 0 ? limpo : null;
   } catch {
@@ -297,10 +289,11 @@ function MeuPainel() {
   const [favoritas, setFavoritas] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const tentativas = useRef(0);
-  // Começa no ano vigente e só então aplica o que estiver salvo (no efeito
-  // abaixo). Ler o localStorage já no initializer divergiria do HTML do
-  // servidor, que não tem acesso a ele — erro de hidratação.
-  const [anosSel, setAnosSel] = useState<string[]>([String(ANO_ATUAL)]);
+  // null = usuário ainda não escolheu nada (nem nesta sessão nem salvo) — a
+  // seleção efetiva cai no padrão. Ler o localStorage já no initializer
+  // divergiria do HTML do servidor, que não tem acesso a ele — erro de
+  // hidratação; a restauração acontece no efeito abaixo.
+  const [anosSel, setAnosSel] = useState<string[] | null>(null);
   const prefCarregada = useRef(false);
 
   // O recorte de município entra em TODA consulta do painel: trocar o
@@ -309,7 +302,9 @@ function MeuPainel() {
     const municipio = paramMunicipio(selecionados);
     const [{ data: vg }, { data: nov }] = await Promise.all([
       api.GET("/api/v1/profile/overview", { params: { query: { municipio } } }),
-      api.GET("/api/v1/profile/feed", { params: { query: { municipio } } }),
+      api.GET("/api/v1/profile/feed", {
+        params: { query: { municipio, limite: FEED_LIMITE } },
+      }),
     ]);
     if (vg) setData(vg as VisaoGeral);
     if (nov) setNovidades(nov as Novidades);
@@ -376,9 +371,10 @@ function MeuPainel() {
   }, []);
 
   // Persiste a escolha. O guard evita o efeito rodar ANTES da restauração e
-  // gravar o padrão por cima do que o usuário já tinha escolhido.
+  // gravar o padrão por cima do que o usuário já tinha escolhido; null é
+  // "nenhuma escolha ainda" e não merece linha no storage.
   useEffect(() => {
-    if (!prefCarregada.current) return;
+    if (!prefCarregada.current || anosSel == null) return;
     try {
       window.localStorage.setItem(ANOS_KEY, JSON.stringify(anosSel));
     } catch {
@@ -387,13 +383,13 @@ function MeuPainel() {
   }, [anosSel]);
 
   function alternarAno(chave: string) {
-    setAnosSel((prev) => {
-      const marcado = prev.includes(chave);
-      // Nunca deixa a seleção vazia: sem nenhuma pill ativa a lista ficaria
-      // vazia sem o usuário ter pedido isso, parecendo perda de dados.
-      if (marcado && prev.length === 1) return prev;
-      return marcado ? prev.filter((c) => c !== chave) : [...prev, chave];
-    });
+    const marcado = anosAtivos.includes(chave);
+    // Nunca deixa a seleção vazia: sem nenhuma pill ativa a lista ficaria
+    // vazia sem o usuário ter pedido isso, parecendo perda de dados.
+    if (marcado && anosAtivos.length === 1) return;
+    setAnosSel(
+      marcado ? anosAtivos.filter((c) => c !== chave) : [...anosAtivos, chave],
+    );
   }
 
   async function alternarFavorita(id: string) {
@@ -426,6 +422,43 @@ function MeuPainel() {
 
   const semTerritorio = !loading && (data?.municipios.length ?? 0) === 0;
   const itens = novidades?.itens ?? [];
+  // Pills a partir do que EXISTE no feed: os anos com item, do mais recente ao
+  // mais antigo (janela de MAX_PILLS_ANO), + "Outros" quando sobra ano fora da
+  // janela ou item sem data. Toda pill renderizada tem ≥1 item por construção.
+  const { janelaAnos, pillsAno } = useMemo(() => {
+    const anos = new Set<number>();
+    let semData = false;
+    for (const n of itens) {
+      const ano = anoDoItem(n.data);
+      if (ano == null) semData = true;
+      else anos.add(ano);
+    }
+    const ordenados = [...anos].sort((a, b) => b - a).map(String);
+    const janela = ordenados.slice(0, MAX_PILLS_ANO);
+    const temOutros = semData || ordenados.length > janela.length;
+    return {
+      janelaAnos: janela,
+      pillsAno: temOutros ? [...janela, OUTROS] : janela,
+    };
+  }, [itens]);
+  // Chave de filtro do item: o próprio ano quando está na janela, senão OUTROS
+  // — item sem data cai em OUTROS de propósito, para continuar alcançável.
+  const chaveDoItem = useCallback(
+    (iso: string | null | undefined): string => {
+      const ano = anoDoItem(iso);
+      return ano != null && janelaAnos.includes(String(ano)) ? String(ano) : OUTROS;
+    },
+    [janelaAnos],
+  );
+  // Seleção EFETIVA: interseção da escolha do usuário com as pills que o feed
+  // de hoje sustenta. Escolha vazia/obsoleta → padrão = ano mais recente com
+  // dados (nunca um filtro que esconderia tudo sem motivo aparente).
+  const anosAtivos = useMemo(() => {
+    const [maisRecente] = pillsAno;
+    if (maisRecente == null) return [];
+    const escolhidos = (anosSel ?? []).filter((c) => pillsAno.includes(c));
+    return escolhidos.length > 0 ? escolhidos : [maisRecente];
+  }, [anosSel, pillsAno]);
   // Quantos itens cada pill representa — mostra de cara em que ano há novidade,
   // e deixa explícito o que está sendo escondido pelo filtro.
   const contagemPorAno = useMemo(() => {
@@ -435,14 +468,15 @@ function MeuPainel() {
       mapa.set(k, (mapa.get(k) ?? 0) + 1);
     }
     return mapa;
-  }, [itens]);
+  }, [itens, chaveDoItem]);
+  // Com uma pill só o filtro não filtra nada — a linha some e a lista é tudo.
   const itensFiltrados = useMemo(
-    () => itens.filter((n) => anosSel.includes(chaveDoItem(n.data))),
-    [itens, anosSel],
+    () =>
+      pillsAno.length < 2
+        ? itens
+        : itens.filter((n) => anosAtivos.includes(chaveDoItem(n.data))),
+    [itens, pillsAno, anosAtivos, chaveDoItem],
   );
-  // Há dados, mas o filtro escondeu tudo: precisa de um vazio próprio, senão o
-  // usuário lê a mensagem de "ainda não há novidades" e conclui que perdeu dados.
-  const vazioPorFiltro = itens.length > 0 && itensFiltrados.length === 0;
   const falhas = (novidades?.sync_runs ?? []).filter((r) => r.status === "erro");
   const aguardandoDados =
     sincronizando && itens.length === 0 && tentativas.current < 15;
@@ -526,61 +560,49 @@ function MeuPainel() {
               )}
             </div>
 
-            {/* Filtro por ano. Multisseleção: os 4 anos mais recentes + "Outros"
-                pro que ficou fora da janela (e itens sem data). */}
-            <div
-              role="group"
-              aria-label="Filtrar novidades por ano"
-              className="flex flex-wrap items-center gap-2"
-            >
-              {[...ANOS_PILLS.map(String), OUTROS].map((chave) => {
-                const ativo = anosSel.includes(chave);
-                const total = contagemPorAno.get(chave) ?? 0;
-                const rotulo = chave === OUTROS ? "Outros" : chave;
-                return (
-                  <button
-                    key={chave}
-                    type="button"
-                    onClick={() => alternarAno(chave)}
-                    aria-pressed={ativo}
-                    title={
-                      chave === OUTROS
-                        ? `Demais anos (anteriores a ${ANOS_PILLS[ANOS_PILLS.length - 1]}) e itens sem data`
-                        : `Novidades de ${chave}`
-                    }
-                    className={`chip ${ativo ? "chip-active" : ""}`}
-                  >
-                    {rotulo}
-                    {/* Some quando zero pra não poluir a linha com "(0)". */}
-                    {total > 0 && (
-                      <span className="tabular-nums opacity-70">{total}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {vazioPorFiltro ? (
-              <div className="card flex flex-wrap items-center justify-between gap-3 p-6 text-sm text-ink-2">
-                <p>
-                  Nenhuma novidade em{" "}
-                  {anosSel
-                    .map((c) => (c === OUTROS ? "Outros" : c))
-                    .join(", ")}
-                  . Há {itens.length}{" "}
-                  {itens.length === 1 ? "novidade" : "novidades"} em outros anos.
-                </p>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setAnosSel([...ANOS_PILLS.map(String), OUTROS])
-                  }
-                  className="btn btn-ghost btn-sm"
-                >
-                  Ver todos os anos
-                </button>
+            {/* Filtro por ano — multisseleção sobre os anos COM novidade no
+                feed (+ "Outros"). Com menos de duas pills não há o que
+                filtrar, então a linha nem aparece. */}
+            {pillsAno.length >= 2 && (
+              <div
+                role="group"
+                aria-label="Filtrar novidades por ano"
+                className="flex flex-wrap items-center gap-2"
+              >
+                {pillsAno.map((chave) => {
+                  const ativo = anosAtivos.includes(chave);
+                  const total = contagemPorAno.get(chave) ?? 0;
+                  const rotulo = chave === OUTROS ? "Outros" : chave;
+                  return (
+                    <button
+                      key={chave}
+                      type="button"
+                      onClick={() => alternarAno(chave)}
+                      aria-pressed={ativo}
+                      title={
+                        chave === OUTROS
+                          ? "Demais anos e itens sem data"
+                          : `Novidades de ${chave} (${total})`
+                      }
+                      className={`chip ${ativo ? "chip-active" : ""}`}
+                    >
+                      {rotulo}
+                      {/* Contagem como BADGE, não texto solto — colada no
+                          rótulo, "2026 20" lia como um ano quebrado. */}
+                      <span
+                        className={`rounded-full px-1.5 py-px text-[10px] leading-4 tabular-nums ${
+                          ativo ? "bg-abyss/10" : "bg-surface-2 text-ink-3"
+                        }`}
+                      >
+                        {total}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-            ) : itens.length === 0 ? (
+            )}
+
+            {itens.length === 0 ? (
               <div className="card p-6 text-sm text-ink-2">
                 {aguardandoDados ? (
                   <p>

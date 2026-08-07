@@ -46,8 +46,13 @@ async def visao_geral_perfil(
 @router.get("/profile/feed", response_model=NovidadesPerfil)
 async def novidades_perfil(
     municipio: list[str] | None = _MUNICIPIO_QUERY,
+    limite: int = Query(default=20, ge=1, le=200, description="tamanho da janela do feed"),
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> NovidadesPerfil:
-    """Feed 'últimas novidades' do território, recortado pelo perfil do usuário."""
-    return await service.novidades(session, user, municipios_filtro=municipio)
+    """Feed 'últimas novidades' do território, recortado pelo perfil do usuário.
+
+    `limite` controla a profundidade da janela: o painel pede mais que o padrão
+    para o filtro por ano alcançar itens de anos anteriores ao corrente.
+    """
+    return await service.novidades(session, user, limite=limite, municipios_filtro=municipio)

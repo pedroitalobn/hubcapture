@@ -1093,6 +1093,9 @@ export interface paths {
         /**
          * Novidades Perfil
          * @description Feed 'últimas novidades' do território, recortado pelo perfil do usuário.
+         *
+         *     `limite` controla a profundidade da janela: o painel pede mais que o padrão
+         *     para o filtro por ano alcançar itens de anos anteriores ao corrente.
          */
         get: operations["novidades_perfil_api_v1_profile_feed_get"];
         put?: never;
@@ -5708,6 +5711,8 @@ export interface operations {
             query?: {
                 /** @description códigos IBGE (repita o parâmetro para vários municípios) */
                 municipio?: string[] | null;
+                /** @description tamanho da janela do feed */
+                limite?: number;
             };
             header?: never;
             path?: never;
