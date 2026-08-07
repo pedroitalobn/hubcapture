@@ -18,6 +18,7 @@ from ..schemas.proposta import PropostaCanonica
 # campos "materiais" que entram no hash (mudança neles = mudança relevante)
 _HASH_FIELDS = (
     "numero_proposta",
+    "numero_plano_trabalho",
     "titulo",
     "objeto",
     "orgao_superior",
@@ -29,6 +30,7 @@ _HASH_FIELDS = (
     "prazos",
     "pendencias",
     "movimentacao",
+    "data_proposta",
     "data_atualizacao_fonte",
     "execucao",
 )
@@ -107,12 +109,28 @@ def _montar_execucao(plano: dict) -> dict | None:
     return execucao or None
 
 
+def _ci(d: Any) -> dict:
+    """Acesso indiferente à caixa: os candidatos abaixo são todos snake_case,
+    mas as fontes não. O CSV do SIconv/detru manda cabeçalho em CAIXA ALTA
+    (`NR_PROPOSTA`, `DIA_PROPOSTA`) e nenhum candidato casava — o número da
+    proposta simplesmente não chegava à tela. Só ADICIONA o alias minúsculo:
+    chave já existente nunca é sobrescrita, então nada muda para quem já casava.
+    """
+    if not isinstance(d, dict):
+        return {}
+    saida = dict(d)
+    for k, v in d.items():
+        if isinstance(k, str):
+            saida.setdefault(k.strip().lower(), v)
+    return saida
+
+
 def normalize(record: RawRecord) -> PropostaCanonica:
     """Mapeia um RawRecord (plano de ação, convênio ou painel) p/ o schema canônico."""
     raw = record.raw
-    plano = raw.get("plano_acao", raw) if isinstance(raw, dict) else {}
-    programa = raw.get("programa", {}) if isinstance(raw, dict) else {}
-    benef = raw.get("beneficiario", {}) if isinstance(raw, dict) else {}
+    plano = _ci(raw.get("plano_acao", raw) if isinstance(raw, dict) else {})
+    programa = _ci(raw.get("programa", {}) if isinstance(raw, dict) else {})
+    benef = _ci(raw.get("beneficiario", {}) if isinstance(raw, dict) else {})
 
     fields: dict[str, Any] = {
         "fonte": record.source_id,
@@ -120,9 +138,20 @@ def normalize(record: RawRecord) -> PropostaCanonica:
         "numero_proposta": _first(
             plano.get("numero_plano_acao"),
             plano.get("numero_proposta"),
-            plano.get("numero_convenio"),  # voluntárias (convênio)
+            plano.get("nr_proposta"),  # SIconv/detru ("14275/2026")
+            plano.get("numero_convenio"),
+            plano.get("nr_convenio"),  # voluntárias (convênio)
             plano.get("codigo_plano_acao"),  # fundo a fundo
             plano.get("numero"),  # painel SERPRO
+        ),
+        # nº do plano de trabalho — é por ele que a fonte emite os PARECERES
+        "numero_plano_trabalho": _first(
+            plano.get("numero_plano_trabalho"),
+            plano.get("nr_plano_trabalho"),
+            plano.get("id_plano_trabalho"),
+            plano.get("cd_plano_trabalho"),
+            plano.get("numero_plano_acao"),
+            plano.get("id_plano_acao"),
         ),
         "titulo": _first(
             programa.get("nome_programa"),
@@ -147,6 +176,8 @@ def normalize(record: RawRecord) -> PropostaCanonica:
             programa.get("nome_orgao_superior_programa"),
             programa.get("nome_orgao_superior"),
             plano.get("nome_orgao_superior"),
+            plano.get("desc_orgao"),  # SIconv/detru ("MINISTÉRIO DA ...")
+            plano.get("desc_orgao_superior"),
             plano.get("nome_orgao_repassador_plano_acao"),  # fundo a fundo
             plano.get("orgao"),
         ),
@@ -198,6 +229,19 @@ def normalize(record: RawRecord) -> PropostaCanonica:
         "prazos": None,
         "pendencias": None,
         "movimentacao": None,
+        # Quando a proposta foi CRIADA na fonte. O gestor cita a proposta por
+        # número e data ("14275/2026, de 26/03") — é dado de cabeçalho, não o
+        # mesmo que `data_atualizacao_fonte` (quando a fonte mexeu no registro).
+        "data_proposta": _to_date(
+            _first(
+                plano.get("dia_proposta"),  # SIconv/detru
+                plano.get("data_proposta"),
+                plano.get("data_cadastro"),
+                plano.get("data_criacao"),
+                plano.get("dia_cadastro"),
+                plano.get("data_inicio_vigencia"),  # sem data própria: a vigência abre
+            )
+        ),
         "data_atualizacao_fonte": _to_date(
             _first(
                 plano.get("data_atualizacao"),

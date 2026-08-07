@@ -87,6 +87,16 @@ CATALOGO: list[dict] = [
         "fonte",
         False,
     ),
+    # Pareceres do plano de trabalho — pontos de calibração (§36). Sem estes,
+    # o connector falha com mensagem clara em vez de devolver vazio silencioso.
+    _c("pareceres_base_url", "Pareceres — base URL da API (se houver)", "fonte", False),
+    _c("pareceres_endpoint", "Pareceres — rota da API", "fonte", False),
+    _c(
+        "pareceres_url_tramitacao",
+        "Pareceres — URL da tela de tramitação ({plano} = nº do plano de trabalho)",
+        "fonte",
+        False,
+    ),
     _c("transferegov_esp_base_url", "TransfereGov Especiais base URL", "fonte", False),
     _c(
         "transferegov_esp_endpoint",

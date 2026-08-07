@@ -13,6 +13,7 @@ from .integracao_contatos import ContatoVinculo, IntegracaoContatos
 from .monitoramento import Monitoramento, MonitoramentoBusca
 from .municipio_interesse import MunicipioInteresse
 from .obra import Obra
+from .parecer import Parecer
 from .pasta import Pasta, PastaProposta
 from .plano import Plano
 from .preferencias import PreferenciasUsuario
@@ -44,6 +45,7 @@ __all__ = [
     "BaseConhecimento",
     "Conformidade",
     "Obra",
+    "Parecer",
     "Contato",
     "IntegracaoContatos",
     "ContatoVinculo",

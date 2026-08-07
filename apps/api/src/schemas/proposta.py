@@ -15,6 +15,7 @@ class PropostaCanonica(BaseModel):
     fonte: str
     id_externo: str
     numero_proposta: str | None = None
+    numero_plano_trabalho: str | None = None
     titulo: str | None = None
     objeto: str | None = None
     orgao_superior: str | None = None
@@ -29,6 +30,7 @@ class PropostaCanonica(BaseModel):
     prazos: list | None = None
     pendencias: list | None = None
     movimentacao: str | None = None
+    data_proposta: date | None = None
     data_atualizacao_fonte: date | None = None
     url_origem: str | None = None
     proveniencia: dict | None = None
@@ -53,6 +55,7 @@ class PropostaRead(BaseModel):
     fonte: str
     id_externo: str
     numero_proposta: str | None = None
+    numero_plano_trabalho: str | None = None
     titulo: str | None = None
     objeto: str | None = None
     orgao_superior: str | None = None
@@ -67,6 +70,7 @@ class PropostaRead(BaseModel):
     prazos: list | None = None
     pendencias: list | None = None
     movimentacao: str | None = None
+    data_proposta: date | None = None
     data_atualizacao_fonte: date | None = None
     url_origem: str | None = None
     proveniencia: dict | None = None

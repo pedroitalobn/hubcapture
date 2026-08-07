@@ -11,6 +11,7 @@ import base64
 import re
 import uuid
 import zlib
+from datetime import date
 from decimal import Decimal
 
 from src.ai.resumo import _contexto
@@ -208,3 +209,77 @@ def test_prompt_da_curadoria_comeca_pelo_municipio() -> None:
     ctx = _contexto(canonica)
     assert ctx.startswith("Município: São Paulo/SP")
     assert "Empenhado: 100000.00" in ctx
+
+
+# ── Nº e data da proposta: dado de CABEÇALHO, não identificador interno ──────
+# `numero_proposta` é como o gestor se refere à proposta ("14275/2026") e o que
+# ele digita no portal para conferir; `data_proposta` é de quando ela é. Os dois
+# sobem ao header — diferente de `id_externo`/UUID, que seguem secundários.
+
+
+def test_normalizer_le_nr_proposta_e_dia_proposta() -> None:
+    from src.connectors.base import RawRecord
+    from src.ingestion.normalizer import normalize
+
+    p = normalize(
+        RawRecord(
+            source_id="transferegov_disc",
+            id_externo="ABC-1",
+            municipio_ibge="3550308",
+            raw={"NR_PROPOSTA": "14275/2026", "DIA_PROPOSTA": "26/03/2026"},
+        )
+    )
+    assert p.numero_proposta == "14275/2026"
+    assert p.data_proposta == date(2026, 3, 26)
+
+
+def test_numero_e_data_entram_no_hash_de_mudanca() -> None:
+    from src.ingestion.normalizer import compute_hash
+
+    base = {"situacao": "X"}
+    h_sem = compute_hash(base)
+    assert compute_hash({**base, "numero_proposta": "14275/2026"}) != h_sem
+    assert compute_hash({**base, "data_proposta": "2026-03-26"}) != h_sem
+
+
+def test_pdf_traz_numero_e_data_no_cabecalho() -> None:
+    texto = _texto(gerar_pdf_proposta(_proposta(data_proposta=date(2026, 3, 26))))
+    assert "Proposta 043210/2025" in texto
+    assert "26/03/2026" in texto
+    # cabeçalho: município → objeto → referência da proposta
+    assert texto.index("Paulo") < texto.index("Amplia") < texto.index("043210")
+
+
+def test_contexto_do_rag_cita_numero_e_data() -> None:
+    linha = montar_contexto([_proposta(data_proposta=date(2026, 3, 26))])
+    assert "proposta 043210/2025, de 26/03/2026" in linha
+
+
+def test_normalizer_le_desc_orgao_em_caixa_alta() -> None:
+    from src.connectors.base import RawRecord
+    from src.ingestion.normalizer import normalize
+
+    p = normalize(
+        RawRecord(
+            source_id="transferegov_disc",
+            id_externo="ABC-2",
+            municipio_ibge="3550308",
+            raw={"DESC_ORGAO": "MINISTÉRIO DA INTEGRAÇÃO E DO DESENVOLVIMENTO REGIONAL"},
+        )
+    )
+    assert p.orgao_superior == "MINISTÉRIO DA INTEGRAÇÃO E DO DESENVOLVIMENTO REGIONAL"
+
+
+def test_chave_ja_minuscula_continua_vencendo() -> None:
+    """O alias de caixa não pode sobrescrever o que a fonte já mandava certo."""
+    from src.ingestion.normalizer import _ci
+
+    d = _ci({"NR_PROPOSTA": "MAIUSCULA", "nr_proposta": "original"})
+    assert d["nr_proposta"] == "original"
+
+
+def test_pdf_traz_o_orgao_no_cabecalho() -> None:
+    texto = _texto(
+        gerar_pdf_proposta(_proposta(orgao_superior="Ministério da Saúde"))
+    )
+    assert "Minist" in texto[: texto.index("VALOR TOTAL")]  # antes da faixa

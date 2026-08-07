@@ -1126,8 +1126,26 @@ listas, PDF, alerta de WhatsApp, contexto do LLM — vale a mesma ordem:
 2. **Objeto** do registro (título da proposta, nome da obra, o que o requisito exige).
 3. **Números fortes** — valor e o **EMPENHO** (é o que diz se o recurso saiu do
    papel). Ficam na faixa de destaque, não numa grade secundária.
-4. **Identificadores** — nº da proposta, id externo da fonte, nº do item do CAUC,
-   UUID interno. São **dados secundários**: pequenos, em mono, cinza, no fim.
+4. **Referência da proposta** — **nº da proposta** (`14275/2026`), **data de
+   criação** e **órgão concedente**. É por eles que o gestor chama a proposta e
+   é o que ele digita no portal da fonte para conferir: são dados de CABEÇALHO.
+5. **Identificadores internos** — `id_externo`, nº do item do CAUC, UUID. Esses
+   sim são **secundários**: pequenos, em mono, cinza, no fim.
+
+**Referência ≠ identificador.** O nº da proposta é *linguagem do gestor*; o
+`id_externo` é *plumbing da integração*. A primeira versão desta seção tratou os
+dois como a mesma coisa e rebaixou o número junto com o UUID — errado.
+
+**Campos da fonte em CAIXA ALTA**: `ingestion/normalizer._ci()` adiciona alias
+minúsculo às chaves do registro bruto antes do de-para (sem sobrescrever chave já
+existente). Sem isso, fonte com cabeçalho maiúsculo — o CSV do SIconv/detru manda
+`NR_PROPOSTA`, `DIA_PROPOSTA`, `DESC_ORGAO` — não casava com nenhum candidato e o
+campo chegava vazio à tela. Ao ligar uma fonte nova, conferir isto ANTES de
+suspeitar do connector.
+
+**`data_proposta`** (migration `f2b3c4d5e6a7`) é quando a proposta foi criada na
+fonte; **não** confundir com `data_atualizacao_fonte` (quando a fonte mexeu no
+registro). Entra no hash de mudança e no `_UPSERT_FIELDS`.
 
 **O código IBGE nunca lidera** — é desambiguador, entra como linha de apoio
 (`IBGE 3550308`). E **identificador nunca vira título**: fallbacks de `titulo`
@@ -1156,6 +1174,8 @@ utilizar" (empenhado − pago) como linha de apoio.
 | `panel/funding/[id]` | h1 = título, com fallback para `id_externo`; município em linha cinza de apoio | h1 = município; objeto abaixo; nunca um id como título |
 | `panel/funding/[id]` (faixa) | empenho na grade secundária | `Empenhado` como 3º valor-herói, com "a utilizar" de apoio |
 | `panel/funding/[id]` (dados) | campo "Município (IBGE)" só com o código | "Município" nomeado + "Código IBGE" separado; ids ao fim |
+| `panel/funding/[id]` (header) | nº da proposta rebaixado junto do UUID; sem data e sem órgão | "Proposta 14275/2026 · criada em 26/03/2026" + órgão, no cabeçalho |
+| `ingestion/normalizer` | só chave minúscula casava: `NR_PROPOSTA`/`DIA_PROPOSTA`/`DESC_ORGAO` chegavam vazios | `_ci()` dá alias de caixa; nº, data e órgão do SIconv entram |
 | `panel/funding` (lista) | título caindo para `id_externo`; município caindo para o código | objeto ou "sem título na fonte"; município nomeado + IBGE de apoio |
 | `panel/my-proposals` | idem | idem |
 | `panel/compliance` | `numero` do item na frente da descrição | descrição na frente, `item N` de apoio |
@@ -1168,3 +1188,53 @@ utilizar" (empenhado − pago) como linha de apoio.
 
 Fonte de dados **nunca** vira identidade de registro na UI (seção 19) — e código
 de município **nunca** vira nome.
+
+## 36. Pareceres do plano de trabalho (consulta pelo nº do plano)
+
+Na fonte, o parecer **não é emitido sobre a proposta**: é emitido sobre o
+**plano de trabalho** dela, e a mesma proposta acumula vários ao longo da
+análise (concedente e convenente, em datas diferentes, com o link "Visualizar
+Parecer"). Logo é 1-N e a chave de consulta é o NÚMERO DO PLANO DE TRABALHO —
+que é o que o gestor tem em mãos. Entidade própria, não coluna.
+
+- **Elo** — `propostas.numero_plano_trabalho` (migration `a3c4d5e6f7b8`),
+  mapeado no normalizador a partir de `numero_plano_trabalho`/`nr_plano_trabalho`/
+  `id_plano_trabalho`/`cd_plano_trabalho`/`numero_plano_acao`/`id_plano_acao`.
+  Entra no hash e no `_UPSERT_FIELDS`.
+- **Tabela `pareceres`**: `fonte, id_externo, numero_plano_trabalho,
+  numero_proposta, municipio_ibge, data_parecer, esfera (concedente|convenente),
+  responsavel, papel, cargo, situacao, texto, url_parecer, detalhe/proveniencia
+  jsonb, hash_conteudo, cache_atualizado_em`. `unique(fonte, id_externo)`.
+  Cache global, RLS só-SELECT por município como os demais eixos — com uma
+  diferença: `municipio_ibge IS NULL` também é visível, senão a consulta por
+  número de plano (sem município resolvido) devolveria vazio.
+- **Identidade sintética**: a tela de tramitação não dá id de linha, então
+  `id_externo` = `plano|data|responsável|papel`. Sem isso cada sync duplicaria o
+  mesmo parecer; com papel na chave, as linhas repetidas por papel (que a fonte
+  emite) não colidem.
+- **Hash LOCAL** (`ingestion/normalizer_parecer.py`): `compute_hash` de
+  `normalizer.py` filtra pelos campos da PROPOSTA — reusá-lo aqui daria o mesmo
+  hash para todo parecer e nenhuma mudança seria detectada. Mesma disciplina de
+  `normalizer_obra`.
+- **Connector** `connectors/pareceres.py` — o ÚNICO que coleta por número de
+  plano em vez de município (não implementa o Protocol de `base.py`). Dois
+  caminhos, na ordem da §5: API (`pareceres_base_url`/`pareceres_endpoint`) e
+  scraping da tela de tramitação (`pareceres_url_tramitacao`, `{plano}` no
+  lugar do número) pelo facade, com `PARECER_EXTRACT_SCHEMA` casando as colunas
+  (Data · Esfera · Responsável · Perfil · Cargo · Visualizar Parecer).
+- **Serviço** `services/pareceres.py`: cache-first (TTL 12h), `por_plano` (a
+  consulta direta) e `por_proposta` (resolve o plano e delega; sem nº de plano,
+  tenta o nº da proposta). Falha de fonte → `sync_runs` + status na resposta.
+- **Endpoints**: `GET /opinions?work_plan=14275/2026` e
+  `GET /proposals/{id}/opinions`, ambos com `?atualizar=true` para forçar coleta.
+- **Web**: `components/PareceresSecao.tsx` no detalhe da proposta — mostra o nº
+  do plano no cabeçalho (é o que se confere na fonte) e distingue os três
+  estados que não podem virar a mesma tela vazia: **sem plano de trabalho** ·
+  **fonte não consultável** · **plano sem parecer**.
+
+⚠️ **CALIBRAÇÃO PENDENTE**: rota da API e URL/schema do scraping são chute
+estruturado (§27 — erros de produção vieram justamente de chute estático).
+Calibrar com `python -m src.tools.probe_fontes` de um ambiente com saída para
+gov.br e ajustar pelas chaves do painel admin (categoria `fonte`). Enquanto não
+for calibrado, o connector **falha com mensagem explícita** em `sync_runs` e na
+tela — nunca devolve vazio como se não houvesse parecer.

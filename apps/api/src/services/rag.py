@@ -47,8 +47,13 @@ def montar_contexto(propostas: list[Proposta]) -> str:
     for p in propostas:
         municipio = rotulo(p.municipio_nome, p.uf, p.municipio_ibge)
         empenhado = (p.execucao or {}).get("valor_empenhado") if p.execucao else None
+        # nº e data da proposta viajam junto: é como o gestor pergunta e como
+        # ele confere depois ("a 14275/2026, de 26/03")
+        referencia = p.numero_proposta or p.id_externo
+        data = f", de {p.data_proposta.strftime('%d/%m/%Y')}" if p.data_proposta else ""
         linhas.append(
-            f"- {municipio} · {p.titulo or ''} · órgão: {p.orgao_superior or '—'}"
+            f"- {municipio} · proposta {referencia}{data} · {p.titulo or ''}"
+            f" · órgão: {p.orgao_superior or '—'}"
             f" · situação: {p.situacao or '—'} · valor: {p.valor_total or '—'}"
             f" · empenhado: {empenhado or '—'}"
             f" · id na fonte: {p.fonte}/{p.id_externo}"
