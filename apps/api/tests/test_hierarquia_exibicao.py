@@ -129,27 +129,33 @@ def _texto(pdf: bytes) -> str:
 
 
 def test_pdf_abre_pelo_municipio_e_nao_pelo_identificador() -> None:
+    # ordem do espelho: município → objeto → identificação da fonte
     texto = _texto(gerar_pdf_proposta(_proposta()))
-    assert texto.index("Paulo") < texto.index("043210")
+    assert texto.index("Paulo") < texto.index("Amplia") < texto.index("043210")
+
+
+def test_pdf_sem_titulo_nao_usa_o_identificador_como_titulo() -> None:
+    texto = _texto(gerar_pdf_proposta(_proposta(titulo=None, objeto=None)))
+    assert "Proposta sem t" in texto  # "sem título na fonte" (latin-1 no PDF)
 
 
 def test_pdf_traz_o_empenho() -> None:
     texto = _texto(gerar_pdf_proposta(_proposta()))
-    assert "Empenho" in texto
-    assert "100.000,00" in texto  # empenhado
-    assert "60.000,00" in texto  # empenhado a utilizar (100k - 40k pagos)
+    assert "Empenhado" in texto
+    assert "100.000,00" in texto  # valor empenhado da execução financeira
 
 
 def test_pdf_sem_execucao_ainda_sai() -> None:
     texto = _texto(gerar_pdf_proposta(_proposta(execucao=None)))
-    assert "Paulo" in texto and "Identifica" in texto
+    assert "Paulo" in texto and "DADOS GERAIS" in texto
 
 
-def test_pdf_sem_nome_no_cache_usa_o_nome_do_territorio() -> None:
-    pdf = gerar_pdf_proposta(
-        _proposta(municipio_nome=None, uf=None), municipio_nome="Recife", uf="PE"
-    )
-    assert "Recife/PE" in _texto(pdf)
+def test_pdf_usa_o_nome_resolvido_pelo_territorio() -> None:
+    # o endpoint resolve o nome ausente pelo território antes de gerar (o
+    # documento só reflete o que está no registro)
+    p = _proposta(municipio_nome=None, uf=None)
+    p.municipio_nome, p.uf = "Recife", "PE"
+    assert "Recife/PE" in _texto(gerar_pdf_proposta(p))
 
 
 def test_pdf_sem_nome_algum_rotula_o_codigo() -> None:

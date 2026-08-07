@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api/client";
+import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { municipioPrincipal, municipioSecundario } from "@/lib/format";
 import { useTerritorio } from "@/lib/territorio";
 
@@ -88,7 +89,7 @@ export default function MinhasPropostasPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-hairline text-left text-ink-3">
-                <th className="w-10 px-4 py-3" />
+                <th className="w-16 px-4 py-3" />
                 <th className="px-3 py-3">Proposta</th>
                 <th className="px-3 py-3">Município</th>
                 <th className="px-3 py-3">Valor</th>
@@ -99,14 +100,17 @@ export default function MinhasPropostasPage() {
               {visiveis.map((p) => (
                 <tr key={p.id} className="border-b border-hairline last:border-0 hover:bg-surface-2">
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => void desfavoritar(p.id)}
-                      aria-label="Desfavoritar"
-                      title="Remover das minhas propostas"
-                      className="text-warn"
-                    >
-                      ★
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => void desfavoritar(p.id)}
+                        aria-label="Desfavoritar"
+                        title="Remover das minhas propostas"
+                        className="text-warn"
+                      >
+                        ★
+                      </button>
+                      <BotaoEspelho propostaId={p.id} formato="icone" />
+                    </div>
                   </td>
                   <td className="px-3 py-3">
                     <Link href={`/panel/funding/${p.id}`} className="font-medium hover:underline">

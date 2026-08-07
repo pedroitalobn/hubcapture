@@ -32,9 +32,7 @@ from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
 # Módulo desligável pelo painel admin (captação): desativado → eixo responde 404.
-router = APIRouter(
-    tags=["propostas"], dependencies=[Depends(require_modulo("captacao"))]
-)
+router = APIRouter(tags=["propostas"], dependencies=[Depends(require_modulo("captacao"))])
 
 
 class FiltrosProposta(BaseModel):
@@ -184,18 +182,34 @@ async def obter_proposta(
 @router.get("/proposals/{proposta_id}/pdf")
 async def exportar_pdf(
     proposta_id: uuid.UUID,
+    inline: bool = Query(
+        default=False,
+        description="abrir no visualizador em vez de baixar (pré-visualização)",
+    ),
     session: AsyncSession = Depends(get_rls_db),
 ) -> Response:
+    """Espelho da proposta em PDF — a peça que o gestor encaminha a quem decide."""
     row = await propostas_service.obter(session, proposta_id)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PROPOSTA_NAO_ENCONTRADA")
+    # O espelho abre pelo município (§35) — se o cache não tem o nome, resolve
+    # pelo território do usuário. `expunge` desliga a linha da sessão: o
+    # preenchimento é só para o documento, não vira UPDATE.
     mapa = await municipios_service.mapa_territorio(session)
-    nome, uf = mapa.get(row.municipio_ibge or "", (None, None))
-    conteudo = pdf_service.gerar_pdf_proposta(
-        row, municipio_nome=row.municipio_nome or nome, uf=row.uf or uf
-    )
+    nome_municipio, uf_municipio = mapa.get(row.municipio_ibge or "", (None, None))
+    session.expunge(row)
+    row.municipio_nome = row.municipio_nome or nome_municipio
+    row.uf = row.uf or uf_municipio or municipios_service.uf_do_ibge(row.municipio_ibge)
+
+    conteudo = pdf_service.gerar_pdf_proposta(row)
+    nome = pdf_service.nome_arquivo(row)
     return Response(
         content=conteudo,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="proposta-{row.id_externo}.pdf"'},
+        headers={
+            "Content-Disposition": f'{"inline" if inline else "attachment"}; filename="{nome}"',
+            # o espelho carrega a data de emissão impressa: cachear serviria PDF
+            # velho como se fosse o estado de hoje
+            "Cache-Control": "no-store",
+        },
     )
