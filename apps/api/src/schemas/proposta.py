@@ -29,6 +29,7 @@ class PropostaCanonica(BaseModel):
     prazos: list | None = None
     pendencias: list | None = None
     movimentacao: str | None = None
+    data_proposta: date | None = None
     data_atualizacao_fonte: date | None = None
     url_origem: str | None = None
     proveniencia: dict | None = None
@@ -67,6 +68,7 @@ class PropostaRead(BaseModel):
     prazos: list | None = None
     pendencias: list | None = None
     movimentacao: str | None = None
+    data_proposta: date | None = None
     data_atualizacao_fonte: date | None = None
     url_origem: str | None = None
     proveniencia: dict | None = None

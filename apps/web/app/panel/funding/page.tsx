@@ -34,6 +34,7 @@ type Proposta = {
   id: string;
   id_externo: string;
   numero_proposta?: string | null;
+  data_proposta?: string | null;
   titulo?: string | null;
   objeto?: string | null;
   orgao_superior?: string | null;
@@ -1287,15 +1288,27 @@ export default function CaptacaoPage() {
                         {humanizarCaixa(p.titulo ?? p.objeto) ||
                           "Proposta sem título na fonte"}
                       </Link>
-                      {/* identificador da fonte é apoio do objeto, não o objeto */}
+                      {/* Nº da proposta (+ data) abre a linha de apoio: é a
+                          referência que o gestor usa. O `id_externo` é plumbing
+                          e sai daqui — vive no detalhe, em "Dados gerais". */}
                       <p className="mt-0.5 max-w-md text-xs text-ink-3">
-                        {[
-                          humanizarCaixa(p.orgao_superior),
-                          humanizarCaixa(p.modalidade),
-                          p.id_externo,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
+                        {p.numero_proposta && (
+                          <span className="num font-medium text-ink-2">
+                            {p.numero_proposta}
+                            {p.data_proposta
+                              ? ` · ${formatDate(p.data_proposta)}`
+                              : ""}
+                          </span>
+                        )}
+                        {(() => {
+                          const resto = [
+                            humanizarCaixa(p.orgao_superior),
+                            humanizarCaixa(p.modalidade),
+                          ].filter(Boolean);
+                          if (resto.length === 0) return null;
+                          const texto = resto.join(" · ");
+                          return p.numero_proposta ? ` · ${texto}` : texto;
+                        })()}
                       </p>
                       {/* pílulas de categoria — clicar filtra a lista por ela */}
                       {(p.categorias ?? []).length > 0 && (

@@ -2871,6 +2871,8 @@ export interface components {
             } | null;
             /** Data Atualizacao Fonte */
             data_atualizacao_fonte?: string | null;
+            /** Data Proposta */
+            data_proposta?: string | null;
             /**
              * Dias Restantes
              * @description Dias até o prazo final (negativo = vencido); None sem prazo.

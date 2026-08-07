@@ -43,6 +43,7 @@ type Proposta = {
   prazos?: Prazo[] | null;
   pendencias?: Pendencia[] | null;
   movimentacao?: string | null;
+  data_proposta?: string | null;
   data_atualizacao_fonte?: string | null;
   url_origem?: string | null;
   proveniencia?: Record<string, string> | null;
@@ -346,6 +347,35 @@ export default function PropostaDetalhePage() {
           <p className="mt-2 text-lg font-semibold leading-snug text-ink">
             {humanizarCaixa(p.titulo ?? p.objeto) || "Proposta sem título na fonte"}
           </p>
+          {/* Nº da proposta e data de criação: é assim que o gestor se refere a
+              ela ("14275/2026, de 26/03") e é o que ele digita para conferir no
+              portal da fonte. Dado de cabeçalho — diferente de `id_externo`/UUID,
+              que são plumbing e ficam em "Dados gerais". */}
+          <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-ink-2">
+            <span>
+              Proposta{" "}
+              <span className="num select-all font-semibold text-ink">
+                {p.numero_proposta ?? "—"}
+              </span>
+            </span>
+            {p.data_proposta && (
+              <>
+                <span className="text-ink-3">·</span>
+                <span>
+                  criada em{" "}
+                  <span className="num text-ink">{formatDate(p.data_proposta)}</span>
+                </span>
+              </>
+            )}
+          </p>
+          {/* Órgão concedente: quem repassa o recurso. É o que define a porta de
+              entrada da proposta, então acompanha o número no cabeçalho em vez
+              de ficar só na grade de dados. */}
+          {p.orgao_superior && (
+            <p className="mt-1 text-sm text-ink-2">
+              {humanizarCaixa(p.orgao_superior)}
+            </p>
+          )}
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink-2">
             <span className="font-mono text-xs uppercase tracking-[0.04em]">
               {p.fonte}
@@ -669,6 +699,10 @@ export default function PropostaDetalhePage() {
               valor={p.numero_proposta ?? p.id_externo}
             />
             <Dado rotulo="Identificador na fonte" valor={p.id_externo} />
+            <Dado
+              rotulo="Criada na fonte"
+              valor={formatDate(p.data_proposta)}
+            />
             <Dado
               rotulo="Atualizado na fonte"
               valor={formatDate(p.data_atualizacao_fonte)}

@@ -4035,6 +4035,18 @@
             ],
             "title": "Data Atualizacao Fonte"
           },
+          "data_proposta": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Proposta"
+          },
           "dias_restantes": {
             "anyOf": [
               {

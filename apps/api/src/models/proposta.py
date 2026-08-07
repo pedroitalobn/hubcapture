@@ -53,6 +53,9 @@ class Proposta(Base):
     prazos: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     pendencias: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     movimentacao: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # quando a proposta foi criada na fonte (DIA_PROPOSTA) — não confundir com
+    # `data_atualizacao_fonte`, que é quando a fonte mexeu no registro
+    data_proposta: Mapped[date | None] = mapped_column(Date, nullable=True)
     data_atualizacao_fonte: Mapped[date | None] = mapped_column(Date, nullable=True)
     url_origem: Mapped[str | None] = mapped_column(Text, nullable=True)
     proveniencia: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

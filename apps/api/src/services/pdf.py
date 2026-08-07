@@ -615,11 +615,16 @@ def _cabecalho(p: Proposta) -> list:
     # para a linha de apoio. Antes a tarja era "FONTE · nº" e o município ia
     # junto do órgão, três degraus abaixo — e cru quando faltava o nome.
     territorio = rotulo_municipio(p.municipio_nome, p.uf, p.municipio_ibge)
-    identificacao = " · ".join(
-        x for x in [_fonte_rotulo(p).upper(), p.numero_proposta or p.id_externo] if x
-    )
+    # Nº da proposta e data de criação são dado de cabeçalho: é por eles que o
+    # gestor referencia a proposta e confere no portal da fonte.
+    numero = p.numero_proposta or p.id_externo
+    referencia = f"Proposta {numero}" if numero else ""
+    if p.data_proposta:
+        referencia = f"{referencia} · de {_data(p.data_proposta)}".lstrip(" ·")
     meta = " · ".join(
-        x for x in [identificacao, _t(p.orgao_superior, "")] if x and x != "—"
+        x
+        for x in [referencia, _fonte_rotulo(p).upper(), _t(p.orgao_superior, "")]
+        if x and x != "—"
     )
 
     elementos: list = [
@@ -796,6 +801,7 @@ def _bloco_dados_gerais(p: Proposta) -> Table:
         _campo("Nº da proposta", _t(p.numero_proposta or p.id_externo)),
         _campo("Identificador na fonte", escape(str(p.id_externo or "—"))),
         _campo("Fonte", escape(_fonte_rotulo(p))),
+        _campo("Criada na fonte", _data(p.data_proposta)),
         _campo("Atualizado na fonte", _data(p.data_atualizacao_fonte)),
     ]
     conteudo: list = [_grade(campos, interno, colunas=2)]

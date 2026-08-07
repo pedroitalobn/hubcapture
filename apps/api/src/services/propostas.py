@@ -29,6 +29,7 @@ Filtro = str | Sequence[str] | None
 # campos que o upsert atualiza em conflito (fonte,id_externo)
 _UPSERT_FIELDS = (
     "numero_proposta",
+    "data_proposta",
     "titulo",
     "objeto",
     "orgao_superior",
@@ -43,6 +44,7 @@ _UPSERT_FIELDS = (
     "prazos",
     "pendencias",
     "movimentacao",
+    "data_proposta",
     "data_atualizacao_fonte",
     "url_origem",
     "proveniencia",
@@ -657,6 +659,7 @@ def gerar_csv(rows: list[Proposta]) -> str:
                 "fonte": p.fonte,
                 "codigo": p.id_externo,
                 "numero_proposta": p.numero_proposta or "",
+                "data_proposta": p.data_proposta.isoformat() if p.data_proposta else "",
                 "titulo": p.titulo or "",
                 "objeto": p.objeto or "",
                 "orgao_superior": p.orgao_superior or "",
