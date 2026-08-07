@@ -7,18 +7,22 @@ export interface StatCardProps {
   icon?: ReactNode;
 }
 
-/** KPI stat card: label pequeno em caixa-alta + valor grande + linha de contexto. */
+/** KPI stat card flat: label mono em caixa-alta + valor grande em peso único. */
 export function StatCard({ label, value, context, icon }: StatCardProps) {
   return (
-    <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-800">
+    <div className="card card-hover p-5">
       <div className="flex items-center gap-2">
         {icon}
-        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          {label}
-        </span>
+        <span className="label-mono">{label}</span>
       </div>
-      <div className="mt-2 text-2xl font-bold">{value}</div>
-      {context && <div className="mt-1 text-xs text-gray-500">{context}</div>}
+      <div className="mt-3 text-[28px] leading-none tracking-[-0.02em] tabular-nums">
+        {value}
+      </div>
+      {context && (
+        <div className="mt-2 font-mono text-[11px] tracking-[-0.02em] text-ink-3">
+          {context}
+        </div>
+      )}
     </div>
   );
 }

@@ -56,12 +56,19 @@ class Proposta(Base):
     data_atualizacao_fonte: Mapped[date | None] = mapped_column(Date, nullable=True)
     url_origem: Mapped[str | None] = mapped_column(Text, nullable=True)
     proveniencia: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # execução financeira (TransfereGov): valor_global/empenhado/liberado/pago,
+    # saldo_conta, ano, vigência — o "quanto foi disponibilizado e não usado"
+    execucao: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # Registro-fonte COMPLETO (RawRecord.raw): todos os campos do site de origem,
+    # para o detalhe exibir "tudo" sem depender do subconjunto curado acima.
+    dados_fonte: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     resumo_ia: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Pílulas de categoria (slugs de `ai/categorias.py`): derivadas, não vêm da
+    # fonte — por isso ficam FORA do `_UPSERT_FIELDS` (um re-sync não as apaga).
+    categorias_ia: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     hash_conteudo: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), onupdate=func.now(), nullable=True
     )

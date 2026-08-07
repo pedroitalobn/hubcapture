@@ -21,8 +21,12 @@ class Alerta(Base):
     usuario_id: Mapped[uuid.UUID] = mapped_column(
         PgUUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="CASCADE"), index=True
     )
-    proposta_id: Mapped[uuid.UUID] = mapped_column(
-        PgUUID(as_uuid=True), ForeignKey("propostas.id", ondelete="CASCADE")
+    # nullable: alertas de oportunidade ("recursos disponíveis sem proposta
+    # cadastrada") não apontam para uma proposta existente
+    proposta_id: Mapped[uuid.UUID | None] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("propostas.id", ondelete="CASCADE"),
+        nullable=True,
     )
     tipo: Mapped[str | None] = mapped_column(String(32), nullable=True)
     payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

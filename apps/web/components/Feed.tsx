@@ -27,22 +27,23 @@ function naturezaTone(natureza: string): "success" | "danger" | "neutral" {
 export function Feed({ dias }: { dias: DiaGroup[] }) {
   if (dias.length === 0) {
     return (
-      <p className="text-gray-500">
+      <p className="text-ink-3">
         Nenhum repasse no cache para o período. Sincronize uma fonte acima.
       </p>
     );
   }
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       {dias.map((dia) => (
-        <div key={dia.data}>
-          <div className="mb-2 flex items-baseline justify-between border-b border-gray-200 pb-1 dark:border-gray-800">
-            <span className="font-semibold">{formatDate(dia.data)}</span>
-            <span className="text-sm text-gray-500">
-              Pago no dia: {formatBRL(dia.subtotal)}
+        <div key={dia.data} className="card p-5">
+          <div className="mb-3 flex items-baseline justify-between border-b border-hairline pb-2.5">
+            <span className="tracking-tight">{formatDate(dia.data)}</span>
+            <span className="font-mono text-[12px] tracking-[-0.02em] text-ink-3">
+              PAGO NO DIA{" "}
+              <span className="tabular-nums text-ink">{formatBRL(dia.subtotal)}</span>
             </span>
           </div>
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-2.5">
             {dia.itens.map((it) => (
               <li key={it.id} className="flex items-center justify-between gap-4 text-sm">
                 <div className="flex min-w-0 items-center gap-2">
@@ -50,8 +51,10 @@ export function Feed({ dias }: { dias: DiaGroup[] }) {
                     {it.natureza}
                   </StatusBadge>
                   {it.emenda && <StatusBadge tone="info">emenda</StatusBadge>}
-                  <span className="truncate">
-                    <span className="font-medium uppercase">{it.fonte}</span>
+                  <span className="truncate text-ink-2">
+                    <span className="font-mono text-[12px] uppercase tracking-[-0.02em] text-ink">
+                      {it.fonte}
+                    </span>
                     {it.descricao ? ` · ${it.descricao}` : ""}
                   </span>
                 </div>

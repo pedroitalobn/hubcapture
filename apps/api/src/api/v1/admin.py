@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.users import UserManager, current_superuser, get_user_manager
 from ...models.base_conhecimento import BaseConhecimento
+from ...models.convite import Convite
 from ...models.usuario import Usuario
 from ...schemas.config import ConhecimentoCreate
 from ...schemas.planos import (
@@ -31,7 +33,7 @@ from ..deps import get_platform_db
 router = APIRouter(tags=["admin"])
 
 
-@router.post("/admin/usuarios", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("/admin/users", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def admin_criar_usuario(
     body: AdminUsuarioCreate,
     _admin: Usuario = Depends(current_superuser),
@@ -41,7 +43,7 @@ async def admin_criar_usuario(
     return await service.criar_usuario(session, user_manager, body)
 
 
-@router.get("/admin/usuarios", response_model=list[AdminUsuarioRead])
+@router.get("/admin/users", response_model=list[AdminUsuarioRead])
 async def admin_listar_usuarios(
     _admin: Usuario = Depends(current_superuser),
     session: AsyncSession = Depends(get_platform_db),
@@ -49,7 +51,7 @@ async def admin_listar_usuarios(
     return await service.listar_usuarios(session)
 
 
-@router.patch("/admin/usuarios/{usuario_id}", response_model=AdminUsuarioRead)
+@router.patch("/admin/users/{usuario_id}", response_model=AdminUsuarioRead)
 async def admin_atualizar_usuario(
     usuario_id: uuid.UUID,
     body: AdminUsuarioUpdate,
@@ -59,7 +61,7 @@ async def admin_atualizar_usuario(
     return await service.atualizar_usuario(session, usuario_id, body)
 
 
-@router.patch("/admin/usuarios/{usuario_id}/plano", status_code=status.HTTP_204_NO_CONTENT)
+@router.patch("/admin/users/{usuario_id}/plan", status_code=status.HTTP_204_NO_CONTENT)
 async def admin_atribuir_plano(
     usuario_id: uuid.UUID,
     body: AtribuirPlano,
@@ -69,7 +71,7 @@ async def admin_atribuir_plano(
     await service.atribuir_plano(session, usuario_id, body.plano_id)
 
 
-@router.post("/admin/convites", response_model=ConviteRead, status_code=status.HTTP_201_CREATED)
+@router.post("/admin/invites", response_model=ConviteRead, status_code=status.HTTP_201_CREATED)
 async def admin_criar_convite(
     body: ConviteCreate,
     admin: Usuario = Depends(current_superuser),
@@ -79,7 +81,7 @@ async def admin_criar_convite(
     return ConviteRead.model_validate(convite)
 
 
-@router.get("/admin/convites", response_model=list[ConviteRead])
+@router.get("/admin/invites", response_model=list[ConviteRead])
 async def admin_listar_convites(
     _admin: Usuario = Depends(current_superuser),
     session: AsyncSession = Depends(get_platform_db),
@@ -88,7 +90,7 @@ async def admin_listar_convites(
     return [ConviteRead.model_validate(r) for r in rows]
 
 
-@router.post("/auth/aceitar-convite", response_model=UserRead)
+@router.post("/auth/accept-invite", response_model=UserRead)
 async def aceitar_convite(
     body: AceitarConvite,
     user_manager: UserManager = Depends(get_user_manager),
@@ -97,7 +99,7 @@ async def aceitar_convite(
     return await service.aceitar_convite(session, user_manager, body)
 
 
-@router.post("/admin/conhecimento", status_code=status.HTTP_201_CREATED)
+@router.post("/admin/knowledge", status_code=status.HTTP_201_CREATED)
 async def admin_add_conhecimento(
     body: ConhecimentoCreate,
     _admin: Usuario = Depends(current_superuser),
@@ -113,3 +115,29 @@ async def admin_add_conhecimento(
         )
     )
     return {"ok": True}
+
+
+@router.delete("/admin/invites/{convite_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def admin_excluir_convite(
+    convite_id: uuid.UUID,
+    _admin: Usuario = Depends(current_superuser),
+    session: AsyncSession = Depends(get_platform_db),
+) -> None:
+    """Exclui um convite (pendente/expirado/aceito). Não afeta o usuário já
+    criado a partir dele — para remover o usuário, use DELETE /admin/users."""
+    await session.execute(delete(Convite).where(Convite.id == convite_id))
+    await session.commit()
+
+
+@router.delete("/admin/users/{usuario_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def admin_excluir_usuario(
+    usuario_id: uuid.UUID,
+    admin: Usuario = Depends(current_superuser),
+    session: AsyncSession = Depends(get_platform_db),
+) -> None:
+    """Exclui um usuário. FKs são CASCADE (favoritos/monitoramentos/pastas/
+    alertas somem junto). Guarda: não permite excluir a própria conta."""
+    if usuario_id == admin.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "NAO_PODE_EXCLUIR_A_SI_MESMO")
+    await session.execute(delete(Usuario).where(Usuario.id == usuario_id))
+    await session.commit()

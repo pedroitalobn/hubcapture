@@ -25,7 +25,10 @@ from ..schemas.conformidade import (
     ConformidadeResumo,
     SecaoResumo,
 )
+from . import municipios
 from ._sync import registrar_sync
+from ._territorio import Municipios
+from ._territorio import filtrar as filtrar_municipio
 
 _UPSERT_FIELDS = (
     "municipio_nome",
@@ -45,12 +48,12 @@ _UPSERT_FIELDS = (
 async def listar(
     session: AsyncSession,
     *,
-    municipio: str | None = None,
+    municipio: Municipios = None,
     tipo: str | None = None,
 ) -> list[Conformidade]:
     stmt = select(Conformidade)
-    if municipio:
-        stmt = stmt.where(Conformidade.municipio_ibge == municipio)
+    # um município, vários (recorte do painel) ou nenhum (todo o território)
+    stmt = filtrar_municipio(stmt, Conformidade.municipio_ibge, municipio)
     if tipo:
         stmt = stmt.where(Conformidade.tipo == tipo)
     stmt = stmt.order_by(Conformidade.secao.nullslast(), Conformidade.numero)
@@ -72,7 +75,7 @@ async def upsert(session: AsyncSession, canonica: ConformidadeCanonica) -> None:
 
 
 async def resumo(
-    session: AsyncSession, *, municipio: str | None = None
+    session: AsyncSession, *, municipio: Municipios = None
 ) -> ConformidadeResumo:
     """KPIs do CAUC (por status/seção) + rating CAPAG."""
     rows = await listar(session, municipio=municipio)
@@ -96,14 +99,24 @@ async def resumo(
         )
         for secao in sorted(por_secao)
     ]
+    mapa = await municipios.mapa_territorio(session)
     return ConformidadeResumo(
         total=len(cauc),
         comprovados=_conta(cauc, "comprovado"),
         a_comprovar=_conta(cauc, "a_comprovar"),
         desativados=_conta(cauc, "desativado"),
         secoes=secoes,
-        capag=ConformidadeRead.model_validate(capag) if capag else None,
-        requisitos=[ConformidadeRead.model_validate(r) for r in cauc],
+        # o município nomeado encabeça a leitura (seção 23)
+        capag=(
+            (await municipios.enriquecer(
+                session, [ConformidadeRead.model_validate(capag)], mapa=mapa
+            ))[0]
+            if capag
+            else None
+        ),
+        requisitos=await municipios.enriquecer(
+            session, [ConformidadeRead.model_validate(r) for r in cauc], mapa=mapa
+        ),
     )
 
 
@@ -116,11 +129,7 @@ async def sync_municipio(
         .values(usuario_id=usuario_id, ibge=municipio_ibge, modo="avulso")
         .on_conflict_do_nothing(constraint="uq_municipios_usuario_ibge")
     )
-    session.add(
-        AuditLog(
-            usuario_id=usuario_id, acao="sync_conformidade", entidade=municipio_ibge
-        )
-    )
+    session.add(AuditLog(usuario_id=usuario_id, acao="sync_conformidade", entidade=municipio_ibge))
     iniciado = datetime.now(UTC)
     try:
         registros = await get_connector("siconfi").collect(municipio_ibge, since=_since())
@@ -130,14 +139,24 @@ async def sync_municipio(
             n += 1
     except Exception as exc:
         await registrar_sync(
-            usuario_id=usuario_id, fonte="siconfi", tipo="avulso", status="erro",
-            registros=0, iniciado_em=iniciado, finalizado_em=datetime.now(UTC),
+            usuario_id=usuario_id,
+            fonte="siconfi",
+            tipo="avulso",
+            status="erro",
+            registros=0,
+            iniciado_em=iniciado,
+            finalizado_em=datetime.now(UTC),
             erro=f"{type(exc).__name__}: {exc}"[:2000],
         )
         raise
     await registrar_sync(
-        usuario_id=usuario_id, fonte="siconfi", tipo="avulso", status="ok",
-        registros=n, iniciado_em=iniciado, finalizado_em=datetime.now(UTC),
+        usuario_id=usuario_id,
+        fonte="siconfi",
+        tipo="avulso",
+        status="ok",
+        registros=n,
+        iniciado_em=iniciado,
+        finalizado_em=datetime.now(UTC),
     )
     return n
 

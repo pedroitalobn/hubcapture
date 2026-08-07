@@ -289,11 +289,12 @@ class Connector(Protocol):
 
 Fontes e endpoints reais:
 - `transferegov_ff` → `https://api.transferegov.gestao.gov.br/fundoafundo/` (PostgREST: `?campo=eq.valor`). ✅ responde.
-- `transferegov_esp` → `.../transferenciasespeciais/`. ⚠️ instável → merge/fallback com scraping obrigatório.
-- `transferegov_disc` → **sem API**; CSV diário em `http://repositorio.dados.gov.br/seges/detru/`. Loader agendado.
-- `fns` → scraping (Crawl4AI) do portal de consultas. Fonte primária por scraping.
+- `transferegov_esp` → **API pública** `https://api-publica.transferegov.gestao.gov.br/especiais/` (docs em `<base>/docs`) + fallback scraping.
+- `transferegov_voluntarias` → **API pública** `https://api-publica.transferegov.gestao.gov.br/voluntarias/` (convênios/discricionárias on-line) + fallback scraping.
+- `transferegov_disc` → CSV diário em `http://repositorio.dados.gov.br/seges/detru/`. Loader agendado.
+- `fns` → scraping (facade Crawl4AI/Firecrawl) do portal de consultas. Fonte primária por scraping.
 - `fnde` → API + scraping (merge).
-- `serpro` → API direta, usada para enrichment/cruzamento.
+- `serpro` → painel público `https://dd-publico.serpro.gov.br/extensions/painel/painel.html` (Qlik, JS pesado → extração via scraping headless) + API gateway (token) p/ enrichment/cruzamento.
 
 ---
 
@@ -303,14 +304,14 @@ Fontes e endpoints reais:
 POST /api/v1/auth/register · /login · /refresh
 GET  /api/v1/me
 POST /api/v1/onboarding                 # grava municípios/fontes + dispara 1º sync
-GET  /api/v1/propostas?municipio=&fonte=&area=&situacao=   # cache-first
-GET  /api/v1/propostas/{id}
-POST /api/v1/consulta-avulsa            # fetch on-demand (cache miss/stale)
-GET/POST/DELETE /api/v1/favoritos
-GET/POST/PATCH  /api/v1/pastas
-POST /api/v1/monitoramentos
-GET  /api/v1/alertas
-POST /api/v1/copiloto/chat              # SSE stream (RAG)
+GET  /api/v1/proposals?municipio=&fonte=&area=&situacao=   # cache-first
+GET  /api/v1/proposals/{id}
+POST /api/v1/proposals/live-search            # fetch on-demand (cache miss/stale)
+GET/POST/DELETE /api/v1/favorites
+GET/POST/PATCH  /api/v1/folders
+POST /api/v1/monitors
+GET  /api/v1/alerts
+POST /api/v1/copilot/chat              # SSE stream (RAG)
 GET  /api/v1/openapi.json               # gera client tipado
 ```
 Toda rota autenticada aplica RLS. Respostas tipadas com Pydantic.
@@ -423,8 +424,8 @@ valor, documento, emenda, detalhe jsonb, proveniencia jsonb, hash_conteudo, cach
 **Connectors novos** (Protocol de `connectors/base.py`, retry via `connectors/_http.py`):
 `fpm.py` (decêndios do Tesouro), `emendas.py`. Normalizador próprio em
 `ingestion/normalizer_repasse.py` (reusa `compute_hash`). Serviço `services/repasses.py`
-(cache-first + `visao_geral` + `sync_municipio`). Endpoints: `GET /repasses`,
-`GET /repasses/visao-geral`, `POST /repasses/sync`.
+(cache-first + `visao_geral` + `sync_municipio`). Endpoints: `GET /transfers`,
+`GET /transfers/overview`, `POST /transfers/sync`.
 
 **Catálogo de fontes (connector-first — todas do Virtù + outras):** FNS, FNDE, FPM, Emendas
 (recebidos) · Siconfi/CAUC/CAPAG, órgãos de conformidade (fiscal) · SISMOB, SIMEC, CAIXA/SIORB
@@ -435,7 +436,7 @@ Adicionar fonte = novo módulo connector + mapeamento no normalizador da entidad
 fiscal (CAUC/CAPAG via CSV do Tesouro) → P3 Obras (SISMOB/SIMEC/CAIXA + mapa Leaflet).
 
 **Design system (web):** `components/` reutilizáveis — `StatCard`, `StatusBadge`, `FilterChips`,
-`DateRangePresets`, `Feed` (agrupado por data), `Skeleton`. Página `app/painel/repasses`.
+`DateRangePresets`, `Feed` (agrupado por data), `Skeleton`. Página `app/panel/transfers`.
 Atenção: **mascarar dados bancários** por `papel` (privacidade).
 
 ---
@@ -446,19 +447,35 @@ Módulo de administração (admin = `is_superuser`). Tabelas **platform-level (s
 - `planos` (catálogo: nome, slug, `preco_mensal`, `limites` jsonb, ativo) — atribuído via `usuarios.plano_id`.
 - `convites` (email, token, papel, plano, expiração, status) — fluxo de convite.
 
-Endpoints: `GET /planos` (público) · `POST/PATCH /planos` (admin) · `POST /admin/usuarios` ·
-`PATCH /admin/usuarios/{id}/plano` · `POST /admin/convites` · `GET /admin/convites` ·
-`POST /auth/aceitar-convite` (público). Criação de usuário passa pelo UserManager
+Endpoints: `GET /plans` (público) · `POST/PATCH /plans` (admin) · `POST /admin/users` ·
+`PATCH /admin/users/{id}/plano` · `POST /admin/invites` · `GET /admin/invites` ·
+`POST /auth/accept-invite` (público). Criação de usuário passa pelo UserManager
 (hash de senha). Dependency `current_superuser` em `core/users.py`.
 
-## 15. Ingestão pronta para as APIs + Firecrawl
+**Web (painel de administração unificado):** `app/admin/layout.tsx` é o shell com guard de
+superuser (`/users/me` → redirect se não-admin) e navegação Usuários · Convites · Planos ·
+Providers & Config. Usuários: criar + editar inline papel/plano/admin/ativo
+(`PATCH /admin/users/{id}` com `plano_id`). Convites: criar com papel/plano/validade,
+listar com status e **copiar link** (`/accept-invite?token=…`). A página pública
+`app/accept-invite` consome o token (nome+senha → aceite → login → onboarding). O menu do
+painel comum mostra "Administração" só para superusers.
+
+## 15. Ingestão pronta para as APIs + scraping (Crawl4AI + Firecrawl)
 
 Todos os connectors estão **registrados** (`connectors/*`), com rotas/campos isolados em
-constantes (ponto de calibração): transferegov_ff/esp/disc(CSV)/fns/fnde/serpro + fpm/emendas.
-Retry/backoff compartilhado em `connectors/_http.py`. **Firecrawl** (`scraping/firecrawl.py`)
-faz o scraping da coleta combinada/fallback (`scrape` + `extract` estruturado); desabilita sem
-`FIRECRAWL_API_KEY`. Resumo por IA em `ai/resumo.py` (LiteLLM, import preguiçoso; desabilita
-sem `LLM_API_KEY`). Para ativar uma fonte real: preencher a URL/credencial no `.env`, calibrar
+constantes (ponto de calibração): transferegov_ff/esp/voluntarias/disc(CSV)/fns/fnde/serpro +
+fpm/emendas. Retry/backoff compartilhado em `connectors/_http.py`.
+
+**Scraping em facade** (`scraping/scraper.py::get_scraper`): os connectors nunca chamam um
+provider direto. Providers: **Crawl4AI** (`scraping/crawl4ai.py`, servidor Docker self-hosted —
+`crawl4ai_base_url` + token opcional) e **Firecrawl** (`scraping/firecrawl.py`,
+`firecrawl_api_key`). Ordem por `scraping_provider` (`auto` = Crawl4AI primeiro, Firecrawl
+fallback); provider sem credencial fica fora da rodada; nenhum configurado →
+`ScraperNotConfigured` (registrado em `sync_runs`). O resultado carrega `_scraper` e a
+proveniência marca `scrape` nos campos vindos de scraping.
+
+Resumo por IA em `ai/resumo.py` (LiteLLM, import preguiçoso; desabilita sem `LLM_API_KEY`).
+Para ativar uma fonte real: preencher a URL/credencial no painel admin (ou `.env`), calibrar
 os nomes de campo do connector e (se scraping) o schema de extração.
 
 ## 16. Painel admin de configuração (credenciais dos providers via API)
@@ -468,23 +485,37 @@ Tabela `configuracoes` (platform-level, sem RLS); segredos **cifrados em repouso
 chave de `CONFIG_SECRET_KEY`) e **mascarados** na leitura. Catálogo de chaves em
 `services/config.py::CATALOGO` (Firecrawl, LLM, base URLs/tokens das fontes).
 
-- Endpoints (admin `is_superuser`): `GET /admin/config` (lista mascarada) · `PUT /admin/config` (`{chave, valor}`).
+- Endpoints (admin `is_superuser`): `GET /admin/config` (lista mascarada) · `PUT /admin/config` (`{chave, valor}`) ·
+  `GET /admin/sources` (**diagnóstico**: health_check ao vivo de todos os connectors em paralelo
+  com timeout + última coleta por fonte de `sync_runs` + estado de Firecrawl/Crawl4AI/LLM/chave
+  de emendas — página `app/admin/sources`). A API de emendas (Portal da Transparência) EXIGE a
+  chave `chave-api-dados` (`emendas_api_key`, cadastro gratuito); sem ela o connector falha com
+  mensagem clara em `sync_runs`.
 - `services/config.resolver(chave)` é a fonte de verdade em runtime (DB decifrado > default `.env`).
   Firecrawl (`scraping/firecrawl.py`), o resumo IA (`ai/resumo.py`) e **todos os connectors**
   (base URL no `collect`) consultam o resolver. Plugar uma credencial no painel ativa o provider
   sem redeploy.
-- Web: `app/admin/config` (agrupado por categoria; segredos em campo password, mascarados).
+- Web: `app/admin/config` — **menu lateral por categoria** (IA · Scraping · Fontes · WhatsApp ·
+  E-mail); cada categoria mostra os provedores **ativos** e um fluxo "Adicionar provedor" para os
+  inativos (segredos em campo password, mascarados).
+- **LLMs multi-provedor** (`services/llm_providers.py`): registry cobrindo Anthropic, OpenAI,
+  Gemini, DeepSeek, Grok (xAI), Kimi (Moonshot), Qwen (Alibaba) e GLM (Z.ai), cada um com sua
+  chave (`llm_<id>_api_key`). Ao colar a API key (`PUT /admin/config/llm/{id}/chave`) os modelos
+  do provedor são listados **ao vivo** do endpoint `/models` da fonte (fallback curado se falhar)
+  — menor fricção. Modelos escolhidos são salvos como `<provider>/<modelo>` em
+  `llm_model_chat`/`llm_model_resumo`; `params_para()` resolve p/ LiteLLM (prefixo nativo ou
+  rota OpenAI-compatible + `api_base`). Valor sem prefixo conhecido = caminho legado (`llm_api_key`).
 
 ## 17. Camada de IA + WhatsApp + PDF (v1)
 
 - **Embeddings/RAG**: `ai/embeddings.py` (LiteLLM), `services/rag.py` (similaridade pgvector
   sob RLS + fallback textual), `jobs/embed.py` (embed_new). Dim 1536.
-- **Chat/Copiloto**: `ai/chat.py` (LiteLLM streaming, fallback sem chave). `POST /copiloto/chat`
+- **Chat/Copiloto**: `ai/chat.py` (LiteLLM streaming, fallback sem chave). `POST /copilot/chat`
   (SSE) — modo `propostas` (RAG sobre as propostas do usuário) ou `copiloto` (base_conhecimento).
-  Web: `app/painel/chat`.
+  Web: `app/panel/copilot`.
 - **WhatsApp (Uniq)**: `notifications/uniq.py`, `POST /webhooks/uniq` (telefone→usuário→chat→resposta),
   `services/dispatch_alerts.py`. Credenciais no painel (categoria whatsapp).
-- **Exportar PDF**: `services/pdf.py` (reportlab), `GET /propostas/{id}/pdf`. Web: botão PDF no painel.
+- **Exportar PDF**: `services/pdf.py` (reportlab), `GET /proposals/{id}/pdf`. Web: botão PDF no painel.
 - Todos os providers de IA/WhatsApp são **opcionais** e ligados pelo painel admin (`/admin/config`);
   sem credencial, degradam com elegância (o Hub continua entregando dados).
 
@@ -493,8 +524,8 @@ chave de `CONFIG_SECRET_KEY`) e **mascarados** na leitura. Catálogo de chaves e
 Terceiro eixo do ciclo (fiscal). Entidade `conformidades` (cache global, RLS só-SELECT por
 município, migration 0007). Connector `siconfi` (CSV do Tesouro Transparente; base URL no painel
 `siconfi_csv_url`), normalizador `ingestion/normalizer_conformidade.py`, serviço
-`services/conformidade.py` (listar/upsert/resumo/sync). Endpoints `GET /conformidade` (KPIs por
-status/seção + CAPAG) e `POST /conformidade/sync`. Web `app/painel/conformidade`.
+`services/conformidade.py` (listar/upsert/resumo/sync). Endpoints `GET /compliance` (KPIs por
+status/seção + CAPAG) e `POST /compliance/sync`. Web `app/panel/compliance`.
 
 ## 19. Navegação profile-centric (decisão travada)
 
@@ -505,15 +536,41 @@ navegação **parte do PERFIL do usuário**: o(s) `municipios_interesse`, as `ar
 espinha da UI.
 
 - **Backend** — `services/perfil.py` + `api/v1/perfil.py`:
-  `GET /perfil` (território: municípios + áreas + papel) e `GET /perfil/visao-geral` (agrega as
+  `GET /profile` (território: municípios + áreas + papel) e `GET /profile/overview` (agrega as
   **dimensões do ciclo** — captação/recebidos/conformidade/obras — já recortadas pelo território
   via RLS; nenhuma agregação é feita "por fonte"). Schemas em `schemas/perfil.py`.
-- **Web** — `app/painel/layout.tsx` é o shell profile-centric: cabeçalho com o **território** e o
+- **Web** — `app/panel/layout.tsx` é o shell profile-centric: cabeçalho com o **território** e o
   **papel**, e um menu que são **lentes sobre o município do usuário** (Meu painel · Captação ·
-  Recursos recebidos · Conformidade · Obras · Copiloto), não abas de plataforma. `app/painel/page.tsx`
-  é o **Meu painel** (cards por dimensão vindos de `/perfil/visao-geral`). A antiga lista de propostas
-  virou `app/painel/captacao`. Sem território → CTA para o onboarding (o perfil é o ponto de partida).
+  Recursos recebidos · Conformidade · Obras · Copiloto), não abas de plataforma. `app/panel/page.tsx`
+  é o **Meu painel** (cards por dimensão vindos de `/profile/overview`). A antiga lista de propostas
+  virou `app/panel/funding`. Sem território → CTA para o onboarding (o perfil é o ponto de partida).
 - Adicionar fonte continua sendo só um novo connector; **nunca** vira uma aba nova na navegação.
+
+## 19b. Onboarding conversacional + primeiro sync real (decisão travada)
+
+A porta de entrada do app é o **onboarding conversacional**: após login/cadastro sem
+território, o usuário cai em `/onboarding`, onde o Copiloto pergunta em chat guiado —
+papel → município(s) (busca por nome via IBGE) → áreas de interesse → fontes (pré-marcadas
+pelas áreas) → confirmação. Nada de formulário em página; a conversa é o wizard.
+
+- **Busca de municípios** — `services/municipios.py` + `GET /municipalities?q=` (IBGE
+  Localidades, cache em memória 24h, chave `ibge_localidades_url` no painel). Degrada
+  para lista vazia; o front aceita código IBGE de 7 dígitos digitado direto.
+- **Primeiro sync (dados reais)** — ao confirmar, `POST /onboarding` grava o perfil e
+  agenda `services/primeiro_sync.executar` cobrindo as 4 dimensões (captação via
+  consulta-avulsa, recebidos por fonte, conformidade, obras por área), cada fonte
+  best-effort com incidente em `sync_runs`. ATENÇÃO: o agendamento é
+  `asyncio.create_task` (`primeiro_sync.agendar`) — **nunca** `BackgroundTasks`, que
+  executa antes do teardown/commit da sessão RLS do request e trava o perfil atrás do
+  sync (lock em `municipios_interesse`/`usuarios`).
+- **Feed de novidades** — `GET /profile/feed` (schemas em `schemas/perfil.py`):
+  últimas propostas + repasses do território, recortados pelas fontes do perfil e pelas
+  fontes derivadas das áreas (`services/perfil.py::AREA_FONTES`), intercalados por data,
+  mais o estado honesto da coleta (última execução por fonte em `sync_runs`). O Meu
+  painel (`app/panel/page.tsx`) mostra o feed e, vindo do onboarding (`?sync=1`), faz
+  polling ~8s até os primeiros dados chegarem.
+- **Login** (`app/login`) → `GET /profile`: sem município → `/onboarding`; com território →
+  `/painel`. O cadastro segue direto para o onboarding.
 
 ## 20. Obras (execução — SISMOB/SIMEC/CAIXA) — P3
 
@@ -533,10 +590,10 @@ latitude, longitude, endereco, orgao, detalhe/proveniencia jsonb, hash_conteudo`
 - **Serviço** `services/obras.py`: `listar` (cache-first, RLS, filtros fonte/situação), `upsert`
   (on_conflict por `(fonte,id_externo)`), `resumo` (KPIs de execução + quebra por situação + obras
   com geo), `sync_municipio` **multi-fonte best-effort** (cada fonte que falha registra `sync_runs`
-  e não derruba as demais). Endpoints `GET /obras`, `GET /obras/resumo`, `POST /obras/sync`.
-- **Perfil**: a dimensão "obras" da `/perfil/visao-geral` passa a contar obras reais (antes era
+  e não derruba as demais). Endpoints `GET /works`, `GET /works/summary`, `POST /works/sync`.
+- **Perfil**: a dimensão "obras" da `/profile/overview` passa a contar obras reais (antes era
   placeholder "em breve").
-- **Web** `app/painel/obras`: KPIs, **mini-mapa offline** (dispersa obras por lat/long sem tiles
+- **Web** `app/panel/works`: KPIs, **mini-mapa offline** (dispersa obras por lat/long sem tiles
   externos — em produção pode virar Leaflet+GeoJSON), chips por situação e lista. Mascaramento por
   papel segue a mesma diretriz de privacidade dos demais eixos.
 
@@ -548,8 +605,8 @@ Fecha os itens de plataforma que todo SaaS precisa além do CRUD do produto.
   `api/v1/auth.py` — `POST /auth/forgot-password`, `/auth/reset-password`,
   `/auth/request-verify-token`, `/auth/verify`. Os hooks do `UserManager`
   (`on_after_forgot_password`, `on_after_request_verify`, `on_after_register`)
-  disparam e-mail com link para `{app_base_url}/redefinir-senha?token=…` (e
-  `/verificar-email`).
+  disparam e-mail com link para `{app_base_url}/reset-password?token=…` (e
+  `/verify-email`).
 - **Camada de e-mail** (`notifications/email.py`): SMTP via `smtplib` (stdlib, em
   thread), **provider-opcional** como o Uniq — sem `email_smtp_host`+`email_from`
   no painel, o envio degrada (retorna False, sem erro) e o fluxo de negócio segue
@@ -557,18 +614,18 @@ Fecha os itens de plataforma que todo SaaS precisa além do CRUD do produto.
   txt+HTML em `notifications/email_templates.py` (boas-vindas, redefinir senha,
   verificar e-mail, convite).
 - **Convite por e-mail**: `services/gestao_usuarios.criar_convite` envia o link de
-  aceite (`/aceitar-convite?token=…`) — best-effort.
+  aceite (`/accept-invite?token=…`) — best-effort.
 - **Config (painel admin, categoria `email`)**: `email_smtp_host`,
   `email_smtp_port`, `email_smtp_user`, `email_smtp_password` (segredo cifrado),
   `email_from`, `app_base_url`. A página `/admin/config` agrupa por categoria
   automaticamente — a categoria `email` aparece sem alteração de UI.
-- **Web (telas de auth)**: `app/cadastro` (self-signup), `app/esqueci-senha`
-  (solicita link), `app/redefinir-senha` (consome o token; usa Suspense p/
-  `useSearchParams`), `app/verificar-email` (confirma o token), com links no
+- **Web (telas de auth)**: `app/signup` (self-signup), `app/forgot-password`
+  (solicita link), `app/reset-password` (consome o token; usa Suspense p/
+  `useSearchParams`), `app/verify-email` (confirma o token), com links no
   `app/login`. Nunca revela se um e-mail existe.
 - **Conta do usuário**: router `get_users_router` montado em `/users` →
   `GET/PATCH /users/me` (editar perfil e trocar senha logado; admin em
-  `/users/{id}`). Web `app/painel/conta` (nome/telefone/opt-in WhatsApp + trocar
+  `/users/{id}`). Web `app/panel/account` (nome/telefone/opt-in WhatsApp + trocar
   senha), no menu profile-centric.
 
 ## 22. Deploy local via Docker Compose + admin inicial
@@ -584,8 +641,11 @@ Stack completo sobe com um comando; o superadmin é criado no boot.
   Subir: `docker compose up -d --build`.
 - **Portas / proxy**: o compose de deploy usa `expose` (NÃO publica portas no host)
   — em plataformas com proxy (Dokploy/Traefik) portas fixas colidem. No painel aponte
-  o domínio para `web:3000` (e `api:8000` se quiser API pública) e defina
-  `NEXT_PUBLIC_API_URL` = domínio público da API (build arg). Para dev local,
+  o domínio para `web:3000`. A web faz **proxy same-origin** da API: o navegador chama
+  `/api/v1/*` no domínio da web e o rewrite do `next.config.mjs` repassa à API pela rede
+  interna (`API_INTERNAL_URL`, default `http://api:8000`) — a API não precisa de domínio
+  público. Só defina `NEXT_PUBLIC_API_URL` (build arg) se quiser expor a API num domínio
+  próprio e o front chamá-la direto. Para dev local,
   `docker-compose.override.yml` publica 3000/8000/5432 e é auto-carregado por
   `docker compose up` (o Dokploy roda com `-f`, ignorando o override).
 - **Dockerfiles**: `apps/api/Dockerfile` (uv sync; `docker-entrypoint.sh` espera o
@@ -595,8 +655,516 @@ Stack completo sobe com um comando; o superadmin é criado no boot.
   API. Com `ADMIN_EMAIL`+`ADMIN_PASSWORD` no `.env`, cria/promove um superusuário
   (idempotente — não duplica nem reseta senha existente). Destrava o 1º login no painel.
   Atenção: `email-validator` rejeita domínios reservados (`.local`) — use domínio válido.
-- **Painel admin de usuários** (`app/admin/usuarios`, superuser): cria usuário com
+- **Painel admin de usuários** (`app/admin/users`, superuser): cria usuário com
   **papel (role)** + **plano** + **permissão de admin (`is_superuser`)**; lista todos e
-  alterna papel/admin/ativo inline. Backend: `GET /admin/usuarios`,
-  `POST /admin/usuarios` (agora aceita `is_superuser`), `PATCH /admin/usuarios/{id}`
+  alterna papel/admin/ativo inline. Backend: `GET /admin/users`,
+  `POST /admin/users` (agora aceita `is_superuser`), `PATCH /admin/users/{id}`
   (papel/is_superuser/is_active/plano). Env `ADMIN_EMAIL`/`ADMIN_PASSWORD`/`APP_BASE_URL`.
+
+## 23. Jornada completa do fluxograma — gaps fechados (v1)
+
+Fecha os gaps entre o fluxograma de jornada (5 etapas) e o produto:
+
+- **Eixo "QUE TIPO?" (cadastrada × disponível)**: derivado da `situacao` por de-para de
+  palavras-chave em `services/proposals.py::classificar_tipo` (sem coluna nova; calibrável).
+  Exposto como campo computado `tipo` no `PropostaRead` e filtro `?tipo=` em `GET /proposals`.
+- **Filtros de granularidade**: `GET /proposals` aceita `valor_min/valor_max/area/tipo`
+  (área → fontes via `AREA_FONTES`). `GET /proposals/deadlines?dias=` responde "o que vence
+  na janela" (parse do jsonb `prazos`); o copiloto injeta esse contexto estruturado quando a
+  pergunta menciona prazo/vencimento (`api/v1/copiloto.py::_contexto_prazos`).
+- **Monitoramento de FUTURAS propostas**: tabela `monitoramentos_busca` (migration
+  `b1f2c3d4e5a6`, RLS por-tenant) — vigia município (+área/fonte opcional) com `canais`
+  (painel/email/wpp) e cursor `ultimo_alerta_em`. Endpoints
+  `GET/POST/DELETE /monitors/searches`. O onboarding cria uma busca por município
+  quando `monitorar_ativo`.
+- **Varredura + alerta de oportunidade** (`services/oportunidades.py`, endpoint
+  `POST /alerts/scan`): (1) `nova_proposta` — propostas que entraram no cache após o
+  cursor das buscas ativas; (2) `oportunidade` — o alerta do fluxograma "recursos
+  disponíveis com propostas não cadastradas" (repasses da fonte X no município sem nenhuma
+  proposta da fonte X; `alertas.proposta_id` agora é nullable; dedupe por alerta não-lido).
+  Despacho best-effort por e-mail (template `alertas_resumo`) e WhatsApp (Uniq) conforme canais.
+- **Onboarding com passo "ativar avisos"**: `OnboardingRequest` ganhou
+  `telefone_wpp/optin_wpp/canais_alerta`; o chat de onboarding pergunta canais e WhatsApp
+  antes da confirmação.
+- **Enforcement de planos (3 tiers × municípios)**: `limites.municipios_max` do plano é
+  validado no onboarding (`LimitePlanoExcedido` → 403 `LIMITE_PLANO_MUNICIPIOS`).
+- **Painel informativo**: `services/noticias.py` (RSS gov.br, cache 1h, degrada p/ vazio),
+  `GET /news`, chave `transferegov_noticias_url` no painel admin. Widget no Meu painel.
+- **SERPRO painel**: default de `serpro_painel_url` aponta para
+  `TransferegovbrVisaoGeral.html` (dados ricos via scraping headless; API pública primeiro,
+  painel enriquece/faz fallback — coleta combinada da seção 5).
+- **Web**: captação com abas locais (várias frentes), chips cadastrada/disponíveis, filtros
+  (fonte/área/situação/valor), favoritar ★, pastas (criar/atribuir/filtrar), resumo IA na
+  lista; página de detalhe `app/panel/funding/[id]` em seções (dados gerais, valores,
+  situação, prazos, pendências, proveniência) com monitorar/PDF; central
+  `app/panel/alerts` (varredura, marcar lido, monitorar futuras propostas) no menu;
+  card de alertas não lidos + notícias no Meu painel.
+
+## 24. Copiloto em Dynamic Island (tool calling)
+
+O Copiloto ganhou uma presença PERSISTENTE: um **Dynamic Island** flutuante
+(`components/DynamicIsland.tsx`, montado em `app/panel/layout.tsx`) que acompanha o
+usuário em TODAS as telas do painel após o onboarding (só aparece com território
+configurado). Fechado é uma cápsula discreta; expandido vira chat, mostrando em tempo
+real qual ferramenta o agente está consultando. Histórico em sessionStorage.
+
+- **Backend** — `ai/agent.py`: agente LLM com **tool calling** (LiteLLM, formato
+  OpenAI tools, até 4 rodadas). Ferramentas = serviços do Hub na MESMA sessão RLS do
+  request: `repasses_visao_geral`, `propostas_listar`, `propostas_prazos`,
+  `conformidade_resumo`, `obras_resumo`, `noticias_transferegov`,
+  `pesquisar_propostas` (RAG). O agente só enxerga o território do tenant por
+  construção; executor com erro devolve `{"erro": ...}` e nunca derruba o loop.
+- **Degradação** — sem `llm_api_key`, roteador por palavra-chave
+  (`escolher_tool_fallback`, ordem de prioridade em `_PRIORIDADE_FALLBACK`) executa a
+  ferramenta mais provável e formata resposta legível (`_formatar_fallback`) — o
+  island continua útil sem credencial.
+- **Endpoint** — `POST /copilot/island` (SSE): o loop de tools roda ANTES do stream
+  (sessão RLS do request precisa estar viva); eventos `{"tool": nome}` e
+  `{"delta": texto}`. Client web: `islandStream` em `lib/api/client.ts`.
+- Adicionar ferramenta = nova entrada em `ai/agent.py::TOOLS` (descrição + JSON
+  schema + executor + gatilhos de fallback); o front mostra o chip automaticamente
+  (rotule em `DynamicIsland.tsx::TOOL_CHIP`).
+
+## 25. Rotas em INGLÊS (decisão travada) + Captação em tempo real
+
+- **Todas as rotas são em inglês** — API v1 e páginas web. De-para principal:
+  propostas→proposals · consulta-avulsa→proposals/live-search · repasses→transfers ·
+  conformidade→compliance · obras→works · alertas→alerts (lido→read, varredura→scan) ·
+  favoritos→favorites · pastas→folders · monitoramentos→monitors (buscas→searches) ·
+  perfil→profile (visao-geral→overview, novidades→feed) · municipios→municipalities ·
+  noticias→news · copiloto→copilot · planos→plans · admin/usuarios→admin/users ·
+  convites→invites · fontes→sources · conhecimento→knowledge · aceitar-convite→accept-invite ·
+  contatos→contacts (exportar→export, importar→import) · integracoes→integrations
+  (provedores→providers, autorizar→authorize, senha-app→app-password).
+  Páginas: painel→panel (captacao→funding, repasses→transfers, conformidade→compliance,
+  obras→works, alertas→alerts, chat→copilot, conta→account), cadastro→signup,
+  esqueci-senha→forgot-password, redefinir-senha→reset-password, verificar-email→verify-email.
+  Campos de schema/payload seguem em pt (domínio); só as ROTAS são en.
+- **Captação em TEMPO REAL**: `POST /proposals/live-search`
+  (`services/consulta_avulsa.live_search`) — para cada município do perfil (ou o
+  filtrado) × fonte de captação relevante (`CAPTACAO_FONTES`; recorte por
+  fonte>área>fontes do perfil via `_fontes_alvo`), reusa o fluxo cache-first por fonte
+  (fresco responde na hora; stale/miss vai à fonte via connector — API e/ou scraping) e
+  devolve propostas filtradas + status por fonte (best-effort; falha vira status+sync_run).
+  A página `app/panel/funding` dispara a busca a CADA mudança de filtro (debounce 500ms,
+  descarte de resposta antiga) e mostra o estado da coleta. Exportar PDF saiu da UI
+  (endpoint continua na API).
+
+## 26. Meu painel com oportunidades ao vivo + aba Acompanhamento
+
+- **Meu painel** mostra "Oportunidades disponíveis para o seu território": chama
+  `POST /proposals/live-search {tipo: 'disponivel'}` no load (dados ao vivo das fontes,
+  pós-onboarding), lista top-6 com ★ para favoritar direto e link p/ Captação.
+- **Aba ★ Acompanhamento** (fixa) na Captação: lista as propostas FAVORITADAS completas
+  via `GET /favorites/proposals` (`services/favoritos.listar_propostas`, join sob RLS —
+  favorita fora do território não vaza). Favoritar em qualquer lugar (busca, painel,
+  detalhe) adiciona aqui; a estrela remove. No modo acompanhamento os filtros/live-search
+  ficam ocultos (a fonte é a lista de favoritas).
+
+## 27. Connectors autocalibráveis (calibração contra as APIs vivas)
+
+Erros reais de produção mostraram que rotas/colunas oficiais divergem do chute
+estático. Os connectors críticos agora se AUTOCALIBRAM (com override manual no
+painel admin quando preciso):
+
+- **transferegov_ff**: a coluna de IBGE de `programa_beneficiario` é descoberta
+  em runtime — override `transferegov_ff_ibge_field` > OpenAPI do PostgREST
+  (Accept: application/openapi+json) > lista de candidatos (42703 → próximo);
+  resultado cacheado por base_url. Fallback de IBGE 6 dígitos. Se
+  `plano_acao`/`programa` recusarem a chave de ligação, degrada para o
+  beneficiário puro (o programa disponível ainda vira proposta).
+- **fpm**: rota descoberta via `metadata-catalog/` do ORDS + candidatos
+  (`tt/transferencias`…), override `fpm_endpoint`. Envia os dois estilos de
+  parâmetro (cod_ibge/ano e id_ente/an_exercicio) e SEMPRE refiltra no cliente
+  pelo IBGE — linha sem coluna de IBGE compatível é descartada (nunca ingere o
+  Brasil inteiro). Mapeamento de campos genérico (valor/data/descrição por
+  palavra-chave; FUNDEB/PASEP/retenção → natureza dedução).
+- **transferegov_esp / transferegov_voluntarias**: mesmo padrão do ff via
+  helper compartilhado `connectors/_postgrest.py` — descoberta de ROTA e coluna
+  de IBGE pelo OpenAPI do módulo (tabelas preferidas: plano_acao/convenio…),
+  overrides `transferegov_esp_endpoint|_ibge_field` e
+  `transferegov_voluntarias_endpoint|_ibge_field`, candidatos de coluna em 42703
+  e fallback IBGE 6 dígitos; scraping segue como fallback quando a API cai.
+- **siconfi/CAUC**: se `siconfi_csv_url` é página de dataset CKAN, resolve o
+  recurso CSV real via `api/3/action/package_show` (preferindo 'cauc'; cache
+  1h); colunas achadas por palavra-chave; delimitador ;/, autodetectado.
+- **emendas**: o Portal da Transparência NÃO filtra por município — o connector
+  pagina o ano (`ano`+`pagina`, cap 20 páginas) e refiltra por
+  `localidadeDoGasto` com o nome do município resolvido via IBGE Localidades
+  (`services/municipios.nome_uf_por_ibge`), sem acento + UF. Segue exigindo
+  `emendas_api_key`.
+
+## 28. Execução financeira do TransfereGov (empenhado por município/ano)
+
+O relatório da Visão Geral do TransfereGov (22 colunas) agora é cidadão de
+primeira classe — o gestor vê "quanto foi disponibilizado (EMPENHADO) ao meu
+município e ainda não foi utilizado":
+
+- **`propostas.execucao`** (jsonb, migration `c7d8e9f0a1b2`): valor_global/
+  empenhado/liberado/pago, saldo_conta, ano, tipo_transferencia,
+  ente_recebedor, natureza_juridica, datas de assinatura/vigência. Entra no
+  hash de mudança (empenho novo → alerta) e no upsert. Fim de vigência vira
+  prazo estruturado (alimenta /proposals/deadlines e o copiloto).
+- **Normalizador** (`_montar_execucao`): aceita snake_case e os cabeçalhos do
+  relatório ("Valor Empenhado", "Saldo em Conta"…), sem acento.
+- **Fontes**: serpro (schema de extração calibrado às 22 colunas do painel) e
+  transferegov_disc (CSV nacional SIconv/detru com mapeamento por
+  palavra-chave + cache em memória 1h; incluído em CAPTACAO_FONTES).
+- **Web Captação**: cards agregados (Transferências · Valor global · Empenhado ·
+  **Empenhado a utilizar** [destaque] · Pago · Saldo em conta), filtro por ANO,
+  colunas Valor global/Empenhado (com ponto verde quando há verba parada).
+- **Web detalhe**: seção "Execução financeira — TransfereGov" com barra de
+  progresso empilhada (pago ⊂ liberado ⊂ empenhado sobre o global), os 6
+  valores, vigências e ente recebedor.
+
+## 29. Módulos da plataforma — ligar/desligar eixos pelo painel admin
+
+Cada eixo do produto (as lentes do menu profile-centric da seção 19) é um **módulo**
+que o admin liga/desliga em **runtime**, sem redeploy e sem remover código. Serve para
+lançar o Hub só com o que está maduro e reativar o resto quando a fonte estiver calibrada.
+
+**Estado inicial (decisão de produto):** `captacao`, `recebidos` e `copiloto` **ativos**;
+`conformidade` e `obras` **desativados** — a implementação continua no repositório
+(connectors, migrations, serviços, telas), apenas não é exposta.
+
+- **Registro** — `services/modulos.py::MODULOS` (chave, label, descrição, `padrao`).
+  O estado vive na tabela `configuracoes` (platform-level) sob a chave `modulo_<chave>`
+  com valor `on`/`off`; sem linha no banco vale o `padrao` do registro (nenhuma migration
+  necessária). Adicionar um módulo = mais uma entrada nesse registro.
+- **Guard de API** — `services/modulos.require_modulo(chave)` é dependency de router:
+  módulo desligado → **404 `MODULO_DESATIVADO: <chave>`** em todo o eixo. Aplicado em
+  `proposals` (captacao), `transfers` (recebidos), `compliance`, `works` e `copilot`.
+  O guard roda ANTES da autenticação (dependency de router), então o eixo simplesmente
+  não existe enquanto desligado.
+- **Endpoints admin** (`is_superuser`): `GET /admin/modules` (catálogo + estado efetivo)
+  e `PUT /admin/modules` (`{chave, ativo}`). Router `api/v1/admin_modulos.py`.
+- **Perfil** — `GET /profile` passa a devolver `modulos` (lista dos ativos) e
+  `GET /profile/overview` só agrega/retorna as dimensões dos módulos ativos (módulo
+  desligado nem é consultado no banco).
+- **Web** — `app/admin/modules` (toggle por módulo, no shell admin da seção 24); o menu
+  de `app/panel/layout.tsx` filtra os itens por `perfil.modulos`;
+  `components/ModuloGate.tsx` cobre o acesso direto por URL às telas de eixo desligado
+  (explica em vez de mostrar tela vazia).
+
+## 26b. Filtros de captação (benchmark) + resumo + emendas parlamentares
+
+Paridade de FILTROS com as plataformas concorrentes de captação, sem abrir mão da
+navegação profile-centric (§19): as fontes continuam sendo detalhe de ingestão — o que
+mudou é a granularidade do recorte sobre o território.
+
+- **Dimensões de filtro da captação** (`services/propostas.py`): busca livre `q`
+  (programa/órgão/código, ilike sobre título/objeto/órgão/modalidade/id/nº), `modalidade`
+  (tipo de instrumento), `orgao`, `situacao`, `natureza_juridica`, `qualificacao`, `ano`,
+  `tipo` (§23), faixa de valor e `ordenar`
+  (`recentes|prazo|prazo_distante|nome|orgao|valor`). SQL para o que é coluna; jsonb/
+  derivados (natureza, qualificação, ano, tipo) filtram em Python — o recorte já é do
+  território pelo RLS, então o conjunto é pequeno.
+- **Natureza jurídica** = quem pode propor. `classificar_natureza_juridica` faz de-para
+  por palavra-chave de `execucao.natureza_juridica` (texto livre da fonte) para os slugs
+  `estadual_df|municipal|consorcio|empresa_publica|osc|outros` — calibrável em
+  `_KW_NATUREZA`. **Qualificação** mapeia `execucao.tipo_transferencia`.
+- **Facetas** — `GET /proposals/facets` devolve, por dimensão, as opções que EXISTEM no
+  recorte com contagem; a contagem de cada dimensão ignora o filtro dela mesma (senão o
+  dropdown ficaria preso na opção escolhida). `POST /proposals/live-search` já embute as
+  facetas na resposta (evita 2ª chamada a cada tecla).
+- **Resumo** — `GET /proposals/summary`: cards (valor conveniado/desembolsado/empenhado/
+  a utilizar, convênios iniciados e em execução, oportunidades abertas), série
+  aprovado × desembolsado por ano, pipeline por situação e convênios vigentes com % de
+  desembolso. Web: `app/panel/funding/summary`.
+- **Relatório** — `GET /proposals/report.csv` e `GET /transfers/amendments/report.csv`
+  (CSV `;` + BOM, abre no Excel) exportam exatamente o recorte da tela.
+- **Emendas parlamentares** — lente sobre os repasses com `emenda=True`, não uma aba de
+  fonte: `GET /transfers/amendments/summary` (cards empenhado/pago e % executado, evolução
+  anual, distribuição por modalidade e por área/função, ranking de parlamentares, lista
+  detalhada e `opcoes` dos filtros). Filtros: modalidade, ano, parlamentar, órgão, busca.
+  O connector `emendas` passou a guardar em `detalhe` o que a tela precisa (parlamentar,
+  partido, `tipoEmenda`, função/subfunção, ano, empenhado/liquidado/pago). Web:
+  `app/panel/transfers/amendments`. As opções dos dropdowns vêm do universo do território
+  (sem os filtros aplicados) — escolher um parlamentar não esvazia a lista.
+- **Web (captação)** — barra com busca, chips de natureza jurídica, chips
+  cadastrada/disponível, dropdowns por faceta (modalidade/órgão/qualificação/situação/
+  ano/fonte), ordenação, **filtros ativos** com remoção individual e "limpar tudo", e
+  "Baixar relatório". `PropostaRead` ganhou os computados `natureza_juridica`,
+  `prazo_final` e `dias_restantes` (contador de prazo na lista).
+
+## 29. Guarda de segredo no boot (produção)
+
+`JWT_SECRET`/`JWT_REFRESH_SECRET` têm padrão versionado no `.env.example` (dev
+local sobe sem configurar nada). Em produção isso permitiria forjar token de
+qualquer usuário, então `core/seguranca_boot.verificar_segredos` roda no
+`lifespan` ANTES de tudo:
+
+- **dev** (APP_BASE_URL com localhost/127.0.0.1/.local) → só avisa no log;
+- **produção** (domínio público) → **RuntimeError e o boot para**, com a
+  instrução exata (`openssl rand -hex 32` em cada variável);
+- válvula consciente p/ homologação atrás de domínio: `PERMITIR_SEGREDO_PADRAO=true`
+  (mantém o aviso).
+
+Trocar os segredos invalida as sessões vigentes uma vez — comportamento esperado.
+
+## 30. Recorte de DUAS fontes + scraping como 2ª fonte de verdade (decisão travada)
+
+Enquanto as demais fontes não estão calibradas contra as APIs vivas, o produto opera
+com **TransfereGov + FNS**. As outras (FPM, emendas, FNDE, SISMOB/SIMEC/CAIXA, Siconfi)
+continuam no repositório — connectors, migrations, serviços e telas — apenas fora do
+recorte. Ligar de volta = uma linha em `services/fontes.py`; o core não muda.
+
+- **Registro** — `services/fontes.py` é a fonte de verdade: `GRUPOS` (o que o usuário
+  escolhe: `transferegov`, `fns`), `HABILITADAS` (connector ids em operação),
+  `CAPTACAO` (produz propostas) e `RECEBIDOS` (produz repasses). `expandir()` traduz
+  grupo → connector ids na entrada do onboarding, então todo o resto do sistema
+  segue falando connector id. `CAPTACAO_FONTES` (consulta_avulsa), `FONTES_CAPTACAO`/
+  `FONTES_RECEBIDOS` (primeiro_sync), `FONTES_PADRAO` (router de transfers) e
+  `AREA_FONTES` (perfil) derivam daí — não existe mais lista de fontes solta.
+- **`serpro` é TransfereGov**: apesar do `source_id`, o connector coleta o painel da
+  **Visão Geral do TransfereGov** (`dd-publico.serpro.gov.br/.../TransferegovbrVisaoGeral.html`);
+  o SERPRO só hospeda. Por isso está no grupo `transferegov` e em `CAPTACAO`.
+- **Onboarding** oferece só os dois grupos (com descrição), pré-marcados pelas áreas.
+  TransfereGov serve todas as áreas (não é setorial); FNS entra com saúde.
+
+**Scraping deixou de ser fallback.** A §5 (coleta combinada) agora é real:
+`connectors/_combinada.py` roda API e scraping **em paralelo** (`coletar`) e pareia as
+linhas pelo número da transferência só por dígitos (`aglutinar` — "123456/2024" casa com
+1234562024). O payload de scraping viaja no `raw` sob `_scrape`, e
+`ingestion/merge.py::merge_record` normaliza os dois lados e funde com a precedência de
+sempre (API vence em id/valor/data; scraping vence em situação/pendências/movimentação),
+gravando `proveniencia` por campo. Linha que só existe no scraping entra sozinha — a
+página conhece transferência que a API ainda não publicou. Aplicado em `serpro`;
+`consulta_avulsa` usa `merge_record` no lugar de `merge(normalize(...), None)`.
+
+**Scraping local (sem serviço externo).** O facade (`scraping/scraper.py`) passou a ter
+quatro providers, nessa ordem no modo `auto`: `crawl4ai_local` → `playwright` →
+`crawl4ai` (servidor) → `firecrawl`. Os dois primeiros rodam Chromium no próprio
+container (extra opcional `scraping` no pyproject: `uv sync --extra scraping`), o que
+destrava as páginas JS-pesadas sem chave paga nem container extra.
+- `scraping/tabelas.py` é a extração: lê `<table>` **e grid ARIA** (`role="grid"/"row"/
+  "columnheader"` — como o Qlik renderiza) com parser de pilha, e casa cabeçalho com o
+  campo do JSON Schema do connector por texto normalizado ("Valor Empenhado" →
+  `valor_empenhado`; `numero` → "Nº Transferência" pela `description`). Determinístico,
+  sem LLM, sem custo por página; o que não casou fica em `_linha` para calibração.
+- `scraping/playwright.py` vence virtualização rolando o grid até parar de aparecer
+  linha nova, e cai para o Chromium do sistema (`CHROMIUM_EXECUTABLE_PATH`,
+  `/opt/pw-browsers/chromium`…) quando o browser do pacote não está baixado.
+- Crawl4AI **não levanta** em falha de navegação (devolve `success=False`): o provider
+  converte isso em exceção, senão "não abri a página" viraria "a fonte não tem
+  registros" e o gestor veria painel vazio como se fosse verdade.
+- Chaves novas no painel admin (categoria scraping): `scraping_crawl4ai_local`,
+  `scraping_playwright` (`on`/`off`) e `scraping_provider` aceitando os quatro nomes.
+- `services/config.resolver` passou a degradar para o `.env` quando o Postgres não
+  responde (o painel só SOBRESCREVE o `.env`) — banco fora do ar não derruba ingestão.
+- **Dockerfile**: `ARG COM_SCRAPING=1` instala o extra + `playwright install --with-deps
+  chromium` (~500MB). `--build-arg COM_SCRAPING=0` monta a imagem enxuta.
+
+**Probe de fontes** — `python -m src.tools.probe_fontes <ibge> [--fonte X] [--json]`:
+bate nas fontes REAIS e relata por fonte se respondeu, quantos registros e QUAIS campos
+vieram (é o que se calibra). Não precisa de banco nem da API no ar; sai com código 1 se
+alguma falhar. Calibrar connector é trabalho empírico — isto substitui descobrir pelo
+`sync_runs` depois do deploy.
+
+## 31. Agenda de contatos + sincronização com Google/Apple/Outlook
+
+Rede de pessoas do gestor (gabinetes, secretarias, técnicos, fornecedores) dentro do Hub,
+**sincronizada nos dois sentidos** com a agenda que ele já usa no celular. Dado PESSOAL
+por-tenant (RLS `FOR ALL` por `usuario_id`, como `pastas`) — não é cache público.
+Módulo desligável pelo painel admin (`contatos`, §29), rotas em inglês (§25).
+
+- **Tabelas** (migration `b41c7de90a12`): `contatos` (nome/sobrenome, organização, cargo,
+  `emails`/`telefones`/`enderecos` jsonb, `tags`, `municipio_ibge`, `origem`, `chave_dedup`,
+  `hash_conteudo`, `arquivado`) · `integracoes_contatos` (uma linha por conta conectada:
+  provedor, conta, status, `direcao`, `credenciais` **cifradas**, `sync_token`, última sync,
+  último erro) · `contato_vinculos` (de-para local↔remoto com `etag` e `hash_sincronizado`;
+  escopo herdado da integração, como `pasta_propostas`).
+- **Provedores** (`integrations/contatos/`, Protocol + registry no molde dos connectors):
+  `google.py` (People API, delta por `syncToken`) · `microsoft.py` (Graph, delta por
+  `deltaLink`) · `carddav.py` (Apple/iCloud e CardDAV genérico — Nextcloud/SOGo —, delta por
+  CTag, redirect refeito na mão para não perder o Basic) · `vcard.py` (codec vCard 3.0, usado
+  pelo CardDAV e pelo import/export `.vcf`) · `oauth.py` (authorization code + refresh).
+  Novo provedor = novo módulo com o mesmo Protocol; o motor de sync não muda.
+- **Motor** (`services/contatos_sync.py`): casamento por vínculo → `chave_dedup` (e-mail >
+  telefone > nome+organização) → criação. Três hashes (local, remoto, `hash_sincronizado`)
+  decidem quem mudou; **os dois lados mudaram → merge**, ninguém perde e-mail/telefone/tag.
+  Remoção é arquivamento (tombstone) para propagar o delete; ausência só conta como remoção
+  quando a leitura foi completa (num delta, não). Erro de provedor → `status=erro|expirada` +
+  `sync_runs`, nunca 500. `ingestion/normalizer_contato.py` faz canonização/dedup/hash/merge.
+- **Endpoints**: `GET/POST /contacts`, `GET/PATCH/DELETE /contacts/{id}` (DELETE arquiva),
+  `GET /contacts/export` (.vcf), `POST /contacts/import` ·
+  `GET /integrations/contacts/providers` · `GET /integrations/contacts` ·
+  `POST /integrations/contacts/{provedor}/authorize` (URL de consentimento) ·
+  `POST /integrations/contacts/callback` · `POST /integrations/contacts/{provedor}/app-password`
+  (Apple/CardDAV) · `PATCH/DELETE /integrations/contacts/{id}` ·
+  `POST /integrations/contacts/{id}/sync` e `POST /integrations/contacts/sync`.
+- **Config (painel admin, categoria `integracoes`)**: `google_client_id/secret`,
+  `microsoft_client_id/secret`, `microsoft_tenant`, `apple_carddav_url`. Sem elas o provedor
+  aparece **indisponível** (degrada como Firecrawl/LLM/Uniq) — e o `.vcf` continua servindo
+  de rota manual. Redirect URI dos apps OAuth: `{app_base_url}/integrations/callback`.
+  Segredos usam o Fernet compartilhado em `core/crypto.py` (o `services/config` passou a usá-lo).
+- **Job**: `jobs/contatos.sync_contatos_todos()` (cron n8n) roda cada usuário na sua sessão
+  RLS, best-effort, e limpa tombstones já propagados.
+- **Web**: `app/panel/contacts` (agenda + CRUD + busca, agendas conectadas com status/direção,
+  sincronizar, importar/exportar .vcf) e `app/integrations/callback` (conclui o OAuth). Item
+  "Agenda de contatos" no menu profile-centric — é uma lente de pessoas sobre o território,
+  não uma aba por plataforma (§19 continua valendo).
+
+## 32. Curadoria (pílulas de categoria) + filtros e leitura dos campos da fonte
+
+Três problemas da tela de captação, resolvidos na camada certa de cada um.
+
+- **Pílulas de categoria (IA + determinístico)**: taxonomia FECHADA em
+  `ai/categorias.py` (saúde, educação, infraestrutura, saneamento, mobilidade, cultura,
+  esporte, assistência social, agricultura, meio ambiente, segurança, habitação, turismo,
+  tecnologia, gestão). Duas camadas sobre ela: `classificar()` (palavra-chave, **sem rede**,
+  casamento por palavra — `\bTERMO\b`, ou `\bTERMO` com `*`; sem isso "cultura" casa dentro de
+  "agriCULTURA") e `ai/resumo.gerar_curadoria()` (LiteLLM: resumo + categorias refinadas numa
+  chamada só, com fallback para o determinístico em qualquer falha). Coluna
+  `propostas.categorias_ia` jsonb (migration `e1a2b3c4d5f6`) — dado DERIVADO, fica **fora** do
+  `_UPSERT_FIELDS` para um re-sync não apagar a curadoria. Jobs em `jobs/curadoria.py`:
+  `classificar_pendentes` (roda no fim de toda coleta, dentro do request) e `curar_com_ia`
+  (lote pequeno, só no 1º sync/cron — nunca no request). A API entrega
+  `PropostaRead.categorias` = `[{slug, rotulo}]`, pronta para exibir e filtrável por slug.
+  Adicionar categoria = um item em `CATEGORIAS`; filtro, faceta, CSV e pílula acompanham.
+- **Filtros do painel (além de ano)**: novas dimensões `municipio`, `uf`, `mes` e `categoria`
+  em `services/propostas._DIMENSOES` — somadas a fonte, modalidade, órgão, situação, natureza
+  jurídica, tipo de transferência (`qualificacao`) e tipo. `mes_de()` usa o mês do **prazo
+  final**; sem prazo, o da atualização na fonte. `facetas()` não manda mais nenhuma dimensão
+  para o SQL: o recorte base é território (RLS) + área/busca/faixa de valor, e cada dimensão é
+  contada ignorando o próprio filtro (senão o dropdown de município fecharia em cima da opção
+  escolhida). Dimensão pode ser **multivalorada** (`categoria`). Ano/mês ordenam
+  cronologicamente, não por contagem.
+- **Campos de extensão longa**: `components/TextoExpansivel.tsx` recorta o valor em N linhas e
+  só mostra **Ampliar** quando há corte de verdade (medido no DOM, não por contagem de
+  caracteres); ampliado, o texto rola dentro de si em vez de esticar a página. Em
+  `app/panel/funding/[id]`, "Dados completos da fonte" separa campos curtos (grade) de longos
+  (linha inteira) e ganha **Ampliar tudo**; `objeto` e `movimentacao` usam o mesmo componente.
+- **CAIXA ALTA das fontes**: `lib/format.humanizarCaixa()` normaliza só na APRESENTAÇÃO
+  ("MTUR/SECULT - ALDIR BLANC - MUNICÍPIOS" → "MTUR/SECULT - Aldir Blanc - Municípios";
+  "FUNDO_A_FUNDO" → "Fundo a Fundo"). Texto já em caixa mista passa intacto; siglas e códigos
+  numéricos são preservados. O dado gravado continua idêntico à origem — a conferência é pelo
+  link "Fonte oficial ↗".
+
+## 33. Recorte de território — filtrar QUAIS dos municípios do perfil ver agora
+
+O onboarding grava N municípios; o painel precisava responder "quais desses eu quero
+olhar neste momento". O recorte é **global e um subconjunto** (não "um município ou
+todos"), vale para TODAS as lentes do menu profile-centric (§19) e nunca amplia
+visibilidade — o RLS segue sendo o limite: pedir um IBGE fora do território devolve vazio.
+
+- **Contrato** — `municipio` virou parâmetro **repetível** em toda leitura:
+  `GET /proposals` (+`/facets`, `/summary`, `/report.csv`, `/deadlines`), `GET /transfers`
+  (+`/overview`, `/amendments/summary`, `/amendments/report.csv`), `GET /works` (+`/summary`),
+  `GET /compliance`, `GET /profile/overview` e `GET /profile/feed`
+  (`?municipio=2611606&municipio=3550308`; um valor só continua valendo). Em corpo JSON:
+  `POST /proposals/live-search` usa `municipios_ibge: []` (era `municipio_ibge`) e
+  `POST /copilot/island` aceita `municipios`.
+- **Serviços** — `services/_territorio.py` é o de-para único: `ibges()` normaliza
+  `str | lista | None` (dedup, sem vazios) e `filtrar()` aplica o `IN` na query. Todos os
+  serviços de leitura (`propostas`, `repasses`, `obras`, `conformidade`, `perfil`,
+  `consulta_avulsa`) tipam o filtro como `Municipios`. Em `propostas.facetas` a dimensão
+  multi-seleção casa por **interseção** (OU dentro da dimensão, E entre dimensões) e a
+  dimensão município continua ignorando o próprio filtro — senão não daria para trocar
+  de recorte pelo dropdown.
+- **Perfil** — `visao_geral`/`novidades` recebem `municipios_filtro`; a visão geral devolve
+  em `municipios` **o recorte** (o cabeçalho mostra o que está sendo visto, não todo o
+  território).
+- **Copiloto** — `ai/agent.executar(..., municipios=...)` injeta o recorte como padrão das
+  ferramentas (o LLM só sobrepõe pedindo um município explícito) e o descreve no system
+  prompt. O island flutua sobre o painel: responde sobre o mesmo conjunto que está na tela.
+- **Web** — `lib/territorio.tsx` (`TerritorioProvider` + `useTerritorio`) carrega o perfil
+  UMA vez para todo o painel, guarda a seleção em `localStorage` (`hub_territorio_ativo`,
+  vazio = todos) e poda IBGEs que saíram do onboarding. `components/TerritorioFiltro.tsx`
+  fica no trilho lateral, junto do território: multi-seleção com "todos", atalho "só este",
+  busca a partir de 8 municípios e chips do recorte ativo. As telas leem `selecionados` e
+  mandam `paramMunicipio(...)` na chamada; o município **saiu** dos filtros locais da
+  Captação (era single-select por aba) — é escolha global agora.
+
+## 34. Espelho da proposta em PDF — atalho de exportação (compartilhar)
+
+A rota de PDF existia desde a §17, mas sem porta na UI (a §25 tirou o botão) e o
+documento era uma tabela cinza de 11 linhas. Agora é o **espelho**: a proposta
+diagramada com a identidade do Hub, a UM clique, onde quer que ela apareça.
+
+- **`services/pdf.py`** (reescrito) monta o mesmo conteúdo da tela de detalhe:
+  banda da marca (abyss + `brand-dot` em gradiente lime→aqua + fio de gradiente),
+  faixa de destaque (valor e prazo, os dois dados que decidem a ação de hoje),
+  barra empilhada da execução financeira (pago ⊂ liberado ⊂ empenhado sobre o
+  global) com legenda nas cores dos segmentos, pílulas de categoria/tipo, prazos e
+  pendências com tom de urgência (mesma escada de `lib/format.ts::tomPrazo`),
+  dados gerais, situação/movimentação, **QR da fonte oficial** para conferência e
+  anexo com o registro-fonte completo. Rodapé com "página X de Y" (canvas de duas
+  passadas) e data de emissão em toda página.
+- **Paleta e tipografia**: tokens do tema CLARO de `globals.css` (o espelho é
+  impresso e reencaminhado, nunca segue o tema escuro). Só fontes Type1 embutidas
+  no reportlab — a imagem da API é `python:3.12-slim`, sem nenhuma TTF; o "mono"
+  dos rótulos é reproduzido com caixa alta + `charSpace`. **Atenção**: `Tc` é
+  estado GRÁFICO do PDF — sem zerar depois de desenhar com tracking, a banda vaza
+  espaçamento para a página inteira e todo o texto transborda os cards (o layout
+  fica certo e o desenho, errado).
+- **Tetos de conteúdo** (`_MAX_*`): um card é UMA célula de tabela e não se parte
+  entre páginas; sem teto, um `objeto` de 8 mil caracteres ou 40 pendências
+  derrubam a exportação inteira com `LayoutError`. Os limites saem da largura de
+  cada bloco e todo corte remete à fonte oficial — nada some em silêncio.
+- **`services/texto.py`**: `humanizar_caixa` — espelho em Python do
+  `lib/format.ts::humanizarCaixa`, para o PDF não sair gritando enquanto a tela
+  não grita.
+- **Endpoint**: `GET /proposals/{id}/pdf` ganhou nome de arquivo legível
+  (`espelho-091234-2024-mossoro.pdf`), `?inline=true` (visualizar em vez de
+  baixar) e `Cache-Control: no-store` (o documento carrega a data de emissão).
+- **Web** — `components/BotaoEspelho.tsx` é o atalho único: no celular abre a
+  folha nativa de compartilhamento com o PDF anexado (`navigator.share` com
+  `canShare({files})`), no desktop baixa. Formato `botao` no cabeçalho do detalhe
+  (com **atalho de teclado "P"**, ignorado quando o foco está num campo) e
+  `icone` nas listas — Captação, Minhas propostas e feed do Meu painel. Cliente:
+  `exportarEspelhoProposta` em `lib/api/client.ts` (lê o nome do
+  `Content-Disposition`).
+
+## 35. Hierarquia de dado na exibição (decisão travada)
+
+Complemento direto da seção 19: se a navegação parte do PERFIL, **o dado também
+tem que se apresentar assim**. Em toda superfície de saída — header de detalhe,
+listas, PDF, alerta de WhatsApp, contexto do LLM — vale a mesma ordem:
+
+1. **MUNICÍPIO** — sempre primeiro, sempre pelo **nome** (`São Paulo/SP`).
+2. **Objeto** do registro (título da proposta, nome da obra, o que o requisito exige).
+3. **Números fortes** — valor e o **EMPENHO** (é o que diz se o recurso saiu do
+   papel). Ficam na faixa de destaque, não numa grade secundária.
+4. **Identificadores** — nº da proposta, id externo da fonte, nº do item do CAUC,
+   UUID interno. São **dados secundários**: pequenos, em mono, cinza, no fim.
+
+**O código IBGE nunca lidera** — é desambiguador, entra como linha de apoio
+(`IBGE 3550308`). E **identificador nunca vira título**: fallbacks de `titulo`
+param no objeto, nunca em `id_externo`.
+
+**Resolução do nome** (`services/municipios.py`, metade "saída"): (1) o que a
+fonte trouxe → (2) o território do usuário (`municipios_interesse`, sob RLS) →
+(3) UF derivada do prefixo do IBGE (offline). Sem nome algum, `rotulo()` degrada
+para `Município 3550308 (SP)` — rotulado, nunca um número solto. `enriquecer()`
+completa `municipio_nome`/`uf` só na resposta (`model_copy`): não persiste nem
+suja o ORM. Aplicado em propostas, repasses, obras e conformidade.
+
+O front tem o par equivalente em `lib/format`: `municipioPrincipal()` e
+`municipioSecundario()` — a regra mora neles, não num `municipio_nome ??
+municipio_ibge` repetido por tela.
+
+**Empenho** reaproveita a execução financeira que já vem do TransfereGov
+(`execucao.valor_empenhado/liberado/pago/global`) — não há coluna nova. O que
+mudou é o lugar: subiu para a faixa de destaque do detalhe, com "empenhado a
+utilizar" (empenhado − pago) como linha de apoio.
+
+**Casos mapeados e corrigidos** (checklist para telas novas):
+
+| Onde | Antes | Agora |
+|---|---|---|
+| `panel/funding/[id]` | h1 = título, com fallback para `id_externo`; município em linha cinza de apoio | h1 = município; objeto abaixo; nunca um id como título |
+| `panel/funding/[id]` (faixa) | empenho na grade secundária | `Empenhado` como 3º valor-herói, com "a utilizar" de apoio |
+| `panel/funding/[id]` (dados) | campo "Município (IBGE)" só com o código | "Município" nomeado + "Código IBGE" separado; ids ao fim |
+| `panel/funding` (lista) | título caindo para `id_externo`; município caindo para o código | objeto ou "sem título na fonte"; município nomeado + IBGE de apoio |
+| `panel/my-proposals` | idem | idem |
+| `panel/compliance` | `numero` do item na frente da descrição | descrição na frente, `item N` de apoio |
+| `panel/works` | obra sem município | município no item quando o território tem mais de um |
+| `panel/alerts` | `municipio_nome \|\| municipio_ibge` cru | `municipioPrincipal()` (código rotulado) |
+| `services/pdf.py` | abria pelo título; "Município (IBGE)" na 5ª linha | município no topo; empenho/execução; "Identificação" no fim |
+| `dispatch_alerts` (WhatsApp) | "proposta {uuid}" | "🔔 São Paulo/SP · UBS — status" |
+| `rag.montar_contexto` | `[fonte/id]` na frente, município cru | município nomeado abre a linha; id da fonte fecha |
+| `ai/resumo` (curadoria) | "Município (IBGE): 3550308" | `rotulo()` + instrução de citar pelo nome |
+
+Fonte de dados **nunca** vira identidade de registro na UI (seção 19) — e código
+de município **nunca** vira nome.

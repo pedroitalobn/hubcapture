@@ -24,15 +24,13 @@ export function DateRangePresets({
   onChange: (p: RangePreset) => void;
 }) {
   return (
-    <div className="inline-flex overflow-hidden rounded-md border border-gray-300 dark:border-gray-700">
+    <div className="segmented">
       {PRESETS.map((p) => (
         <button
           key={p.value}
           onClick={() => onChange(p.value)}
-          className={`px-3 py-1.5 text-sm ${
-            value === p.value
-              ? "bg-brand text-brand-fg"
-              : "bg-transparent text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-900"
+          className={`segmented-item ${
+            value === p.value ? "segmented-item-active" : ""
           }`}
         >
           {p.label}

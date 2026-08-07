@@ -52,3 +52,27 @@ async def test_resolver_fallback_para_default_do_env() -> None:
 async def test_chave_desconhecida_rejeitada() -> None:
     assert service.chave_valida("firecrawl_api_key") is True
     assert service.chave_valida("chave_inexistente") is False
+
+
+async def test_catalogo_agrupa_por_provider_e_expoe_origem() -> None:
+    """Providers de scraping/IA são grupos próprios; origem distingue painel × .env."""
+    async with SessionLocal() as s:
+        async with s.begin():
+            await service.definir(s, "crawl4ai_base_url", "http://crawl4ai:11235")
+        async with s.begin():
+            itens = {i["chave"]: i for i in await service.listar_catalogo(s)}
+
+    assert itens["firecrawl_api_key"]["provider"] == "firecrawl"
+    assert itens["crawl4ai_base_url"]["provider"] == "crawl4ai"
+    assert itens["llm_api_key"]["provider"] == "llm"
+    assert itens["embedding_model"]["provider"] == "embeddings"
+    # chaves de fonte não têm provider (agrupam pela categoria)
+    assert itens["fnde_base_url"]["provider"] is None
+
+    # gravado pelo painel → origem 'banco'
+    assert itens["crawl4ai_base_url"]["origem"] == "banco"
+    # sem valor no banco mas com default do Settings/.env → origem 'env'
+    assert itens["firecrawl_base_url"]["origem"] == "env"
+    # sem valor em lugar nenhum → 'padrao' e não-configurado
+    assert itens["llm_api_key"]["origem"] == "padrao"
+    assert itens["llm_api_key"]["configurado"] is False

@@ -19,33 +19,34 @@ async def listar(session: AsyncSession, usuario_id: uuid.UUID) -> list[Pasta]:
     return list(result.scalars().all())
 
 
-async def criar(
-    session: AsyncSession, usuario_id: uuid.UUID, dados: PastaCreate
-) -> Pasta:
+async def criar(session: AsyncSession, usuario_id: uuid.UUID, dados: PastaCreate) -> Pasta:
     pasta = Pasta(usuario_id=usuario_id, nome=dados.nome, cor=dados.cor)
     session.add(pasta)
     await session.flush()
     return pasta
 
 
-async def obter(
-    session: AsyncSession, usuario_id: uuid.UUID, pasta_id: uuid.UUID
-) -> Pasta | None:
+async def obter(session: AsyncSession, usuario_id: uuid.UUID, pasta_id: uuid.UUID) -> Pasta | None:
     result = await session.execute(
         select(Pasta).where(Pasta.id == pasta_id, Pasta.usuario_id == usuario_id)
     )
     return result.scalar_one_or_none()
 
 
-async def atualizar(
-    session: AsyncSession, pasta: Pasta, dados: PastaUpdate
-) -> Pasta:
+async def atualizar(session: AsyncSession, pasta: Pasta, dados: PastaUpdate) -> Pasta:
     if dados.nome is not None:
         pasta.nome = dados.nome
     if dados.cor is not None:
         pasta.cor = dados.cor
     await session.flush()
     return pasta
+
+
+async def propostas_da_pasta(session: AsyncSession, pasta_id: uuid.UUID) -> list[uuid.UUID]:
+    result = await session.execute(
+        select(PastaProposta.proposta_id).where(PastaProposta.pasta_id == pasta_id)
+    )
+    return list(result.scalars().all())
 
 
 async def adicionar_proposta(
