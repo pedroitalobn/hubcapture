@@ -25,6 +25,7 @@ from ...schemas.proposta import (
     PropostasPagina,
     ResumoCaptacao,
 )
+from ...services import municipios as municipios_service
 from ...services import pdf as pdf_service
 from ...services import propostas as propostas_service
 from ...services.modulos import require_modulo
@@ -97,7 +98,10 @@ async def listar_propostas(
     """Página da listagem lida do banco (cache-first) + total do recorte."""
     rows, total = await propostas_service.listar_pagina(session, **filtros.model_dump())
     return PropostasPagina(
-        itens=[PropostaRead.model_validate(r) for r in rows],
+        # o nome do município lidera a exibição — completa o que a fonte não trouxe
+        itens=await municipios_service.enriquecer(
+            session, [PropostaRead.model_validate(r) for r in rows]
+        ),
         total=total,
         limite=filtros.limite,
         offset=filtros.offset,
@@ -149,8 +153,16 @@ async def propostas_por_prazo(
 ) -> list[PropostaPrazo]:
     """Propostas com prazo vencendo na janela — 'quais vencem este mês?'."""
     rows = await propostas_service.listar_por_prazo(session, dias=dias, municipio=municipio)
+    mapa = await municipios_service.mapa_territorio(session)
     return [
-        PropostaPrazo(proposta=PropostaRead.model_validate(p), prazos_na_janela=prazos)
+        PropostaPrazo(
+            proposta=(
+                await municipios_service.enriquecer(
+                    session, [PropostaRead.model_validate(p)], mapa=mapa
+                )
+            )[0],
+            prazos_na_janela=prazos,
+        )
         for p, prazos in rows
     ]
 
@@ -163,7 +175,10 @@ async def obter_proposta(
     row = await propostas_service.obter(session, proposta_id)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PROPOSTA_NAO_ENCONTRADA")
-    return PropostaRead.model_validate(row)
+    enriquecidas = await municipios_service.enriquecer(
+        session, [PropostaRead.model_validate(row)]
+    )
+    return enriquecidas[0]
 
 
 @router.get("/proposals/{proposta_id}/pdf")
@@ -174,7 +189,11 @@ async def exportar_pdf(
     row = await propostas_service.obter(session, proposta_id)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PROPOSTA_NAO_ENCONTRADA")
-    conteudo = pdf_service.gerar_pdf_proposta(row)
+    mapa = await municipios_service.mapa_territorio(session)
+    nome, uf = mapa.get(row.municipio_ibge or "", (None, None))
+    conteudo = pdf_service.gerar_pdf_proposta(
+        row, municipio_nome=row.municipio_nome or nome, uf=row.uf or uf
+    )
     return Response(
         content=conteudo,
         media_type="application/pdf",

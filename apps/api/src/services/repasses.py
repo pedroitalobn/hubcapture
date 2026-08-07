@@ -33,6 +33,7 @@ from ..schemas.repasse import (
     SerieAnoEmendas,
     VisaoGeral,
 )
+from . import municipios
 from ._sync import registrar_sync
 from ._territorio import Municipios
 from ._territorio import filtrar as filtrar_municipio
@@ -145,11 +146,15 @@ async def visao_geral(
         FonteResumo(fonte=f, total=por_fonte_total[f], movimentacoes=por_fonte_qtd[f])
         for f in sorted(por_fonte_total, key=lambda x: por_fonte_total[x], reverse=True)
     ]
+    # o feed identifica cada lançamento pelo município (nome), não pelo código
+    mapa = await municipios.mapa_territorio(session)
     feed = [
         RepassesPorDia(
             data=d,
             subtotal=sum((_signed(r.valor, r.natureza) for r in por_dia[d]), Decimal(0)),
-            itens=[RepasseRead.model_validate(r) for r in por_dia[d]],
+            itens=await municipios.enriquecer(
+                session, [RepasseRead.model_validate(r) for r in por_dia[d]], mapa=mapa
+            ),
         )
         for d in sorted(por_dia, reverse=True)
     ]

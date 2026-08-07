@@ -18,6 +18,7 @@ from dataclasses import dataclass
 
 from ..schemas.proposta import PropostaCanonica
 from ..services import llm_providers
+from ..services.municipios import rotulo
 from . import categorias as categorias_ai
 
 log = logging.getLogger("hubcapture.ai.resumo")
@@ -29,7 +30,8 @@ _PROMPT = (
     '{{"resumo": "<1 parágrafo objetivo>", "categorias": ["<slug>", ...]}}\n\n'
     "Regras:\n"
     "- resumo: 1 parágrafo (até 60 palavras) dizendo o que é, valor, órgão, "
-    "situação e prazo/pendência quando houver. Português do Brasil, sem jargão "
+    "situação e prazo/pendência quando houver. Cite o município pelo NOME, "
+    "nunca pelo código IBGE. Português do Brasil, sem jargão "
     "e sem repetir o título em CAIXA ALTA.\n"
     "- categorias: de 1 a 3 slugs, APENAS desta lista: {taxonomia}.\n\n"
     "Proposta:\n"
@@ -45,14 +47,19 @@ class Curadoria:
 
 
 def _contexto(p: PropostaCanonica) -> str:
+    # Município pelo NOME abre o contexto e o empenho entra junto do valor —
+    # mesma hierarquia do header do detalhe (seção 23). Antes ia só o código
+    # IBGE, e o resumo devolvia o número ao gestor.
+    empenhado = (p.execucao or {}).get("valor_empenhado") if p.execucao else None
     partes = [
+        f"Município: {rotulo(p.municipio_nome, p.uf, p.municipio_ibge)}",
         f"Título: {p.titulo}",
         f"Objeto: {(p.objeto or '')[:600]}",
         f"Órgão: {p.orgao_superior}",
         f"Modalidade: {p.modalidade}",
         f"Valor: {p.valor_total}",
+        f"Empenhado: {empenhado or '—'}",
         f"Situação: {p.situacao}",
-        f"Município (IBGE): {p.municipio_ibge}",
     ]
     return "\n".join(str(x) for x in partes)
 

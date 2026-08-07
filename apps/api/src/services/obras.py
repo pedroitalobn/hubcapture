@@ -22,6 +22,7 @@ from ..models.audit_log import AuditLog
 from ..models.municipio_interesse import MunicipioInteresse
 from ..models.obra import Obra
 from ..schemas.obra import ObraCanonica, ObraRead, ObrasResumo, SituacaoResumo
+from . import municipios
 from ._sync import registrar_sync
 from ._territorio import Municipios
 from ._territorio import filtrar as filtrar_municipio
@@ -112,7 +113,10 @@ async def resumo(session: AsyncSession, *, municipio: Municipios = None) -> Obra
         valor_investimento_total=_soma("valor_investimento"),
         valor_repassado_total=_soma("valor_repassado"),
         por_situacao=situacoes,
-        obras=[ObraRead.model_validate(o) for o in obras],
+        # nome do município antes de qualquer identificador (seção 23)
+        obras=await municipios.enriquecer(
+            session, [ObraRead.model_validate(o) for o in obras]
+        ),
     )
 
 

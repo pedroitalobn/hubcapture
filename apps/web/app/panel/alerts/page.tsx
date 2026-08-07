@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
+import { municipioPrincipal } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 type Alerta = {
@@ -45,7 +46,14 @@ const AREAS = [
 
 function descricao(a: Alerta): string {
   const p = (a.payload ?? {}) as Record<string, string | undefined>;
-  const municipio = p.municipio_nome || p.municipio_ibge || "";
+  // município pelo nome; sem nome, o código vai rotulado (seção 23)
+  const municipio = p.municipio_ibge
+    ? municipioPrincipal({
+        municipio_nome: p.municipio_nome,
+        municipio_ibge: p.municipio_ibge,
+        uf: p.uf,
+      })
+    : (p.municipio_nome ?? "");
   if (a.tipo === "nova_proposta")
     return `${p.titulo ?? "Nova proposta"} (${p.fonte ?? ""}) em ${municipio}`;
   if (a.tipo === "oportunidade")

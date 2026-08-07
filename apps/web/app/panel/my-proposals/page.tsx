@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api/client";
+import { municipioPrincipal, municipioSecundario } from "@/lib/format";
 import { useTerritorio } from "@/lib/territorio";
 
 type Proposta = {
@@ -109,15 +110,20 @@ export default function MinhasPropostasPage() {
                   </td>
                   <td className="px-3 py-3">
                     <Link href={`/panel/funding/${p.id}`} className="font-medium hover:underline">
-                      {p.titulo ?? p.objeto ?? p.id_externo}
+                      {p.titulo ?? p.objeto ?? "Proposta sem título na fonte"}
                     </Link>
                     <p className="mt-0.5 max-w-md text-xs text-ink-3">
                       {[p.orgao_superior, p.modalidade, p.id_externo].filter(Boolean).join(" · ")}
                     </p>
                   </td>
                   <td className="px-3 py-3 text-ink-2">
-                    {p.municipio_nome ?? p.municipio_ibge ?? "—"}
-                    {p.uf ? `/${p.uf}` : ""}
+                    {/* nome do município lidera; código IBGE é apoio (seção 23) */}
+                    <span className="block">{municipioPrincipal(p)}</span>
+                    {municipioSecundario(p) && (
+                      <span className="block font-mono text-[11px] text-ink-3">
+                        {municipioSecundario(p)}
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-3 tabular-nums">{brl(p.valor_total)}</td>
                   <td className="px-3 py-3 text-ink-2">{p.situacao ?? "—"}</td>

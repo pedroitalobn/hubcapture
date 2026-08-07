@@ -7,7 +7,7 @@ import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { api } from "@/lib/api/client";
-import { formatBRL } from "@/lib/format";
+import { formatBRL, municipioPrincipal } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 interface Obra {
@@ -159,6 +159,10 @@ function ObrasConteudo() {
     return sit ? all.filter((o) => o.situacao === sit) : all;
   }, [data, sit]);
 
+  // território com mais de um município → cada obra precisa dizer de qual é
+  const multiMunicipio =
+    new Set((data?.obras ?? []).map((o) => o.municipio_ibge ?? "")).size > 1;
+
   const chips = (data?.por_situacao ?? []).map((s) => ({
     value: s.situacao,
     label: SIT_LABEL[s.situacao] ?? s.situacao,
@@ -224,6 +228,13 @@ function ObrasConteudo() {
             {obras.map((o) => (
               <li key={o.id} className="flex items-start justify-between gap-3 py-3.5 text-sm">
                 <span className="min-w-0">
+                  {/* com território multi-município, cada obra diz de qual é —
+                      o município identifica antes da fonte (seção 23) */}
+                  {multiMunicipio && (
+                    <span className="block text-xs font-medium text-ink-2">
+                      {municipioPrincipal(o)}
+                    </span>
+                  )}
                   <span className="block truncate tracking-tight">
                     {o.nome ?? o.objeto ?? "Obra"}
                   </span>

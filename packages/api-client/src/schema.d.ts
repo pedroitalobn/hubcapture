@@ -1749,6 +1749,8 @@ export interface components {
             id: string;
             /** Municipio Ibge */
             municipio_ibge: string;
+            /** Municipio Nome */
+            municipio_nome?: string | null;
             /** Numero */
             numero: string;
             /** Orgao */
@@ -1759,6 +1761,8 @@ export interface components {
             status?: string | null;
             /** Tipo */
             tipo: string;
+            /** Uf */
+            uf?: string | null;
             /** Validade */
             validade?: string | null;
             /** Valor */
