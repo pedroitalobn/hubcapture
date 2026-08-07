@@ -9128,7 +9128,7 @@
     },
     "/api/v1/profile/feed": {
       "get": {
-        "description": "Feed 'últimas novidades' do território, recortado pelo perfil do usuário.",
+        "description": "Feed 'últimas novidades' do território, recortado pelo perfil do usuário.\n\n`limite` controla a profundidade da janela: o painel pede mais que o padrão\npara o filtro por ano alcançar itens de anos anteriores ao corrente.",
         "operationId": "novidades_perfil_api_v1_profile_feed_get",
         "parameters": [
           {
@@ -9150,6 +9150,20 @@
               ],
               "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
+            }
+          },
+          {
+            "description": "tamanho da janela do feed",
+            "in": "query",
+            "name": "limite",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "tamanho da janela do feed",
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limite",
+              "type": "integer"
             }
           }
         ],
