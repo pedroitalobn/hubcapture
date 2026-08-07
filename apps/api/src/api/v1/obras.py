@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...core.users import current_active_user
 from ...models.usuario import Usuario
 from ...schemas.obra import ObraRead, ObrasResumo
+from ...services import municipios as municipios_service
 from ...services import obras as service
 from ...services.modulos import require_modulo
 from ..deps import get_rls_db
@@ -32,7 +33,9 @@ async def listar_obras(
     session: AsyncSession = Depends(get_rls_db),
 ) -> list[ObraRead]:
     rows = await service.listar(session, municipio=municipio, fonte=fonte, situacao=situacao)
-    return [ObraRead.model_validate(o) for o in rows]
+    return await municipios_service.enriquecer(
+        session, [ObraRead.model_validate(o) for o in rows]
+    )
 
 
 @router.get("/works/summary", response_model=ObrasResumo)

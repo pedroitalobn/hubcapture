@@ -689,6 +689,17 @@
             "title": "Municipio Ibge",
             "type": "string"
           },
+          "municipio_nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Nome"
+          },
           "numero": {
             "title": "Numero",
             "type": "string"
@@ -729,6 +740,17 @@
           "tipo": {
             "title": "Tipo",
             "type": "string"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
           },
           "validade": {
             "anyOf": [

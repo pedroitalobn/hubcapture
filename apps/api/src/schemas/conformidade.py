@@ -31,6 +31,9 @@ class ConformidadeRead(BaseModel):
 
     id: uuid.UUID
     municipio_ibge: str
+    # o município (nomeado) identifica o requisito; `numero` é dado secundário
+    municipio_nome: str | None = None
+    uf: str | None = None
     tipo: str
     numero: str
     secao: str | None = None

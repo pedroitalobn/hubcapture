@@ -72,6 +72,35 @@ export function humanizarCaixa(texto?: string | null): string {
     .join("");
 }
 
+/**
+ * Território de um registro. Regra de exibição (seção 23 do CLAUDE.md): o NOME
+ * do município lidera; o código IBGE é dado secundário. Nenhuma tela deve usar
+ * o código sozinho como identidade do registro — para isso existem estes dois
+ * helpers, e não um `municipio_nome ?? municipio_ibge` espalhado.
+ */
+export interface MunicipioRef {
+  municipio_nome?: string | null;
+  municipio_ibge?: string | null;
+  uf?: string | null;
+}
+
+/** Linha principal: "São Paulo/SP" — nunca um número solto. */
+export function municipioPrincipal(m: MunicipioRef): string {
+  const nome = humanizarCaixa(m.municipio_nome).trim();
+  if (nome) return m.uf ? `${nome}/${m.uf}` : nome;
+  // sem nome (a fonte não trouxe e o perfil não tem): rotula o código
+  if (m.municipio_ibge) return `Município ${m.municipio_ibge}`;
+  return "Município não informado";
+}
+
+/** Linha de apoio: o código IBGE (ou a UF, quando o código já apareceu). */
+export function municipioSecundario(m: MunicipioRef): string | null {
+  if (humanizarCaixa(m.municipio_nome).trim()) {
+    return m.municipio_ibge ? `IBGE ${m.municipio_ibge}` : null;
+  }
+  return m.uf ? `UF ${m.uf}` : null;
+}
+
 /** Formata um valor (string decimal vinda da API) em BRL. */
 export function formatBRL(v?: string | number | null): string {
   if (v === null || v === undefined || v === "") return "—";

@@ -143,12 +143,14 @@ function ConformidadeConteudo() {
               <ul className="flex flex-col divide-y divide-hairline">
                 {requisitosPorSecao(sec.secao).map((r) => (
                   <li key={r.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-                    <span className="text-ink-2">
-                      <span className="font-mono text-xs text-ink-3">{r.numero}</span>{" "}
-                      <span className="text-ink">{r.descricao ?? "—"}</span>
-                      {r.orgao ? (
-                        <span className="text-xs text-ink-3"> · {r.orgao}</span>
-                      ) : null}
+                    {/* o requisito é identificado pelo que exige; o número do
+                        item do CAUC é apoio, embaixo e em cinza (seção 23) */}
+                    <span className="min-w-0 text-ink-2">
+                      <span className="block text-ink">{r.descricao ?? "—"}</span>
+                      <span className="block text-xs text-ink-3">
+                        <span className="font-mono">item {r.numero}</span>
+                        {r.orgao ? ` · ${r.orgao}` : ""}
+                      </span>
                     </span>
                     <StatusBadge tone={TONE[r.status ?? ""] ?? "neutral"}>
                       {LABEL[r.status ?? ""] ?? r.status ?? "—"}

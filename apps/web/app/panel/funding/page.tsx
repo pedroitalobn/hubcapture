@@ -9,6 +9,8 @@ import {
   formatBRL,
   formatDate,
   humanizarCaixa,
+  municipioPrincipal,
+  municipioSecundario,
   prazoLabel,
   tomPrazo,
 } from "@/lib/format";
@@ -1282,8 +1284,10 @@ export default function CaptacaoPage() {
                         href={`/panel/funding/${p.id}`}
                         className="font-medium hover:underline"
                       >
-                        {humanizarCaixa(p.titulo ?? p.objeto ?? p.id_externo)}
+                        {humanizarCaixa(p.titulo ?? p.objeto) ||
+                          "Proposta sem título na fonte"}
                       </Link>
+                      {/* identificador da fonte é apoio do objeto, não o objeto */}
                       <p className="mt-0.5 max-w-md text-xs text-ink-3">
                         {[
                           humanizarCaixa(p.orgao_superior),
@@ -1320,8 +1324,13 @@ export default function CaptacaoPage() {
                       )}
                     </td>
                     <td className="px-3 py-3 text-ink-2">
-                      {humanizarCaixa(p.municipio_nome ?? p.municipio_ibge) || "—"}
-                      {p.uf ? `/${p.uf}` : ""}
+                      {/* nome do município; o código só como apoio (seção 23) */}
+                      <span className="block">{municipioPrincipal(p)}</span>
+                      {municipioSecundario(p) && (
+                        <span className="block font-mono text-[11px] text-ink-3">
+                          {municipioSecundario(p)}
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-3 text-ink-2">
                       {p.prazo_final ? (

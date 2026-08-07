@@ -47,6 +47,7 @@ from reportlab.platypus import (
 )
 
 from ..models.proposta import Proposta
+from .municipios import rotulo as rotulo_municipio
 from .texto import humanizar_caixa
 
 # ── Paleta (tema claro do design system) ────────────────────────────────────
@@ -584,7 +585,10 @@ def _categorias(p: Proposta) -> list[str]:
 
 
 def _titulo_proposta(p: Proposta) -> str:
-    bruto = p.titulo or p.objeto or p.numero_proposta or p.id_externo or "Proposta"
+    # Identificador NÃO é título (§35): sem título nem objeto, o espelho diz
+    # isso — antes caía para `numero_proposta`/`id_externo` e o documento saía
+    # encabeçado por um código.
+    bruto = p.titulo or p.objeto or "Proposta sem título na fonte"
     return _recorte(humanizar_caixa(bruto), _MAX_TITULO, nota=False)
 
 
@@ -606,16 +610,20 @@ def _cabecalho(p: Proposta) -> list:
     from .propostas import classificar_tipo
 
     disponivel = classificar_tipo(p.situacao) == "disponivel"
-    identidade = " · ".join(
+    # Hierarquia do §35: o MUNICÍPIO encabeça o espelho (é a identidade do
+    # registro), o objeto vem em seguida e os identificadores da fonte descem
+    # para a linha de apoio. Antes a tarja era "FONTE · nº" e o município ia
+    # junto do órgão, três degraus abaixo — e cru quando faltava o nome.
+    territorio = rotulo_municipio(p.municipio_nome, p.uf, p.municipio_ibge)
+    identificacao = " · ".join(
         x for x in [_fonte_rotulo(p).upper(), p.numero_proposta or p.id_externo] if x
     )
-    territorio = _t(p.municipio_nome or p.municipio_ibge, "")
-    if p.uf:
-        territorio = f"{territorio}/{p.uf}" if territorio else p.uf
-    meta = " · ".join(x for x in [territorio, _t(p.orgao_superior, "")] if x and x != "—")
+    meta = " · ".join(
+        x for x in [identificacao, _t(p.orgao_superior, "")] if x and x != "—"
+    )
 
     elementos: list = [
-        Paragraph(escape(identidade), ROTULO_CLARO),
+        Paragraph(escape(territorio), ROTULO_CLARO),
         Spacer(1, 5),
         Paragraph(escape(_titulo_proposta(p)), TITULO),
     ]
@@ -777,14 +785,17 @@ def _bloco_execucao(p: Proposta) -> list:
 def _bloco_dados_gerais(p: Proposta) -> Table:
     interno = MEIO - 2 * PAD_CARD
     campos = [
-        _campo("Nº da proposta", _t(p.numero_proposta or p.id_externo)),
-        _campo("Identificador na fonte", escape(str(p.id_externo or "—"))),
-        _campo("Fonte", escape(_fonte_rotulo(p))),
+        # município nomeado antes dos identificadores; o código IBGE vira um
+        # campo próprio, rotulado (§35)
+        _campo("Município", escape(rotulo_municipio(p.municipio_nome, p.uf, p.municipio_ibge))),
+        _campo("Código IBGE", escape(str(p.municipio_ibge or "—"))),
+        _campo("UF", escape(str(p.uf or "—"))),
         _campo("Órgão superior", _t(p.orgao_superior)),
         _campo("Modalidade", _t(p.modalidade)),
         _campo("Emenda", _t(p.emenda)),
-        _campo("Município (IBGE)", escape(str(p.municipio_ibge or "—"))),
-        _campo("UF", escape(str(p.uf or "—"))),
+        _campo("Nº da proposta", _t(p.numero_proposta or p.id_externo)),
+        _campo("Identificador na fonte", escape(str(p.id_externo or "—"))),
+        _campo("Fonte", escape(_fonte_rotulo(p))),
         _campo("Atualizado na fonte", _data(p.data_atualizacao_fonte)),
     ]
     conteudo: list = [_grade(campos, interno, colunas=2)]

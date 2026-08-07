@@ -14,6 +14,7 @@ from ...core.users import current_active_user
 from ...models.usuario import Usuario
 from ...schemas.repasse import RepasseRead, ResumoEmendas, VisaoGeral
 from ...services import fontes as fontes_service
+from ...services import municipios as municipios_service
 from ...services import repasses as service
 from ...services.modulos import require_modulo
 from ..deps import get_rls_db
@@ -70,7 +71,9 @@ async def listar_repasses(
         categoria=categoria,
         q=q,
     )
-    return [RepasseRead.model_validate(r) for r in rows]
+    return await municipios_service.enriquecer(
+        session, [RepasseRead.model_validate(r) for r in rows]
+    )
 
 
 @router.get("/transfers/amendments/summary", response_model=ResumoEmendas)

@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..ai.embeddings import embed_um
 from ..models.proposta import Proposta
 from ..models.proposta_embedding import PropostaEmbedding
+from .municipios import rotulo
 
 
 async def buscar_propostas(session: AsyncSession, query: str, k: int = 5) -> list[Proposta]:
@@ -36,12 +37,20 @@ async def buscar_propostas(session: AsyncSession, query: str, k: int = 5) -> lis
 
 
 def montar_contexto(propostas: list[Proposta]) -> str:
-    """Serializa as propostas recuperadas como contexto para o LLM."""
+    """Serializa as propostas recuperadas como contexto para o LLM.
+
+    Mesma hierarquia das telas (seção 23): o município (pelo nome) abre a linha,
+    o empenho entra junto do valor e o identificador da fonte fecha — assim o
+    modelo cita "São Paulo/SP" na resposta, não um código IBGE cru.
+    """
     linhas = []
     for p in propostas:
+        municipio = rotulo(p.municipio_nome, p.uf, p.municipio_ibge)
+        empenhado = (p.execucao or {}).get("valor_empenhado") if p.execucao else None
         linhas.append(
-            f"- [{p.fonte}/{p.id_externo}] {p.titulo or ''} · órgão: {p.orgao_superior or '—'}"
+            f"- {municipio} · {p.titulo or ''} · órgão: {p.orgao_superior or '—'}"
             f" · situação: {p.situacao or '—'} · valor: {p.valor_total or '—'}"
-            f" · município: {p.municipio_ibge or '—'}"
+            f" · empenhado: {empenhado or '—'}"
+            f" · id na fonte: {p.fonte}/{p.id_externo}"
         )
     return "\n".join(linhas) if linhas else "(nenhuma proposta encontrada no seu escopo)"

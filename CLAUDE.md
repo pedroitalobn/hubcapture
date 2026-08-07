@@ -1115,3 +1115,56 @@ diagramada com a identidade do Hub, a UM clique, onde quer que ela apareça.
   `icone` nas listas — Captação, Minhas propostas e feed do Meu painel. Cliente:
   `exportarEspelhoProposta` em `lib/api/client.ts` (lê o nome do
   `Content-Disposition`).
+
+## 35. Hierarquia de dado na exibição (decisão travada)
+
+Complemento direto da seção 19: se a navegação parte do PERFIL, **o dado também
+tem que se apresentar assim**. Em toda superfície de saída — header de detalhe,
+listas, PDF, alerta de WhatsApp, contexto do LLM — vale a mesma ordem:
+
+1. **MUNICÍPIO** — sempre primeiro, sempre pelo **nome** (`São Paulo/SP`).
+2. **Objeto** do registro (título da proposta, nome da obra, o que o requisito exige).
+3. **Números fortes** — valor e o **EMPENHO** (é o que diz se o recurso saiu do
+   papel). Ficam na faixa de destaque, não numa grade secundária.
+4. **Identificadores** — nº da proposta, id externo da fonte, nº do item do CAUC,
+   UUID interno. São **dados secundários**: pequenos, em mono, cinza, no fim.
+
+**O código IBGE nunca lidera** — é desambiguador, entra como linha de apoio
+(`IBGE 3550308`). E **identificador nunca vira título**: fallbacks de `titulo`
+param no objeto, nunca em `id_externo`.
+
+**Resolução do nome** (`services/municipios.py`, metade "saída"): (1) o que a
+fonte trouxe → (2) o território do usuário (`municipios_interesse`, sob RLS) →
+(3) UF derivada do prefixo do IBGE (offline). Sem nome algum, `rotulo()` degrada
+para `Município 3550308 (SP)` — rotulado, nunca um número solto. `enriquecer()`
+completa `municipio_nome`/`uf` só na resposta (`model_copy`): não persiste nem
+suja o ORM. Aplicado em propostas, repasses, obras e conformidade.
+
+O front tem o par equivalente em `lib/format`: `municipioPrincipal()` e
+`municipioSecundario()` — a regra mora neles, não num `municipio_nome ??
+municipio_ibge` repetido por tela.
+
+**Empenho** reaproveita a execução financeira que já vem do TransfereGov
+(`execucao.valor_empenhado/liberado/pago/global`) — não há coluna nova. O que
+mudou é o lugar: subiu para a faixa de destaque do detalhe, com "empenhado a
+utilizar" (empenhado − pago) como linha de apoio.
+
+**Casos mapeados e corrigidos** (checklist para telas novas):
+
+| Onde | Antes | Agora |
+|---|---|---|
+| `panel/funding/[id]` | h1 = título, com fallback para `id_externo`; município em linha cinza de apoio | h1 = município; objeto abaixo; nunca um id como título |
+| `panel/funding/[id]` (faixa) | empenho na grade secundária | `Empenhado` como 3º valor-herói, com "a utilizar" de apoio |
+| `panel/funding/[id]` (dados) | campo "Município (IBGE)" só com o código | "Município" nomeado + "Código IBGE" separado; ids ao fim |
+| `panel/funding` (lista) | título caindo para `id_externo`; município caindo para o código | objeto ou "sem título na fonte"; município nomeado + IBGE de apoio |
+| `panel/my-proposals` | idem | idem |
+| `panel/compliance` | `numero` do item na frente da descrição | descrição na frente, `item N` de apoio |
+| `panel/works` | obra sem município | município no item quando o território tem mais de um |
+| `panel/alerts` | `municipio_nome \|\| municipio_ibge` cru | `municipioPrincipal()` (código rotulado) |
+| `services/pdf.py` | abria pelo título; "Município (IBGE)" na 5ª linha | município no topo; empenho/execução; "Identificação" no fim |
+| `dispatch_alerts` (WhatsApp) | "proposta {uuid}" | "🔔 São Paulo/SP · UBS — status" |
+| `rag.montar_contexto` | `[fonte/id]` na frente, município cru | município nomeado abre a linha; id da fonte fecha |
+| `ai/resumo` (curadoria) | "Município (IBGE): 3550308" | `rotulo()` + instrução de citar pelo nome |
+
+Fonte de dados **nunca** vira identidade de registro na UI (seção 19) — e código
+de município **nunca** vira nome.

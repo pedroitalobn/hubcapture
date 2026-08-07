@@ -15,6 +15,8 @@ import {
   formatDate,
   formatDateTime,
   humanizarCaixa,
+  municipioPrincipal,
+  municipioSecundario,
   prazoLabel,
   tomPrazo,
 } from "@/lib/format";
@@ -323,6 +325,9 @@ export default function PropostaDetalhePage() {
     <div className="flex flex-col gap-5">
       {/* ── Cabeçalho compacto: contexto, não protagonismo ───────────── */}
       <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+        {/* Hierarquia (seção 23): MUNICÍPIO → objeto → números → identificadores.
+            O município é a identidade do registro, então encabeça o header; o
+            código IBGE desce para linha de apoio e o id da fonte sai daqui. */}
         <div className="min-w-0">
           <Link
             href="/panel/funding"
@@ -330,17 +335,18 @@ export default function PropostaDetalhePage() {
           >
             ← Captação
           </Link>
-          <h1 className="page-title mt-1.5">
-            {humanizarCaixa(
-              p.titulo ?? p.objeto ?? p.numero_proposta ?? p.id_externo,
-            )}
-          </h1>
+          <h1 className="page-title mt-1.5">{municipioPrincipal(p)}</h1>
+          {municipioSecundario(p) && (
+            <p className="mt-0.5 font-mono text-[11px] tracking-[0.04em] text-ink-3">
+              {municipioSecundario(p)}
+            </p>
+          )}
+          {/* O objeto da proposta vem logo abaixo — nunca um identificador:
+              antes o h1 caía para `id_externo` quando faltava título. */}
+          <p className="mt-2 text-lg font-semibold leading-snug text-ink">
+            {humanizarCaixa(p.titulo ?? p.objeto) || "Proposta sem título na fonte"}
+          </p>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink-2">
-            <span>
-              {humanizarCaixa(p.municipio_nome ?? p.municipio_ibge)}
-              {p.uf ? `/${p.uf}` : ""}
-            </span>
-            <span className="text-ink-3">·</span>
             <span className="font-mono text-xs uppercase tracking-[0.04em]">
               {p.fonte}
             </span>
@@ -396,7 +402,7 @@ export default function PropostaDetalhePage() {
           inteira (é o que decide a ação de hoje); o resto desce um nível.
           Quatro colunas de peso igual não cabiam — os números colidiam. */}
       <section className="hero-band anim-page-delayed">
-        <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+        <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
           <div className="field">
             <span className="field-label">Valor total</span>
             <span className="value-hero">{formatBRL(p.valor_total)}</span>
@@ -404,6 +410,31 @@ export default function PropostaDetalhePage() {
               <span className="num mt-1 text-xs text-ink-3">
                 contrapartida {formatBRL(p.contrapartida)}
               </span>
+            )}
+          </div>
+
+          {/* EMPENHO no primeiro degrau: é o que diz se o recurso saiu do
+              papel. Antes vivia lá embaixo, na grade secundária. */}
+          <div className="field">
+            <span className="field-label">Empenhado</span>
+            {p.execucao ? (
+              <>
+                <span className="value-hero">
+                  {formatBRL(p.execucao.valor_empenhado)}
+                </span>
+                <span className="num mt-1 text-xs text-ink-3">
+                  {empenhadoAUtilizar > 0
+                    ? `${formatBRL(String(empenhadoAUtilizar))} a utilizar`
+                    : "nada a utilizar"}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="value-hero text-ink-3">—</span>
+                <span className="num mt-1 text-xs text-ink-3">
+                  sem execução informada
+                </span>
+              </>
             )}
           </div>
 
@@ -445,15 +476,8 @@ export default function PropostaDetalhePage() {
             </span>
           </div>
 
-          {p.execucao && (
-            <Dado
-              rotulo="Empenhado a utilizar"
-              valor={formatBRL(String(empenhadoAUtilizar))}
-              tom={empenhadoAUtilizar > 0 ? "ok" : undefined}
-              destaque
-            />
-          )}
-
+          {/* "Empenhado a utilizar" subiu para a faixa de destaque, junto do
+              valor empenhado — não se repete aqui. */}
           <Dado
             rotulo="Pendências"
             valor={
@@ -632,16 +656,19 @@ export default function PropostaDetalhePage() {
       <div className="stagger grid gap-5 md:grid-cols-2">
         <Secao titulo="Dados gerais">
           <div className="data-grid">
+            {/* Município nomeado; o código IBGE aparece rotulado logo abaixo,
+                como apoio — antes este campo mostrava só o número. */}
+            <Dado rotulo="Município" valor={municipioPrincipal(p)} />
+            <Dado rotulo="Código IBGE" valor={p.municipio_ibge} />
+            <Dado rotulo="Órgão superior" valor={humanizarCaixa(p.orgao_superior)} />
+            <Dado rotulo="Modalidade" valor={humanizarCaixa(p.modalidade)} />
+            <Dado rotulo="Emenda" valor={p.emenda} />
+            <Dado rotulo="Natureza jurídica" valor={p.natureza_juridica} />
             <Dado
               rotulo="Nº da proposta"
               valor={p.numero_proposta ?? p.id_externo}
             />
             <Dado rotulo="Identificador na fonte" valor={p.id_externo} />
-            <Dado rotulo="Órgão superior" valor={humanizarCaixa(p.orgao_superior)} />
-            <Dado rotulo="Modalidade" valor={humanizarCaixa(p.modalidade)} />
-            <Dado rotulo="Emenda" valor={p.emenda} />
-            <Dado rotulo="Natureza jurídica" valor={p.natureza_juridica} />
-            <Dado rotulo="Município (IBGE)" valor={p.municipio_ibge} />
             <Dado
               rotulo="Atualizado na fonte"
               valor={formatDate(p.data_atualizacao_fonte)}

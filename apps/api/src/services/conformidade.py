@@ -25,6 +25,7 @@ from ..schemas.conformidade import (
     ConformidadeResumo,
     SecaoResumo,
 )
+from . import municipios
 from ._sync import registrar_sync
 from ._territorio import Municipios
 from ._territorio import filtrar as filtrar_municipio
@@ -98,14 +99,24 @@ async def resumo(
         )
         for secao in sorted(por_secao)
     ]
+    mapa = await municipios.mapa_territorio(session)
     return ConformidadeResumo(
         total=len(cauc),
         comprovados=_conta(cauc, "comprovado"),
         a_comprovar=_conta(cauc, "a_comprovar"),
         desativados=_conta(cauc, "desativado"),
         secoes=secoes,
-        capag=ConformidadeRead.model_validate(capag) if capag else None,
-        requisitos=[ConformidadeRead.model_validate(r) for r in cauc],
+        # o município nomeado encabeça a leitura (seção 23)
+        capag=(
+            (await municipios.enriquecer(
+                session, [ConformidadeRead.model_validate(capag)], mapa=mapa
+            ))[0]
+            if capag
+            else None
+        ),
+        requisitos=await municipios.enriquecer(
+            session, [ConformidadeRead.model_validate(r) for r in cauc], mapa=mapa
+        ),
     )
 
 
