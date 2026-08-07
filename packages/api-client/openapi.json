@@ -3547,6 +3547,241 @@
         "title": "OpcoesEmendas",
         "type": "object"
       },
+      "ParecerColeta": {
+        "description": "Estado honesto da coleta — o gestor precisa distinguir 'não tem parecer'\nde 'não consegui consultar a fonte'.",
+        "properties": {
+          "erro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erro"
+          },
+          "numero_plano_trabalho": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Plano Trabalho"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "ParecerColeta",
+        "type": "object"
+      },
+      "ParecerPagina": {
+        "properties": {
+          "coleta": {
+            "$ref": "#/components/schemas/ParecerColeta"
+          },
+          "itens": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ParecerRead"
+            },
+            "title": "Itens",
+            "type": "array"
+          }
+        },
+        "required": [
+          "coleta"
+        ],
+        "title": "ParecerPagina",
+        "type": "object"
+      },
+      "ParecerRead": {
+        "properties": {
+          "cache_atualizado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Atualizado Em"
+          },
+          "cargo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cargo"
+          },
+          "data_parecer": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Parecer"
+          },
+          "esfera": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Esfera"
+          },
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "id_externo": {
+            "title": "Id Externo",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Ibge"
+          },
+          "municipio_nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Nome"
+          },
+          "numero_plano_trabalho": {
+            "title": "Numero Plano Trabalho",
+            "type": "string"
+          },
+          "numero_proposta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Proposta"
+          },
+          "papel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Papel"
+          },
+          "responsavel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Responsavel"
+          },
+          "situacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Situacao"
+          },
+          "texto": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Texto"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          },
+          "url_parecer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url Parecer"
+          }
+        },
+        "required": [
+          "id",
+          "fonte",
+          "id_externo",
+          "numero_plano_trabalho"
+        ],
+        "title": "ParecerRead",
+        "type": "object"
+      },
       "PastaCreate": {
         "properties": {
           "cor": {
@@ -4152,6 +4387,17 @@
             "description": "Slug da natureza jurídica elegível ('municipal', 'consorcio'…).",
             "readOnly": true,
             "title": "Natureza Juridica"
+          },
+          "numero_plano_trabalho": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Plano Trabalho"
           },
           "numero_proposta": {
             "anyOf": [
@@ -8985,6 +9231,69 @@
         ]
       }
     },
+    "/api/v1/opinions": {
+      "get": {
+        "description": "Pareceres de um plano de trabalho — a consulta direta, sem passar pela proposta.",
+        "operationId": "pareceres_por_plano_api_v1_opinions_get",
+        "parameters": [
+          {
+            "description": "número do plano de trabalho (ex.: 14275/2026)",
+            "in": "query",
+            "name": "work_plan",
+            "required": true,
+            "schema": {
+              "description": "número do plano de trabalho (ex.: 14275/2026)",
+              "minLength": 1,
+              "title": "Work Plan",
+              "type": "string"
+            }
+          },
+          {
+            "description": "forçar coleta na fonte",
+            "in": "query",
+            "name": "atualizar",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "forçar coleta na fonte",
+              "title": "Atualizar",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParecerPagina"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Pareceres Por Plano",
+        "tags": [
+          "pareceres"
+        ]
+      }
+    },
     "/api/v1/plans": {
       "get": {
         "operationId": "listar_planos_api_v1_plans_get",
@@ -10839,6 +11148,67 @@
         "summary": "Obter Proposta",
         "tags": [
           "propostas"
+        ]
+      }
+    },
+    "/api/v1/proposals/{proposta_id}/opinions": {
+      "get": {
+        "description": "Pareceres do plano de trabalho vinculado à proposta.",
+        "operationId": "pareceres_da_proposta_api_v1_proposals__proposta_id__opinions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposta Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "forçar coleta na fonte",
+            "in": "query",
+            "name": "atualizar",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "forçar coleta na fonte",
+              "title": "Atualizar",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParecerPagina"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Pareceres Da Proposta",
+        "tags": [
+          "pareceres"
         ]
       }
     },

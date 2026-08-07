@@ -15,6 +15,7 @@ class PropostaCanonica(BaseModel):
     fonte: str
     id_externo: str
     numero_proposta: str | None = None
+    numero_plano_trabalho: str | None = None
     titulo: str | None = None
     objeto: str | None = None
     orgao_superior: str | None = None
@@ -54,6 +55,7 @@ class PropostaRead(BaseModel):
     fonte: str
     id_externo: str
     numero_proposta: str | None = None
+    numero_plano_trabalho: str | None = None
     titulo: str | None = None
     objeto: str | None = None
     orgao_superior: str | None = None

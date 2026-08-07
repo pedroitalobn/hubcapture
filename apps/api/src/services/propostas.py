@@ -29,6 +29,7 @@ Filtro = str | Sequence[str] | None
 # campos que o upsert atualiza em conflito (fonte,id_externo)
 _UPSERT_FIELDS = (
     "numero_proposta",
+    "numero_plano_trabalho",
     "data_proposta",
     "titulo",
     "objeto",

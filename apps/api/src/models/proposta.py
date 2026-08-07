@@ -39,6 +39,10 @@ class Proposta(Base):
     fonte: Mapped[str] = mapped_column(String(32), index=True)
     id_externo: Mapped[str] = mapped_column(String(255))
     numero_proposta: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # nº do plano de trabalho — chave pela qual a fonte emite os PARECERES
+    numero_plano_trabalho: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
     titulo: Mapped[str | None] = mapped_column(Text, nullable=True)
     objeto: Mapped[str | None] = mapped_column(Text, nullable=True)
     orgao_superior: Mapped[str | None] = mapped_column(String(255), nullable=True)

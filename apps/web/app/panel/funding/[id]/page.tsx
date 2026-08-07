@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
+import { PareceresSecao } from "@/components/PareceresSecao";
 import { Skeleton } from "@/components/Skeleton";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { TextoExpansivel } from "@/components/TextoExpansivel";
@@ -29,6 +30,7 @@ type Proposta = {
   fonte: string;
   id_externo: string;
   numero_proposta?: string | null;
+  numero_plano_trabalho?: string | null;
   titulo?: string | null;
   objeto?: string | null;
   orgao_superior?: string | null;
@@ -743,6 +745,8 @@ export default function PropostaDetalhePage() {
           </div>
         </Secao>
       </div>
+
+      <PareceresSecao proposta={p} />
 
       <Secao titulo="Acompanhar e ser avisado">
         {monitorando ? (

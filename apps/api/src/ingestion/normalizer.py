@@ -18,6 +18,7 @@ from ..schemas.proposta import PropostaCanonica
 # campos "materiais" que entram no hash (mudança neles = mudança relevante)
 _HASH_FIELDS = (
     "numero_proposta",
+    "numero_plano_trabalho",
     "titulo",
     "objeto",
     "orgao_superior",
@@ -142,6 +143,15 @@ def normalize(record: RawRecord) -> PropostaCanonica:
             plano.get("nr_convenio"),  # voluntárias (convênio)
             plano.get("codigo_plano_acao"),  # fundo a fundo
             plano.get("numero"),  # painel SERPRO
+        ),
+        # nº do plano de trabalho — é por ele que a fonte emite os PARECERES
+        "numero_plano_trabalho": _first(
+            plano.get("numero_plano_trabalho"),
+            plano.get("nr_plano_trabalho"),
+            plano.get("id_plano_trabalho"),
+            plano.get("cd_plano_trabalho"),
+            plano.get("numero_plano_acao"),
+            plano.get("id_plano_acao"),
         ),
         "titulo": _first(
             programa.get("nome_programa"),
