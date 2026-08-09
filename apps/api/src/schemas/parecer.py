@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -22,6 +23,11 @@ class ParecerCanonico(BaseModel):
     papel: str | None = None
     cargo: str | None = None
     situacao: str | None = None
+    situacao_analise: str | None = None
+    situacao_planejamento: str | None = None
+    orgao_analise: str | None = None
+    codigo_siorg_orgao: str | None = None
+    valor_reprovado: Decimal | None = None
     texto: str | None = None
     url_parecer: str | None = None
     detalhe: dict | None = None
@@ -46,6 +52,10 @@ class ParecerRead(BaseModel):
     papel: str | None = None
     cargo: str | None = None
     situacao: str | None = None
+    situacao_analise: str | None = None
+    situacao_planejamento: str | None = None
+    orgao_analise: str | None = None
+    valor_reprovado: Decimal | None = None
     texto: str | None = None
     url_parecer: str | None = None
     cache_atualizado_em: datetime | None = None

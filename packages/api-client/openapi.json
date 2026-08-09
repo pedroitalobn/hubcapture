@@ -3706,6 +3706,17 @@
             ],
             "title": "Numero Proposta"
           },
+          "orgao_analise": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgao Analise"
+          },
           "papel": {
             "anyOf": [
               {
@@ -3739,6 +3750,28 @@
             ],
             "title": "Situacao"
           },
+          "situacao_analise": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Situacao Analise"
+          },
+          "situacao_planejamento": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Situacao Planejamento"
+          },
           "texto": {
             "anyOf": [
               {
@@ -3771,6 +3804,18 @@
               }
             ],
             "title": "Url Parecer"
+          },
+          "valor_reprovado": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Reprovado"
           }
         },
         "required": [

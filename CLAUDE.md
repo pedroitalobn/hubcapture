@@ -1203,25 +1203,34 @@ que é o que o gestor tem em mãos. Entidade própria, não coluna.
   Entra no hash e no `_UPSERT_FIELDS`.
 - **Tabela `pareceres`**: `fonte, id_externo, numero_plano_trabalho,
   numero_proposta, municipio_ibge, data_parecer, esfera (concedente|convenente),
-  responsavel, papel, cargo, situacao, texto, url_parecer, detalhe/proveniencia
-  jsonb, hash_conteudo, cache_atualizado_em`. `unique(fonte, id_externo)`.
+  responsavel, papel, cargo, situacao (o VEREDITO: Aprovar/Reprovar/Solicitar
+  Complementação/Não se aplica), situacao_analise (Concluída|Em elaboração),
+  situacao_planejamento, orgao_analise, codigo_siorg_orgao, valor_reprovado,
+  texto, url_parecer, detalhe/proveniencia jsonb, hash_conteudo,
+  cache_atualizado_em`. `unique(fonte, id_externo)`.
   Cache global, RLS só-SELECT por município como os demais eixos — com uma
   diferença: `municipio_ibge IS NULL` também é visível, senão a consulta por
   número de plano (sem município resolvido) devolveria vazio.
-- **Identidade sintética**: a tela de tramitação não dá id de linha, então
-  `id_externo` = `plano|data|responsável|papel`. Sem isso cada sync duplicaria o
-  mesmo parecer; com papel na chave, as linhas repetidas por papel (que a fonte
-  emite) não colidem.
+- **Identidade**: a API dá id próprio (`id_plano_trabalho_analise_pt`) e é ele
+  que manda — convertido para string, porque a rota devolve INTEIRO e o schema é
+  texto. A chave sintética (`plano|data|responsável|papel`) só entra quando a
+  linha vem do SCRAPING, que não tem id; com o papel na composição, as linhas
+  repetidas por papel (que a tela emite) não colidem.
 - **Hash LOCAL** (`ingestion/normalizer_parecer.py`): `compute_hash` de
   `normalizer.py` filtra pelos campos da PROPOSTA — reusá-lo aqui daria o mesmo
   hash para todo parecer e nenhuma mudança seria detectada. Mesma disciplina de
   `normalizer_obra`.
-- **Connector** `connectors/pareceres.py` — o ÚNICO que coleta por número de
-  plano em vez de município (não implementa o Protocol de `base.py`). Dois
-  caminhos, na ordem da §5: API (`pareceres_base_url`/`pareceres_endpoint`) e
-  scraping da tela de tramitação (`pareceres_url_tramitacao`, `{plano}` no
-  lugar do número) pelo facade, com `PARECER_EXTRACT_SCHEMA` casando as colunas
-  (Data · Esfera · Responsável · Perfil · Cargo · Visualizar Parecer).
+- **Connector** `connectors/pareceres.py` — o ÚNICO que coleta por plano de
+  trabalho em vez de município (não implementa o Protocol de `base.py`).
+  CALIBRADO contra `/planos_trabalho_analises_especiais` da API pública
+  (módulo `especiais`). Diferente das demais rotas do TransfereGov, **não é
+  PostgREST**: filtra por query param direto (`id_plano_trabalho=123`, sem
+  `eq.`) e pagina com `pagina`/`tamanho_da_pagina` — por isso não usa
+  `_postgrest.py`. A chave é o **id INTEIRO** do plano; `id_do_plano()` barra o
+  que não for numérico (mandar "14275/2026" daria 422 e o gestor leria "fonte
+  indisponível" onde a verdade é "não tenho o id"). Scraping da tela de
+  tramitação segue como 2ª fonte: a API dá o veredito e o texto, a tela dá QUEM
+  assinou (responsável, papel, cargo) — se completam.
 - **Serviço** `services/pareceres.py`: cache-first (TTL 12h), `por_plano` (a
   consulta direta) e `por_proposta` (resolve o plano e delega; sem nº de plano,
   tenta o nº da proposta). Falha de fonte → `sync_runs` + status na resposta.
@@ -1232,9 +1241,8 @@ que é o que o gestor tem em mãos. Entidade própria, não coluna.
   estados que não podem virar a mesma tela vazia: **sem plano de trabalho** ·
   **fonte não consultável** · **plano sem parecer**.
 
-⚠️ **CALIBRAÇÃO PENDENTE**: rota da API e URL/schema do scraping são chute
-estruturado (§27 — erros de produção vieram justamente de chute estático).
-Calibrar com `python -m src.tools.probe_fontes` de um ambiente com saída para
-gov.br e ajustar pelas chaves do painel admin (categoria `fonte`). Enquanto não
-for calibrado, o connector **falha com mensagem explícita** em `sync_runs` e na
-tela — nunca devolve vazio como se não houvesse parecer.
+A rota da API está calibrada pelo spec oficial; **a URL da tela de tramitação
+(scraping) segue por calibrar** — `pareceres_url_tramitacao` nasce vazia e, sem
+ela, o scraping é pulado sem virar erro. O connector nunca devolve vazio como se
+não houvesse parecer: falha de fonte vira mensagem explícita em `sync_runs` e na
+tela.

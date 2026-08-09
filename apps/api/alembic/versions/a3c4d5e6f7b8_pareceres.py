@@ -51,6 +51,11 @@ def upgrade() -> None:
         sa.Column("papel", sa.String(length=255), nullable=True),  # Gestor/Analista Técnico
         sa.Column("cargo", sa.String(length=255), nullable=True),  # COORDENADORA-GERAL
         sa.Column("situacao", sa.String(length=64), nullable=True),
+        sa.Column("situacao_analise", sa.String(length=32), nullable=True),
+        sa.Column("situacao_planejamento", sa.String(length=32), nullable=True),
+        sa.Column("orgao_analise", sa.String(length=255), nullable=True),
+        sa.Column("codigo_siorg_orgao", sa.String(length=32), nullable=True),
+        sa.Column("valor_reprovado", sa.Numeric(precision=15, scale=2), nullable=True),
         sa.Column("texto", sa.Text(), nullable=True),
         sa.Column("url_parecer", sa.Text(), nullable=True),  # "Visualizar Parecer"
         sa.Column("detalhe", postgresql.JSONB(astext_type=sa.Text()), nullable=True),

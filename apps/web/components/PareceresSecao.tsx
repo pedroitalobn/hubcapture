@@ -2,8 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
-import { formatDate, humanizarCaixa } from "@/lib/format";
-import { cx } from "@/components/ui";
+import { StatusBadge } from "@/components/StatusBadge";
+import { TextoExpansivel } from "@/components/TextoExpansivel";
+import { formatBRL, formatDate, humanizarCaixa } from "@/lib/format";
+
+function num(v?: string | null): number {
+  const n = Number(v);
+  return Number.isNaN(n) ? 0 : n;
+}
 
 /**
  * Pareceres do PLANO DE TRABALHO vinculado à proposta.
@@ -25,9 +31,24 @@ type Parecer = {
   responsavel?: string | null;
   papel?: string | null;
   cargo?: string | null;
+  /** veredito: Aprovar/Reprovar/Solicitar Complementação/Não se aplica */
   situacao?: string | null;
+  situacao_analise?: string | null;
+  situacao_planejamento?: string | null;
+  orgao_analise?: string | null;
+  valor_reprovado?: string | null;
+  texto?: string | null;
   url_parecer?: string | null;
 };
+
+/** Tom do veredito — aprovado é bom, reprovado é ruim, complementação exige ação. */
+function tomVeredito(situacao?: string | null): "success" | "warning" | "danger" | "neutral" {
+  const s = (situacao ?? "").toLowerCase();
+  if (s.includes("aprovar")) return "success";
+  if (s.includes("reprovar")) return "danger";
+  if (s.includes("complementa")) return "warning";
+  return "neutral";
+}
 
 type Coleta = {
   numero_plano_trabalho?: string | null;
@@ -120,31 +141,42 @@ export function PareceresSecao({ proposta }: Props) {
           {itens.map((x) => (
             <li key={x.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
               <span className="min-w-0">
-                {/* data e quem assinou lideram — é o que responde "em que pé está" */}
-                <span className="flex flex-wrap items-baseline gap-2">
+                {/* data + VEREDITO lideram: é o que responde "em que pé está".
+                    Quem assinou vem logo abaixo. */}
+                <span className="flex flex-wrap items-center gap-2">
                   <span className="num text-sm text-ink">{formatDate(x.data_parecer)}</span>
-                  {x.esfera && (
-                    <span
-                      className={cx(
-                        "rounded-full border border-hairline px-2 py-0.5 text-[11px]",
-                        "text-ink-2",
-                      )}
-                    >
-                      {ESFERA_ROTULO[x.esfera] ?? humanizarCaixa(x.esfera)}
+                  {x.situacao && (
+                    <StatusBadge tone={tomVeredito(x.situacao)}>{x.situacao}</StatusBadge>
+                  )}
+                  {x.situacao_analise && (
+                    <span className="text-[11px] text-ink-3">
+                      análise {humanizarCaixa(x.situacao_analise).toLowerCase()}
                     </span>
                   )}
                 </span>
-                <span className="mt-0.5 block text-sm text-ink-2">
-                  {humanizarCaixa(x.responsavel) || "Responsável não informado"}
+                <span className="mt-1 block text-sm text-ink-2">
+                  {humanizarCaixa(x.responsavel) ||
+                    humanizarCaixa(x.orgao_analise) ||
+                    "Responsável não informado"}
                 </span>
                 <span className="block text-xs text-ink-3">
-                  {[humanizarCaixa(x.papel), humanizarCaixa(x.cargo)]
+                  {[
+                    x.esfera ? (ESFERA_ROTULO[x.esfera] ?? humanizarCaixa(x.esfera)) : "",
+                    humanizarCaixa(x.papel),
+                    humanizarCaixa(x.cargo),
+                    x.responsavel ? humanizarCaixa(x.orgao_analise) : "",
+                  ]
                     .filter(Boolean)
                     .join(" · ")}
                 </span>
-                {x.situacao && (
-                  <span className="block text-xs text-ink-3">
-                    {humanizarCaixa(x.situacao)}
+                {num(x.valor_reprovado) > 0 && (
+                  <span className="tone-danger mt-1 block text-xs">
+                    Valor reprovado {formatBRL(x.valor_reprovado)}
+                  </span>
+                )}
+                {x.texto && (
+                  <span className="mt-1.5 block max-w-2xl">
+                    <TextoExpansivel texto={x.texto} linhas={3} />
                   </span>
                 )}
               </span>

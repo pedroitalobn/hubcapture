@@ -2786,18 +2786,26 @@ export interface components {
             numero_plano_trabalho: string;
             /** Numero Proposta */
             numero_proposta?: string | null;
+            /** Orgao Analise */
+            orgao_analise?: string | null;
             /** Papel */
             papel?: string | null;
             /** Responsavel */
             responsavel?: string | null;
             /** Situacao */
             situacao?: string | null;
+            /** Situacao Analise */
+            situacao_analise?: string | null;
+            /** Situacao Planejamento */
+            situacao_planejamento?: string | null;
             /** Texto */
             texto?: string | null;
             /** Uf */
             uf?: string | null;
             /** Url Parecer */
             url_parecer?: string | null;
+            /** Valor Reprovado */
+            valor_reprovado?: string | null;
         };
         /** PastaCreate */
         PastaCreate: {

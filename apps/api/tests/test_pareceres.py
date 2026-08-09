@@ -101,3 +101,66 @@ def test_proposta_carrega_o_numero_do_plano_de_trabalho() -> None:
     )
     assert p.numero_plano_trabalho == "988776"
     assert p.numero_proposta == "14275/2026"
+
+
+# ── Calibração contra o spec real de /planos_trabalho_analises_especiais ─────
+# A rota devolve o veredito da análise, o texto e o valor reprovado, com id
+# próprio — e filtra por id_plano_trabalho INTEIRO (não pelo nº da proposta).
+
+API = {
+    "id_plano_trabalho_analise_pt": 55123,
+    "id_plano_trabalho": 988776,
+    "codigo_siorg_orgao_analise_pt": 2928,
+    "nome_orgao_analise_pt": "MINISTÉRIO DA SAÚDE",
+    "situacao_planejamento_pt": "ENVIADO_PARA_ANALISE",
+    "situacao_parecer_analise_pt": "Solicitar Complementação",
+    "texto_parecer_analise_pt": "Ajustar o cronograma físico-financeiro.",
+    "situacao_analise_pt": "Concluída",
+    "data_analise_pt": "2026-06-01",
+    "valor_reprovado_pt": 125000.50,
+}
+
+
+def test_le_o_payload_real_da_api() -> None:
+    from decimal import Decimal
+
+    p = _norm(API)
+    assert p.data_parecer == date(2026, 6, 1)
+    assert p.situacao == "Solicitar Complementação"  # o veredito
+    assert p.situacao_analise == "Concluída"
+    assert p.situacao_planejamento == "ENVIADO_PARA_ANALISE"
+    assert p.orgao_analise == "MINISTÉRIO DA SAÚDE"
+    assert p.codigo_siorg_orgao == "2928"
+    assert p.valor_reprovado == Decimal("125000.50")
+    assert p.texto == "Ajustar o cronograma físico-financeiro."
+
+
+def test_usa_o_id_real_da_analise_como_identidade() -> None:
+    assert _norm(API).id_externo == "55123"
+
+
+def test_id_do_plano_vem_da_propria_linha() -> None:
+    """O plano passado por parâmetro não sobrepõe o que a API devolveu."""
+    assert _norm(API, numero_plano_trabalho="000").numero_plano_trabalho == "988776"
+
+
+def test_valor_reprovado_entra_no_hash() -> None:
+    a = _norm(API)
+    b = _norm({**API, "valor_reprovado_pt": 999.0})
+    assert a.hash_conteudo != b.hash_conteudo
+
+
+def test_scraping_sem_id_ainda_tem_identidade_estavel() -> None:
+    """A tela de tramitação não dá id — a chave sintética cobre esse caso."""
+    linha = {**LINHA, "_scraper": "playwright"}
+    assert _norm(linha).id_externo == _norm(dict(linha)).id_externo
+    assert "|" in _norm(linha).id_externo
+
+
+def test_so_id_numerico_vai_para_a_rota() -> None:
+    """A rota filtra por id_plano_trabalho inteiro: '14275/2026' daria 422."""
+    from src.connectors.pareceres import id_do_plano
+
+    assert id_do_plano("988776") == "988776"
+    assert id_do_plano("14275/2026") is None
+    assert id_do_plano(None) is None

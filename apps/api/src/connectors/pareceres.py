@@ -1,26 +1,22 @@
-"""Pareceres do plano de trabalho (TransfereGov/SICONV).
+"""Análises/pareceres do plano de trabalho — API pública do TransfereGov.
 
-O parecer é emitido sobre o PLANO DE TRABALHO, não sobre a proposta — daí este
-connector ser o único que coleta por `numero_plano_trabalho` em vez de por
-município (não implementa o Protocol de `base.py`, que é município+since; é
-consultado sob demanda a partir da proposta).
+CALIBRADO contra o spec real de `/planos_trabalho_analises_especiais`. É o único
+connector que coleta por PLANO DE TRABALHO em vez de município (não implementa o
+Protocol de `base.py`): o parecer é emitido sobre o plano, e a mesma proposta
+acumula vários ao longo da análise.
 
-CALIBRAÇÃO PENDENTE — rota e nomes de campo são o ponto de ajuste, como em
-toda fonte nova do repo (§15/§27). O que está aqui é a estrutura da tela de
-tramitação (data · esfera · responsável · papel · cargo · link do parecer);
-os identificadores exatos precisam ser conferidos contra a fonte viva com
-`python -m src.tools.probe_fontes`. Enquanto não forem, o connector falha com
-mensagem clara em `sync_runs` em vez de inventar dado.
+Diferente das demais rotas do TransfereGov, esta **não é PostgREST**: filtra por
+query param direto (`id_plano_trabalho=123`, sem `eq.`) e pagina com
+`pagina`/`tamanho_da_pagina`. Por isso não usa `_postgrest.py`.
 
-Dois caminhos, na ordem da §5 (coleta combinada):
-1. API — se a fonte publicar a tramitação numa rota REST (override
-   `pareceres_endpoint` no painel admin);
-2. Scraping — a tela do plano de trabalho pelo facade (`scraping/scraper.py`),
-   que é como o gestor a vê hoje. `PARECER_EXTRACT_SCHEMA` casa com a tabela
-   renderizada; `scraping/tabelas.py` já lê `<table>` e grid ARIA.
+A chave de filtro é o **id inteiro** do plano de trabalho — não o número
+formatado da proposta ("14275/2026"). Quem chama passa o que tem; aqui só vai
+para a rede o que for numérico, senão a API responderia 422 e o gestor veria
+"fonte indisponível" onde a verdade é "não tenho o id do plano".
 
-Se a página exigir login, o scraping devolve vazio/erro e isso vira incidente
-registrado — não silêncio.
+Scraping da tela de tramitação segue como segunda fonte (§5): a API dá o
+veredito e o texto, a tela dá QUEM assinou (responsável, papel, cargo) — os dois
+lados se completam.
 """
 
 from __future__ import annotations
@@ -32,20 +28,27 @@ from ._http import ConnectorClientError, get_json
 
 SOURCE_ID = "transferegov_parecer"
 
-# Ponto de calibração 1 — rota da API (quando houver). `{plano}` é substituído
-# pelo número do plano de trabalho.
-ENDPOINT_PADRAO = "plano_trabalho_parecer"
-PARAM_PLANO = "numero_plano_trabalho"
+# Rota real da API pública (módulo "especiais"). Overrides no painel admin.
+BASE_PADRAO = "https://api-publica.transferegov.gestao.gov.br/especiais/"
+ENDPOINT_PADRAO = "planos_trabalho_analises_especiais"
 
-# Ponto de calibração 2 — URL da tela de tramitação para o scraping.
-URL_TRAMITACAO_PADRAO = (
-    "https://discricionarias.transferegov.sistema.gov.br/voluntarias/"
-    "PlanoTrabalhoParecer/ConsultarParecer.do?numeroPlanoTrabalho={plano}"
+PARAM_PLANO = "id_plano_trabalho"
+PARAM_PAGINA = "pagina"
+PARAM_TAMANHO = "tamanho_da_pagina"
+TAMANHO_PAGINA = 50
+MAX_PAGINAS = 20  # trava de segurança: um plano não tem 1000 análises
+
+# Situação do parecer — o veredito da análise (valores fechados do spec).
+SITUACOES_PARECER = (
+    "Aprovar Plano de Trabalho",
+    "Não se aplica",
+    "Reprovar Plano de Trabalho",
+    "Solicitar Complementação",
 )
 
-# Ponto de calibração 3 — o que queremos que o scraper estruture. Os rótulos das
-# colunas da tela ("Data", "Esfera", "Responsável"…) casam por `description` em
-# `scraping/tabelas.py`.
+# Ponto de calibração do scraping — a tela de tramitação (quem assinou).
+URL_TRAMITACAO_PADRAO = ""
+
 PARECER_EXTRACT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -68,26 +71,54 @@ PARECER_EXTRACT_SCHEMA: dict[str, Any] = {
 }
 
 
-class ParecerConnector:
-    """Coleta por NÚMERO DE PLANO DE TRABALHO (não por município)."""
+def id_do_plano(valor: Any) -> str | None:
+    """Só o id INTEIRO serve de filtro nesta rota.
 
+    O plano chega ora como id ("988776"), ora como número formatado
+    ("14275/2026" — que é da proposta, não do plano). Mandar o segundo daria 422.
+    """
+    bruto = str(valor or "").strip()
+    return bruto if bruto.isdigit() else None
+
+
+class ParecerConnector:
     source_id = SOURCE_ID
 
     def __init__(self, base_url: str | None = None) -> None:
         self._base_url = base_url
 
-    async def _base(self) -> str | None:
-        return self._base_url or await config_service.resolver("pareceres_base_url")
+    async def _base(self) -> str:
+        return (
+            self._base_url
+            or await config_service.resolver("pareceres_base_url")
+            or BASE_PADRAO
+        )
 
-    async def _via_api(self, numero_plano: str) -> list[dict]:
-        base = await self._base()
-        if not base:
-            return []
-        endpoint = await config_service.resolver("pareceres_endpoint") or ENDPOINT_PADRAO
-        dados = await get_json(base, endpoint, {PARAM_PLANO: f"eq.{numero_plano}"})
-        if isinstance(dados, dict):
-            dados = dados.get("pareceres") or dados.get("itens") or []
-        return [d for d in dados if isinstance(d, dict)]
+    async def _endpoint(self) -> str:
+        return await config_service.resolver("pareceres_endpoint") or ENDPOINT_PADRAO
+
+    async def _via_api(self, id_plano: str) -> list[dict]:
+        """Pagina a rota até acabar (ou até MAX_PAGINAS)."""
+        base, endpoint = await self._base(), await self._endpoint()
+        coletados: list[dict] = []
+        for pagina in range(1, MAX_PAGINAS + 1):
+            dados = await get_json(
+                base,
+                endpoint,
+                {
+                    PARAM_PLANO: id_plano,
+                    PARAM_PAGINA: str(pagina),
+                    PARAM_TAMANHO: str(TAMANHO_PAGINA),
+                },
+            )
+            # a rota pode devolver lista pura ou envelope paginado
+            if isinstance(dados, dict):
+                dados = dados.get("itens") or dados.get("items") or dados.get("data") or []
+            linhas = [d for d in dados if isinstance(d, dict)]
+            coletados.extend(linhas)
+            if len(linhas) < TAMANHO_PAGINA:
+                break
+        return coletados
 
     async def _via_scraping(self, numero_plano: str) -> list[dict]:
         from ..scraping.scraper import get_scraper
@@ -95,56 +126,57 @@ class ParecerConnector:
         url_base = (
             await config_service.resolver("pareceres_url_tramitacao") or URL_TRAMITACAO_PADRAO
         )
+        if not url_base:
+            return []  # sem URL calibrada não há o que raspar — não é erro
         url = url_base.replace("{plano}", numero_plano)
-        scraper = await get_scraper()  # levanta ScraperNotConfigured se não houver
+        scraper = await get_scraper()
         extraido = await scraper.extract(url, PARECER_EXTRACT_SCHEMA)
         linhas = (extraido or {}).get("pareceres") or []
         for linha in linhas:
             if isinstance(linha, dict):
                 linha.setdefault("_origem_url", url)
-                linha["_scraper"] = extraido.get("_scraper")
+                linha["_scraper"] = (extraido or {}).get("_scraper")
         return [x for x in linhas if isinstance(x, dict)]
 
     async def collect_por_plano(self, numero_plano_trabalho: str) -> list[dict]:
-        """Pareceres do plano de trabalho. API primeiro; scraping assume/complementa.
-
-        Best-effort nos DOIS lados: a falha de um não derruba o outro. Se ambos
-        falharem, levanta — quem chama registra em `sync_runs`.
-        """
-        numero_plano = str(numero_plano_trabalho).strip()
+        """Análises do plano. API é a fonte primária; scraping complementa/assume."""
+        numero_plano = str(numero_plano_trabalho or "").strip()
         if not numero_plano:
             return []
 
         registros: list[dict] = []
         falhas: list[str] = []
 
-        try:
-            registros = await self._via_api(numero_plano)
-        except Exception as exc:  # rota não calibrada / fora do ar
-            falhas.append(f"api: {type(exc).__name__}: {exc}")
+        id_plano = id_do_plano(numero_plano)
+        if id_plano:
+            try:
+                registros = await self._via_api(id_plano)
+            except Exception as exc:
+                falhas.append(f"api: {type(exc).__name__}: {exc}")
+        else:
+            falhas.append(
+                f"api: '{numero_plano}' não é o id numérico do plano de trabalho "
+                "(a rota filtra por id_plano_trabalho inteiro)"
+            )
 
         if not registros:
             try:
                 registros = await self._via_scraping(numero_plano)
-            except Exception as exc:  # sem scraper configurado / página com login
+            except Exception as exc:
                 falhas.append(f"scraping: {type(exc).__name__}: {exc}")
 
         if not registros and falhas:
             raise ConnectorClientError(
-                "não consegui coletar pareceres do plano de trabalho "
-                f"{numero_plano} — calibre a fonte no painel admin "
-                f"(pareceres_base_url/pareceres_endpoint/pareceres_url_tramitacao). "
+                f"não consegui coletar pareceres do plano {numero_plano}. "
                 f"Tentativas: {' | '.join(falhas)}"
             )
         return registros
 
     async def health_check(self) -> bool:
-        base = await self._base()
-        if not base:
-            return False
         try:
-            await get_json(base, await config_service.resolver("pareceres_endpoint")
-                           or ENDPOINT_PADRAO, {"limit": "1"})
+            await get_json(
+                await self._base(), await self._endpoint(), {PARAM_TAMANHO: "1"}
+            )
             return True
         except Exception:
             return False
