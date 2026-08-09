@@ -1031,6 +1031,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/opinions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pareceres Por Plano
+         * @description Pareceres de um plano de trabalho — a consulta direta, sem passar pela proposta.
+         */
+        get: operations["pareceres_por_plano_api_v1_opinions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/plans": {
         parameters: {
             query?: never;
@@ -1249,6 +1269,26 @@ export interface paths {
         };
         /** Obter Proposta */
         get: operations["obter_proposta_api_v1_proposals__proposta_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/{proposta_id}/opinions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pareceres Da Proposta
+         * @description Pareceres do plano de trabalho vinculado à proposta.
+         */
+        get: operations["pareceres_da_proposta_api_v1_proposals__proposta_id__opinions_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2692,6 +2732,81 @@ export interface components {
              */
             parlamentares: string[];
         };
+        /**
+         * ParecerColeta
+         * @description Estado honesto da coleta — o gestor precisa distinguir 'não tem parecer'
+         *     de 'não consegui consultar a fonte'.
+         */
+        ParecerColeta: {
+            /** Erro */
+            erro?: string | null;
+            /** Numero Plano Trabalho */
+            numero_plano_trabalho?: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+        };
+        /** ParecerPagina */
+        ParecerPagina: {
+            coleta: components["schemas"]["ParecerColeta"];
+            /**
+             * Itens
+             * @default []
+             */
+            itens: components["schemas"]["ParecerRead"][];
+        };
+        /** ParecerRead */
+        ParecerRead: {
+            /** Cache Atualizado Em */
+            cache_atualizado_em?: string | null;
+            /** Cargo */
+            cargo?: string | null;
+            /** Data Parecer */
+            data_parecer?: string | null;
+            /** Esfera */
+            esfera?: string | null;
+            /** Fonte */
+            fonte: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Id Externo */
+            id_externo: string;
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Municipio Nome */
+            municipio_nome?: string | null;
+            /** Numero Plano Trabalho */
+            numero_plano_trabalho: string;
+            /** Numero Proposta */
+            numero_proposta?: string | null;
+            /** Orgao Analise */
+            orgao_analise?: string | null;
+            /** Papel */
+            papel?: string | null;
+            /** Responsavel */
+            responsavel?: string | null;
+            /** Situacao */
+            situacao?: string | null;
+            /** Situacao Analise */
+            situacao_analise?: string | null;
+            /** Situacao Planejamento */
+            situacao_planejamento?: string | null;
+            /** Texto */
+            texto?: string | null;
+            /** Uf */
+            uf?: string | null;
+            /** Url Parecer */
+            url_parecer?: string | null;
+            /** Valor Reprovado */
+            valor_reprovado?: string | null;
+        };
         /** PastaCreate */
         PastaCreate: {
             /** Cor */
@@ -2871,6 +2986,8 @@ export interface components {
             } | null;
             /** Data Atualizacao Fonte */
             data_atualizacao_fonte?: string | null;
+            /** Data Proposta */
+            data_proposta?: string | null;
             /**
              * Dias Restantes
              * @description Dias até o prazo final (negativo = vencido); None sem prazo.
@@ -2904,6 +3021,8 @@ export interface components {
              * @description Slug da natureza jurídica elegível ('municipal', 'consorcio'…).
              */
             readonly natureza_juridica: string | null;
+            /** Numero Plano Trabalho */
+            numero_plano_trabalho?: string | null;
             /** Numero Proposta */
             numero_proposta?: string | null;
             /** Objeto */
@@ -5602,6 +5721,40 @@ export interface operations {
             };
         };
     };
+    pareceres_por_plano_api_v1_opinions_get: {
+        parameters: {
+            query: {
+                /** @description número do plano de trabalho (ex.: 14275/2026) */
+                work_plan: string;
+                /** @description forçar coleta na fonte */
+                atualizar?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParecerPagina"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listar_planos_api_v1_plans_get: {
         parameters: {
             query?: never;
@@ -6092,6 +6245,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PropostaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pareceres_da_proposta_api_v1_proposals__proposta_id__opinions_get: {
+        parameters: {
+            query?: {
+                /** @description forçar coleta na fonte */
+                atualizar?: boolean;
+            };
+            header?: never;
+            path: {
+                proposta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParecerPagina"];
                 };
             };
             /** @description Validation Error */
