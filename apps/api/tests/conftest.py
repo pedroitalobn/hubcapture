@@ -30,7 +30,8 @@ _TABLES = (
     "sync_runs, proposta_embeddings, propostas, repasses, conformidades, obras, "
     "contato_vinculos, integracoes_contatos, contatos, "
     "municipios_interesse, preferencias_usuario, convites, usuarios, planos, "
-    "configuracoes, base_conhecimento"
+    "configuracoes, base_conhecimento, "
+    "helpdesk_hints, helpdesk_midias, helpdesk_artigos, helpdesk_categorias"
 )
 
 

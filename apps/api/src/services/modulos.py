@@ -60,6 +60,12 @@ MODULOS: list[dict] = [
         "descricao": "Chat com IA sobre as propostas e base de conhecimento",
         "padrao": True,
     },
+    {
+        "chave": "ajuda",
+        "label": "Central de ajuda",
+        "descricao": "Help desk interno — artigos, vídeos e hints contextuais (ⓘ) nas telas",
+        "padrao": True,
+    },
 ]
 _POR_CHAVE = {m["chave"]: m for m in MODULOS}
 

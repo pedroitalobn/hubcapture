@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, baixarCsv } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
+import { Hint } from "@/components/Hint";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import {
   formatBRL,
@@ -924,6 +925,8 @@ export default function CaptacaoPage() {
                 {contarFaceta("tipo", valor)}
               </button>
             ))}
+            {/* o que separa "cadastrada" de "disponível" — hint da Central */}
+            <Hint chave="funding.tipo" />
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-2 text-sm text-ink-2">

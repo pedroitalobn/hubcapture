@@ -7,6 +7,7 @@ import { BrandMark } from "@/components/AuthShell";
 import DynamicIsland from "@/components/DynamicIsland";
 import { TerritorioFiltro } from "@/components/TerritorioFiltro";
 import { api, clearTokens, getToken } from "@/lib/api/client";
+import { HelpProvider } from "@/lib/help";
 import { TerritorioProvider, useTerritorio } from "@/lib/territorio";
 
 // A navegação NÃO é por fonte de dados — é o ciclo do recurso público, sempre
@@ -27,6 +28,7 @@ const NAV = [
   { href: "/panel/alerts", label: "Alertas" },
   { href: "/panel/contacts", label: "Agenda de contatos", modulo: "contatos" },
   { href: "/panel/copilot", label: "Copiloto", modulo: "copiloto" },
+  { href: "/panel/help", label: "Central de ajuda", modulo: "ajuda" },
   { href: "/panel/account", label: "Minha conta" },
 ];
 
@@ -45,7 +47,11 @@ export default function PainelLayout({
   // painel: o provider carrega o perfil uma vez e as telas leem daqui.
   return (
     <TerritorioProvider>
-      <PainelShell>{children}</PainelShell>
+      {/* O mapa de hints (ⓘ) é estado de todo o painel, como o território:
+          carrega uma vez e os <Hint/> das telas consultam localmente. */}
+      <HelpProvider>
+        <PainelShell>{children}</PainelShell>
+      </HelpProvider>
     </TerritorioProvider>
   );
 }

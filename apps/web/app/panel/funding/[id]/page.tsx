@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
+import { Hint } from "@/components/Hint";
 import { PareceresSecao } from "@/components/PareceresSecao";
 import { Skeleton } from "@/components/Skeleton";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
@@ -358,7 +359,8 @@ export default function PropostaDetalhePage() {
               Proposta{" "}
               <span className="num select-all font-semibold text-ink">
                 {p.numero_proposta ?? "—"}
-              </span>
+              </span>{" "}
+              <Hint chave="proposta.numero_proposta" className="align-middle" />
             </span>
             {p.data_proposta && (
               <>
@@ -436,19 +438,26 @@ export default function PropostaDetalhePage() {
       <section className="hero-band anim-page-delayed">
         <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
           <div className="field">
-            <span className="field-label">Valor total</span>
+            <span className="field-label">
+              Valor total <Hint chave="proposta.valor_total" />
+            </span>
             <span className="value-hero">{formatBRL(p.valor_total)}</span>
             {p.contrapartida && num(p.contrapartida) > 0 && (
               <span className="num mt-1 text-xs text-ink-3">
-                contrapartida {formatBRL(p.contrapartida)}
+                contrapartida <Hint chave="proposta.contrapartida" className="mr-1 align-middle" />
+                {formatBRL(p.contrapartida)}
               </span>
             )}
           </div>
 
           {/* EMPENHO no primeiro degrau: é o que diz se o recurso saiu do
               papel. Antes vivia lá embaixo, na grade secundária. */}
+          {/* O hint contextual em ação: o ⓘ ao lado de "Empenhado" abre o
+              artigo que o admin plantou na chave proposta.empenhado. */}
           <div className="field">
-            <span className="field-label">Empenhado</span>
+            <span className="field-label">
+              Empenhado <Hint chave="proposta.empenhado" />
+            </span>
             {p.execucao ? (
               <>
                 <span className="value-hero">
@@ -474,7 +483,8 @@ export default function PropostaDetalhePage() {
             <span className="field-label">
               {dias !== null && dias !== undefined && dias < 0
                 ? "Prazo vencido"
-                : "Próximo prazo"}
+                : "Próximo prazo"}{" "}
+              <Hint chave="proposta.prazo" />
             </span>
             {prazoFoco ? (
               <>
@@ -500,7 +510,9 @@ export default function PropostaDetalhePage() {
 
         <div className="data-grid">
           <div className="field">
-            <span className="field-label">Situação</span>
+            <span className="field-label">
+              Situação <Hint chave="proposta.situacao" />
+            </span>
             <span className="mt-0.5">
               <StatusBadge tone={tomSituacao(p.situacao)}>
                 {humanizarCaixa(p.situacao) || "sem registro"}
@@ -511,7 +523,11 @@ export default function PropostaDetalhePage() {
           {/* "Empenhado a utilizar" subiu para a faixa de destaque, junto do
               valor empenhado — não se repete aqui. */}
           <Dado
-            rotulo="Pendências"
+            rotulo={
+              <>
+                Pendências <Hint chave="proposta.pendencias" />
+              </>
+            }
             valor={
               (p.pendencias ?? []).length === 0
                 ? "nenhuma"
@@ -522,7 +538,11 @@ export default function PropostaDetalhePage() {
           />
 
           <Dado
-            rotulo="Modalidade"
+            rotulo={
+              <>
+                Modalidade <Hint chave="proposta.modalidade" />
+              </>
+            }
             valor={humanizarCaixa(p.modalidade)}
             destaque
           />
@@ -598,6 +618,7 @@ export default function PropostaDetalhePage() {
           titulo={`Execução financeira — TransfereGov${
             p.execucao.ano ? ` (${p.execucao.ano})` : ""
           }`}
+          acao={<Hint chave="proposta.execucao" />}
         >
           {(() => {
             const global = num(p.execucao!.valor_global ?? p.valor_total);
