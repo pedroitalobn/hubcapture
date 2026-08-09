@@ -9,6 +9,8 @@ redeploy. Conformidade e obras nascem DESATIVADOS (reativar pelo painel).
 
 from __future__ import annotations
 
+import time
+
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -19,6 +21,18 @@ from ..models.configuracao import Configuracao
 
 _PREFIXO = "modulo_"
 _CATEGORIA = "modulos"
+
+# O guard `require_modulo` roda em TODA request dos routers guardados — sem
+# cache, cada request pagava uma sessão de banco só para ler o estado dos
+# módulos. TTL curto: um toggle no painel admin propaga em segundos.
+_CACHE_TTL = 10.0
+_cache_ativos: tuple[float, dict[str, bool]] | None = None
+
+
+def limpar_cache() -> None:
+    """Invalida o snapshot (chamado ao definir módulo; testes/ops)."""
+    global _cache_ativos
+    _cache_ativos = None
 
 # Registro dos módulos com o estado padrão (sem linha no banco → vale o padrão).
 MODULOS: list[dict] = [
@@ -115,12 +129,22 @@ async def definir(session: AsyncSession, chave: str, ativo: bool) -> None:
         .on_conflict_do_update(index_elements=["chave"], set_={"valor": valor})
     )
     await session.execute(stmt)
+    limpar_cache()
 
 
 async def esta_ativo(chave: str) -> bool:
-    """Acesso runtime com sessão própria (guards de endpoint)."""
-    async with SessionLocal() as s:
-        return (await ativos(s)).get(chave, False)
+    """Acesso runtime com snapshot cacheado (guards de endpoint)."""
+    global _cache_ativos
+    agora = time.monotonic()
+    if _cache_ativos is not None and agora - _cache_ativos[0] < _CACHE_TTL:
+        return _cache_ativos[1].get(chave, False)
+    try:
+        async with SessionLocal() as s:
+            estado = await ativos(s)
+    except Exception:  # noqa: BLE001 — banco fora do ar não derruba a navegação
+        estado = {m["chave"]: bool(m["padrao"]) for m in MODULOS}
+    _cache_ativos = (agora, estado)
+    return estado.get(chave, False)
 
 
 def require_modulo(chave: str):

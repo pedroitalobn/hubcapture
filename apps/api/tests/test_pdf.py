@@ -23,7 +23,6 @@ from src.models.proposta import Proposta
 from src.services import pdf
 from src.services.texto import humanizar_caixa
 
-
 _STRING_TJ = re.compile(rb"\(((?:\\.|[^()\\])*)\)\s*Tj", re.S)
 _OCTAL = re.compile(rb"\\([0-7]{3})")
 
@@ -111,7 +110,11 @@ def test_espelho_de_proposta_vazia_nao_quebra() -> None:
         pytest.param({"titulo": "T" * 5000}, id="titulo-sem-espaco"),
         pytest.param({"movimentacao": "MOV " * 4000}, id="movimentacao-gigante"),
         pytest.param(
-            {"prazos": [{"tipo": f"prazo {i} " * 20, "data_limite": "2030-01-01"} for i in range(40)]},
+            {
+                "prazos": [
+                    {"tipo": f"prazo {i} " * 20, "data_limite": "2030-01-01"} for i in range(40)
+                ]
+            },
             id="muitos-prazos",
         ),
         pytest.param(
