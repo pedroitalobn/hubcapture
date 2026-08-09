@@ -81,7 +81,8 @@ export function Dado({
   destaque,
   className,
 }: {
-  rotulo: string;
+  /** Texto do rótulo — aceita nó para acomodar um <Hint/> ao lado. */
+  rotulo: ReactNode;
   valor?: ReactNode;
   tom?: "ok" | "warn" | "danger";
   /** `true` sobe o valor um degrau na hierarquia (.value-lg). */

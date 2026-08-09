@@ -19,7 +19,9 @@ async def _definir(chave: str, ativo: bool) -> None:
 async def test_defaults_conformidade_e_obras_desativados() -> None:
     async with SessionLocal() as s:
         estado = await service.ativos(s)
-    assert estado["captacao"] and estado["recebidos"] and estado["copiloto"]
+    # recebidos nasce desligado por ora (foco na validação da Captação)
+    assert estado["captacao"] and estado["copiloto"] and estado["ajuda"]
+    assert not estado["recebidos"]
     assert not estado["conformidade"] and not estado["obras"]
 
 
@@ -54,10 +56,10 @@ async def test_perfil_expoe_modulos_ativos(seed_user, seed_municipio) -> None:
         p = await perfil_service.get_perfil(s, _FakeUser(u))
     assert set(p.modulos) == {
         "captacao",
-        "recebidos",
         "copiloto",
         "conformidade",
         "contatos",  # agenda de contatos nasce ligada
+        "ajuda",  # central de ajuda nasce ligada
     }
 
 

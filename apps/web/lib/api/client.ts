@@ -192,6 +192,38 @@ export async function exportarEspelhoProposta(
   return "baixado";
 }
 
+/**
+ * Upload de mídia da Central de ajuda (admin) — multipart, fora do client
+ * JSON tipado. Vídeo curto ou documento; vídeo pesado vai por URL.
+ */
+export async function enviarMidiaAjuda(
+  artigoId: string,
+  arquivo: File,
+  opts: { tipo: "video" | "documento"; titulo?: string; orientacao?: "horizontal" | "vertical" },
+): Promise<void> {
+  const form = new FormData();
+  form.append("arquivo", arquivo);
+  form.append("tipo", opts.tipo);
+  if (opts.titulo) form.append("titulo", opts.titulo);
+  form.append("orientacao", opts.orientacao ?? "horizontal");
+  const resp = await fetch(
+    `${API_ORIGIN}/api/v1/admin/help/articles/${artigoId}/media/upload`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+      body: form,
+    },
+  );
+  if (!resp.ok) {
+    const corpo = (await resp.json().catch(() => null)) as { detail?: string } | null;
+    throw new Error(
+      typeof corpo?.detail === "string"
+        ? corpo.detail
+        : `Falha no upload (HTTP ${resp.status})`,
+    );
+  }
+}
+
 /** Baixa a agenda de contatos em .vcf (importável no Google/Apple/Outlook). */
 export async function baixarContatosVcf(): Promise<void> {
   const resp = await fetch(`${API_ORIGIN}/api/v1/contacts/export`, {
