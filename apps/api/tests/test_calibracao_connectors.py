@@ -161,9 +161,7 @@ def test_postgrest_escolher_endpoint_e_coluna() -> None:
 
     defs = {
         "programa": {"properties": {"id_programa": {}, "nome": {}}},
-        "plano_acao": {
-            "properties": {"id_plano_acao": {}, "codigo_ibge_beneficiario": {}}
-        },
+        "plano_acao": {"properties": {"id_plano_acao": {}, "codigo_ibge_beneficiario": {}}},
     }
     assert escolher_endpoint_e_coluna(defs, ("plano_acao",)) == (
         "plano_acao",
@@ -227,3 +225,162 @@ async def test_voluntarias_fallback_candidatos_de_coluna(monkeypatch) -> None:
     conn = vol_mod.TransferegovVoluntariasConnector(base_url="http://vol/")
     records = await conn.collect("3550308", since=date(2026, 1, 1))
     assert [r.id_externo for r in records] == ["CV1"]
+
+
+# ── FNS: API do ConsultaFNS primária + scraping como 2ª fonte de verdade ────
+
+
+class _ScraperStub:
+    def __init__(self, dados: dict | None = None, falha: Exception | None = None):
+        self._dados = dados
+        self._falha = falha
+
+    async def is_enabled(self) -> bool:
+        return self._falha is None
+
+    async def extract(self, url, schema, prompt=None):
+        if self._falha:
+            raise self._falha
+        return self._dados or {}
+
+
+def _fns_sem_config(monkeypatch, fns_mod, scraper: _ScraperStub) -> None:
+    async def sem_config(_chave):
+        return None
+
+    monkeypatch.setattr(fns_mod.config_service, "resolver", sem_config)
+    monkeypatch.setattr(fns_mod, "get_scraper", lambda: scraper)
+    fns_mod._endpoint_cache.clear()
+
+
+def test_fns_campo_prioridade_e_flag() -> None:
+    from src.connectors import fns as fns_mod
+
+    # prioridade é do keyword, não da ordem das colunas — e "situacao" nunca
+    # casa com "acao" (senão o status PAGO viraria descrição)
+    row = {"situacao": "PAGO", "no_acao": "Atenção Básica"}
+    assert fns_mod._campo(row, "descricao", "acao") == "Atenção Básica"
+    assert fns_mod._flag("SIM") and fns_mod._flag("1") and fns_mod._flag(True)
+    assert not fns_mod._flag("NÃO") and not fns_mod._flag("") and not fns_mod._flag(None)
+
+
+def test_fns_montar_raw_caixa_alta() -> None:
+    from src.connectors import fns as fns_mod
+
+    raw = fns_mod._montar_raw(
+        {
+            "NO_ACAO": "Piso da Atenção Básica",
+            "DT_OB": "2026-07-10",
+            "VL_REPASSE": "1.234,56",
+            "NU_PORTARIA": "GM 123/2026",
+            "SG_BLOCO": "Custeio",
+            "ST_EMENDA": "NAO",
+        }
+    )
+    assert raw["descricao"] == "Piso da Atenção Básica"
+    assert raw["data_repasse"] == "2026-07-10"
+    assert raw["valor"] == "1.234,56"
+    assert raw["documento"] == "GM 123/2026"
+    assert raw["categoria"] == "Custeio"
+    assert raw["emenda"] is False
+    assert raw["orgao_superior"] == "Fundo Nacional de Saúde"
+
+
+def test_fns_refiltro_por_ibge() -> None:
+    from src.connectors import fns as fns_mod
+
+    assert fns_mod._linha_do_municipio({"coMunicipioIbge": "355030"}, "3550308")
+    assert fns_mod._linha_do_municipio({"CO_MUNICIPIO": 3550308}, "3550308")
+    assert not fns_mod._linha_do_municipio({"coMunicipioIbge": "9999999"}, "3550308")
+    assert fns_mod._tem_coluna_ibge({"CO_MUNICIPIO": 1})
+    assert not fns_mod._tem_coluna_ibge({"valor": 1})
+
+
+async def test_fns_collect_api_e_scrape_fundidos(monkeypatch) -> None:
+    """API e scraping rodam juntos; pareia pela portaria e funde com proveniência."""
+    from src.connectors import fns as fns_mod
+
+    async def fake_get_json(base, endpoint, params, headers=None):
+        if endpoint == "":
+            return {}
+        if endpoint == "repasse/consultar":
+            return {
+                "items": [
+                    {
+                        "coMunicipioIbge": "355030",
+                        "noAcao": "Atenção Básica",
+                        "vlRepasse": "1000,00",
+                        "nuPortaria": "123/2026",
+                        "dtOb": "2026-07-01",
+                    },
+                    {  # outro município — o refiltro descarta
+                        "coMunicipioIbge": "110001",
+                        "noAcao": "Outra",
+                        "vlRepasse": "9",
+                        "nuPortaria": "999/2026",
+                    },
+                ]
+            }
+        raise ConnectorClientError("404")
+
+    scraper = _ScraperStub(
+        dados={
+            "repasses": [
+                {"portaria": "Portaria nº 123/2026", "acao": "Piso da Atenção Básica (painel)"},
+                {"portaria": "777/2026", "acao": "Só na página", "valor": "50,00"},
+            ]
+        }
+    )
+    _fns_sem_config(monkeypatch, fns_mod, scraper)
+    monkeypatch.setattr(fns_mod, "get_json", fake_get_json)
+
+    conn = fns_mod.FnsConnector(base_url="http://pagina/", api_url="http://api/")
+    records = await conn.collect("3550308", since=date(2026, 1, 1))
+
+    assert len(records) == 2  # 1 fundido + 1 só-scraping; o de outro município caiu
+    fundido = next(r for r in records if r.endpoint == "repasse/consultar+scrape")
+    assert fundido.raw["descricao"] == "Piso da Atenção Básica (painel)"  # scrape vence
+    assert fundido.raw["valor"] == "1000,00"  # API vence
+    assert fundido.raw["_proveniencia"]["descricao"] == "scrape"
+    so_scrape = next(r for r in records if r.endpoint == "scrape")
+    assert so_scrape.id_externo == "777/2026"
+    assert fns_mod._endpoint_cache["http://api/"] == "repasse/consultar"
+
+
+async def test_fns_collect_api_falha_scrape_assume(monkeypatch) -> None:
+    """API fora do ar → scraping vira a fonte primária (nada pior que antes)."""
+    from src.connectors import fns as fns_mod
+    from src.ingestion.normalizer_repasse import normalize_repasse
+
+    async def api_fora(base, endpoint, params, headers=None):
+        raise ConnectorClientError("503")
+
+    scraper = _ScraperStub(
+        dados={"repasses": [{"portaria": "5/2026", "acao": "Custeio", "valor": "10,00"}]}
+    )
+    _fns_sem_config(monkeypatch, fns_mod, scraper)
+    monkeypatch.setattr(fns_mod, "get_json", api_fora)
+
+    conn = fns_mod.FnsConnector(base_url="http://pagina/", api_url="http://api/")
+    records = await conn.collect("3550308", since=date(2026, 1, 1))
+    assert len(records) == 1
+    assert records[0].endpoint == "scrape"
+    canonico = normalize_repasse(records[0])
+    assert canonico.proveniencia["descricao"] == "scrape"
+    assert canonico.valor is not None
+
+
+async def test_fns_collect_ambos_falham_levanta_erro_da_api(monkeypatch) -> None:
+    from src.connectors import fns as fns_mod
+    from src.scraping.scraper import ScraperNotConfigured
+
+    async def api_fora(base, endpoint, params, headers=None):
+        raise ConnectorClientError("503")
+
+    scraper = _ScraperStub(falha=ScraperNotConfigured("sem provider"))
+    _fns_sem_config(monkeypatch, fns_mod, scraper)
+    monkeypatch.setattr(fns_mod, "get_json", api_fora)
+
+    conn = fns_mod.FnsConnector(base_url="http://pagina/", api_url="http://api/")
+    with pytest.raises(ConnectorClientError):
+        await conn.collect("3550308", since=date(2026, 1, 1))

@@ -961,6 +961,32 @@ vieram (é o que se calibra). Não precisa de banco nem da API no ar; sai com c�
 alguma falhar. Calibrar connector é trabalho empírico — isto substitui descobrir pelo
 `sync_runs` depois do deploy.
 
+## 30b. FNS — API do ConsultaFNS como fonte primária (coleta combinada)
+
+O connector `fns` deixou de ser só-scraping: sem scraper configurado a fonte ficava
+morta (`ScraperNotConfigured`). Agora o backend REST do portal ConsultaFNS
+(consultafns.saude.gov.br) é a fonte PRIMÁRIA e o scraping da página segue como 2ª
+fonte de verdade — os dois rodam em paralelo (`_combinada.coletar`) e o resultado é
+fundido pareando pela PORTARIA/OB (só dígitos): API vence em id/valor/data/documento,
+scraping vence nos descritivos (`descricao`/`categoria`), origem por campo em
+`raw["_proveniencia"]` (o `normalizer_repasse` respeita o hint; padrão segue `api`).
+Linha que só o scraping conhece entra sozinha.
+
+- **Autocalibração (§27)**: rota do backend não é fixa — override `fns_api_endpoint`
+  (painel admin) > cache > candidatos (`repasse/consultar`, `repasse`,
+  `pagamento/consultar`…). Parâmetros nos dois estilos (código 6 dígitos e IBGE 7);
+  quando a resposta ecoa coluna de IBGE/município há refiltro estrito no cliente
+  (nunca ingere o Brasil inteiro); resposta sem a coluna é aceita porque a consulta
+  já foi por município. Casamento de campo por palavra-chave com normalização
+  camelCase→snake (`vlRepasse` → `vl_repasse`) — cobre camelCase, snake e CAIXA ALTA.
+- **Config** (categoria fonte): `fns_api_url` (default
+  `https://consultafns.saude.gov.br/recursos/`), `fns_api_endpoint` (vazio =
+  candidatos) e `fns_consulta_url` (página, scraping). `health_check` = API de pé
+  (2xx/4xx na raiz) OU scraper habilitado.
+- **Validação**: unit tests em `test_calibracao_connectors.py` (seção FNS); ao vivo,
+  `python -m src.tools.probe_fontes <ibge> --fonte fns` de uma máquina com saída para
+  gov.br (o sandbox de CI/agente pode bloquear) — é onde se calibra rota/campos reais.
+
 ## 31. Agenda de contatos + sincronização com Google/Apple/Outlook
 
 Rede de pessoas do gestor (gabinetes, secretarias, técnicos, fornecedores) dentro do Hub,
