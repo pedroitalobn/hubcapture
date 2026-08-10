@@ -545,20 +545,30 @@ export default function CaptacaoPage() {
     if (nome) setAbas((prev) => prev.map((a) => (a.id === id ? { ...a, nome } : a)));
   }
 
+  // A estrela só muda depois que a API confirmou. Marcar antes e ignorar o
+  // erro criava a "favorita fantasma": pintada na tela, inexistente no banco —
+  // no próximo carregamento ela sumia, como se a persistência falhasse.
   async function alternarFavorito(p: Proposta) {
-    if (favoritos.has(p.id)) {
-      await api.DELETE("/api/v1/favorites/{proposta_id}", {
-        params: { path: { proposta_id: p.id } },
-      });
-      setFavoritos((prev) => {
-        const s = new Set(prev);
-        s.delete(p.id);
-        return s;
-      });
-    } else {
-      await api.POST("/api/v1/favorites", { body: { proposta_id: p.id } });
-      setFavoritos((prev) => new Set(prev).add(p.id));
+    const favoritar = !favoritos.has(p.id);
+    const { error } = favoritar
+      ? await api.POST("/api/v1/favorites", { body: { proposta_id: p.id } })
+      : await api.DELETE("/api/v1/favorites/{proposta_id}", {
+          params: { path: { proposta_id: p.id } },
+        });
+    if (error) {
+      setMsg(
+        favoritar
+          ? "Não foi possível favoritar agora — tente novamente."
+          : "Não foi possível remover a favorita agora — tente novamente.",
+      );
+      return;
     }
+    setFavoritos((prev) => {
+      const s = new Set(prev);
+      if (favoritar) s.add(p.id);
+      else s.delete(p.id);
+      return s;
+    });
     if (acompanhando) void carregarAcompanhadas();
   }
 

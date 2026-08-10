@@ -108,8 +108,26 @@
   --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* ── Tema em TRÊS estados ────────────────────────────────────────
+   O usuário escolhe claro/escuro no painel (ThemeToggle grava `hub_tema`;
+   o boot script do layout raiz põe `data-theme` no <html> antes da 1ª
+   pintura) ou segue o sistema (sem atributo → vale só a media query).
+   Contrato dos seletores:
+   - claro é o padrão do `:root` acima;
+   - dark via sistema NÃO se aplica quando o usuário forçou o claro;
+   - `data-theme="dark"` repete os MESMOS tokens para vencer a media
+     query em qualquer sistema — os dois blocos andam em sincronia.
+   `color-scheme` acompanha (controles de formulário e scrollbar nativos
+   seguiam o SO mesmo com o tema forçado). */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     /* Dark: Abyssal Ink (nunca preto puro em conteúdo) */
     --surface: #222f30;
     --surface-2: #2b3839;
@@ -143,6 +161,37 @@
     --aurora-1: color-mix(in srgb, var(--color-lime) 12%, transparent);
     --aurora-2: color-mix(in srgb, var(--color-aqua) 10%, transparent);
   }
+}
+
+/* Escuro FORÇADO pelo usuário — mesmos tokens do bloco media acima. */
+:root[data-theme="dark"] {
+  --surface: #222f30;
+  --surface-2: #2b3839;
+  --surface-3: #344243;
+  --card: #222f30;
+  --glass: rgba(255, 255, 255, 0.045);
+  --ink: #ffffff;
+  --ink-2: #b9c6c2;
+  --ink-3: #7e8b8b;
+  --hairline: #4d5757;
+  --action-bg: #ffffff;
+  --action-fg: #222f30;
+  --glow: rgba(206, 247, 158, 0.09);
+  --glow-2: rgba(139, 224, 212, 0.08);
+  --ok: #cef79e;
+  --ok-bg: rgba(206, 247, 158, 0.12);
+  --bar-1: rgba(206, 247, 158, 0.28);
+  --bar-2: rgba(206, 247, 158, 0.62);
+  --bar-3: #cef79e;
+  --warn: #e0bd6a;
+  --warn-bg: rgba(224, 189, 106, 0.14);
+  --danger: #e08a72;
+  --danger-bg: rgba(224, 138, 114, 0.14);
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.35);
+  --elev-2: 0 2px 10px rgba(0, 0, 0, 0.5), 0 24px 60px rgba(0, 0, 0, 0.45);
+  --rail: rgba(43, 56, 57, 0.55);
+  --aurora-1: color-mix(in srgb, var(--color-lime) 12%, transparent);
+  --aurora-2: color-mix(in srgb, var(--color-aqua) 10%, transparent);
 }
 
 body {
@@ -334,13 +383,19 @@ p {
     background-clip: text;
     color: transparent;
   }
+  /* lime/aqua somem no branco — no light o gradiente é de tinta.
+     (dois seletores = tema claro do sistema OU forçado pelo usuário) */
   @media (prefers-color-scheme: light) {
-    .text-gradient {
-      /* lime/aqua somem no branco — no light o gradiente é de tinta */
+    :root:not([data-theme="dark"]) .text-gradient {
       background: linear-gradient(120deg, var(--color-abyss), #3d6b5c);
       -webkit-background-clip: text;
       background-clip: text;
     }
+  }
+  :root[data-theme="light"] .text-gradient {
+    background: linear-gradient(120deg, var(--color-abyss), #3d6b5c);
+    -webkit-background-clip: text;
+    background-clip: text;
   }
 
   /* ── Motion utilities ─────────────────────────────────────── */
@@ -575,11 +630,15 @@ p {
     border-color: var(--color-lime);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-lime) 16%, transparent);
   }
+  /* lime some no branco — no light o foco é tinta
+     (tema claro do sistema OU forçado pelo usuário) */
   @media (prefers-color-scheme: light) {
-    .input:focus {
-      /* lime some no branco — no light o foco é tinta */
+    :root:not([data-theme="dark"]) .input:focus {
       border-color: var(--ink);
     }
+  }
+  :root[data-theme="light"] .input:focus {
+    border-color: var(--ink);
   }
 
   .field-label {

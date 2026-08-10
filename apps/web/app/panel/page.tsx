@@ -287,6 +287,7 @@ function MeuPainel() {
   const [oportunidades, setOportunidades] = useState<Oportunidade[]>([]);
   const [buscandoOportunidades, setBuscandoOportunidades] = useState(true);
   const [favoritas, setFavoritas] = useState<Set<string>>(new Set());
+  const [favErro, setFavErro] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const tentativas = useRef(0);
   // null = usuário ainda não escolheu nada (nem nesta sessão nem salvo) — a
@@ -392,20 +393,30 @@ function MeuPainel() {
     );
   }
 
+  // A estrela só muda depois que a API confirmou — marcar antes e ignorar o
+  // erro criava a "favorita fantasma" que sumia no próximo carregamento.
   async function alternarFavorita(id: string) {
-    if (favoritas.has(id)) {
-      await api.DELETE("/api/v1/favorites/{proposta_id}", {
-        params: { path: { proposta_id: id } },
-      });
-      setFavoritas((prev) => {
-        const s = new Set(prev);
-        s.delete(id);
-        return s;
-      });
-    } else {
-      await api.POST("/api/v1/favorites", { body: { proposta_id: id } });
-      setFavoritas((prev) => new Set(prev).add(id));
+    const favoritar = !favoritas.has(id);
+    const { error } = favoritar
+      ? await api.POST("/api/v1/favorites", { body: { proposta_id: id } })
+      : await api.DELETE("/api/v1/favorites/{proposta_id}", {
+          params: { path: { proposta_id: id } },
+        });
+    if (error) {
+      setFavErro(
+        favoritar
+          ? "Não foi possível favoritar agora — tente novamente."
+          : "Não foi possível remover a favorita agora — tente novamente.",
+      );
+      return;
     }
+    setFavErro(null);
+    setFavoritas((prev) => {
+      const s = new Set(prev);
+      if (favoritar) s.add(id);
+      else s.delete(id);
+      return s;
+    });
   }
 
   // Recém-saído do onboarding: o 1º sync real roda em background na API —
@@ -600,6 +611,12 @@ function MeuPainel() {
                   );
                 })}
               </div>
+            )}
+
+            {favErro && (
+              <p role="status" className="text-sm tone-danger">
+                {favErro}
+              </p>
             )}
 
             {itens.length === 0 ? (

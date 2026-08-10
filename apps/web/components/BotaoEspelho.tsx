@@ -49,7 +49,7 @@ export function BotaoEspelho({
   formato?: "botao" | "icone";
   atalho?: string;
   className?: string;
-  onResultado?: (mensagem: string) => void;
+  onResultado?: (mensagem: string, tom: "ok" | "erro") => void;
 }) {
   const [estado, setEstado] = useState<Estado>("ocioso");
   const emCurso = useRef(false);
@@ -65,10 +65,11 @@ export function BotaoEspelho({
         r === "compartilhado"
           ? "Espelho pronto para compartilhar."
           : "Espelho em PDF baixado.",
+        "ok",
       );
     } catch {
       setEstado("erro");
-      onResultado?.("Não foi possível gerar o espelho em PDF.");
+      onResultado?.("Não foi possível gerar o espelho em PDF.", "erro");
     } finally {
       emCurso.current = false;
       setTimeout(() => setEstado("ocioso"), RESET_MS);
