@@ -178,7 +178,7 @@ A navegação é **orientada ao perfil do usuário** (município(s) de interesse
 - Classificação automática entre **oportunidade disponível** e **proposta já cadastrada**.
 - Filtros de granularidade equivalente às plataformas de referência do mercado: busca livre, modalidade/instrumento, órgão, situação, **natureza jurídica do proponente**, qualificação, exercício, faixa de valor, área e ordenação (recentes, prazo, nome, órgão, valor). Filtros ativos são exibidos e removíveis individualmente.
 - **Facetas dinâmicas**: cada filtro apresenta apenas as opções existentes no recorte, com contagem.
-- **Execução financeira do TransfereGov**: valor global, empenhado, liberado, pago e saldo em conta, com destaque para **"empenhado a utilizar"** — recurso já disponibilizado ao município e ainda não executado.
+- **Execução financeira do TransfereGov**: valor global, empenhado, liberado, pago e saldo em conta, com destaque para **"empenho"** — recurso já disponibilizado ao município e ainda não executado.
 - Página de detalhe estruturada: dados gerais, valores, situação, prazos, pendências, execução financeira com barra de progresso e **proveniência do dado**.
 - Painel de resumo com séries por exercício (aprovado × desembolsado), pipeline por situação e convênios vigentes com percentual de desembolso.
 - Favoritos (aba de acompanhamento), pastas de organização com cor e agrupamento livre.

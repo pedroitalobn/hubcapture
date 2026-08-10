@@ -708,7 +708,7 @@ def _faixa_destaque(p: Proposta) -> Table:
     if p.execucao:
         campos.insert(
             1,
-            _campo("Empenhado a utilizar", _brl(a_utilizar), tom="ok" if a_utilizar > 0 else None),
+            _campo("Empenho", _brl(a_utilizar), tom="ok" if a_utilizar > 0 else None),
         )
 
     conteudo = [
@@ -756,7 +756,7 @@ def _bloco_execucao(p: Proposta) -> list:
                 _campo("Pago", _brl(valores["pago"])),
                 _campo("Saldo em conta", _brl(e.get("saldo_conta"))),
                 _campo(
-                    "Empenhado a utilizar",
+                    "Empenho",
                     _brl(a_utilizar),
                     tom="ok" if a_utilizar > 0 else None,
                     grande=True,
