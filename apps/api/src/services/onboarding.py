@@ -1,5 +1,10 @@
 """Onboarding: grava municípios monitorados + preferências do perfil.
 
+Também é o "ajustar perfil": o conjunto enviado SUBSTITUI o território
+monitorado — municípios fora da nova seleção saem de `municipios_interesse`
+(e as buscas ativas deles são desativadas). Registros `modo='avulso'` (cache
+da consulta avulsa) não são tocados.
+
 O 1º sync (dados reais das fontes) NÃO roda aqui: o router agenda
 `services.primeiro_sync.executar` como BackgroundTask — o onboarding responde
 na hora e o painel se povoa conforme as fontes concluem (best-effort).
@@ -9,10 +14,11 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..models.monitoramento import MonitoramentoBusca
 from ..models.municipio_interesse import MunicipioInteresse
 from ..models.plano import Plano
 from ..models.preferencias import PreferenciasUsuario
@@ -45,17 +51,9 @@ async def _validar_limite_municipios(
     maximo = (plano.limites or {}).get("municipios_max") if plano else None
     if not maximo:
         return
-    existentes = set(
-        (
-            await session.execute(
-                select(MunicipioInteresse.ibge).where(MunicipioInteresse.usuario_id == usuario_id)
-            )
-        )
-        .scalars()
-        .all()
-    )
-    total = len(existentes | {m.ibge for m in req.municipios})
-    if total > int(maximo):
+    # o onboarding substitui o território: só a nova seleção conta no limite
+    # (trocar A→B num plano de 1 município é permitido)
+    if len({m.ibge for m in req.municipios}) > int(maximo):
         raise LimitePlanoExcedido(int(maximo))
 
 
@@ -76,11 +74,54 @@ async def onboarding(
             update(Usuario).where(Usuario.id == usuario_id).values(**valores_usuario)
         )
 
+    ibges_novos = {m.ibge for m in req.municipios}
+    monitorados_antes = set(
+        (
+            await session.execute(
+                select(MunicipioInteresse.ibge).where(
+                    MunicipioInteresse.usuario_id == usuario_id,
+                    MunicipioInteresse.modo == "monitorado",
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+
     for m in req.municipios:
+        stmt = pg_insert(MunicipioInteresse).values(
+            usuario_id=usuario_id, ibge=m.ibge, nome=m.nome, uf=m.uf, modo="monitorado"
+        )
+        # se já existia (inclusive como 'avulso'), promove a monitorado sem
+        # apagar nome/uf já conhecidos
+        stmt = stmt.on_conflict_do_update(
+            constraint="uq_municipios_usuario_ibge",
+            set_={
+                "modo": "monitorado",
+                "nome": func.coalesce(stmt.excluded.nome, MunicipioInteresse.nome),
+                "uf": func.coalesce(stmt.excluded.uf, MunicipioInteresse.uf),
+            },
+        )
+        await session.execute(stmt)
+
+    # ajustar perfil = substituir: monitorados fora da nova seleção saem do
+    # território (os 'avulso' ficam — são cache da consulta avulsa)
+    removidos = monitorados_antes - ibges_novos
+    if removidos:
         await session.execute(
-            pg_insert(MunicipioInteresse)
-            .values(usuario_id=usuario_id, ibge=m.ibge, nome=m.nome, uf=m.uf, modo="monitorado")
-            .on_conflict_do_nothing(constraint="uq_municipios_usuario_ibge")
+            delete(MunicipioInteresse).where(
+                MunicipioInteresse.usuario_id == usuario_id,
+                MunicipioInteresse.modo == "monitorado",
+                MunicipioInteresse.ibge.in_(removidos),
+            )
+        )
+        await session.execute(
+            update(MonitoramentoBusca)
+            .where(
+                MonitoramentoBusca.usuario_id == usuario_id,
+                MonitoramentoBusca.municipio_ibge.in_(removidos),
+            )
+            .values(ativo=False)
         )
 
     # O onboarding oferece GRUPOS ("transferegov", "fns"); o resto do sistema
