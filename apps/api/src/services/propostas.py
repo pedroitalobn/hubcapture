@@ -133,20 +133,20 @@ def _ano_plausivel(ano: int) -> bool:
 def ano_de(p: Proposta) -> str | None:
     """Ano de referência: o de CRIAÇÃO na fonte, nunca o da última movimentação.
 
-    `data_proposta` > sufixo do nº da proposta > exercício da execução >
-    data de atualização (último recurso) — proposta de 2022 movimentada em
-    2026 não é uma proposta de 2026.
+    `data_proposta` > sufixo do nº da proposta > exercício da execução. Sem
+    nenhum desses sinais o ano fica INDEFINIDO (None): cair na data de
+    atualização classificaria uma proposta criada em 2022 e movimentada em 2026
+    como safra 2026 — exatamente o que este critério existe para evitar. Sem
+    ano, a proposta continua na lista, só não entra em nenhuma safra.
     """
     if p.data_proposta and _ano_plausivel(p.data_proposta.year):
         return str(p.data_proposta.year)
     m = _ANO_NO_NUMERO.search(str(p.numero_proposta or ""))
     if m and _ano_plausivel(int(m.group(1))):
         return m.group(1)
-    ano = _execucao(p).get("ano")
-    if ano not in (None, ""):
-        return str(ano)[:4]
-    if p.data_atualizacao_fonte:
-        return str(p.data_atualizacao_fonte.year)
+    exercicio = str(_execucao(p).get("ano") or "")[:4]
+    if exercicio.isdigit() and _ano_plausivel(int(exercicio)):
+        return exercicio
     return None
 
 
