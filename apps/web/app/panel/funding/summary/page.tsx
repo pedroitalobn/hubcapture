@@ -235,7 +235,7 @@ export default function ResumoCaptacaoPage() {
               <h2 className="label-mono">Pipeline de propostas</h2>
               <p className="mt-1 font-mono text-[11px] text-ink-3">
                 {resumo.cards.oportunidades_abertas} oportunidades abertas ·{" "}
-                {formatBRL(resumo.cards.valor_a_utilizar)} empenhado a utilizar
+                {formatBRL(resumo.cards.valor_a_utilizar)} de empenho
               </p>
               <ul className="mt-4 flex flex-col gap-2">
                 {resumo.pipeline.slice(0, 8).map((p) => (

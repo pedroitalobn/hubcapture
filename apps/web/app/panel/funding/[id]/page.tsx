@@ -520,8 +520,8 @@ export default function PropostaDetalhePage() {
             </span>
           </div>
 
-          {/* "Empenhado a utilizar" subiu para a faixa de destaque, junto do
-              valor empenhado — não se repete aqui. */}
+          {/* O empenho subiu para a faixa de destaque, junto do valor
+              empenhado — não se repete aqui. */}
           <Dado
             rotulo={
               <>
@@ -664,7 +664,7 @@ export default function PropostaDetalhePage() {
                     valor={formatBRL(p.execucao!.saldo_conta)}
                   />
                   <Dado
-                    rotulo="Empenhado a utilizar"
+                    rotulo="Empenho"
                     valor={formatBRL(String(empenhadoAUtilizar))}
                     tom={empenhadoAUtilizar > 0 ? "ok" : undefined}
                     destaque

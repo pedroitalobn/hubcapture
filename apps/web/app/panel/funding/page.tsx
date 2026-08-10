@@ -1178,7 +1178,7 @@ export default function CaptacaoPage() {
               ["Transferências", String(execucao.transferencias), false],
               ["Valor global", formatBRL(String(execucao.global)), false],
               ["Empenhado", formatBRL(String(execucao.empenhado)), false],
-              ["Empenhado a utilizar", formatBRL(String(execucao.aUtilizar)), true],
+              ["Empenho", formatBRL(String(execucao.aUtilizar)), true],
               ["Pago", formatBRL(String(execucao.pago)), false],
               ["Saldo em conta", formatBRL(String(execucao.saldo)), false],
             ] as const
@@ -1187,8 +1187,8 @@ export default function CaptacaoPage() {
               key={rotulo}
               className={`card p-4 ${destaque ? "ring-1 ring-lime" : ""}`}
             >
-              {/* min-h de 2 linhas: sem isto o rótulo que quebra ("Empenhado a
-                  utilizar") empurra só o seu valor para baixo e a fileira de
+              {/* min-h de 2 linhas: sem isto um rótulo que quebra ("Saldo em
+                  conta") empurra só o seu valor para baixo e a fileira de
                   números deixa de alinhar. */}
               <p className="field-label min-h-[2.2em] leading-tight">{rotulo}</p>
               <p className={cx("value-lg mt-1", destaque && "tone-ok")}>

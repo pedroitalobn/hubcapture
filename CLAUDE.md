@@ -811,7 +811,7 @@ município e ainda não foi utilizado":
   transferegov_disc (CSV nacional SIconv/detru com mapeamento por
   palavra-chave + cache em memória 1h; incluído em CAPTACAO_FONTES).
 - **Web Captação**: cards agregados (Transferências · Valor global · Empenhado ·
-  **Empenhado a utilizar** [destaque] · Pago · Saldo em conta), filtro por ANO,
+  **Empenho** [destaque] · Pago · Saldo em conta), filtro por ANO,
   colunas Valor global/Empenhado (com ponto verde quando há verba parada).
 - **Web detalhe**: seção "Execução financeira — TransfereGov" com barra de
   progresso empilhada (pago ⊂ liberado ⊂ empenhado sobre o global), os 6
@@ -868,7 +868,8 @@ mudou é a granularidade do recorte sobre o território.
   dropdown ficaria preso na opção escolhida). `POST /proposals/live-search` já embute as
   facetas na resposta (evita 2ª chamada a cada tecla).
 - **Resumo** — `GET /proposals/summary`: cards (valor conveniado/desembolsado/empenhado/
-  a utilizar, convênios iniciados e em execução, oportunidades abertas), série
+  empenho — campo `valor_a_utilizar` na API —, convênios iniciados e em execução,
+  oportunidades abertas), série
   aprovado × desembolsado por ano, pipeline por situação e convênios vigentes com % de
   desembolso. Web: `app/panel/funding/summary`.
 - **Relatório** — `GET /proposals/report.csv` e `GET /transfers/amendments/report.csv`
@@ -1198,7 +1199,7 @@ utilizar" (empenhado − pago) como linha de apoio.
 | Onde | Antes | Agora |
 |---|---|---|
 | `panel/funding/[id]` | h1 = título, com fallback para `id_externo`; município em linha cinza de apoio | h1 = município; objeto abaixo; nunca um id como título |
-| `panel/funding/[id]` (faixa) | empenho na grade secundária | `Empenhado` como 3º valor-herói, com "a utilizar" de apoio |
+| `panel/funding/[id]` (faixa) | empenho na grade secundária | `Empenhado` como 3º valor-herói, com o empenho a executar de apoio |
 | `panel/funding/[id]` (dados) | campo "Município (IBGE)" só com o código | "Município" nomeado + "Código IBGE" separado; ids ao fim |
 | `panel/funding/[id]` (header) | nº da proposta rebaixado junto do UUID; sem data e sem órgão | "Proposta 14275/2026 · criada em 26/03/2026" + órgão, no cabeçalho |
 | `ingestion/normalizer` | só chave minúscula casava: `NR_PROPOSTA`/`DIA_PROPOSTA`/`DESC_ORGAO` chegavam vazios | `_ci()` dá alias de caixa; nº, data e órgão do SIconv entram |
