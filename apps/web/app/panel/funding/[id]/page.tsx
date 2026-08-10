@@ -247,7 +247,11 @@ export default function PropostaDetalhePage() {
   const [favorita, setFavorita] = useState(false);
   const [monitorando, setMonitorando] = useState(false);
   const [canais, setCanais] = useState<string[]>(["painel"]);
-  const [msg, setMsg] = useState<string | null>(null);
+  // Aviso da tela com TOM: os erros (favorita que não salvou, PDF que falhou)
+  // não podem sair pintados de verde como se fossem sucesso.
+  const [msg, setMsg] = useState<{ tom: "ok" | "erro"; texto: string } | null>(
+    null,
+  );
   // "Ampliar tudo" da seção de dados da fonte (campos de extensão longa)
   const [abrirTudo, setAbrirTudo] = useState(false);
 
@@ -288,7 +292,16 @@ export default function PropostaDetalhePage() {
       : await api.DELETE("/api/v1/favorites/{proposta_id}", {
           params: { path: { proposta_id: params.id } },
         });
-    if (error) setFavorita(!proximo); // rollback silencioso
+    if (error) {
+      // desfaz E avisa — o rollback mudo lia como "favoritei e não persistiu"
+      setFavorita(!proximo);
+      setMsg({
+        tom: "erro",
+        texto: proximo
+          ? "Não foi possível favoritar agora — tente novamente."
+          : "Não foi possível remover a favorita agora — tente novamente.",
+      });
+    }
   }
 
   async function monitorar() {
@@ -297,9 +310,10 @@ export default function PropostaDetalhePage() {
     });
     if (!error) {
       setMonitorando(true);
-      setMsg(
-        "Monitorando: você recebe aviso quando a situação ou o prazo mudar.",
-      );
+      setMsg({
+        tom: "ok",
+        texto: "Monitorando: você recebe aviso quando a situação ou o prazo mudar.",
+      });
     }
   }
 
@@ -413,7 +427,11 @@ export default function PropostaDetalhePage() {
             {favorita ? "★ Favorita" : "☆ Favoritar"}
           </button>
           {/* atalho "P": o gestor exporta sem tirar a mão do teclado */}
-          <BotaoEspelho propostaId={params.id} atalho="p" onResultado={setMsg} />
+          <BotaoEspelho
+            propostaId={params.id}
+            atalho="p"
+            onResultado={(texto, tom) => setMsg({ tom, texto })}
+          />
           {p.url_origem && (
             <a
               href={p.url_origem}
@@ -427,7 +445,7 @@ export default function PropostaDetalhePage() {
         </div>
       </header>
 
-      {msg && <Aviso tom="ok">{msg}</Aviso>}
+      {msg && <Aviso tom={msg.tom}>{msg.texto}</Aviso>}
 
       {/* ── FAIXA DE DESTAQUE ────────────────────────────────────────
           O topo da hierarquia: valor e vencimento, os dois dados que

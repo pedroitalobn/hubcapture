@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/AuthShell";
 import DynamicIsland from "@/components/DynamicIsland";
 import { TerritorioFiltro } from "@/components/TerritorioFiltro";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { api, clearTokens, getToken } from "@/lib/api/client";
 import { HelpProvider } from "@/lib/help";
 import { TerritorioProvider, useTerritorio } from "@/lib/territorio";
@@ -148,12 +149,17 @@ function PainelShell({ children }: { children: React.ReactNode }) {
           )}
         </nav>
 
-        <button
-          onClick={sair}
-          className="mt-auto self-start font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3 transition-colors hover:text-ink"
-        >
-          Sair da conta
-        </button>
+        <div className="mt-auto flex flex-col items-start gap-3">
+          {/* Tema claro/escuro — a escolha persiste em `hub_tema` e vale
+              para o app inteiro (boot script no layout raiz). */}
+          <ThemeToggle />
+          <button
+            onClick={sair}
+            className="self-start font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3 transition-colors hover:text-ink"
+          >
+            Sair da conta
+          </button>
+        </div>
       </aside>
 
       <main className="mx-auto flex w-full min-w-0 max-w-[1600px] flex-1 flex-col py-2">

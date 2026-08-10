@@ -32,6 +32,7 @@ export default function MinhasPropostasPage() {
   const { selecionados } = useTerritorio();
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -54,10 +55,17 @@ export default function MinhasPropostasPage() {
     );
   }, [propostas, selecionados]);
 
+  // Só tira da lista depois que a API confirmou — remover antes e ignorar o
+  // erro faria a proposta "voltar" no próximo carregamento.
   async function desfavoritar(id: string) {
-    await api.DELETE("/api/v1/favorites/{proposta_id}", {
+    const { error } = await api.DELETE("/api/v1/favorites/{proposta_id}", {
       params: { path: { proposta_id: id } },
     });
+    if (error) {
+      setErro("Não foi possível remover a favorita agora — tente novamente.");
+      return;
+    }
+    setErro(null);
     setPropostas((prev) => prev.filter((p) => p.id !== id));
   }
 
@@ -70,6 +78,12 @@ export default function MinhasPropostasPage() {
           dados; a estrela remove daqui.
         </p>
       </header>
+
+      {erro && (
+        <p role="status" className="text-sm tone-danger">
+          {erro}
+        </p>
+      )}
 
       {carregando ? (
         <p className="text-sm text-ink-3">Carregando…</p>

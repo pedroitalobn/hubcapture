@@ -6,7 +6,9 @@ import { cx } from "./ui";
 type Tema = "sistema" | "claro" | "escuro";
 const CHAVE = "hub_tema";
 
-/** Aplica o tema no <html>; "sistema" remove o atributo e devolve à media query. */
+/** Aplica o tema no <html>; "sistema" remove o atributo e devolve à media query.
+    O CSS lê `data-theme` (globals.css, "Tema em TRÊS estados") e o boot script
+    do layout raiz reaplica a escolha salva antes da primeira pintura. */
 export function aplicarTema(tema: Tema): void {
   const el = document.documentElement;
   if (tema === "sistema") el.removeAttribute("data-theme");
@@ -23,22 +25,27 @@ export function ThemeToggle() {
   const [tema, setTema] = useState<Tema>("sistema");
 
   useEffect(() => {
-    const salvo = window.localStorage.getItem(CHAVE) as Tema | null;
-    if (salvo === "claro" || salvo === "escuro" || salvo === "sistema") setTema(salvo);
+    try {
+      const salvo = window.localStorage.getItem(CHAVE) as Tema | null;
+      if (salvo === "claro" || salvo === "escuro" || salvo === "sistema")
+        setTema(salvo);
+    } catch {
+      /* storage bloqueado → segue no sistema */
+    }
   }, []);
 
   function escolher(t: Tema) {
     setTema(t);
-    window.localStorage.setItem(CHAVE, t);
+    try {
+      window.localStorage.setItem(CHAVE, t);
+    } catch {
+      /* sem storage a escolha vale só nesta sessão */
+    }
     aplicarTema(t);
   }
 
   return (
-    <div
-      className="inline-flex rounded-md border border-line p-0.5"
-      role="group"
-      aria-label="Tema da interface"
-    >
+    <div className="segmented" role="group" aria-label="Tema da interface">
       {OPCOES.map((o) => (
         <button
           key={o.valor}
@@ -47,10 +54,8 @@ export function ThemeToggle() {
           title={o.titulo}
           aria-pressed={tema === o.valor}
           className={cx(
-            "rounded px-2 py-1 text-xs transition",
-            tema === o.valor
-              ? "bg-brand font-medium text-brand-fg"
-              : "text-muted hover:text-ink",
+            "segmented-item",
+            tema === o.valor && "segmented-item-active",
           )}
         >
           {o.rotulo}
