@@ -55,6 +55,11 @@ async def test_visao_geral_agrega_por_perfil_e_isola_por_rls(
     await seed_repasse("fpm", "r1", "3550308", valor="500")
     await seed_proposta("transferegov_ff", "pb", "3304557")  # do outro usuário
 
+    # recebidos nasce desligado (§29) — o teste liga para exercitar a agregação
+    async with SessionLocal() as s:
+        async with s.begin():
+            await modulos_service.definir(s, "recebidos", True)
+
     async with rls_session(a) as s:
         vg = await service.visao_geral(s, _FakeUser(a, "executivo"))
 

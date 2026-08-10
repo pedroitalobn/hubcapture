@@ -20,6 +20,7 @@ const NAV = [
   { href: "/admin/config", label: "Providers & Config" },
   { href: "/admin/sources", label: "Fontes (diagnóstico)" },
   { href: "/admin/modules", label: "Módulos" },
+  { href: "/admin/advisory", label: "Assessoria" },
   { href: "/admin/class", label: "Class" },
 ];
 

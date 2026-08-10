@@ -282,6 +282,22 @@
         "title": "AlertaRead",
         "type": "object"
       },
+      "AssessoriaContatosSet": {
+        "properties": {
+          "contatos": {
+            "items": {
+              "$ref": "#/components/schemas/ContatoAssessoria"
+            },
+            "title": "Contatos",
+            "type": "array"
+          }
+        },
+        "required": [
+          "contatos"
+        ],
+        "title": "AssessoriaContatosSet",
+        "type": "object"
+      },
       "AtribuirPlano": {
         "properties": {
           "plano_id": {
@@ -1186,6 +1202,69 @@
           "conteudo"
         ],
         "title": "ConhecimentoCreate",
+        "type": "object"
+      },
+      "ContatoAssessoria": {
+        "properties": {
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "telefone": {
+            "title": "Telefone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nome",
+          "telefone"
+        ],
+        "title": "ContatoAssessoria",
+        "type": "object"
+      },
+      "ContatoAssessoriaRead": {
+        "properties": {
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "telefone": {
+            "title": "Telefone",
+            "type": "string"
+          },
+          "whatsapp_url": {
+            "title": "Whatsapp Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nome",
+          "telefone",
+          "whatsapp_url"
+        ],
+        "title": "ContatoAssessoriaRead",
         "type": "object"
       },
       "ContatoCreate": {
@@ -7201,6 +7280,84 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/advisory/contacts": {
+      "get": {
+        "operationId": "listar_contatos_api_v1_admin_advisory_contacts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ContatoAssessoriaRead"
+                  },
+                  "title": "Response Listar Contatos Api V1 Admin Advisory Contacts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Contatos",
+        "tags": [
+          "admin-assessoria"
+        ]
+      },
+      "put": {
+        "operationId": "definir_contatos_api_v1_admin_advisory_contacts_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessoriaContatosSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ContatoAssessoriaRead"
+                  },
+                  "title": "Response Definir Contatos Api V1 Admin Advisory Contacts Put",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Definir Contatos",
+        "tags": [
+          "admin-assessoria"
+        ]
+      }
+    },
     "/api/v1/admin/class/articles": {
       "get": {
         "description": "Todos os artigos, inclusive rascunhos (a visão pública filtra publicado).",
@@ -8952,6 +9109,36 @@
         "summary": "Admin Atribuir Plano",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/api/v1/advisory/contacts": {
+      "get": {
+        "operationId": "listar_contatos_api_v1_advisory_contacts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ContatoAssessoriaRead"
+                  },
+                  "title": "Response Listar Contatos Api V1 Advisory Contacts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Contatos",
+        "tags": [
+          "assessoria"
         ]
       }
     },
@@ -14908,6 +15095,7 @@
     },
     "/health": {
       "get": {
+        "description": "Vivo? E, principalmente, QUAL versão está no ar.\n\nO commit vem carimbado na imagem em build (ARG GIT_SHA). Sem ele, um deploy\nque não atualizou é indistinguível de um que atualizou — foi exatamente o\nque aconteceu com a imagem parada num commit antigo. Agora dá para conferir\nde fora: `curl https://<dominio>/health`.",
         "operationId": "health_health_get",
         "responses": {
           "200": {
