@@ -1291,24 +1291,39 @@ corpo/mídias/hints/link; `ordem` é a posição na sequência).
   (`POST .../media/upload`), `GET /admin/class/hint-keys` ·
   `GET/PUT /admin/class/hints` (upsert por chave — realocar transfere o ícone) ·
   `DELETE /admin/class/hints/{chave}`.
+- **Corpo em RICH TEXT (TipTap) + player Plyr**: o corpo do artigo/aula é HTML
+  do editor TipTap (`components/RichTextEditor.tsx` — títulos/negrito/listas/
+  citação/link e o nó `components/editor/VideoEmbed.tsx`, que EMBEDA vídeo no
+  meio do texto e serializa como `div[data-video][data-orientacao]`). A
+  renderização é `components/CorpoConteudo.tsx`: sanitiza com DOMPurify
+  (allowlist estrita; único `dangerouslySetInnerHTML` do app) e troca os
+  marcadores pelo player. Corpo LEGADO em markdown leve continua renderizando
+  pelo caminho antigo e é convertido (`markdownLeveParaHtml`) ao abrir no
+  editor. O player é o **Plyr** (`components/HelpVideo.tsx`): YouTube/Vimeo
+  pelo provider de embed nativo, arquivo mp4/upload no html5 (com
+  **picture-in-picture**), **Bunny Stream** (`iframe.mediadelivery.net`) e
+  `/embed/` desconhecidos caem no iframe do provedor. ATENÇÃO estrutural: o
+  Plyr embrulha/move o alvo no DOM — o React só é dono do HOLDER; o elemento
+  de mídia é criado imperativamente no effect (senão a desmontagem quebra).
+  CSS: `.rich-text` (tipografia igual no editor e na página = WYSIWYG),
+  `--plyr-color-main` no lime; `plyr.css` importado no layout raiz.
 - **Web usuário**: `lib/help.tsx` (`HelpProvider` no layout do painel carrega o
-  mapa de hints UMA vez; degrada silencioso sem módulo/sem rede),
-  `components/Hint.tsx` (ⓘ + popover; busca o artigo só na 1ª abertura) e
-  `components/HelpVideo.tsx` — player horizontal (16:9) e vertical (9:16),
-  YouTube/Vimeo por iframe, mp4/upload em `<video>` nativo com botão
-  **picture-in-picture**: dá para assistir a explicação flutuando sobre a
-  página da proposta. Com PiP ativo, clique fora NÃO fecha o popover (fecharia
-  o vídeo). Páginas `app/panel/class` (módulos + busca + chips de categoria),
-  `app/panel/class/modules/[slug]` (trilha de aulas) e `app/panel/class/[slug]`
-  (artigo/aula; aula mostra "aula N de M" + anterior/próxima via
-  `/class/modules/{slug}`). Item "Class" no menu profile-centric.
+  mapa de hints UMA vez; degrada silencioso sem módulo/sem rede;
+  `analisarVideo` decide o modo do player) e `components/Hint.tsx` (ⓘ +
+  popover; busca o artigo só na 1ª abertura). Com PiP ativo, clique fora NÃO
+  fecha o popover (fecharia o vídeo). Páginas `app/panel/class` (módulos +
+  busca + chips de categoria), `app/panel/class/modules/[slug]` (trilha de
+  aulas) e `app/panel/class/[slug]` (artigo/aula; aula mostra "aula N de M" +
+  anterior/próxima via `/class/modules/{slug}`). Item "Class" no menu
+  profile-centric.
 - **Web admin**: `app/admin/class` (criar artigo → editor; módulos com
-  publicar/excluir inline; categorias) e `app/admin/class/[id]` (conteúdo +
-  publicar/despublicar, seletor de módulo + posição — transforma artigo em
-  aula —, mídias com orientação, e a seção Hints: escolhe a chave no catálogo
-  agrupado por tela, vê se a chave já pertence a outro artigo, pausa/remove).
-  Publicação é o interruptor em DOIS níveis: módulo rascunho não lista (aulas
-  publicadas seguem acessáveis por link/busca); aula rascunho não abre.
+  publicar/excluir inline; categorias) e `app/admin/class/[id]` (conteúdo em
+  rich text + publicar/despublicar, seletor de módulo + posição — transforma
+  artigo em aula —, mídias com orientação, e a seção Hints: escolhe a chave no
+  catálogo agrupado por tela, vê se a chave já pertence a outro artigo,
+  pausa/remove). Publicação é o interruptor em DOIS níveis: módulo rascunho
+  não lista (aulas publicadas seguem acessáveis por link/busca); aula rascunho
+  não abre.
 - **Hints plantados hoje**: detalhe da proposta (valor total, contrapartida,
   empenhado, prazo, situação, pendências, modalidade, nº da proposta, execução
   financeira) e captação (chips cadastrada×disponível). `Dado` de `ui.tsx`

@@ -85,14 +85,35 @@ export async function baixarMidia(id: string, nome: string): Promise<void> {
 }
 
 /**
- * URL de embed para vídeo externo. YouTube/Vimeo viram iframe; mp4 (ou
- * qualquer URL de arquivo) toca em <video> nativo — este helper devolve null
- * nesse caso, sinalizando "usa a tag de vídeo".
+ * Fonte de vídeo, analisada a partir da URL. O player (Plyr) decide o modo:
+ * - `youtube`/`vimeo` → Plyr com o provider de embed nativo;
+ * - `iframe` → players que já vêm prontos no embed (Bunny Stream
+ *   `iframe.mediadelivery.net`, ou qualquer URL de /embed/ desconhecida);
+ * - `arquivo` → mp4/webm direto (ou upload do admin) no Plyr html5 — é o
+ *   modo com picture-in-picture.
  */
-export function urlDeEmbed(url: string): string | null {
-  const yt = /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/.exec(url);
-  if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+export type FonteVideo =
+  | { modo: "youtube"; id: string }
+  | { modo: "vimeo"; id: string }
+  | { modo: "iframe"; src: string }
+  | { modo: "arquivo"; src: string };
+
+export function analisarVideo(url: string): FonteVideo {
+  const yt = /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,})/.exec(
+    url,
+  );
+  if (yt) return { modo: "youtube", id: yt[1]! };
   const vimeo = /vimeo\.com\/(?:video\/)?(\d+)/.exec(url);
-  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
-  return null;
+  if (vimeo) return { modo: "vimeo", id: vimeo[1]! };
+  // Bunny Stream: o link de embed já carrega o player completo do Bunny
+  if (/(?:iframe\.mediadelivery\.net|video\.bunnycdn\.com)\//.test(url)) {
+    return { modo: "iframe", src: url };
+  }
+  // arquivo direto (mp4/webm/ogg/m4v) → Plyr html5
+  if (/\.(mp4|webm|ogv|ogg|m4v|mov)(\?|#|$)/i.test(url)) {
+    return { modo: "arquivo", src: url };
+  }
+  // URL de embed de outra fonte → iframe genérico; resto tenta como arquivo
+  if (/\/embed\//.test(url)) return { modo: "iframe", src: url };
+  return { modo: "arquivo", src: url };
 }

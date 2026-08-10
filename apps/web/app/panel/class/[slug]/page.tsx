@@ -13,9 +13,10 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { baixarMidia } from "@/lib/help";
+import { CorpoConteudo } from "@/components/CorpoConteudo";
 import { HelpVideo } from "@/components/HelpVideo";
 import { Skeleton } from "@/components/Skeleton";
 import { Aviso } from "@/components/ui";
@@ -54,63 +55,6 @@ interface Trilha {
   total: number;
   anterior: AulaVizinha | null;
   proxima: AulaVizinha | null;
-}
-
-/** Negrito inline (**texto**) — o único enfeite de linha que o corpo aceita. */
-function linha(texto: string, chave: number): ReactNode {
-  const partes = texto.split(/\*\*(.+?)\*\*/g);
-  if (partes.length === 1) return texto;
-  return (
-    <span key={chave}>
-      {partes.map((p, i) =>
-        i % 2 === 1 ? <strong key={i}>{p}</strong> : <span key={i}>{p}</span>,
-      )}
-    </span>
-  );
-}
-
-/**
- * Markdown leve, sem dependência e sem HTML cru (nada de
- * dangerouslySetInnerHTML): blocos separados por linha em branco; `## `
- * vira subtítulo, `- ` vira lista, o resto é parágrafo.
- */
-function CorpoArtigo({ corpo }: { corpo: string }) {
-  const blocos = corpo.replaceAll("\r\n", "\n").split(/\n{2,}/);
-  return (
-    <div className="flex flex-col gap-4">
-      {blocos.map((bloco, bi) => {
-        const linhas = bloco.split("\n").filter((l) => l.trim() !== "");
-        const primeira = linhas[0];
-        if (primeira === undefined) return null;
-        if (linhas.every((l) => l.trimStart().startsWith("- "))) {
-          return (
-            <ul key={bi} className="flex list-disc flex-col gap-1.5 pl-5 text-sm leading-relaxed text-ink-2">
-              {linhas.map((l, li) => (
-                <li key={li}>{linha(l.trimStart().slice(2), li)}</li>
-              ))}
-            </ul>
-          );
-        }
-        if (primeira.startsWith("## ")) {
-          return (
-            <h2 key={bi} className="mt-2 text-base font-semibold tracking-tight text-ink">
-              {primeira.slice(3)}
-            </h2>
-          );
-        }
-        return (
-          <p key={bi} className="text-sm leading-relaxed text-ink-2">
-            {linhas.map((l, li) => (
-              <span key={li}>
-                {li > 0 && <br />}
-                {linha(l, li)}
-              </span>
-            ))}
-          </p>
-        );
-      })}
-    </div>
-  );
 }
 
 function tamanhoLegivel(bytes?: number | null): string {
@@ -237,7 +181,7 @@ export default function ArtigoClassPage() {
 
       {artigo.corpo.trim() !== "" && (
         <section className="card p-6">
-          <CorpoArtigo corpo={artigo.corpo} />
+          <CorpoConteudo corpo={artigo.corpo} />
         </section>
       )}
 
