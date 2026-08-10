@@ -18,6 +18,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...core.users import current_active_user
+from ...models.usuario import Usuario
 from ...schemas.proposta import (
     PropostaPrazo,
     PropostaRead,
@@ -27,6 +29,7 @@ from ...schemas.proposta import (
 )
 from ...services import municipios as municipios_service
 from ...services import pdf as pdf_service
+from ...services import plano_gates
 from ...services import propostas as propostas_service
 from ...services.modulos import require_modulo
 from ..deps import get_rls_db
@@ -129,9 +132,11 @@ async def resumo_propostas(
 @router.get("/proposals/report.csv")
 async def relatorio_propostas(
     filtros: Annotated[FiltrosListagem, Query()],
+    user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> Response:
     """Baixar relatório: o mesmo recorte da tela, em CSV (';', abre no Excel)."""
+    await plano_gates.exigir_feature(session, user, "relatorio_csv")
     rows = await propostas_service.listar(session, **filtros.model_dump())
     conteudo = propostas_service.gerar_csv(rows)
     return Response(
@@ -173,9 +178,7 @@ async def obter_proposta(
     row = await propostas_service.obter(session, proposta_id)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PROPOSTA_NAO_ENCONTRADA")
-    enriquecidas = await municipios_service.enriquecer(
-        session, [PropostaRead.model_validate(row)]
-    )
+    enriquecidas = await municipios_service.enriquecer(session, [PropostaRead.model_validate(row)])
     return enriquecidas[0]
 
 
@@ -186,9 +189,11 @@ async def exportar_pdf(
         default=False,
         description="abrir no visualizador em vez de baixar (pré-visualização)",
     ),
+    user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> Response:
     """Espelho da proposta em PDF — a peça que o gestor encaminha a quem decide."""
+    await plano_gates.exigir_feature(session, user, "export_pdf")
     row = await propostas_service.obter(session, proposta_id)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PROPOSTA_NAO_ENCONTRADA")

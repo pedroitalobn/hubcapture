@@ -36,6 +36,7 @@ from ..models.municipio_interesse import MunicipioInteresse
 from ..models.proposta import Proposta
 from ..models.sync_run import SyncRun
 from . import fontes as fontes_service
+from . import plano_gates
 from . import propostas as propostas_service
 from ._territorio import Municipios, ibges
 
@@ -260,7 +261,12 @@ async def live_search(
             select(PreferenciasUsuario).where(PreferenciasUsuario.usuario_id == usuario_id)
         )
     ).scalar_one_or_none()
-    fontes = _fontes_alvo(fonte, area, list(pref.fontes or []) if pref else None)
+    # o plano do usuário (§39) recorta as fontes da rodada — fonte fora da
+    # assinatura não é consultada nem entra no status da coleta
+    cfg_plano = await plano_gates.config_do_usuario(session, usuario_id)
+    fontes = plano_gates.filtrar_fontes(
+        cfg_plano, _fontes_alvo(fonte, area, list(pref.fontes or []) if pref else None)
+    )
 
     # 1) sob a sessão RLS: visibilidade dos municípios + o que precisa coletar
     pares = [(ibge, f) for ibge in alvos for f in fontes]
@@ -268,9 +274,7 @@ async def live_search(
     for ibge in alvos:
         await _garantir_municipio_avulso(session, usuario_id, ibge)
     for ibge, f in pares:
-        session.add(
-            AuditLog(usuario_id=usuario_id, acao="consulta_avulsa", entidade=f"{f}:{ibge}")
-        )
+        session.add(AuditLog(usuario_id=usuario_id, acao="consulta_avulsa", entidade=f"{f}:{ibge}"))
         if await _cache_fresco(session, ibge, f):
             continue
         if _tentativa_fresca(f, ibge):

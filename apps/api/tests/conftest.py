@@ -21,6 +21,7 @@ from src.core.config import settings
 from src.db.session import engine as _app_engine
 from src.services import consulta_avulsa as _consulta_avulsa
 from src.services import modulos as _modulos
+from src.services import plano_gates as _plano_gates
 
 # pytest-asyncio cria um event loop por teste; conexões asyncpg são presas ao
 # loop. NullPool evita reuso de conexão entre loops no engine de owner, e o
@@ -45,6 +46,7 @@ async def _clean_db() -> AsyncIterator[None]:
     # caches em memória acompanham o banco zerado (senão um teste vaza no outro)
     _consulta_avulsa.limpar_cache_coleta()
     _modulos.limpar_cache()
+    _plano_gates.limpar_cache()
     _disc.limpar_cache()
     yield
     # descarta pools presos ao loop deste teste

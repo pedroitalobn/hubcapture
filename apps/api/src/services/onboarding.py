@@ -14,16 +14,16 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.municipio_interesse import MunicipioInteresse
-from ..models.plano import Plano
 from ..models.preferencias import PreferenciasUsuario
 from ..models.usuario import Usuario
 from ..schemas.curadoria import OnboardingRequest, OnboardingResponse
 from . import fontes as fontes_service
 from . import monitoramentos as monitoramentos_service
+from . import plano_gates
 
 
 class LimitePlanoExcedido(Exception):
-    """Municípios além do limite do plano (limites.municipios_max)."""
+    """Municípios além do limite do plano (config `municipios_max`)."""
 
     def __init__(self, maximo: int) -> None:
         self.maximo = maximo
@@ -31,18 +31,14 @@ class LimitePlanoExcedido(Exception):
 
 
 async def _validar_limite_municipios(
-    session: AsyncSession, usuario_id: uuid.UUID, req: OnboardingRequest
+    session: AsyncSession,
+    usuario_id: uuid.UUID,
+    req: OnboardingRequest,
+    cfg: plano_gates.PlanoConfig,
 ) -> None:
     """3 tiers × quantidade de municípios (fluxograma): o plano limita quantos
     municípios o usuário monitora. Sem plano/limite → ilimitado."""
-    plano = (
-        await session.execute(
-            select(Plano)
-            .join(Usuario, Usuario.plano_id == Plano.id)
-            .where(Usuario.id == usuario_id)
-        )
-    ).scalar_one_or_none()
-    maximo = (plano.limites or {}).get("municipios_max") if plano else None
+    maximo = cfg.municipios_max
     if not maximo:
         return
     existentes = set(
@@ -62,7 +58,9 @@ async def _validar_limite_municipios(
 async def onboarding(
     session: AsyncSession, *, usuario_id: uuid.UUID, req: OnboardingRequest
 ) -> OnboardingResponse:
-    await _validar_limite_municipios(session, usuario_id, req)
+    # config do plano do usuário (§39): limita municípios e recorta fontes
+    cfg = await plano_gates.config_do_usuario(session, usuario_id)
+    await _validar_limite_municipios(session, usuario_id, req, cfg)
 
     valores_usuario: dict = {}
     if req.papel:
@@ -85,8 +83,11 @@ async def onboarding(
 
     # O onboarding oferece GRUPOS ("transferegov", "fns"); o resto do sistema
     # fala connector id. A expansão acontece aqui, uma vez, na entrada — e
-    # descarta fonte fora do recorte da v1 (`services/fontes.py`).
-    fontes_escolhidas = fontes_service.expandir(req.fontes) or list(fontes_service.HABILITADAS)
+    # descarta fonte fora do recorte da v1 (`services/fontes.py`) e fora do
+    # PLANO do usuário (§39). O fallback "todas" também respeita o plano.
+    fontes_escolhidas = plano_gates.filtrar_fontes(
+        cfg, fontes_service.expandir(req.fontes) or list(fontes_service.HABILITADAS)
+    )
 
     prefs = pg_insert(PreferenciasUsuario).values(
         usuario_id=usuario_id,

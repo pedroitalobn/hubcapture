@@ -40,6 +40,8 @@ async def test_definir_liga_e_desliga_persistindo() -> None:
 
 
 async def test_require_modulo_404_quando_desativado() -> None:
+    # chamada direta (sem FastAPI): o default do parâmetro é o marcador
+    # Depends — o gate de plano é pulado, como para request sem token.
     dep = service.require_modulo("obras")
     with pytest.raises(HTTPException) as exc:
         await dep()
@@ -59,6 +61,7 @@ async def test_perfil_expoe_modulos_ativos(seed_user, seed_municipio) -> None:
         "captacao",
         "copiloto",
         "conformidade",
+        "alertas",  # central de alertas nasce ligada
         "contatos",  # agenda de contatos nasce ligada
         "ajuda",  # central de ajuda nasce ligada
         "assessoria",  # assessoria orçamentária nasce ligada

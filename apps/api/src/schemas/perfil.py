@@ -31,6 +31,18 @@ class MunicipioPerfil(BaseModel):
     modo: str  # 'monitorado' | 'avulso'
 
 
+class PlanoPerfil(BaseModel):
+    """O plano do usuário visto pela navegação: nome + o que a assinatura libera."""
+
+    nome: str | None = None
+    slug: str | None = None
+    municipios_max: int | None = None  # None = ilimitado
+    membros_max: int | None = None  # convidados p/ conta; None = ilimitado
+    features: dict[str, bool] = {}  # estado efetivo das features conhecidas
+    fontes: list[str] | None = None  # grupos de fonte liberados; None = todos
+    modulos: list[str] | None = None  # módulos incluídos no plano; None = todos
+
+
 class PerfilRead(BaseModel):
     """Identidade do usuário do ponto de vista da navegação."""
 
@@ -40,7 +52,9 @@ class PerfilRead(BaseModel):
     areas: list[str] = []
     fontes: list[str] = []
     monitorar_ativo: bool = True
-    modulos: list[str] = []  # módulos ativos na plataforma (lentes do menu)
+    # módulos EFETIVOS: ativos na plataforma (§29) ∩ incluídos no plano (§39)
+    modulos: list[str] = []
+    plano: PlanoPerfil | None = None  # None = sem plano atribuído (sem restrição)
 
 
 class DimensaoResumo(BaseModel):

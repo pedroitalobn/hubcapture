@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.plano import Plano
 from ..schemas.planos import PlanoCreate, PlanoUpdate
+from . import plano_gates
 
 
 async def listar(session: AsyncSession, apenas_ativos: bool = True) -> list[Plano]:
@@ -25,14 +26,23 @@ async def obter(session: AsyncSession, plano_id: uuid.UUID) -> Plano | None:
 
 
 async def criar(session: AsyncSession, dados: PlanoCreate) -> Plano:
-    plano = Plano(**dados.model_dump())
+    valores = dados.model_dump()
+    if dados.limites is not None:
+        valores["limites"] = dados.limites.como_jsonb()
+    plano = Plano(**valores)
     session.add(plano)
     await session.flush()
+    # o guard de módulo lê a config por snapshot; editar plano propaga já
+    plano_gates.limpar_cache()
     return plano
 
 
 async def atualizar(session: AsyncSession, plano: Plano, dados: PlanoUpdate) -> Plano:
-    for campo, valor in dados.model_dump(exclude_unset=True).items():
+    valores = dados.model_dump(exclude_unset=True)
+    if valores.get("limites") is not None and dados.limites is not None:
+        valores["limites"] = dados.limites.como_jsonb()
+    for campo, valor in valores.items():
         setattr(plano, campo, valor)
     await session.flush()
+    plano_gates.limpar_cache()
     return plano

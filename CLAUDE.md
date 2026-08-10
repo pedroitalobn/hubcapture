@@ -1414,3 +1414,53 @@ bloqueia o event loop, não segura conexão de banco e não se repete sem TTL.**
   request de router guardado. `esta_ativo` agora usa snapshot em memória com
   TTL 10s, invalidado por `definir()` (toggle do painel propaga em segundos);
   banco fora do ar degrada para os `padrao` do registro em vez de 500.
+
+## 39. Gates de features por PLANO (config do plano)
+
+Complemento da §29: além do liga/desliga de módulos da PLATAFORMA, cada **plano**
+(`planos.limites`, jsonb) carrega a CONFIG do que a assinatura inclui —
+liberação plano a plano, editável no painel admin sem redeploy. A fonte de
+verdade da leitura é `services/plano_gates.py` (normaliza o jsonb, aceita as
+chaves legadas `municipios`/bool-de-módulo no topo, cacheia por plano TTL 10s).
+
+Formato canônico de `planos.limites` (chave AUSENTE = sem restrição):
+`{"municipios_max": 5, "membros_max": 2, "modulos": ["captacao", ...],
+"fontes": ["transferegov"], "features": {"export_pdf": false}}` —
+`fontes` aceita grupo OU connector id (grupo expande); `features` conhecidas em
+`plano_gates.FEATURES` (export_pdf, relatorio_csv, alertas_email, alertas_wpp;
+ausente = liberada). Validação tipada em `schemas/planos.py::PlanoLimites`
+(módulo/fonte desconhecidos = 422). Usuário SEM plano → sem restrição;
+superuser nunca é limitado por plano.
+
+- **Guard em duas camadas** — `require_modulo` (agora com usuário OPCIONAL via
+  `core/users.current_user_optional`): plataforma desligada → 404
+  `MODULO_DESATIVADO`; módulo fora do plano do usuário → **403
+  `MODULO_NAO_INCLUIDO_PLANO`** (o front distingue e oferece upgrade em vez de
+  sumir a tela — `components/ModuloGate.tsx`). Módulo novo **`alertas`**
+  (padrao on) guarda os routers de alertas e monitoramentos; o item do menu e a
+  página `panel/alerts` acompanham.
+- **Perfil** — `GET /profile` devolve `modulos` EFETIVOS (plataforma ∩ plano) e
+  `plano` (nome/slug, municipios_max, membros_max, features efetivas, grupos de
+  fonte e módulos do plano). Menu, ModuloGate e Dynamic Island (copiloto) leem
+  daí; `profile/overview` não consulta dimensão fora do plano.
+- **Fontes por plano** — onboarding (`services/onboarding`), live-search
+  (`consulta_avulsa`) e 1º sync (`primeiro_sync`) filtram por
+  `plano_gates.filtrar_fontes`; o chat de onboarding só oferece os grupos do
+  plano (`perfil.plano.fontes`). Fonte fora do plano não é coletada nem entra
+  no status.
+- **Limites** — `municipios_max` segue no onboarding (403
+  `LIMITE_PLANO_MUNICIPIOS`); **membros da conta**: o usuário convida a própria
+  equipe em `GET/POST /account/members(/invites)` + DELETE (revogar pendente) —
+  o convite herda o plano do convidante, papel default equipe, aceite pelo
+  `/auth/accept-invite` de sempre; `membros_max` conta convites vivos
+  (pendentes+aceitos) → 403 `LIMITE_PLANO_MEMBROS`. UI em `panel/account`.
+- **Features** — PDF (`/proposals/{id}/pdf`) e CSVs (captação/emendas) checam
+  `plano_gates.exigir_feature` → 403 `FEATURE_NAO_INCLUIDA_PLANO`; os canais
+  email/wpp da varredura de alertas são descartados quando a feature está off
+  (o alerta segue no painel).
+- **Admin** — `GET /plans/options` (catálogos de módulos/fontes/features p/ o
+  editor), `GET /plans?incluir_inativos=true` (só admin), editor completo em
+  `app/admin/plans` (chips de módulos/fontes, limites numéricos, toggles de
+  features; "todos marcados" grava sem a chave = sem restrição). Criar/editar
+  plano invalida o cache (`plano_gates.limpar_cache`). Seeds de
+  `core/bootstrap.PLANOS_PADRAO` já no formato canônico.

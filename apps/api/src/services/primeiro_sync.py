@@ -29,6 +29,7 @@ from . import conformidade as conformidade_service
 from . import consulta_avulsa as consulta_service
 from . import fontes as fontes_service
 from . import obras as obras_service
+from . import plano_gates
 from . import repasses as repasses_service
 
 log = logging.getLogger("hubcapture.primeiro_sync")
@@ -83,9 +84,19 @@ async def executar(
     areas: list[str],
 ) -> None:
     """Sincroniza todas as dimensões para cada município do perfil."""
+    # fonte fora do plano do usuário (§39) não entra na rodada — o mesmo recorte
+    # que o live_search aplica, garantido também no 1º sync.
+    try:
+        async with rls_session(usuario_id) as s:
+            cfg_plano = await plano_gates.config_do_usuario(s, usuario_id)
+    except Exception:  # noqa: BLE001 — sem leitura do plano, segue sem restrição
+        cfg_plano = plano_gates.SEM_RESTRICAO
+    fontes_captacao = plano_gates.filtrar_fontes(cfg_plano, _fontes_captacao(fontes))
+    fontes_recebidos = plano_gates.filtrar_fontes(cfg_plano, _fontes_recebidos(fontes))
+
     for ibge in municipios:
         # 1) Captação — consulta-avulsa é cache-first e registra sync_runs.
-        for fonte in _fontes_captacao(fontes):
+        for fonte in fontes_captacao:
             try:
                 async with rls_session(usuario_id) as s:
                     await consulta_service.consulta_avulsa(
@@ -103,7 +114,7 @@ async def executar(
             log.warning("1º sync curadoria falhou: %s", ibge, exc_info=True)
 
         # 2) Recebidos — uma fonte por sessão para isolar falhas.
-        for fonte in _fontes_recebidos(fontes):
+        for fonte in fontes_recebidos:
             try:
                 async with rls_session(usuario_id) as s:
                     await repasses_service.sync_municipio(

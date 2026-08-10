@@ -11,7 +11,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.users import UserManager
@@ -22,8 +22,19 @@ from ..schemas.planos import (
     AdminUsuarioCreate,
     AdminUsuarioUpdate,
     ConviteCreate,
+    MembroConviteCreate,
+    MembroRead,
 )
 from ..schemas.user import UserCreate
+from . import plano_gates
+
+
+class LimiteMembrosExcedido(Exception):
+    """Convites de membro além do limite do plano (config `membros_max`)."""
+
+    def __init__(self, maximo: int) -> None:
+        self.maximo = maximo
+        super().__init__(f"limite de {maximo} membro(s) do plano excedido")
 
 
 # ── Convites ────────────────────────────────────────────────────────────────
@@ -91,6 +102,89 @@ async def aceitar_convite(
     convite.status = "aceito"
     await session.flush()
     return user
+
+
+# ── Membros da conta ────────────────────────────────────────────────────────
+# O usuário (não-admin) convida gente para a PRÓPRIA conta/equipe. O membro
+# entra com o MESMO plano do convidante (a conta é uma só) e papel "equipe"
+# por padrão. `membros_max` da config do plano (§39) limita quantos convites
+# vivos (pendentes + aceitos) a conta pode ter; 0 = não convida.
+
+
+async def _convites_vivos(session: AsyncSession, usuario_id: uuid.UUID) -> int:
+    return (
+        await session.execute(
+            select(func.count(Convite.id)).where(
+                Convite.convidado_por == usuario_id,
+                Convite.status.in_(("pendente", "aceito")),
+            )
+        )
+    ).scalar_one()
+
+
+async def convidar_membro(
+    session: AsyncSession, convidante: Usuario, dados: MembroConviteCreate
+) -> Convite:
+    if not convidante.is_superuser:
+        cfg = await plano_gates.config_do_usuario(session, convidante.id)
+        maximo = cfg.membros_max
+        if maximo is not None and await _convites_vivos(session, convidante.id) >= maximo:
+            raise LimiteMembrosExcedido(int(maximo))
+    return await criar_convite(
+        session,
+        ConviteCreate(
+            email=dados.email,
+            papel=dados.papel or "equipe",
+            plano_id=convidante.plano_id,
+            expires_em_dias=dados.expires_em_dias,
+        ),
+        convidado_por=convidante.id,
+    )
+
+
+async def listar_membros(session: AsyncSession, usuario_id: uuid.UUID) -> list[MembroRead]:
+    """Convites da conta + o usuário criado por cada convite aceito."""
+    rows = (
+        await session.execute(
+            select(Convite, Usuario)
+            .outerjoin(
+                Usuario,
+                (Usuario.email == Convite.email) & (Convite.status == "aceito"),
+            )
+            .where(Convite.convidado_por == usuario_id)
+            .order_by(Convite.created_at.desc())
+        )
+    ).all()
+    return [
+        MembroRead(
+            convite_id=c.id,
+            email=c.email,
+            papel=c.papel,
+            status=c.status,
+            expires_at=c.expires_at,
+            created_at=c.created_at,
+            usuario_id=u.id if u else None,
+            nome=u.nome if u else None,
+        )
+        for c, u in rows
+    ]
+
+
+async def revogar_convite_membro(
+    session: AsyncSession, usuario_id: uuid.UUID, convite_id: uuid.UUID
+) -> None:
+    """Revoga um convite PENDENTE da própria conta (aceito → remover o usuário
+    é ação de admin; o convite fica como registro)."""
+    convite = (
+        await session.execute(
+            select(Convite).where(Convite.id == convite_id, Convite.convidado_por == usuario_id)
+        )
+    ).scalar_one_or_none()
+    if convite is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "CONVITE_NAO_ENCONTRADO")
+    if convite.status != "pendente":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "CONVITE_NAO_PENDENTE")
+    await session.execute(delete(Convite).where(Convite.id == convite.id))
 
 
 # ── Admin: criação direta + atribuição de plano ─────────────────────────────

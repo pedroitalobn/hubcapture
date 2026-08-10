@@ -31,6 +31,7 @@ from ..notifications import email as email_notif
 from ..notifications import uniq
 from ..notifications.email_templates import alertas_resumo
 from . import config as config_service
+from . import plano_gates
 from .perfil import AREA_FONTES
 
 
@@ -198,6 +199,12 @@ async def varredura(session: AsyncSession, usuario: Usuario) -> int:
         canais.add("wpp")
     if oportunidades:
         canais.add("email")
+    # canal fora do plano (§39) não despacha — o alerta continua no painel
+    cfg = await plano_gates.config_do_usuario(session, usuario.id)
+    if not plano_gates.feature_liberada(cfg, "alertas_email"):
+        canais.discard("email")
+    if not plano_gates.feature_liberada(cfg, "alertas_wpp"):
+        canais.discard("wpp")
     todos = novos + oportunidades
     await session.flush()
     await _despachar(usuario, todos, canais)
