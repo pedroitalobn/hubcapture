@@ -18,7 +18,9 @@ import { TerritorioProvider, useTerritorio } from "@/lib/territorio";
 const NAV = [
   { href: "/panel", label: "Meu painel", exact: true },
   { href: "/panel/funding", label: "Captação", modulo: "captacao" },
-  { href: "/panel/my-proposals", label: "Minhas Propostas", modulo: "captacao" },
+  // Minhas Propostas é ACOMPANHAMENTO (favoritas do cache) — panel-core, não
+  // exploração: fica no menu mesmo com o módulo captação desligado (§40).
+  { href: "/panel/my-proposals", label: "Minhas Propostas" },
   { href: "/panel/transfers", label: "Recursos recebidos", modulo: "recebidos" },
   {
     href: "/panel/compliance",

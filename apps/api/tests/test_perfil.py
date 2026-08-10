@@ -87,6 +87,37 @@ async def test_visao_geral_inclui_dimensao_de_modulo_reativado(
     assert "conformidade" not in dims  # continua desativado
 
 
+async def test_visao_geral_independe_do_modulo_captacao(
+    seed_user, seed_municipio, seed_proposta
+) -> None:
+    """§40: o Meu painel é independente dos módulos de exploração. Desligar a
+    captação não apaga o dado do território — a dimensão continua no painel
+    (só perde o link para a página de exploração)."""
+    u = await seed_user("indep@a.com")
+    await seed_municipio(u, "3550308")
+    await seed_proposta("transferegov_ff", "p1", "3550308")
+
+    # com o módulo ativo (default), o card navega para a exploração
+    async with rls_session(u) as s:
+        vg = await service.visao_geral(s, _FakeUser(u, "executivo"))
+    dims = {d.chave: d for d in vg.dimensoes}
+    assert dims["captacao"].href == "/panel/funding"
+
+    async with SessionLocal() as s:
+        async with s.begin():
+            await modulos_service.definir(s, "captacao", False)
+
+    async with rls_session(u) as s:
+        vg = await service.visao_geral(s, _FakeUser(u, "executivo"))
+    dims = {d.chave: d for d in vg.dimensoes}
+    # a dimensão segue no painel com o número do território, sem navegação
+    assert "captacao" in dims
+    assert dims["captacao"].total == 1
+    assert dims["captacao"].href is None
+    # módulo desligado E sem dado no cache → aí sim fora da visão
+    assert "obras" not in dims and "conformidade" not in dims
+
+
 class _FakeUser:
     """Stand-in do modelo Usuario (só os atributos que o serviço lê)."""
 

@@ -859,14 +859,15 @@ lançar o Hub só com o que está maduro e reativar o resto quando a fonte estiv
   necessária). Adicionar um módulo = mais uma entrada nesse registro.
 - **Guard de API** — `services/modulos.require_modulo(chave)` é dependency de router:
   módulo desligado → **404 `MODULO_DESATIVADO: <chave>`** em todo o eixo. Aplicado em
-  `proposals` (captacao), `transfers` (recebidos), `compliance`, `works` e `copilot`.
+  `transfers` (recebidos), `compliance`, `works` e `copilot`; em `proposals` o gate é
+  POR ENDPOINT — só a exploração (§40): as leituras de cache do painel ficam livres.
   O guard roda ANTES da autenticação (dependency de router), então o eixo simplesmente
   não existe enquanto desligado.
 - **Endpoints admin** (`is_superuser`): `GET /admin/modules` (catálogo + estado efetivo)
   e `PUT /admin/modules` (`{chave, ativo}`). Router `api/v1/admin_modulos.py`.
 - **Perfil** — `GET /profile` passa a devolver `modulos` (lista dos ativos) e
-  `GET /profile/overview` só agrega/retorna as dimensões dos módulos ativos (módulo
-  desligado nem é consultado no banco).
+  `GET /profile/overview` agrega as dimensões pela regra da §40 (módulo ativo OU
+  dado no cache; sem link quando o módulo está desligado).
 - **Web** — `app/admin/modules` (toggle por módulo, no shell admin da seção 24); o menu
   de `app/panel/layout.tsx` filtra os itens por `perfil.modulos`;
   `components/ModuloGate.tsx` cobre o acesso direto por URL às telas de eixo desligado
@@ -1464,3 +1465,28 @@ superuser nunca é limitado por plano.
   features; "todos marcados" grava sem a chave = sem restrição). Criar/editar
   plano invalida o cache (`plano_gates.limpar_cache`). Seeds de
   `core/bootstrap.PLANOS_PADRAO` já no formato canônico.
+
+## 40. Meu painel independente dos módulos de exploração (decisão travada)
+
+Desligar o módulo `captacao` APAGAVA o dashboard: o gate cobria o router de
+`proposals` inteiro (inclusive o `/proposals/summary` do Panorama financeiro) e a
+visão geral pulava a dimensão — com recebidos/conformidade/obras desligados por
+padrão, o `/panel` ficava vazio. A regra que fica:
+
+- **Módulo = EXPLORAÇÃO do eixo, não o dado.** `captacao` liga/desliga os filtros
+  específicos (lista/facetas/relatório), a **consulta ATIVA nas fontes**
+  (`POST /proposals/live-search`, além do que o onboarding preencheu) e os
+  pareceres (coleta ao vivo). As leituras de CACHE do território são panel-core e
+  ficam FORA do gate: `GET /proposals/summary`, `/proposals/deadlines`,
+  `/proposals/{id}` e `/proposals/{id}/pdf` (gate por endpoint em
+  `api/v1/propostas.py`; regressão em
+  `test_modulos.py::test_gate_captacao_so_na_exploracao`).
+- **Visão geral data-driven** (`services/perfil.visao_geral`): a dimensão entra se
+  o módulo está ativo OU se há dado no cache do território; módulo desligado →
+  `href=None` (`DimensaoResumo.href` agora é opcional) e o card do painel vira
+  informativo, sem navegação. Desligado E sem dado → fora da visão.
+- **Web**: o Meu painel NÃO faz live-search (removido o fetch morto de
+  oportunidades — coleta ativa é papel da Captação); "Minhas Propostas"
+  (favoritas = acompanhamento do cache) saiu do módulo captação no menu; a página
+  Captação ganhou `ModuloGate`; o detalhe da proposta é panel-core e, sem o
+  módulo, esconde apenas a seção de pareceres.

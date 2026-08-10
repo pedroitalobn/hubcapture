@@ -149,8 +149,12 @@ async def visao_geral(
     os municípios que o usuário escolheu ver AGORA (subconjunto do onboarding)."""
     pref = await _preferencias(session, usuario.id)
     municipios = await _municipios(session, municipios_filtro)
-    # Módulos desligados no painel admin — ou fora do PLANO do usuário (§39) —
-    # nem são consultados nem aparecem.
+    # O Meu painel é INDEPENDENTE dos módulos (§40): os módulos ligam/desligam
+    # a EXPLORAÇÃO de cada eixo (as páginas, os filtros, a consulta ativa), mas
+    # o dado do território que já está no cache continua sendo do painel. A
+    # regra por dimensão: módulo ativo → card com link; módulo desligado mas
+    # COM dado no cache → card informativo (href None); desligado e sem dado →
+    # fora da visão (não há o que mostrar).
     ativos = await modulos_service.ativos(session)
     cfg, _ = await _config_plano(session, usuario)
     ativos = {chave: on and plano_gates.modulo_liberado(cfg, chave) for chave, on in ativos.items()}
@@ -161,56 +165,63 @@ async def visao_geral(
 
     dimensoes: list[DimensaoResumo] = []
 
-    if ativos.get("captacao"):
-        # Captação (propostas) — RLS já restringe ao território do usuário.
-        prop_n, prop_valor = (
-            await session.execute(
-                _no_territorio(
-                    select(
-                        func.count(Proposta.id),
-                        func.coalesce(func.sum(Proposta.valor_total), 0),
-                    ),
-                    Proposta.municipio_ibge,
-                )
-            )
-        ).one()
+    def _dimensao(chave: str, titulo: str, total: int, destaque: str, href: str) -> None:
+        if not ativos.get(chave) and not total:
+            return
         dimensoes.append(
             DimensaoResumo(
-                chave="captacao",
-                titulo="Captação",
-                total=int(prop_n),
-                destaque=(f"{_brl(prop_valor)} em propostas" if prop_n else "sem propostas ainda"),
-                href="/panel/funding",
+                chave=chave,
+                titulo=titulo,
+                total=total,
+                destaque=destaque,
+                href=href if ativos.get(chave) else None,
             )
         )
 
-    if ativos.get("recebidos"):
-        # Recebidos (repasses).
-        rep_n, rep_valor = (
-            await session.execute(
-                _no_territorio(
-                    select(func.count(Repasse.id), func.coalesce(func.sum(Repasse.valor), 0)),
-                    Repasse.municipio_ibge,
-                )
-            )
-        ).one()
-        dimensoes.append(
-            DimensaoResumo(
-                chave="recebidos",
-                titulo="Recursos recebidos",
-                total=int(rep_n),
-                destaque=f"{_brl(rep_valor)} recebidos" if rep_n else "sem repasses ainda",
-                href="/panel/transfers",
+    # Captação (propostas) — RLS já restringe ao território do usuário.
+    prop_n, prop_valor = (
+        await session.execute(
+            _no_territorio(
+                select(
+                    func.count(Proposta.id),
+                    func.coalesce(func.sum(Proposta.valor_total), 0),
+                ),
+                Proposta.municipio_ibge,
             )
         )
+    ).one()
+    _dimensao(
+        "captacao",
+        "Captação",
+        int(prop_n),
+        f"{_brl(prop_valor)} em propostas" if prop_n else "sem propostas ainda",
+        "/panel/funding",
+    )
 
-    if ativos.get("conformidade"):
-        # Conformidade fiscal — destaque é o que falta comprovar.
-        conf_n = (
-            await session.execute(
-                _no_territorio(select(func.count(Conformidade.id)), Conformidade.municipio_ibge)
+    # Recebidos (repasses).
+    rep_n, rep_valor = (
+        await session.execute(
+            _no_territorio(
+                select(func.count(Repasse.id), func.coalesce(func.sum(Repasse.valor), 0)),
+                Repasse.municipio_ibge,
             )
-        ).scalar_one()
+        )
+    ).one()
+    _dimensao(
+        "recebidos",
+        "Recursos recebidos",
+        int(rep_n),
+        f"{_brl(rep_valor)} recebidos" if rep_n else "sem repasses ainda",
+        "/panel/transfers",
+    )
+
+    # Conformidade fiscal — destaque é o que falta comprovar.
+    conf_n = (
+        await session.execute(
+            _no_territorio(select(func.count(Conformidade.id)), Conformidade.municipio_ibge)
+        )
+    ).scalar_one()
+    if ativos.get("conformidade") or conf_n:
         conf_pendentes = (
             await session.execute(
                 _no_territorio(
@@ -219,21 +230,19 @@ async def visao_geral(
                 )
             )
         ).scalar_one()
-        dimensoes.append(
-            DimensaoResumo(
-                chave="conformidade",
-                titulo="Conformidade fiscal",
-                total=int(conf_n),
-                destaque=(f"{conf_pendentes} a comprovar" if conf_n else "sem dados fiscais ainda"),
-                href="/panel/compliance",
-            )
+        _dimensao(
+            "conformidade",
+            "Conformidade fiscal",
+            int(conf_n),
+            f"{conf_pendentes} a comprovar" if conf_n else "sem dados fiscais ainda",
+            "/panel/compliance",
         )
 
-    if ativos.get("obras"):
-        # Obras (execução) — destaque é o que está em andamento.
-        obras_n = (
-            await session.execute(_no_territorio(select(func.count(Obra.id)), Obra.municipio_ibge))
-        ).scalar_one()
+    # Obras (execução) — destaque é o que está em andamento.
+    obras_n = (
+        await session.execute(_no_territorio(select(func.count(Obra.id)), Obra.municipio_ibge))
+    ).scalar_one()
+    if ativos.get("obras") or obras_n:
         obras_exec = (
             await session.execute(
                 _no_territorio(
@@ -242,14 +251,12 @@ async def visao_geral(
                 )
             )
         ).scalar_one()
-        dimensoes.append(
-            DimensaoResumo(
-                chave="obras",
-                titulo="Obras",
-                total=int(obras_n),
-                destaque=f"{obras_exec} em execução" if obras_n else "sem obras ainda",
-                href="/panel/works",
-            )
+        _dimensao(
+            "obras",
+            "Obras",
+            int(obras_n),
+            f"{obras_exec} em execução" if obras_n else "sem obras ainda",
+            "/panel/works",
         )
 
     return VisaoGeralPerfil(

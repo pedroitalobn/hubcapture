@@ -50,6 +50,34 @@ async def test_require_modulo_404_quando_desativado() -> None:
     await dep()  # ativo → não levanta
 
 
+def test_gate_captacao_so_na_exploracao() -> None:
+    """§40: o módulo captação guarda a EXPLORAÇÃO (filtros/facetas/relatório e
+    live-search) — as leituras de cache que o Meu painel usa (resumo, prazos,
+    detalhe, PDF) ficam fora do gate, senão desligar o módulo apaga o painel."""
+    from src.api.v1 import consulta_avulsa as consulta_router
+    from src.api.v1 import propostas as propostas_router
+
+    def _tem_gate(deps) -> bool:
+        return any(
+            getattr(d.dependency, "__qualname__", "").startswith("require_modulo")
+            for d in deps or []
+        )
+
+    gates = {
+        r.path: _tem_gate(getattr(r, "dependencies", None))
+        for r in propostas_router.router.routes
+    }
+    assert gates["/proposals"] and gates["/proposals/facets"]
+    assert gates["/proposals/report.csv"]
+    # panel-core: sempre disponíveis, com ou sem o módulo captação
+    assert not gates["/proposals/summary"]
+    assert not gates["/proposals/deadlines"]
+    assert not gates["/proposals/{proposta_id}"]
+    assert not gates["/proposals/{proposta_id}/pdf"]
+    # a consulta ativa nas fontes é a essência do módulo — segue no gate
+    assert _tem_gate(consulta_router.router.dependencies)
+
+
 async def test_perfil_expoe_modulos_ativos(seed_user, seed_municipio) -> None:
     u = await seed_user("mod@a.com")
     await seed_municipio(u, "3550308")

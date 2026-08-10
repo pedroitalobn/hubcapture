@@ -34,8 +34,13 @@ from ...services import propostas as propostas_service
 from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
-# Módulo desligável pelo painel admin (captação): desativado → eixo responde 404.
-router = APIRouter(tags=["propostas"], dependencies=[Depends(require_modulo("captacao"))])
+# O módulo "captação" cobre a EXPLORAÇÃO ativa — filtros específicos (lista/
+# facetas/relatório) e a consulta ao vivo às fontes (live-search, em
+# consulta_avulsa.py). As leituras de CACHE do território (resumo, prazos,
+# detalhe e espelho PDF) pertencem ao Meu painel e ficam FORA do gate:
+# desativar a captação não pode apagar o dashboard (§40).
+router = APIRouter(tags=["propostas"])
+_gate_captacao = [Depends(require_modulo("captacao"))]
 
 
 class FiltrosProposta(BaseModel):
@@ -91,7 +96,7 @@ class FiltrosPagina(FiltrosListagem):
     offset: int = Field(default=0, ge=0, description="itens já carregados")
 
 
-@router.get("/proposals", response_model=PropostasPagina)
+@router.get("/proposals", response_model=PropostasPagina, dependencies=_gate_captacao)
 async def listar_propostas(
     filtros: Annotated[FiltrosPagina, Query()],
     session: AsyncSession = Depends(get_rls_db),
@@ -109,7 +114,7 @@ async def listar_propostas(
     )
 
 
-@router.get("/proposals/facets", response_model=PropostasFacetas)
+@router.get("/proposals/facets", response_model=PropostasFacetas, dependencies=_gate_captacao)
 async def facetas_propostas(
     filtros: Annotated[FiltrosProposta, Query()],
     session: AsyncSession = Depends(get_rls_db),
@@ -129,7 +134,7 @@ async def resumo_propostas(
     return ResumoCaptacao.model_validate(dados)
 
 
-@router.get("/proposals/report.csv")
+@router.get("/proposals/report.csv", dependencies=_gate_captacao)
 async def relatorio_propostas(
     filtros: Annotated[FiltrosListagem, Query()],
     user: Usuario = Depends(current_active_user),
