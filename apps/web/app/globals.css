@@ -1,20 +1,41 @@
 @import "tailwindcss";
 
+/* Modo dark por classe (.dark no <html>), com toggle + persistência.
+ * O script inline no layout raiz aplica a classe antes do 1º paint. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Design tokens (Tailwind 4 lê o tema via CSS — o preset JS não é carregado
- * sem @config; a cor da marca vive aqui). */
+ * sem @config; a cor da marca vive aqui).
+ * Verde da identidade Hub Capture — extraído do hero (login-hero.jpg):
+ * brilho #cfe09a · musgo #4a6344 · fundo #0c1a1b. */
 @theme {
-  --color-brand-50: #eef4ff;
-  --color-brand-100: #dbe6fe;
-  --color-brand-200: #bfd3fe;
-  --color-brand-300: #93b4fd;
-  --color-brand-400: #6090fa;
-  --color-brand-500: #3b76f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
-  --color-brand-800: #1e40af;
-  --color-brand-900: #1e3a8a;
-  --color-brand: #1d4ed8;
+  --color-brand-50: #f4f9ec;
+  --color-brand-100: #e6f1d3;
+  --color-brand-200: #cfe09a;
+  --color-brand-300: #b1d077;
+  --color-brand-400: #8fb852;
+  --color-brand-500: #6f9c37;
+  --color-brand-600: #557f28;
+  --color-brand-700: #426322;
+  --color-brand-800: #37501f;
+  --color-brand-900: #2e431e;
+  --color-brand-950: #16240f;
+  --color-brand: #426322;
   --color-brand-fg: #ffffff;
+
+  /* Neutros retonalizados: o gray padrão do Tailwind tem subtom azul e
+   * briga com a identidade verde — este tem o subtom do fundo do hero. */
+  --color-gray-50: #f5f8f4;
+  --color-gray-100: #e9efe8;
+  --color-gray-200: #d6ded5;
+  --color-gray-300: #b6c2b6;
+  --color-gray-400: #8b9a8d;
+  --color-gray-500: #66766a;
+  --color-gray-600: #4e5e53;
+  --color-gray-700: #3d4a41;
+  --color-gray-800: #27322b;
+  --color-gray-900: #17211b;
+  --color-gray-950: #0b1413;
 
   --animate-fade-up: fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-fade-in: fade-in 0.3s ease-out both;
@@ -106,7 +127,10 @@
 .stagger > *:nth-child(8) { animation-delay: 350ms; }
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
 }
 
 body {
@@ -114,7 +138,7 @@ body {
 }
 
 ::selection {
-  @apply bg-brand-600/20;
+  @apply bg-brand-600/25;
 }
 
 /* Foco visível consistente (teclado) sem outline duplicado no mouse. */

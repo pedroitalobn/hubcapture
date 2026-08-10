@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/Button";
 import { Callout } from "@/components/Callout";
 import { FilterChips } from "@/components/FilterChips";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { api, getToken } from "@/lib/api/client";
 
 const FONTES = [
@@ -67,7 +68,8 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 px-6 py-10">
+    <main className="relative mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 px-6 py-10">
+      <ThemeToggle className="absolute right-4 top-4" />
       <div className="flex items-center gap-3 animate-fade-up">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 text-white shadow-md">
           <Compass className="h-6 w-6" aria-hidden />

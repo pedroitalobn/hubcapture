@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { api, clearTokens, getToken } from "@/lib/api/client";
 
 interface MunicipioPerfil {
@@ -166,13 +167,16 @@ export default function PainelLayout({
           })}
         </nav>
 
-        <button
-          onClick={sair}
-          className="mt-auto inline-flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-500 transition-colors hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-        >
-          <LogOut className="h-4 w-4" aria-hidden />
-          Sair
-        </button>
+        <div className="mt-auto flex items-center justify-between gap-2">
+          <button
+            onClick={sair}
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-500 transition-colors hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+          >
+            <LogOut className="h-4 w-4" aria-hidden />
+            Sair
+          </button>
+          <ThemeToggle />
+        </div>
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col gap-6">{children}</main>

@@ -34,6 +34,8 @@ export default function LoginPage() {
     <AuthShell
       title="Entrar"
       subtitle="Acesse o painel do seu território."
+      heroSrc="/login-hero.jpg"
+      heroAlt="Mapa do Brasil iluminado em verde"
       footer={
         <p>
           Ainda não tem conta?{" "}

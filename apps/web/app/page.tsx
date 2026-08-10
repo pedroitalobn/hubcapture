@@ -11,6 +11,7 @@ import {
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const CICLO = [
   {
@@ -41,7 +42,8 @@ const CICLO = [
 
 export default function Home() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-10 px-6 py-16">
+    <main className="relative mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-10 px-6 py-16">
+      <ThemeToggle className="absolute right-4 top-4" />
       <div className="flex flex-col gap-5 animate-fade-up">
         <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 text-white shadow-md">
           <Landmark className="h-7 w-7" aria-hidden />
