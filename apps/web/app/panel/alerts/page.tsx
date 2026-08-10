@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
+import { ModuloGate } from "@/components/ModuloGate";
 import { municipioPrincipal } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
@@ -62,6 +63,14 @@ function descricao(a: Alerta): string {
 }
 
 export default function AlertasPage() {
+  return (
+    <ModuloGate modulo="alertas" titulo="Alertas">
+      <AlertasConteudo />
+    </ModuloGate>
+  );
+}
+
+function AlertasConteudo() {
   // território do perfil + recorte ativo no painel (trilho lateral)
   const { municipios, selecionados } = useTerritorio();
   const [alertas, setAlertas] = useState<Alerta[]>([]);

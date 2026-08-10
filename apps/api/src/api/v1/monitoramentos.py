@@ -20,9 +20,10 @@ from ...schemas.monitoramento import (
     MonitoramentoRead,
 )
 from ...services import monitoramentos as service
+from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
-router = APIRouter(tags=["monitoramentos"])
+router = APIRouter(tags=["monitoramentos"], dependencies=[Depends(require_modulo("alertas"))])
 
 
 @router.get("/monitors/searches", response_model=list[MonitoramentoBuscaRead])

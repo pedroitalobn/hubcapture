@@ -3742,6 +3742,123 @@
         "title": "LlmProviderOut",
         "type": "object"
       },
+      "MembroConviteCreate": {
+        "description": "Convite de MEMBRO: o usuário chama alguém para a própria conta/equipe.",
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "expires_em_dias": {
+            "default": 7,
+            "maximum": 90.0,
+            "minimum": 1.0,
+            "title": "Expires Em Dias",
+            "type": "integer"
+          },
+          "papel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "equipe",
+            "title": "Papel"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "MembroConviteCreate",
+        "type": "object"
+      },
+      "MembroRead": {
+        "description": "Um membro da conta — o convite e, se aceito, o usuário criado dele.",
+        "properties": {
+          "convite_id": {
+            "format": "uuid",
+            "title": "Convite Id",
+            "type": "string"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "papel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Papel"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "usuario_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usuario Id"
+          }
+        },
+        "required": [
+          "convite_id",
+          "email",
+          "status"
+        ],
+        "title": "MembroRead",
+        "type": "object"
+      },
       "ModuloItem": {
         "properties": {
           "ativo": {
@@ -4670,6 +4787,36 @@
         "title": "OnboardingResponse",
         "type": "object"
       },
+      "OpcaoCatalogo": {
+        "description": "Um item escolhível na config do plano (módulo, fonte ou feature).",
+        "properties": {
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chave",
+          "label"
+        ],
+        "title": "OpcaoCatalogo",
+        "type": "object"
+      },
       "OpcoesEmendas": {
         "description": "Valores disponíveis para os filtros da tela (só o que existe).",
         "properties": {
@@ -5156,6 +5303,16 @@
               }
             ],
             "title": "Papel"
+          },
+          "plano": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanoPerfil"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "title": "PerfilRead",
@@ -5207,14 +5364,12 @@
           "limites": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/PlanoLimites"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Limites"
+            ]
           },
           "nome": {
             "maxLength": 120,
@@ -5249,6 +5404,198 @@
           "slug"
         ],
         "title": "PlanoCreate",
+        "type": "object"
+      },
+      "PlanoLimites": {
+        "additionalProperties": true,
+        "description": "Config de gates do plano (§39). Chave AUSENTE = sem restrição.\n\n`modulos`/`fontes` são validados contra os registros (módulo/fonte que não\nexiste é erro de digitação, não gate); `fontes` aceita grupo\n(\"transferegov\") ou connector id. Chaves extras são preservadas (legado e\nflags futuras vivem no mesmo jsonb).",
+        "properties": {
+          "features": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "boolean"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Features"
+          },
+          "fontes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fontes"
+          },
+          "membros_max": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Membros Max"
+          },
+          "modulos": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modulos"
+          },
+          "municipios_max": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipios Max"
+          }
+        },
+        "title": "PlanoLimites",
+        "type": "object"
+      },
+      "PlanoOpcoes": {
+        "description": "Catálogos p/ o editor de config do plano no painel admin (§39).",
+        "properties": {
+          "features": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OpcaoCatalogo"
+            },
+            "title": "Features",
+            "type": "array"
+          },
+          "fontes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OpcaoCatalogo"
+            },
+            "title": "Fontes",
+            "type": "array"
+          },
+          "modulos": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OpcaoCatalogo"
+            },
+            "title": "Modulos",
+            "type": "array"
+          }
+        },
+        "title": "PlanoOpcoes",
+        "type": "object"
+      },
+      "PlanoPerfil": {
+        "description": "O plano do usuário visto pela navegação: nome + o que a assinatura libera.",
+        "properties": {
+          "features": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "default": {},
+            "title": "Features",
+            "type": "object"
+          },
+          "fontes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fontes"
+          },
+          "membros_max": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Membros Max"
+          },
+          "modulos": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modulos"
+          },
+          "municipios_max": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipios Max"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          }
+        },
+        "title": "PlanoPerfil",
         "type": "object"
       },
       "PlanoRead": {
@@ -5342,14 +5689,12 @@
           "limites": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/PlanoLimites"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Limites"
+            ]
           },
           "nome": {
             "anyOf": [
@@ -7280,6 +7625,123 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/account/members": {
+      "get": {
+        "operationId": "listar_membros_api_v1_account_members_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MembroRead"
+                  },
+                  "title": "Response Listar Membros Api V1 Account Members Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Membros",
+        "tags": [
+          "conta"
+        ]
+      }
+    },
+    "/api/v1/account/members/invites": {
+      "post": {
+        "operationId": "convidar_membro_api_v1_account_members_invites_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MembroConviteCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembroRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Convidar Membro",
+        "tags": [
+          "conta"
+        ]
+      }
+    },
+    "/api/v1/account/members/invites/{convite_id}": {
+      "delete": {
+        "operationId": "revogar_convite_api_v1_account_members_invites__convite_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "convite_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Convite Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Revogar Convite",
+        "tags": [
+          "conta"
+        ]
+      }
+    },
     "/api/v1/admin/advisory/contacts": {
       "get": {
         "operationId": "listar_contatos_api_v1_admin_advisory_contacts_get",
@@ -10530,7 +10992,7 @@
     },
     "/api/v1/copilot/island": {
       "post": {
-        "description": "Agente do Dynamic Island (tool calling). O loop de ferramentas roda AQUI,\ncom a sessão RLS do request viva; o stream só replaye os eventos coletados\n(mesma razão do RAG pré-stream acima).",
+        "description": "Agente do Dynamic Island (tool calling) em DUAS fases: o loop de\nferramentas roda AQUI, com a sessão RLS do request viva (mesma razão do\nRAG pré-stream acima); a resposta final é um gerador que NÃO toca no\nbanco — flui token a token depois que a resposta HTTP já começou.",
         "operationId": "copiloto_island_api_v1_copilot_island_post",
         "requestBody": {
           "content": {
@@ -11897,6 +12359,20 @@
     "/api/v1/plans": {
       "get": {
         "operationId": "listar_planos_api_v1_plans_get",
+        "parameters": [
+          {
+            "description": "planos inativos também (só p/ administrador)",
+            "in": "query",
+            "name": "incluir_inativos",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "planos inativos também (só p/ administrador)",
+              "title": "Incluir Inativos",
+              "type": "boolean"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -11911,8 +12387,23 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
         "summary": "Listar Planos",
         "tags": [
           "planos"
@@ -11958,6 +12449,33 @@
           }
         ],
         "summary": "Criar Plano",
+        "tags": [
+          "planos"
+        ]
+      }
+    },
+    "/api/v1/plans/options": {
+      "get": {
+        "description": "Catálogos do editor de config do plano: módulos, fontes (grupos) e\nfeatures conhecidas. O que não estiver aqui não é gate válido.",
+        "operationId": "opcoes_de_config_api_v1_plans_options_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanoOpcoes"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Opcoes De Config",
         "tags": [
           "planos"
         ]

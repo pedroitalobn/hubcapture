@@ -4,6 +4,57 @@
  */
 
 export interface paths {
+    "/api/v1/account/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Membros */
+        get: operations["listar_membros_api_v1_account_members_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/members/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Convidar Membro */
+        post: operations["convidar_membro_api_v1_account_members_invites_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/members/invites/{convite_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revogar Convite */
+        delete: operations["revogar_convite_api_v1_account_members_invites__convite_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/advisory/contacts": {
         parameters: {
             query?: never;
@@ -1009,9 +1060,10 @@ export interface paths {
         put?: never;
         /**
          * Copiloto Island
-         * @description Agente do Dynamic Island (tool calling). O loop de ferramentas roda AQUI,
-         *     com a sessão RLS do request viva; o stream só replaye os eventos coletados
-         *     (mesma razão do RAG pré-stream acima).
+         * @description Agente do Dynamic Island (tool calling) em DUAS fases: o loop de
+         *     ferramentas roda AQUI, com a sessão RLS do request viva (mesma razão do
+         *     RAG pré-stream acima); a resposta final é um gerador que NÃO toca no
+         *     banco — flui token a token depois que a resposta HTTP já começou.
          */
         post: operations["copiloto_island_api_v1_copilot_island_post"];
         delete?: never;
@@ -1467,6 +1519,27 @@ export interface paths {
         put?: never;
         /** Criar Plano */
         post: operations["criar_plano_api_v1_plans_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/plans/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Opcoes De Config
+         * @description Catálogos do editor de config do plano: módulos, fontes (grupos) e
+         *     features conhecidas. O que não estiver aqui não é gate válido.
+         */
+        get: operations["opcoes_de_config_api_v1_plans_options_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3304,6 +3377,52 @@ export interface components {
              */
             modelo_resumo: boolean;
         };
+        /**
+         * MembroConviteCreate
+         * @description Convite de MEMBRO: o usuário chama alguém para a própria conta/equipe.
+         */
+        MembroConviteCreate: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /**
+             * Expires Em Dias
+             * @default 7
+             */
+            expires_em_dias: number;
+            /**
+             * Papel
+             * @default equipe
+             */
+            papel: string | null;
+        };
+        /**
+         * MembroRead
+         * @description Um membro da conta — o convite e, se aceito, o usuário criado dele.
+         */
+        MembroRead: {
+            /**
+             * Convite Id
+             * Format: uuid
+             */
+            convite_id: string;
+            /** Created At */
+            created_at?: string | null;
+            /** Email */
+            email: string;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Nome */
+            nome?: string | null;
+            /** Papel */
+            papel?: string | null;
+            /** Status */
+            status: string;
+            /** Usuario Id */
+            usuario_id?: string | null;
+        };
         /** ModuloItem */
         ModuloItem: {
             /** Ativo */
@@ -3621,6 +3740,18 @@ export interface components {
             sync_disparado: boolean;
         };
         /**
+         * OpcaoCatalogo
+         * @description Um item escolhível na config do plano (módulo, fonte ou feature).
+         */
+        OpcaoCatalogo: {
+            /** Chave */
+            chave: string;
+            /** Descricao */
+            descricao?: string | null;
+            /** Label */
+            label: string;
+        };
+        /**
          * OpcoesEmendas
          * @description Valores disponíveis para os filtros da tela (só o que existe).
          */
@@ -3794,6 +3925,7 @@ export interface components {
             nome?: string | null;
             /** Papel */
             papel?: string | null;
+            plano?: components["schemas"]["PlanoPerfil"] | null;
         };
         /**
          * PipelineItem
@@ -3816,16 +3948,84 @@ export interface components {
             ativo: boolean;
             /** Descricao */
             descricao?: string | null;
-            /** Limites */
-            limites?: {
-                [key: string]: unknown;
-            } | null;
+            limites?: components["schemas"]["PlanoLimites"] | null;
             /** Nome */
             nome: string;
             /** Preco Mensal */
             preco_mensal?: number | string | null;
             /** Slug */
             slug: string;
+        };
+        /**
+         * PlanoLimites
+         * @description Config de gates do plano (§39). Chave AUSENTE = sem restrição.
+         *
+         *     `modulos`/`fontes` são validados contra os registros (módulo/fonte que não
+         *     existe é erro de digitação, não gate); `fontes` aceita grupo
+         *     ("transferegov") ou connector id. Chaves extras são preservadas (legado e
+         *     flags futuras vivem no mesmo jsonb).
+         */
+        PlanoLimites: {
+            /** Features */
+            features?: {
+                [key: string]: boolean;
+            } | null;
+            /** Fontes */
+            fontes?: string[] | null;
+            /** Membros Max */
+            membros_max?: number | null;
+            /** Modulos */
+            modulos?: string[] | null;
+            /** Municipios Max */
+            municipios_max?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * PlanoOpcoes
+         * @description Catálogos p/ o editor de config do plano no painel admin (§39).
+         */
+        PlanoOpcoes: {
+            /**
+             * Features
+             * @default []
+             */
+            features: components["schemas"]["OpcaoCatalogo"][];
+            /**
+             * Fontes
+             * @default []
+             */
+            fontes: components["schemas"]["OpcaoCatalogo"][];
+            /**
+             * Modulos
+             * @default []
+             */
+            modulos: components["schemas"]["OpcaoCatalogo"][];
+        };
+        /**
+         * PlanoPerfil
+         * @description O plano do usuário visto pela navegação: nome + o que a assinatura libera.
+         */
+        PlanoPerfil: {
+            /**
+             * Features
+             * @default {}
+             */
+            features: {
+                [key: string]: boolean;
+            };
+            /** Fontes */
+            fontes?: string[] | null;
+            /** Membros Max */
+            membros_max?: number | null;
+            /** Modulos */
+            modulos?: string[] | null;
+            /** Municipios Max */
+            municipios_max?: number | null;
+            /** Nome */
+            nome?: string | null;
+            /** Slug */
+            slug?: string | null;
         };
         /** PlanoRead */
         PlanoRead: {
@@ -3855,10 +4055,7 @@ export interface components {
             ativo?: boolean | null;
             /** Descricao */
             descricao?: string | null;
-            /** Limites */
-            limites?: {
-                [key: string]: unknown;
-            } | null;
+            limites?: components["schemas"]["PlanoLimites"] | null;
             /** Nome */
             nome?: string | null;
             /** Preco Mensal */
@@ -4551,6 +4748,88 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listar_membros_api_v1_account_members_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MembroRead"][];
+                };
+            };
+        };
+    };
+    convidar_membro_api_v1_account_members_invites_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MembroConviteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MembroRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revogar_convite_api_v1_account_members_invites__convite_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                convite_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listar_contatos_api_v1_admin_advisory_contacts_get: {
         parameters: {
             query?: never;
@@ -7580,7 +7859,10 @@ export interface operations {
     };
     listar_planos_api_v1_plans_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description planos inativos também (só p/ administrador) */
+                incluir_inativos?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7594,6 +7876,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanoRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -7627,6 +7918,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    opcoes_de_config_api_v1_plans_options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanoOpcoes"];
                 };
             };
         };

@@ -78,3 +78,6 @@ fastapi_users = FastAPIUsers[Usuario, uuid.UUID](get_user_manager, [auth_backend
 current_active_user = fastapi_users.current_user(active=True)
 # admin da plataforma (gestão de planos, convites, usuários)
 current_superuser = fastapi_users.current_user(active=True, superuser=True)
+# resolução OPCIONAL (guards que rodam antes da auth do endpoint, ex.
+# require_modulo): sem token/token inválido → None, nunca 401 daqui.
+current_user_optional = fastapi_users.current_user(active=True, optional=True)

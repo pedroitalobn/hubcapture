@@ -121,34 +121,63 @@ async def _ensure_admin_uma_vez(email: str, senha: str) -> None:
 # Semeados no startup (idempotente por slug). Preços/limites são editáveis no
 # painel admin depois — aqui só garantimos que os 4 existam para atribuir a
 # convites/usuários (customer = usuário com plano).
+#
+# `limites` segue o formato canônico de `services/plano_gates.py` (§39):
+# municipios_max/membros_max, modulos e fontes liberados e flags de features.
+# Chave AUSENTE = sem restrição (por isso o Business não lista módulos).
+# Banco que já tem os planos no formato legado continua valendo — a
+# normalização de plano_gates entende os dois.
 PLANOS_PADRAO = [
     {
         "slug": "free",
         "nome": "Free",
         "descricao": "Gratuito — 1 município monitorado.",
         "preco_mensal": 0,
-        "limites": {"municipios": 1, "alertas": True, "copiloto": False},
+        "limites": {
+            "municipios_max": 1,
+            "membros_max": 0,
+            "modulos": ["captacao", "alertas", "ajuda"],
+            "fontes": ["transferegov"],
+            "features": {"export_pdf": False, "relatorio_csv": False, "alertas_wpp": False},
+        },
     },
     {
         "slug": "start",
         "nome": "Start",
         "descricao": "Para começar — poucos municípios.",
         "preco_mensal": 97,
-        "limites": {"municipios": 5, "alertas": True, "copiloto": False},
+        "limites": {
+            "municipios_max": 5,
+            "membros_max": 2,
+            "modulos": ["captacao", "alertas", "contatos", "ajuda", "assessoria"],
+            "features": {"alertas_wpp": False},
+        },
     },
     {
         "slug": "pro",
         "nome": "Pro",
         "descricao": "Uso profissional — mais municípios + copiloto IA.",
         "preco_mensal": 297,
-        "limites": {"municipios": 20, "alertas": True, "copiloto": True},
+        "limites": {
+            "municipios_max": 20,
+            "membros_max": 10,
+            "modulos": [
+                "captacao",
+                "recebidos",
+                "alertas",
+                "contatos",
+                "copiloto",
+                "ajuda",
+                "assessoria",
+            ],
+        },
     },
     {
         "slug": "business",
         "nome": "Business",
         "descricao": "Equipes/consultorias — sem limite prático.",
         "preco_mensal": 697,
-        "limites": {"municipios": 999, "alertas": True, "copiloto": True},
+        "limites": {},
     },
 ]
 
@@ -158,9 +187,7 @@ async def ensure_planos() -> None:
     from ..models.plano import Plano
 
     async with SessionLocal() as session:
-        existentes = set(
-            (await session.execute(select(Plano.slug))).scalars().all()
-        )
+        existentes = set((await session.execute(select(Plano.slug))).scalars().all())
         criados = 0
         for p in PLANOS_PADRAO:
             if p["slug"] in existentes:

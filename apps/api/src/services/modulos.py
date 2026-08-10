@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import time
 
-from fastapi import HTTPException, status
+from fastapi import Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,6 +33,7 @@ def limpar_cache() -> None:
     """Invalida o snapshot (chamado ao definir módulo; testes/ops)."""
     global _cache_ativos
     _cache_ativos = None
+
 
 # Registro dos módulos com o estado padrão (sem linha no banco → vale o padrão).
 MODULOS: list[dict] = [
@@ -61,6 +62,12 @@ MODULOS: list[dict] = [
         "label": "Obras",
         "descricao": "Execução de obras (SISMOB, SIMEC, CAIXA)",
         "padrao": False,
+    },
+    {
+        "chave": "alertas",
+        "label": "Alertas",
+        "descricao": "Central de alertas e monitoramentos (novas propostas, prazos, oportunidades)",
+        "padrao": True,
     },
     {
         "chave": "contatos",
@@ -154,10 +161,36 @@ async def esta_ativo(chave: str) -> bool:
 
 
 def require_modulo(chave: str):
-    """Dependency de router: módulo desligado → 404 (o eixo some da API)."""
+    """Dependency de router com DOIS gates em camadas:
 
-    async def _dep() -> None:
+    1. plataforma (§29): módulo desligado no painel admin → 404 — o eixo
+       simplesmente não existe, para qualquer usuário;
+    2. plano (§39): módulo fora da config do plano do usuário → 403
+       `MODULO_NAO_INCLUIDO_PLANO` — o eixo existe, a assinatura não o inclui
+       (o front usa a distinção para oferecer upgrade em vez de sumir a tela).
+
+    O usuário é resolvido de forma OPCIONAL: sem token (ou token inválido) o
+    gate de plano é pulado e o 401 continua vindo da auth do endpoint.
+    Superuser não é limitado por plano (admin enxerga tudo).
+    """
+    # import tardio: core.users puxa notifications/config no import — não pagar
+    # essa cadeia (nem arriscar ciclo) para quem só usa esta_ativo/listar.
+    from ..core.users import current_user_optional
+    from ..models.usuario import Usuario
+
+    async def _dep(user: Usuario | None = Depends(current_user_optional)) -> None:
         if not await esta_ativo(chave):
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"MODULO_DESATIVADO: {chave}")
+        # isinstance cobre a chamada direta (testes/CLI), em que o default do
+        # parâmetro é o marcador Depends, não um usuário.
+        if isinstance(user, Usuario) and not user.is_superuser:
+            from . import plano_gates  # tardio: plano_gates importa este módulo
+
+            cfg = await plano_gates.config_por_plano_id(user.plano_id)
+            if not plano_gates.modulo_liberado(cfg, chave):
+                raise HTTPException(
+                    status.HTTP_403_FORBIDDEN,
+                    detail=f"MODULO_NAO_INCLUIDO_PLANO: {chave}",
+                )
 
     return _dep

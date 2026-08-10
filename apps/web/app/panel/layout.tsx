@@ -25,7 +25,7 @@ const NAV = [
     modulo: "conformidade",
   },
   { href: "/panel/works", label: "Obras", modulo: "obras" },
-  { href: "/panel/alerts", label: "Alertas" },
+  { href: "/panel/alerts", label: "Alertas", modulo: "alertas" },
   { href: "/panel/contacts", label: "Agenda de contatos", modulo: "contatos" },
   { href: "/panel/copilot", label: "Copiloto", modulo: "copiloto" },
   { href: "/panel/advisory", label: "Assessoria", modulo: "assessoria" },
@@ -170,8 +170,10 @@ function PainelShell({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Copiloto em Dynamic Island — persiste em TODAS as telas do painel,
-          só depois do onboarding (precisa de território p/ ter o que consultar). */}
-      {municipios.length > 0 && <DynamicIsland />}
+          só depois do onboarding (precisa de território p/ ter o que consultar)
+          e só quando o módulo copiloto está no plano do usuário (§39). */}
+      {municipios.length > 0 &&
+        (perfil?.modulos ?? []).includes("copiloto") && <DynamicIsland />}
     </div>
   );
 }

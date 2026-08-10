@@ -12,9 +12,10 @@ from ...models.usuario import Usuario
 from ...schemas.monitoramento import AlertaRead
 from ...services import alertas as service
 from ...services import oportunidades as oportunidades_service
+from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
-router = APIRouter(tags=["alertas"])
+router = APIRouter(tags=["alertas"], dependencies=[Depends(require_modulo("alertas"))])
 
 
 @router.post("/alerts/scan")
@@ -37,9 +38,7 @@ async def listar_alertas(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> list[AlertaRead]:
-    rows = await service.listar(
-        session, user.id, apenas_nao_lidos=nao_lidos, municipio=municipio
-    )
+    rows = await service.listar(session, user.id, apenas_nao_lidos=nao_lidos, municipio=municipio)
     return [AlertaRead.model_validate(r) for r in rows]
 
 

@@ -30,11 +30,13 @@ from ..schemas.perfil import (
     NovidadeItem,
     NovidadesPerfil,
     PerfilRead,
+    PlanoPerfil,
     SyncRunStatus,
     VisaoGeralPerfil,
 )
 from . import fontes as fontes_service
 from . import modulos as modulos_service
+from . import plano_gates
 from ._territorio import Municipios
 from ._territorio import filtrar as filtrar_municipio
 
@@ -91,17 +93,52 @@ async def _preferencias(session: AsyncSession, usuario_id) -> PreferenciasUsuari
     ).scalar_one_or_none()
 
 
+async def _config_plano(
+    session: AsyncSession, usuario: Usuario
+) -> tuple[plano_gates.PlanoConfig, PlanoPerfil | None]:
+    """Config do plano do usuário + resumo p/ o front. Superuser não é limitado
+    por plano (admin enxerga tudo); sem plano → sem restrição."""
+    plano = await plano_gates.plano_do_usuario(session, usuario.id)
+    cfg = (
+        plano_gates.SEM_RESTRICAO
+        if getattr(usuario, "is_superuser", False)
+        else plano_gates.normalizar(plano.limites if plano else None)
+    )
+    grupos = plano_gates.grupos_liberados(cfg)
+    resumo = (
+        PlanoPerfil(
+            nome=plano.nome,
+            slug=plano.slug,
+            municipios_max=cfg.municipios_max,
+            membros_max=cfg.membros_max,
+            features=plano_gates.features_efetivas(cfg),
+            fontes=sorted(grupos) if grupos is not None else None,
+            modulos=sorted(cfg.modulos) if cfg.modulos is not None else None,
+        )
+        if plano
+        else None
+    )
+    return cfg, resumo
+
+
 async def get_perfil(session: AsyncSession, usuario: Usuario) -> PerfilRead:
     pref = await _preferencias(session, usuario.id)
     ativos = await modulos_service.ativos(session)
+    cfg, plano = await _config_plano(session, usuario)
+    fontes_pref = list(pref.fontes or []) if pref else []
     return PerfilRead(
         nome=usuario.nome,
         papel=usuario.papel,
         municipios=await _municipios(session),
         areas=list(pref.areas or []) if pref else [],
-        fontes=list(pref.fontes or []) if pref else [],
+        # fonte escolhida no onboarding que o plano deixou de incluir some da
+        # navegação (o dado gravado fica; um upgrade a traz de volta)
+        fontes=plano_gates.filtrar_fontes(cfg, fontes_pref),
         monitorar_ativo=bool(pref.monitorar_ativo) if pref else True,
-        modulos=[chave for chave, on in ativos.items() if on],
+        modulos=[
+            chave for chave, on in ativos.items() if on and plano_gates.modulo_liberado(cfg, chave)
+        ],
+        plano=plano,
     )
 
 
@@ -112,8 +149,11 @@ async def visao_geral(
     os municípios que o usuário escolheu ver AGORA (subconjunto do onboarding)."""
     pref = await _preferencias(session, usuario.id)
     municipios = await _municipios(session, municipios_filtro)
-    # Módulos desligados no painel admin nem são consultados nem aparecem.
+    # Módulos desligados no painel admin — ou fora do PLANO do usuário (§39) —
+    # nem são consultados nem aparecem.
     ativos = await modulos_service.ativos(session)
+    cfg, _ = await _config_plano(session, usuario)
+    ativos = {chave: on and plano_gates.modulo_liberado(cfg, chave) for chave, on in ativos.items()}
 
     def _no_territorio(stmt: Select[Any], coluna: ColumnElement[Any]) -> Select[Any]:
         """Recorte do painel sobre o que o RLS já limitou ao território."""
@@ -174,9 +214,7 @@ async def visao_geral(
         conf_pendentes = (
             await session.execute(
                 _no_territorio(
-                    select(func.count(Conformidade.id)).where(
-                        Conformidade.status == "a_comprovar"
-                    ),
+                    select(func.count(Conformidade.id)).where(Conformidade.status == "a_comprovar"),
                     Conformidade.municipio_ibge,
                 )
             )
@@ -194,9 +232,7 @@ async def visao_geral(
     if ativos.get("obras"):
         # Obras (execução) — destaque é o que está em andamento.
         obras_n = (
-            await session.execute(
-                _no_territorio(select(func.count(Obra.id)), Obra.municipio_ibge)
-            )
+            await session.execute(_no_territorio(select(func.count(Obra.id)), Obra.municipio_ibge))
         ).scalar_one()
         obras_exec = (
             await session.execute(

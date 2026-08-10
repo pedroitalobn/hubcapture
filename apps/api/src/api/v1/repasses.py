@@ -15,6 +15,7 @@ from ...models.usuario import Usuario
 from ...schemas.repasse import RepasseRead, ResumoEmendas, VisaoGeral
 from ...services import fontes as fontes_service
 from ...services import municipios as municipios_service
+from ...services import plano_gates
 from ...services import repasses as service
 from ...services.modulos import require_modulo
 from ..deps import get_rls_db
@@ -89,9 +90,11 @@ async def resumo_emendas(
 @router.get("/transfers/amendments/report.csv")
 async def relatorio_emendas(
     filtros: Annotated[FiltrosEmendas, Query()],
+    user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> Response:
     """Exporta a lista de emendas filtrada (CSV ';', abre no Excel)."""
+    await plano_gates.exigir_feature(session, user, "relatorio_csv")
     rows = await service.listar_emendas(session, **filtros.model_dump())
     return Response(
         content=service.gerar_csv_emendas(rows).encode("utf-8-sig"),

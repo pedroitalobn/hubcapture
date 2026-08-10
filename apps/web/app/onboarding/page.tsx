@@ -100,11 +100,22 @@ export default function OnboardingPage() {
     fimRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [mensagens, digitando, etapa]);
 
+  // Grupos de fonte liberados pelo PLANO do usuário (§39): null = todos.
+  // O backend descarta fonte fora do plano de qualquer forma — aqui só não
+  // oferecemos o que a assinatura não inclui.
+  const [fontesDoPlano, setFontesDoPlano] = useState<string[] | null>(null);
+
   useEffect(() => {
     if (!getToken()) {
       router.replace("/login");
       return;
     }
+    void (async () => {
+      const { data } = await api.GET("/api/v1/profile");
+      const plano = (data as { plano?: { fontes?: string[] | null } | null } | undefined)
+        ?.plano;
+      if (plano?.fontes != null) setFontesDoPlano(plano.fontes);
+    })();
     falar([
       "Olá! Eu sou o Copiloto do Hub Capture. Vou montar seu painel em menos de um minuto.",
       "Pra começar: qual é o seu papel na gestão pública?",
@@ -112,6 +123,10 @@ export default function OnboardingPage() {
     return () => timeouts.current.forEach(clearTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const fontesOferecidas = FONTES.filter(
+    (f) => fontesDoPlano == null || fontesDoPlano.includes(f.value)
+  );
 
   /** Fala do Copiloto com efeito de digitação entre as frases. */
   function falar(textos: string[], aoTerminar?: () => void) {
@@ -197,7 +212,12 @@ export default function OnboardingPage() {
         ? areas.map((a) => rotulo(AREAS, a)).join(", ")
         : "Sem preferência — tudo me interessa",
     );
-    setFontes(fontesSugeridas(areas));
+    // sugestão pelas áreas, recortada ao que o plano libera
+    setFontes(
+      fontesSugeridas(areas).filter(
+        (f) => fontesDoPlano == null || fontesDoPlano.includes(f)
+      )
+    );
     setEtapa("fontes");
     falar([
       "Fechado. E de quais FONTES oficiais você quer receber dados?",
@@ -423,7 +443,7 @@ export default function OnboardingPage() {
       {etapa === "fontes" && !digitando && (
         <div className="anim-fade-up flex flex-col gap-3">
           <div className="stagger flex flex-col gap-2">
-            {FONTES.map((f) => (
+            {fontesOferecidas.map((f) => (
               <button
                 key={f.value}
                 onClick={() => toggleFonte(f.value)}
