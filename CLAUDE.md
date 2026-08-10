@@ -718,12 +718,38 @@ real qual ferramenta o agente está consultando. Histórico em sessionStorage.
   (`escolher_tool_fallback`, ordem de prioridade em `_PRIORIDADE_FALLBACK`) executa a
   ferramenta mais provável e formata resposta legível (`_formatar_fallback`) — o
   island continua útil sem credencial.
-- **Endpoint** — `POST /copilot/island` (SSE): o loop de tools roda ANTES do stream
-  (sessão RLS do request precisa estar viva); eventos `{"tool": nome}` e
-  `{"delta": texto}`. Client web: `islandStream` em `lib/api/client.ts`.
+- **Endpoint** — `POST /copilot/island` (SSE) em DUAS fases (`ai/agent.preparar`):
+  a fase 1 roda o loop de tools com a sessão RLS do request viva e devolve os
+  eventos `{"tool": nome}`; a fase 2 é um gerador da resposta final que NÃO toca
+  no banco — o router o consome depois que a resposta HTTP já começou, então o
+  texto pinta progressivamente (resposta pronta sai fatiada por `_fatiar`;
+  rodadas esgotadas fazem stream real do LLM). O front renderiza os deltas ao
+  vivo (`parcial`). Client web: `islandStream` em `lib/api/client.ts`.
 - Adicionar ferramenta = nova entrada em `ai/agent.py::TOOLS` (descrição + JSON
   schema + executor + gatilhos de fallback); o front mostra o chip automaticamente
-  (rotule em `DynamicIsland.tsx::TOOL_CHIP`).
+  (rotule em `DynamicIsland.tsx::TOOL_CHIP` e `TOOL_LABEL`).
+- **Catálogo completo (22 tools)**: além das originais, o agente cobre
+  `minhas_propostas` (favoritas da aba Acompanhamento), `proposta_detalhe`,
+  `captacao_resumo`, `pareceres_plano`, `emendas_resumo`, `alertas_atualizacoes`,
+  `monitoramentos_listar`, `pastas_listar`, `contatos_buscar`, `perfil_visao_geral`,
+  `municipios_buscar`, `class_buscar` — e três de AÇÃO (por-tenant, reversíveis):
+  `favoritar_proposta`, `alertas_varredura`, `alertas_marcar_lidos`. Cada tool
+  respeita o módulo (§29) do seu eixo; a dimensão município recebe o recorte do
+  painel por padrão.
+- **Morph de atualização**: o island fechado MORFA quando há alerta de proposta
+  não lido (badge âmbar com contagem, poll ~90s em `GET /alerts?nao_lidos`);
+  expandido, um banner lista as atualizações com "marcar lidas" e link para a
+  central. O botão ⟳ roda `POST /alerts/scan` (varredura) e alimenta o morph;
+  respostas cujas tools mudam alertas recarregam o badge.
+- **Voz**: ditado por Web Speech API (`SpeechRecognition`, pt-BR — o 🎙 preenche
+  o campo e envia ao fechar a frase) e leitura das respostas por
+  `speechSynthesis` (toggle 🔊 persistido; pergunta ditada é sempre respondida em
+  voz). Sem suporte do navegador, os controles somem — o chat segue.
+- **Harness próprio de tool calling** (`ai/agent.Harness` + `ai/harness.py`):
+  LLM, executores e catálogo são bordas injetáveis — o MESMO loop de produção
+  roda sem rede e sem banco nos testes (`test_island_harness.py`) e no CLI
+  `python -m src.tools.harness_copiloto` (valida estrutura do catálogo, tabela
+  de ouro do roteador de fallback e cenários simulados; sai 1 se algo falhar).
 
 ## 25. Rotas em INGLÊS (decisão travada) + Captação em tempo real
 

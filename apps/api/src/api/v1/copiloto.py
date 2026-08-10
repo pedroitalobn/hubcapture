@@ -25,9 +25,7 @@ from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
 # Módulo desligável pelo painel admin: desativado → todo o eixo responde 404.
-router = APIRouter(
-    tags=["copiloto"], dependencies=[Depends(require_modulo("copiloto"))]
-)
+router = APIRouter(tags=["copiloto"], dependencies=[Depends(require_modulo("copiloto"))])
 
 # Perguntas sobre prazo ("quais propostas vencem este mês?") têm resposta
 # estruturada — o RAG por similaridade não garante recall em datas, então a
@@ -95,18 +93,18 @@ async def copiloto_island(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> StreamingResponse:
-    """Agente do Dynamic Island (tool calling). O loop de ferramentas roda AQUI,
-    com a sessão RLS do request viva; o stream só replaye os eventos coletados
-    (mesma razão do RAG pré-stream acima)."""
-    eventos = [
-        e
-        async for e in ai_agent.executar(
-            session, user, body.pergunta, municipios=body.municipios
-        )
-    ]
+    """Agente do Dynamic Island (tool calling) em DUAS fases: o loop de
+    ferramentas roda AQUI, com a sessão RLS do request viva (mesma razão do
+    RAG pré-stream acima); a resposta final é um gerador que NÃO toca no
+    banco — flui token a token depois que a resposta HTTP já começou."""
+    eventos, final = await ai_agent.preparar(
+        session, user, body.pergunta, municipios=body.municipios
+    )
 
     async def gen() -> AsyncIterator[str]:
         for ev in eventos:
+            yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
+        async for ev in final:
             yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
         yield "data: [DONE]\n\n"
 
