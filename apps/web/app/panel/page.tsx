@@ -150,7 +150,8 @@ interface Dimensao {
   titulo: string;
   total: number;
   destaque?: string | null;
-  href: string;
+  // null = módulo de exploração desligado — o card informa, sem navegar (§40)
+  href?: string | null;
 }
 interface Municipio {
   ibge: string;
@@ -193,18 +194,6 @@ interface Noticia {
 interface Alerta {
   id: string;
   lido: boolean;
-}
-interface Oportunidade {
-  id: string;
-  id_externo: string;
-  titulo?: string | null;
-  objeto?: string | null;
-  fonte: string;
-  municipio_nome?: string | null;
-  municipio_ibge?: string | null;
-  uf?: string | null;
-  valor_total?: string | null;
-  situacao?: string | null;
 }
 
 const FONTE_LABEL: Record<string, string> = {
@@ -284,8 +273,6 @@ function MeuPainel() {
   const [novidades, setNovidades] = useState<Novidades | null>(null);
   const [noticias, setNoticias] = useState<Noticia[]>([]);
   const [naoLidos, setNaoLidos] = useState(0);
-  const [oportunidades, setOportunidades] = useState<Oportunidade[]>([]);
-  const [buscandoOportunidades, setBuscandoOportunidades] = useState(true);
   const [favoritas, setFavoritas] = useState<Set<string>>(new Set());
   const [favErro, setFavErro] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -337,32 +324,18 @@ function MeuPainel() {
   }, [selecionados]);
 
   useEffect(() => {
-    // Oportunidades DISPONÍVEIS para o território, em TEMPO REAL: a API
-    // consulta as fontes ao vivo (live-search) filtrando tipo=disponivel.
-    setBuscandoOportunidades(true);
-    void (async () => {
-      const [ls, fav] = await Promise.all([
-        api.POST("/api/v1/proposals/live-search", {
-          body: {
-            tipo: "disponivel",
-            municipios_ibge: paramMunicipio(selecionados) ?? null,
-          } as never,
-        }),
-        api.GET("/api/v1/favorites"),
-      ]);
-      if (ls.data)
-        setOportunidades(
-          ((ls.data as { propostas: Oportunidade[] }).propostas ?? []).slice(0, 6),
-        );
-      if (fav.data)
+    // Favoritas do usuário — alimenta a ★ do feed. O painel NÃO faz consulta
+    // ativa nas fontes (live-search): isso é exploração do módulo Captação
+    // (§40); aqui é leitura do cache do território, sempre disponível.
+    void api.GET("/api/v1/favorites").then(({ data }) => {
+      if (data)
         setFavoritas(
           new Set(
-            (fav.data as { proposta_id: string }[]).map((f) => f.proposta_id),
+            (data as { proposta_id: string }[]).map((f) => f.proposta_id),
           ),
         );
-      setBuscandoOportunidades(false);
-    })();
-  }, [selecionados]);
+    });
+  }, []);
 
   // Restaura a preferência salva uma única vez, no cliente.
   useEffect(() => {
@@ -533,30 +506,48 @@ function MeuPainel() {
       ) : (
         <>
           <section className="stagger grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {(data?.dimensoes ?? []).map((d) => (
-              <Link
-                key={d.chave}
-                href={d.href}
-                className="card card-hover group flex flex-col justify-between p-6 min-h-44"
-              >
-                <div className="flex items-start justify-between">
-                  <h2 className="tracking-tight">{d.titulo}</h2>
-                  <span className="flex h-9 w-9 translate-y-1 items-center justify-center rounded-lg bg-lime text-abyss opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                    →
-                  </span>
-                </div>
-                <div>
-                  <div
-                    className={`text-[44px] font-medium leading-none tracking-[-0.03em] tabular-nums ${
-                      d.total > 0 ? "text-gradient" : ""
-                    }`}
-                  >
-                    {d.total}
+            {(data?.dimensoes ?? []).map((d) => {
+              // sem href = módulo de exploração desligado: o número do
+              // território continua no painel, só não há para onde navegar
+              const conteudo = (
+                <>
+                  <div className="flex items-start justify-between">
+                    <h2 className="tracking-tight">{d.titulo}</h2>
+                    {d.href && (
+                      <span className="flex h-9 w-9 translate-y-1 items-center justify-center rounded-lg bg-lime text-abyss opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                        →
+                      </span>
+                    )}
                   </div>
-                  <p className="mt-2 text-sm text-ink-2">{d.destaque ?? "—"}</p>
+                  <div>
+                    <div
+                      className={`text-[44px] font-medium leading-none tracking-[-0.03em] tabular-nums ${
+                        d.total > 0 ? "text-gradient" : ""
+                      }`}
+                    >
+                      {d.total}
+                    </div>
+                    <p className="mt-2 text-sm text-ink-2">{d.destaque ?? "—"}</p>
+                  </div>
+                </>
+              );
+              return d.href ? (
+                <Link
+                  key={d.chave}
+                  href={d.href}
+                  className="card card-hover group flex flex-col justify-between p-6 min-h-44"
+                >
+                  {conteudo}
+                </Link>
+              ) : (
+                <div
+                  key={d.chave}
+                  className="card flex flex-col justify-between p-6 min-h-44"
+                >
+                  {conteudo}
                 </div>
-              </Link>
-            ))}
+              );
+            })}
           </section>
 
           <PanoramaFinanceiro />

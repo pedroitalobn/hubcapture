@@ -64,7 +64,9 @@ class DimensaoResumo(BaseModel):
     titulo: str
     total: int = 0  # nº de itens visíveis no território do usuário
     destaque: str | None = None  # métrica-resumo (ex. valor total, pendências)
-    href: str  # rota web da dimensão
+    # rota web da dimensão; None = módulo de exploração desligado — o card
+    # informa o número do território sem navegar (§40)
+    href: str | None = None
 
 
 class VisaoGeralPerfil(BaseModel):

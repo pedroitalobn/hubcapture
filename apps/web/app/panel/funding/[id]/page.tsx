@@ -22,6 +22,7 @@ import {
   prazoLabel,
   tomPrazo,
 } from "@/lib/format";
+import { useTerritorio } from "@/lib/territorio";
 
 type Prazo = { tipo?: string | null; data_limite?: string | null };
 type Pendencia = { descricao?: string | null; prazo?: string | null };
@@ -242,6 +243,9 @@ function Carregando() {
 
 export default function PropostaDetalhePage() {
   const params = useParams<{ id: string }>();
+  // módulos efetivos do perfil — decide se a seção de pareceres (exploração
+  // ao vivo do módulo captação) aparece; o detalhe em si é panel-core (§40)
+  const { perfil } = useTerritorio();
   const [p, setP] = useState<Proposta | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [favorita, setFavorita] = useState(false);
@@ -785,7 +789,11 @@ export default function PropostaDetalhePage() {
         </Secao>
       </div>
 
-      <PareceresSecao proposta={p} />
+      {/* Pareceres consultam a fonte ao vivo — exploração do módulo captação
+          (§40); sem o módulo, a seção some e o detalhe (cache) segue inteiro. */}
+      {(perfil?.modulos ?? []).includes("captacao") && (
+        <PareceresSecao proposta={p} />
+      )}
 
       <Secao titulo="Acompanhar e ser avisado">
         {monitorando ? (

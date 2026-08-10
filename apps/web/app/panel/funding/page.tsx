@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, baixarCsv } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { Hint } from "@/components/Hint";
+import { ModuloGate } from "@/components/ModuloGate";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import {
   formatBRL,
@@ -255,7 +256,19 @@ function SelectFaceta({
   );
 }
 
+// Captação é a lente de EXPLORAÇÃO (filtros específicos + consulta ativa nas
+// fontes) — módulo desligável (§29/§40). O menu já esconde o item; o gate
+// cobre o acesso direto por URL explicando o porquê (o acompanhamento do
+// território continua no Meu painel e em Minhas Propostas).
 export default function CaptacaoPage() {
+  return (
+    <ModuloGate modulo="captacao" titulo="Captação">
+      <CaptacaoExploracao />
+    </ModuloGate>
+  );
+}
+
+function CaptacaoExploracao() {
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   // total do recorte no banco — `propostas` é só o que já foi carregado dele
   const [total, setTotal] = useState(0);
