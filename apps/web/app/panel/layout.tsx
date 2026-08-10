@@ -28,7 +28,7 @@ const NAV = [
   { href: "/panel/alerts", label: "Alertas" },
   { href: "/panel/contacts", label: "Agenda de contatos", modulo: "contatos" },
   { href: "/panel/copilot", label: "Copiloto", modulo: "copiloto" },
-  { href: "/panel/help", label: "Central de ajuda", modulo: "ajuda" },
+  { href: "/panel/class", label: "Class", modulo: "ajuda" },
   { href: "/panel/account", label: "Minha conta" },
 ];
 

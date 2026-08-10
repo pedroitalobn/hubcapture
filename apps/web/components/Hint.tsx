@@ -7,7 +7,7 @@
  * admin plantou um artigo naquela chave (e ele está publicado), aparece o
  * ícone; clicou, abre um popover com o resumo, o PRIMEIRO vídeo do artigo
  * (com picture-in-picture — dá para assistir sem sair da proposta) e o link
- * para o artigo completo na Central de ajuda. Sem hint plantado, o componente
+ * para o artigo completo no Class. Sem hint plantado, o componente
  * não renderiza nada — plantar/despublicar é decisão do admin, sem deploy.
  */
 
@@ -63,7 +63,7 @@ export function Hint({ chave, className }: { chave: string; className?: string }
     if (!aberto || buscouVideo.current || !hint) return;
     buscouVideo.current = true;
     void (async () => {
-      const { data } = await api.GET("/api/v1/help/articles/{slug}", {
+      const { data } = await api.GET("/api/v1/class/articles/{slug}", {
         params: { path: { slug: hint.artigo_slug } },
       });
       const v = ((data as ArtigoPopover | undefined)?.midias ?? []).find(
@@ -78,7 +78,7 @@ export function Hint({ chave, className }: { chave: string; className?: string }
   async function copiarLink() {
     try {
       await navigator.clipboard.writeText(
-        `${window.location.origin}/panel/help/${hint!.artigo_slug}`,
+        `${window.location.origin}/panel/class/${hint!.artigo_slug}`,
       );
       setCopiado(true);
       setTimeout(() => setCopiado(false), 2000);
@@ -117,7 +117,7 @@ export function Hint({ chave, className }: { chave: string; className?: string }
           className="card anim-pop absolute left-1/2 top-full z-50 mt-2 block w-[19rem] -translate-x-1/2 cursor-auto p-4 text-left shadow-xl sm:w-80"
           onClick={(e) => e.stopPropagation()}
         >
-          <span className="label-mono block">Ajuda</span>
+          <span className="label-mono block">Class</span>
           <span className="mt-1 block text-sm font-semibold leading-snug text-ink">
             {hint.titulo}
           </span>
@@ -129,7 +129,7 @@ export function Hint({ chave, className }: { chave: string; className?: string }
           {video && <HelpVideo midia={video} compacto className="mt-3 block" />}
           <span className="mt-3 flex items-center justify-between gap-2 border-t border-hairline pt-2.5">
             <Link
-              href={`/panel/help/${hint.artigo_slug}`}
+              href={`/panel/class/${hint.artigo_slug}`}
               className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 transition-colors hover:text-ink"
             >
               Artigo completo →

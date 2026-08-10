@@ -9,7 +9,13 @@ from .conformidade import Conformidade
 from .contato import Contato
 from .convite import Convite
 from .favorito import Favorito
-from .helpdesk import HelpdeskArtigo, HelpdeskCategoria, HelpdeskHint, HelpdeskMidia
+from .helpdesk import (
+    HelpdeskArtigo,
+    HelpdeskCategoria,
+    HelpdeskHint,
+    HelpdeskMidia,
+    HelpdeskModulo,
+)
 from .integracao_contatos import ContatoVinculo, IntegracaoContatos
 from .monitoramento import Monitoramento, MonitoramentoBusca
 from .municipio_interesse import MunicipioInteresse
@@ -52,6 +58,7 @@ __all__ = [
     "ContatoVinculo",
     "HelpdeskCategoria",
     "HelpdeskArtigo",
+    "HelpdeskModulo",
     "HelpdeskMidia",
     "HelpdeskHint",
 ]

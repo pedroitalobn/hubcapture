@@ -1,4 +1,4 @@
-"""Schemas da central de ajuda (help desk interno + hints contextuais)."""
+"""Schemas do Class (help desk interno: artigos, módulos/aulas e hints)."""
 
 from __future__ import annotations
 
@@ -26,6 +26,79 @@ class HelpCategoriaWrite(BaseModel):
     nome: str = Field(min_length=1, max_length=120)
     descricao: str | None = None
     ordem: int = 0
+
+
+# ── Módulos (trilhas de aulas) ──────────────────────────────────────────────
+
+
+class ModuloRef(BaseModel):
+    """Referência curta do módulo dentro do artigo/aula."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    titulo: str
+    slug: str
+
+
+class ClassModuloResumo(BaseModel):
+    """Item de listagem de módulos (Class e admin)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    titulo: str
+    slug: str
+    descricao: str | None = None
+    publicado: bool
+    ordem: int = 0
+    # contagem de aulas — na visão pública, só as publicadas
+    aulas: int = 0
+
+
+class AulaResumo(BaseModel):
+    """Uma aula na página do módulo (sem corpo — o link leva à aula)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    titulo: str
+    slug: str
+    resumo: str | None = None
+    ordem: int = 0
+    publicado: bool
+    videos: int = 0
+    documentos: int = 0
+
+
+class ClassModuloRead(BaseModel):
+    """Módulo completo com as aulas em sequência."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    titulo: str
+    slug: str
+    descricao: str | None = None
+    publicado: bool
+    ordem: int = 0
+    aulas: list[AulaResumo] = []
+    created_at: datetime
+    updated_at: datetime | None = None
+
+
+class ClassModuloCreate(BaseModel):
+    titulo: str = Field(min_length=1, max_length=255)
+    descricao: str | None = None
+    publicado: bool = False
+    ordem: int = 0
+
+
+class ClassModuloPatch(BaseModel):
+    titulo: str | None = Field(default=None, min_length=1, max_length=255)
+    descricao: str | None = None
+    publicado: bool | None = None
+    ordem: int | None = None
 
 
 # ── Mídias (vídeos e documentos anexos) ─────────────────────────────────────
@@ -119,6 +192,8 @@ class HelpArtigoResumo(BaseModel):
     publicado: bool
     ordem: int = 0
     categoria: HelpCategoriaRead | None = None
+    # preenchido = o artigo é uma AULA deste módulo
+    modulo: ModuloRef | None = None
     # contagens para a listagem mostrar o que o artigo carrega
     videos: int = 0
     documentos: int = 0
@@ -139,6 +214,7 @@ class HelpArtigoRead(BaseModel):
     publicado: bool
     ordem: int = 0
     categoria: HelpCategoriaRead | None = None
+    modulo: ModuloRef | None = None
     midias: list[HelpMidiaRead] = []
     hints: list[HintRead] = []
     created_at: datetime
@@ -150,6 +226,8 @@ class HelpArtigoCreate(BaseModel):
     resumo: str | None = None
     corpo: str = ""
     categoria_id: uuid.UUID | None = None
+    # com módulo, o artigo nasce como AULA; `ordem` é a posição na sequência
+    modulo_id: uuid.UUID | None = None
     publicado: bool = False
     ordem: int = 0
 
@@ -159,5 +237,6 @@ class HelpArtigoPatch(BaseModel):
     resumo: str | None = None
     corpo: str | None = None
     categoria_id: uuid.UUID | None = None
+    modulo_id: uuid.UUID | None = None
     publicado: bool | None = None
     ordem: int | None = None

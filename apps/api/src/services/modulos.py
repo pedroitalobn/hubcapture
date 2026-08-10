@@ -61,9 +61,11 @@ MODULOS: list[dict] = [
         "padrao": True,
     },
     {
+        # chave interna estável (config `modulo_ajuda` pode já existir no banco);
+        # o nome de produto é Class — rotas /class, página /panel/class.
         "chave": "ajuda",
-        "label": "Central de ajuda",
-        "descricao": "Help desk interno — artigos, vídeos e hints contextuais (ⓘ) nas telas",
+        "label": "Class",
+        "descricao": "Class (help desk) — artigos, módulos de aulas, vídeos e hints (ⓘ) nas telas",
         "padrao": True,
     },
 ]
@@ -77,9 +79,7 @@ def modulo_valido(chave: str) -> bool:
 async def ativos(session: AsyncSession) -> dict[str, bool]:
     """Estado efetivo de todos os módulos (banco > padrão do registro)."""
     rows = (
-        await session.execute(
-            select(Configuracao).where(Configuracao.chave.like(f"{_PREFIXO}%"))
-        )
+        await session.execute(select(Configuracao).where(Configuracao.chave.like(f"{_PREFIXO}%")))
     ).scalars()
     no_banco = {r.chave.removeprefix(_PREFIXO): r.valor for r in rows}
     return {
@@ -128,8 +128,6 @@ def require_modulo(chave: str):
 
     async def _dep() -> None:
         if not await esta_ativo(chave):
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND, detail=f"MODULO_DESATIVADO: {chave}"
-            )
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"MODULO_DESATIVADO: {chave}")
 
     return _dep

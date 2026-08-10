@@ -193,7 +193,7 @@ export async function exportarEspelhoProposta(
 }
 
 /**
- * Upload de mídia da Central de ajuda (admin) — multipart, fora do client
+ * Upload de mídia do Class (admin) — multipart, fora do client
  * JSON tipado. Vídeo curto ou documento; vídeo pesado vai por URL.
  */
 export async function enviarMidiaAjuda(
@@ -207,7 +207,7 @@ export async function enviarMidiaAjuda(
   if (opts.titulo) form.append("titulo", opts.titulo);
   form.append("orientacao", opts.orientacao ?? "horizontal");
   const resp = await fetch(
-    `${API_ORIGIN}/api/v1/admin/help/articles/${artigoId}/media/upload`,
+    `${API_ORIGIN}/api/v1/admin/class/articles/${artigoId}/media/upload`,
     {
       method: "POST",
       headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },

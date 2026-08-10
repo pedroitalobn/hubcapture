@@ -1,13 +1,14 @@
 "use client";
 
 /**
- * Editor de artigo da Central de ajuda (admin).
+ * Editor de artigo/aula do Class (admin).
  *
- * Três blocos: o CONTEÚDO (texto em markdown leve + publicação), as MÍDIAS
- * (vídeo por URL ou arquivo, horizontal/vertical; documentos anexos) e os
- * HINTS — onde este artigo vira o ícone ⓘ no painel. O admin escolhe a chave
- * no catálogo (ex.: "Empenhado — Detalhe da proposta") e o ícone passa a
- * aparecer ao lado daquele dado, sem deploy.
+ * Três blocos: o CONTEÚDO (texto em markdown leve + publicação + o VÍNCULO
+ * com módulo — escolher um módulo e a posição transforma o artigo em AULA da
+ * trilha), as MÍDIAS (vídeo por URL ou arquivo, horizontal/vertical;
+ * documentos anexos) e os HINTS — onde este conteúdo vira o ícone ⓘ no
+ * painel. O admin escolhe a chave no catálogo (ex.: "Empenhado — Detalhe da
+ * proposta") e o ícone passa a aparecer ao lado daquele dado, sem deploy.
  */
 
 import Link from "next/link";
@@ -33,6 +34,11 @@ interface Midia {
   tamanho?: number | null;
 }
 
+interface Modulo {
+  id: string;
+  titulo: string;
+}
+
 interface Artigo {
   id: string;
   titulo: string;
@@ -40,7 +46,9 @@ interface Artigo {
   resumo?: string | null;
   corpo: string;
   publicado: boolean;
+  ordem: number;
   categoria?: { id: string; nome: string } | null;
+  modulo?: { id: string; titulo: string; slug: string } | null;
   midias: Midia[];
 }
 
@@ -64,6 +72,7 @@ export default function AdminHelpdeskEditorPage() {
 
   const [artigo, setArtigo] = useState<Artigo | null>(null);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [modulos, setModulos] = useState<Modulo[]>([]);
   const [catalogo, setCatalogo] = useState<ChaveCatalogo[]>([]);
   const [hints, setHints] = useState<HintAdmin[]>([]);
   const [erro, setErro] = useState<string | null>(null);
@@ -74,6 +83,9 @@ export default function AdminHelpdeskEditorPage() {
   const [resumo, setResumo] = useState("");
   const [corpo, setCorpo] = useState("");
   const [categoriaId, setCategoriaId] = useState("");
+  // vínculo com módulo: preenchido = este conteúdo é uma AULA da trilha
+  const [moduloId, setModuloId] = useState("");
+  const [ordem, setOrdem] = useState(0);
   const [salvando, setSalvando] = useState(false);
 
   // mídia por URL
@@ -91,13 +103,14 @@ export default function AdminHelpdeskEditorPage() {
   const [chaveNova, setChaveNova] = useState("");
 
   const carregar = useCallback(async () => {
-    const [art, cats, chaves, todosHints] = await Promise.all([
-      api.GET("/api/v1/admin/help/articles/{artigo_id}", {
+    const [art, cats, mods, chaves, todosHints] = await Promise.all([
+      api.GET("/api/v1/admin/class/articles/{artigo_id}", {
         params: { path: { artigo_id: params.id } },
       }),
-      api.GET("/api/v1/admin/help/categories"),
-      api.GET("/api/v1/admin/help/hint-keys"),
-      api.GET("/api/v1/admin/help/hints"),
+      api.GET("/api/v1/admin/class/categories"),
+      api.GET("/api/v1/admin/class/modules"),
+      api.GET("/api/v1/admin/class/hint-keys"),
+      api.GET("/api/v1/admin/class/hints"),
     ]);
     if (art.error || !art.data) {
       setErro("Artigo não encontrado (ou acesso negado).");
@@ -109,7 +122,10 @@ export default function AdminHelpdeskEditorPage() {
     setResumo(a.resumo ?? "");
     setCorpo(a.corpo);
     setCategoriaId(a.categoria?.id ?? "");
+    setModuloId(a.modulo?.id ?? "");
+    setOrdem(a.ordem ?? 0);
     setCategorias((cats.data as Categoria[]) ?? []);
+    setModulos((mods.data as Modulo[]) ?? []);
     setCatalogo((chaves.data as ChaveCatalogo[]) ?? []);
     setHints((todosHints.data as HintAdmin[]) ?? []);
   }, [params.id]);
@@ -142,13 +158,15 @@ export default function AdminHelpdeskEditorPage() {
   async function salvar(publicado?: boolean) {
     setSalvando(true);
     setMsg(null);
-    const { data, error } = await api.PATCH("/api/v1/admin/help/articles/{artigo_id}", {
+    const { data, error } = await api.PATCH("/api/v1/admin/class/articles/{artigo_id}", {
       params: { path: { artigo_id: params.id } },
       body: {
         titulo,
         resumo: resumo || null,
         corpo,
         categoria_id: categoriaId || null,
+        modulo_id: moduloId || null,
+        ordem,
         ...(publicado === undefined ? {} : { publicado }),
       },
     });
@@ -169,16 +187,16 @@ export default function AdminHelpdeskEditorPage() {
 
   async function excluirArtigo() {
     if (!window.confirm("Excluir o artigo? Mídias e hints dele somem junto.")) return;
-    await api.DELETE("/api/v1/admin/help/articles/{artigo_id}", {
+    await api.DELETE("/api/v1/admin/class/articles/{artigo_id}", {
       params: { path: { artigo_id: params.id } },
     });
-    router.push("/admin/helpdesk");
+    router.push("/admin/class");
   }
 
   async function adicionarVideoUrl(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
-    const { error } = await api.POST("/api/v1/admin/help/articles/{artigo_id}/media", {
+    const { error } = await api.POST("/api/v1/admin/class/articles/{artigo_id}/media", {
       params: { path: { artigo_id: params.id } },
       body: {
         tipo: "video",
@@ -217,7 +235,7 @@ export default function AdminHelpdeskEditorPage() {
   }
 
   async function removerMidia(id: string) {
-    await api.DELETE("/api/v1/admin/help/media/{midia_id}", {
+    await api.DELETE("/api/v1/admin/class/media/{midia_id}", {
       params: { path: { midia_id: id } },
     });
     await carregar();
@@ -227,7 +245,7 @@ export default function AdminHelpdeskEditorPage() {
     e.preventDefault();
     if (!chaveNova) return;
     setMsg(null);
-    const { error } = await api.PUT("/api/v1/admin/help/hints", {
+    const { error } = await api.PUT("/api/v1/admin/class/hints", {
       body: { chave: chaveNova, artigo_id: params.id, ativo: true },
     });
     if (error) {
@@ -239,14 +257,14 @@ export default function AdminHelpdeskEditorPage() {
   }
 
   async function alternarHint(h: HintAdmin) {
-    await api.PUT("/api/v1/admin/help/hints", {
+    await api.PUT("/api/v1/admin/class/hints", {
       body: { chave: h.chave, artigo_id: params.id, ativo: !h.ativo },
     });
     await carregar();
   }
 
   async function removerHint(chave: string) {
-    await api.DELETE("/api/v1/admin/help/hints/{chave}", {
+    await api.DELETE("/api/v1/admin/class/hints/{chave}", {
       params: { path: { chave } },
     });
     await carregar();
@@ -261,8 +279,8 @@ export default function AdminHelpdeskEditorPage() {
     return (
       <div className="flex flex-col items-start gap-4">
         <Aviso tom="erro">{erro}</Aviso>
-        <Link href="/admin/helpdesk" className="btn btn-ghost btn-sm">
-          ← Central de ajuda
+        <Link href="/admin/class" className="btn btn-ghost btn-sm">
+          ← Class
         </Link>
       </div>
     );
@@ -281,23 +299,23 @@ export default function AdminHelpdeskEditorPage() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <Link
-            href="/admin/helpdesk"
+            href="/admin/class"
             className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 hover:text-ink"
           >
-            ← Central de ajuda
+            ← Class
           </Link>
           <h1 className="page-title mt-1.5">{artigo.titulo}</h1>
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ink-2">
             <StatusBadge tone={artigo.publicado ? "success" : "neutral"}>
               {artigo.publicado ? "publicado" : "rascunho"}
             </StatusBadge>
-            <span className="font-mono text-[11px] text-ink-3">/panel/help/{artigo.slug}</span>
+            <span className="font-mono text-[11px] text-ink-3">/panel/class/{artigo.slug}</span>
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {artigo.publicado && (
             <Link
-              href={`/panel/help/${artigo.slug}`}
+              href={`/panel/class/${artigo.slug}`}
               target="_blank"
               className="btn btn-ghost btn-sm"
             >
@@ -340,6 +358,39 @@ export default function AdminHelpdeskEditorPage() {
               ))}
             </select>
           </label>
+        </div>
+
+        {/* Vínculo com módulo: escolher um módulo transforma este conteúdo em
+            AULA da trilha; a posição ordena a sequência. Sem módulo = artigo
+            avulso do acervo. */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="flex flex-col gap-1.5">
+            <span className="field-label">Módulo (vira aula da trilha)</span>
+            <select
+              value={moduloId}
+              onChange={(e) => setModuloId(e.target.value)}
+              className="input"
+            >
+              <option value="">Nenhum — artigo avulso</option>
+              {modulos.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.titulo}
+                </option>
+              ))}
+            </select>
+          </label>
+          {moduloId && (
+            <label className="flex flex-col gap-1.5">
+              <span className="field-label">Posição no módulo (aula nº)</span>
+              <input
+                type="number"
+                min={0}
+                value={ordem}
+                onChange={(e) => setOrdem(Number(e.target.value))}
+                className="input w-32"
+              />
+            </label>
+          )}
         </div>
         <label className="flex flex-col gap-1.5">
           <span className="field-label">Resumo (aparece no popover do hint e na listagem)</span>
