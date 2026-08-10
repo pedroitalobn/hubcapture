@@ -147,6 +147,15 @@ class Settings(BaseSettings):
     # Em produção defina um valor forte e estável; vazio usa jwt_secret (dev).
     config_secret_key: str = ""
 
+    # ── Versão publicada ────────────────────────────────────────────────────
+    # Carimbados na imagem em build (ARG GIT_SHA/GIT_REF no Dockerfile) e
+    # devolvidos por /health. Sem isso não há como saber QUAL commit está no ar
+    # — um deploy que silenciosamente não atualizou parece um deploy bem
+    # sucedido, e a diferença só aparece quando falta a funcionalidade.
+    git_sha: str = "desconhecido"
+    git_ref: str = ""
+    build_time: str = ""
+
     # ── CORS ─────────────────────────────────────────────────────────────────
     cors_origins: str = "http://localhost:3000"
 

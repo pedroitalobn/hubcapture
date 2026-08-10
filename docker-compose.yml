@@ -73,6 +73,13 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+      args:
+        # Carimba o commit na imagem → /health devolve QUAL versão está no ar.
+        # O Dokploy expõe essas variáveis no build; localmente, exporte
+        # GIT_SHA=$(git rev-parse --short HEAD) antes de `docker compose build`.
+        GIT_SHA: ${GIT_SHA:-desconhecido}
+        GIT_REF: ${GIT_REF:-}
+        BUILD_TIME: ${BUILD_TIME:-}
     container_name: hubcapture-api
     depends_on:
       postgres:

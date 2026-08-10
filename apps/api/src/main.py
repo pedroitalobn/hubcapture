@@ -56,7 +56,19 @@ app.add_middleware(
 
 @app.get("/health", tags=["infra"])
 async def health() -> dict[str, str]:
-    return {"status": "ok"}
+    """Vivo? E, principalmente, QUAL versão está no ar.
+
+    O commit vem carimbado na imagem em build (ARG GIT_SHA). Sem ele, um deploy
+    que não atualizou é indistinguível de um que atualizou — foi exatamente o
+    que aconteceu com a imagem parada num commit antigo. Agora dá para conferir
+    de fora: `curl https://<dominio>/health`.
+    """
+    return {
+        "status": "ok",
+        "commit": settings.git_sha,
+        "ref": settings.git_ref,
+        "build": settings.build_time,
+    }
 
 
 def register_routers() -> None:
