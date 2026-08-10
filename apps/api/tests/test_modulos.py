@@ -21,6 +21,7 @@ async def test_defaults_conformidade_e_obras_desativados() -> None:
         estado = await service.ativos(s)
     # recebidos nasce desligado por ora (foco na validação da Captação)
     assert estado["captacao"] and estado["copiloto"] and estado["ajuda"]
+    assert estado["assessoria"]
     assert not estado["recebidos"]
     assert not estado["conformidade"] and not estado["obras"]
 
@@ -60,6 +61,7 @@ async def test_perfil_expoe_modulos_ativos(seed_user, seed_municipio) -> None:
         "conformidade",
         "contatos",  # agenda de contatos nasce ligada
         "ajuda",  # central de ajuda nasce ligada
+        "assessoria",  # assessoria orçamentária nasce ligada
     }
 
 

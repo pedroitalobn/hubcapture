@@ -75,6 +75,12 @@ MODULOS: list[dict] = [
         "padrao": True,
     },
     {
+        "chave": "assessoria",
+        "label": "Assessoria",
+        "descricao": "Dúvidas orçamentárias direto com a assessoria pelo WhatsApp",
+        "padrao": True,
+    },
+    {
         # chave interna estável (config `modulo_ajuda` pode já existir no banco);
         # o nome de produto é Class — rotas /class, página /panel/class.
         "chave": "ajuda",

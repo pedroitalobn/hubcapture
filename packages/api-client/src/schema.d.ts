@@ -4,6 +4,24 @@
  */
 
 export interface paths {
+    "/api/v1/admin/advisory/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Contatos */
+        get: operations["listar_contatos_api_v1_admin_advisory_contacts_get"];
+        /** Definir Contatos */
+        put: operations["definir_contatos_api_v1_admin_advisory_contacts_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/class/articles": {
         parameters: {
             query?: never;
@@ -511,6 +529,23 @@ export interface paths {
         head?: never;
         /** Admin Atribuir Plano */
         patch: operations["admin_atribuir_plano_api_v1_admin_users__usuario_id__plan_patch"];
+        trace?: never;
+    };
+    "/api/v1/advisory/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Contatos */
+        get: operations["listar_contatos_api_v1_advisory_contacts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/alerts": {
@@ -1890,7 +1925,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Health */
+        /**
+         * Health
+         * @description Vivo? E, principalmente, QUAL versão está no ar.
+         *
+         *     O commit vem carimbado na imagem em build (ARG GIT_SHA). Sem ele, um deploy
+         *     que não atualizou é indistinguível de um que atualizou — foi exatamente o
+         *     que aconteceu com a imagem parada num commit antigo. Agora dá para conferir
+         *     de fora: `curl https://<dominio>/health`.
+         */
         get: operations["health_health_get"];
         put?: never;
         post?: never;
@@ -1994,6 +2037,11 @@ export interface components {
             proposta_id?: string | null;
             /** Tipo */
             tipo?: string | null;
+        };
+        /** AssessoriaContatosSet */
+        AssessoriaContatosSet: {
+            /** Contatos */
+            contatos: components["schemas"]["ContatoAssessoria"][];
         };
         /** AtribuirPlano */
         AtribuirPlano: {
@@ -2356,6 +2404,26 @@ export interface components {
             tags?: string[] | null;
             /** Titulo */
             titulo: string;
+        };
+        /** ContatoAssessoria */
+        ContatoAssessoria: {
+            /** Descricao */
+            descricao?: string | null;
+            /** Nome */
+            nome: string;
+            /** Telefone */
+            telefone: string;
+        };
+        /** ContatoAssessoriaRead */
+        ContatoAssessoriaRead: {
+            /** Descricao */
+            descricao?: string | null;
+            /** Nome */
+            nome: string;
+            /** Telefone */
+            telefone: string;
+            /** Whatsapp Url */
+            whatsapp_url: string;
         };
         /** ContatoCreate */
         ContatoCreate: {
@@ -4483,6 +4551,59 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listar_contatos_api_v1_admin_advisory_contacts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContatoAssessoriaRead"][];
+                };
+            };
+        };
+    };
+    definir_contatos_api_v1_admin_advisory_contacts_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssessoriaContatosSet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContatoAssessoriaRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listar_artigos_api_v1_admin_class_articles_get: {
         parameters: {
             query?: never;
@@ -5660,6 +5781,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_contatos_api_v1_advisory_contacts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContatoAssessoriaRead"][];
                 };
             };
         };
