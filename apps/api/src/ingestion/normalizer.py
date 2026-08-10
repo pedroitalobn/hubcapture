@@ -46,10 +46,19 @@ def _first(*values: Any) -> Any:
 def _to_decimal(v: Any) -> Decimal | None:
     if v in (None, ""):
         return None
+    s = str(v).strip()
+    if "," in s:  # formato BR ("1.234,56") → "1234.56"
+        s = s.replace(".", "").replace(",", ".")
     try:
-        return Decimal(str(v))
+        return Decimal(s)
     except (InvalidOperation, ValueError):
         return None
+
+
+def _somar(dados: dict[str, Any], campos: tuple[str, ...]) -> Decimal | None:
+    parcelas = [_to_decimal(dados.get(c)) for c in campos]
+    presentes = [p for p in parcelas if p is not None]
+    return sum(presentes, Decimal(0)) if presentes else None
 
 
 def _to_date(v: Any) -> date | None:
@@ -205,17 +214,23 @@ def normalize(record: RawRecord) -> PropostaCanonica:
             plano.get("uf_ente_repassador_plano_acao"),
             plano.get("uf_beneficiario_plano_acao"),  # especiais
         ),
-        "valor_total": _to_decimal(
-            _first(
-                plano.get("valor_total"),
-                plano.get("valor_repasse_emenda_parlamentar"),
-                plano.get("valor_global"),  # voluntárias (convênio)
-                plano.get("valor_total_repasse_plano_acao"),  # fundo a fundo
-                plano.get("valor_total_plano_acao"),
-                plano.get("valor_investimento_plano_acao"),  # especiais
-                plano.get("valor_custeio_plano_acao"),  # especiais
-                plano.get("valor"),
-            )
+        "valor_total": _first(
+            _to_decimal(
+                _first(
+                    plano.get("valor_total"),
+                    plano.get("valor_repasse_emenda_parlamentar"),
+                    plano.get("valor_global"),  # voluntárias (convênio)
+                    plano.get("valor_total_repasse_plano_acao"),  # fundo a fundo
+                    plano.get("valor_total_plano_acao"),
+                )
+            ),
+            # especiais: sem campo de total, o valor é custeio + investimento —
+            # pegar só um dos dois subestima a proposta
+            _somar(
+                plano,
+                ("valor_investimento_plano_acao", "valor_custeio_plano_acao"),
+            ),
+            _to_decimal(plano.get("valor")),
         ),
         "contrapartida": _to_decimal(
             _first(plano.get("valor_contrapartida"), plano.get("vl_contrapartida"))

@@ -15,6 +15,29 @@ from src.services import repasses as rep_service
 from .conftest import _owner_engine
 
 
+# ── ano de referência (puro) ────────────────────────────────────────────────
+def test_ano_de_prefere_criacao_a_atualizacao() -> None:
+    from src.models.proposta import Proposta
+
+    # criada em 2022 e movimentada em 2026 — a proposta é de 2022
+    p = Proposta(data_proposta=date(2022, 3, 1), data_atualizacao_fonte=date(2026, 1, 5))
+    assert prop_service.ano_de(p) == "2022"
+
+    # sem data de criação, vale o ano embutido no nº da proposta
+    p = Proposta(numero_proposta="043210/2024", data_atualizacao_fonte=date(2026, 1, 5))
+    assert prop_service.ano_de(p) == "2024"
+
+    # sem criação nem nº com ano: exercício da execução, depois a atualização
+    p = Proposta(execucao={"ano": "2023"}, data_atualizacao_fonte=date(2026, 1, 5))
+    assert prop_service.ano_de(p) == "2023"
+    p = Proposta(data_atualizacao_fonte=date(2026, 1, 5))
+    assert prop_service.ano_de(p) == "2026"
+
+    # sufixo implausível não vira ano ("12/3456" não é uma safra)
+    p = Proposta(numero_proposta="12/3456", data_atualizacao_fonte=date(2026, 1, 5))
+    assert prop_service.ano_de(p) == "2026"
+
+
 # ── classificador de natureza jurídica (puro) ───────────────────────────────
 def test_classificar_natureza_juridica() -> None:
     assert prop_service.classificar_natureza_juridica("Administração Pública Municipal") == (
