@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .core.config import settings
+from .core.latencia import LatenciaMiddleware
 
 
 @asynccontextmanager
@@ -52,6 +53,10 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["Authorization"],
 )
+
+# Por último = camada mais externa: mede o request inteiro (CORS incluso) e
+# carimba X-Response-Time; request lenta vira WARN no log (core/latencia.py).
+app.add_middleware(LatenciaMiddleware)
 
 
 @app.get("/health", tags=["infra"])

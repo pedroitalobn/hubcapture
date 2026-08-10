@@ -58,6 +58,12 @@ class Settings(BaseSettings):
     # fonte pendurada segurando a busca (e a conexão de banco) sem fim.
     coleta_timeout_seconds: int = 300
 
+    # ── Observabilidade ──────────────────────────────────────────────────────
+    # Request acima deste teto (ms) sai no log com rota, status, duração e o
+    # estado do pool de conexões (core/latencia.py) — diagnóstico de lentidão
+    # em produção direto do `docker logs`, sem precisar reproduzir.
+    log_request_lenta_ms: int = 1000
+
     # ── Fontes ───────────────────────────────────────────────────────────────
     transferegov_ff_base_url: str = "https://api.transferegov.gestao.gov.br/fundoafundo/"
     transferegov_ff_ibge_field: str = ""  # coluna IBGE; vazio = autodescoberta (OpenAPI)
