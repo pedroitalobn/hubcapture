@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter_Tight, Roboto_Mono } from "next/font/google";
+import "plyr/dist/plyr.css";
 import "./globals.css";
 
 // Hierarquia tipográfica real: 400 no corpo, 500/600 em títulos e números —

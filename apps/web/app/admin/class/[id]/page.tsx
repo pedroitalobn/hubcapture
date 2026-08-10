@@ -15,6 +15,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, enviarMidiaAjuda } from "@/lib/api/client";
+import { corpoEhHtml, markdownLeveParaHtml } from "@/components/CorpoConteudo";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Skeleton } from "@/components/Skeleton";
 import { Aviso } from "@/components/ui";
@@ -78,10 +80,12 @@ export default function AdminHelpdeskEditorPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
-  // formulário do conteúdo
+  // formulário do conteúdo. `corpo` é HTML do editor rich text; null = ainda
+  // não carregado (o editor só monta com o valor inicial pronto — ele é
+  // não-controlado e daí em diante o espelho vem de `aoMudar`).
   const [titulo, setTitulo] = useState("");
   const [resumo, setResumo] = useState("");
-  const [corpo, setCorpo] = useState("");
+  const [corpo, setCorpo] = useState<string | null>(null);
   const [categoriaId, setCategoriaId] = useState("");
   // vínculo com módulo: preenchido = este conteúdo é uma AULA da trilha
   const [moduloId, setModuloId] = useState("");
@@ -120,7 +124,16 @@ export default function AdminHelpdeskEditorPage() {
     setArtigo(a);
     setTitulo(a.titulo);
     setResumo(a.resumo ?? "");
-    setCorpo(a.corpo);
+    // só na PRIMEIRA carga: recarregar (após upload de mídia etc.) não pode
+    // sobrescrever o que está sendo digitado no editor não-controlado.
+    // Conteúdo legado em markdown leve é convertido para o HTML do editor.
+    setCorpo((atual) =>
+      atual !== null
+        ? atual
+        : !a.corpo || corpoEhHtml(a.corpo)
+          ? a.corpo
+          : markdownLeveParaHtml(a.corpo),
+    );
     setCategoriaId(a.categoria?.id ?? "");
     setModuloId(a.modulo?.id ?? "");
     setOrdem(a.ordem ?? 0);
@@ -163,7 +176,7 @@ export default function AdminHelpdeskEditorPage() {
       body: {
         titulo,
         resumo: resumo || null,
-        corpo,
+        corpo: corpo ?? "",
         categoria_id: categoriaId || null,
         modulo_id: moduloId || null,
         ordem,
@@ -402,17 +415,17 @@ export default function AdminHelpdeskEditorPage() {
             placeholder="Uma ou duas frases diretas — é o que o gestor lê primeiro ao clicar no ⓘ."
           />
         </label>
-        <label className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5">
           <span className="field-label">
-            Corpo — texto com markdown leve (## título · - lista · **negrito**)
+            Conteúdo — use &ldquo;▸ Vídeo&rdquo; para embedar YouTube, Vimeo,
+            Bunny ou mp4 no meio do texto
           </span>
-          <textarea
-            value={corpo}
-            onChange={(e) => setCorpo(e.target.value)}
-            rows={14}
-            className="input min-h-72 font-mono text-[13px] leading-relaxed"
-          />
-        </label>
+          {corpo === null ? (
+            <div className="skeleton h-72 w-full rounded-lg" aria-hidden />
+          ) : (
+            <RichTextEditor valor={corpo} aoMudar={setCorpo} />
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <button onClick={() => void salvar()} disabled={salvando} className="btn btn-primary">
             {salvando ? "Salvando…" : "Salvar"}
