@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Central de ajuda — o mapa de HINTS do painel.
+ * Class — o mapa de HINTS do painel.
  *
  * O provider busca `/help/hints` UMA vez (chave do elemento de UI → artigo
  * publicado) e todo `<Hint chave="..."/>` espalhado pelas telas consulta o
@@ -41,7 +41,7 @@ export function HelpProvider({ children }: { children: React.ReactNode }) {
 
   const recarregar = useCallback(async () => {
     // 404 (módulo desligado) ou erro de rede → mapa vazio → nenhum ícone.
-    const { data, error } = await api.GET("/api/v1/help/hints");
+    const { data, error } = await api.GET("/api/v1/class/hints");
     if (error || !data) return;
     setHints(new Map((data as HintInfo[]).map((h) => [h.chave, h])));
   }, []);
@@ -67,7 +67,7 @@ export function useHint(chave: string): HintInfo | null {
  * responsável por revogar a URL (URL.revokeObjectURL) ao desmontar.
  */
 export async function urlDaMidia(id: string): Promise<string> {
-  const resp = await fetch(`${API_ORIGIN}/api/v1/help/media/${id}`, {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/class/media/${id}`, {
     headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
   });
   if (!resp.ok) throw new Error("Não foi possível carregar a mídia");

@@ -300,6 +300,62 @@
         "title": "AtribuirPlano",
         "type": "object"
       },
+      "AulaResumo": {
+        "description": "Uma aula na página do módulo (sem corpo — o link leva à aula).",
+        "properties": {
+          "documentos": {
+            "default": 0,
+            "title": "Documentos",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ordem": {
+            "default": 0,
+            "title": "Ordem",
+            "type": "integer"
+          },
+          "publicado": {
+            "title": "Publicado",
+            "type": "boolean"
+          },
+          "resumo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resumo"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          },
+          "videos": {
+            "default": 0,
+            "title": "Videos",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "titulo",
+          "slug",
+          "publicado"
+        ],
+        "title": "AulaResumo",
+        "type": "object"
+      },
       "AutorizacaoOAuth": {
         "properties": {
           "state": {
@@ -318,7 +374,7 @@
         "title": "AutorizacaoOAuth",
         "type": "object"
       },
-      "Body_enviar_midia_arquivo_api_v1_admin_help_articles__artigo_id__media_upload_post": {
+      "Body_enviar_midia_arquivo_api_v1_admin_class_articles__artigo_id__media_upload_post": {
         "properties": {
           "arquivo": {
             "contentMediaType": "application/octet-stream",
@@ -352,7 +408,7 @@
         "required": [
           "arquivo"
         ],
-        "title": "Body_enviar_midia_arquivo_api_v1_admin_help_articles__artigo_id__media_upload_post",
+        "title": "Body_enviar_midia_arquivo_api_v1_admin_class_articles__artigo_id__media_upload_post",
         "type": "object"
       },
       "Body_login_api_v1_auth_login_post": {
@@ -553,6 +609,217 @@
           "pergunta"
         ],
         "title": "ChatRequest",
+        "type": "object"
+      },
+      "ClassModuloCreate": {
+        "properties": {
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "ordem": {
+            "default": 0,
+            "title": "Ordem",
+            "type": "integer"
+          },
+          "publicado": {
+            "default": false,
+            "title": "Publicado",
+            "type": "boolean"
+          },
+          "titulo": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Titulo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "titulo"
+        ],
+        "title": "ClassModuloCreate",
+        "type": "object"
+      },
+      "ClassModuloPatch": {
+        "properties": {
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "ordem": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ordem"
+          },
+          "publicado": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publicado"
+          },
+          "titulo": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Titulo"
+          }
+        },
+        "title": "ClassModuloPatch",
+        "type": "object"
+      },
+      "ClassModuloRead": {
+        "description": "Módulo completo com as aulas em sequência.",
+        "properties": {
+          "aulas": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AulaResumo"
+            },
+            "title": "Aulas",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ordem": {
+            "default": 0,
+            "title": "Ordem",
+            "type": "integer"
+          },
+          "publicado": {
+            "title": "Publicado",
+            "type": "boolean"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "id",
+          "titulo",
+          "slug",
+          "publicado",
+          "created_at"
+        ],
+        "title": "ClassModuloRead",
+        "type": "object"
+      },
+      "ClassModuloResumo": {
+        "description": "Item de listagem de módulos (Class e admin).",
+        "properties": {
+          "aulas": {
+            "default": 0,
+            "title": "Aulas",
+            "type": "integer"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ordem": {
+            "default": 0,
+            "title": "Ordem",
+            "type": "integer"
+          },
+          "publicado": {
+            "title": "Publicado",
+            "type": "boolean"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "titulo",
+          "slug",
+          "publicado"
+        ],
+        "title": "ClassModuloResumo",
         "type": "object"
       },
       "ConectarSenhaApp": {
@@ -2125,6 +2392,18 @@
             "title": "Corpo",
             "type": "string"
           },
+          "modulo_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modulo Id"
+          },
           "ordem": {
             "default": 0,
             "title": "Ordem",
@@ -2183,6 +2462,18 @@
               }
             ],
             "title": "Corpo"
+          },
+          "modulo_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modulo Id"
           },
           "ordem": {
             "anyOf": [
@@ -2277,6 +2568,16 @@
             "title": "Midias",
             "type": "array"
           },
+          "modulo": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModuloRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "ordem": {
             "default": 0,
             "title": "Ordem",
@@ -2356,6 +2657,16 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "modulo": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModuloRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "ordem": {
             "default": 0,
@@ -3389,6 +3700,31 @@
           "ativo"
         ],
         "title": "ModuloItem",
+        "type": "object"
+      },
+      "ModuloRef": {
+        "description": "Referência curta do módulo dentro do artigo/aula.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "titulo",
+          "slug"
+        ],
+        "title": "ModuloRef",
         "type": "object"
       },
       "ModuloSet": {
@@ -6865,6 +7201,979 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/class/articles": {
+      "get": {
+        "description": "Todos os artigos, inclusive rascunhos (a visão pública filtra publicado).",
+        "operationId": "listar_artigos_api_v1_admin_class_articles_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HelpArtigoResumo"
+                  },
+                  "title": "Response Listar Artigos Api V1 Admin Class Articles Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Artigos",
+        "tags": [
+          "admin-class"
+        ]
+      },
+      "post": {
+        "operationId": "criar_artigo_api_v1_admin_class_articles_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelpArtigoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HelpArtigoRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Criar Artigo",
+        "tags": [
+          "admin-class"
+        ]
+      }
+    },
+    "/api/v1/admin/class/articles/{artigo_id}": {
+      "delete": {
+        "operationId": "excluir_artigo_api_v1_admin_class_articles__artigo_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "artigo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Artigo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Excluir Artigo",
+        "tags": [
+          "admin-class"
+        ]
+      },
+      "get": {
+        "operationId": "obter_artigo_api_v1_admin_class_articles__artigo_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "artigo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Artigo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HelpArtigoRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Obter Artigo",
+        "tags": [
+          "admin-class"
+        ]
+      },
+      "patch": {
+        "operationId": "editar_artigo_api_v1_admin_class_articles__artigo_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "artigo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Artigo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelpArtigoPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HelpArtigoRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Editar Artigo",
+        "tags": [
+          "admin-class"
+        ]
+      }
+    },
+    "/api/v1/admin/class/articles/{artigo_id}/media": {
+      "post": {
+        "description": "Mídia por URL — vídeo externo (YouTube/Vimeo/mp4 hospedado).",
+        "operationId": "criar_midia_url_api_v1_admin_class_articles__artigo_id__media_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "artigo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Artigo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelpMidiaUrlCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HelpMidiaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Criar Midia Url",
+        "tags": [
+          "admin-class"
+        ]
+      }
+    },
+    "/api/v1/admin/class/articles/{artigo_id}/media/upload": {
+      "post": {
+        "description": "Upload de arquivo (vídeo curto ou documento). Vídeo pesado vai por URL.",
+        "operationId": "enviar_midia_arquivo_api_v1_admin_class_articles__artigo_id__media_upload_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "artigo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Artigo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_enviar_midia_arquivo_api_v1_admin_class_articles__artigo_id__media_upload_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HelpMidiaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Enviar Midia Arquivo",
+        "tags": [
+          "admin-class"
+        ]
+      }
+    },
+    "/api/v1/admin/class/categories": {
+      "get": {
+        "operationId": "listar_categorias_api_v1_admin_class_categories_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HelpCategoriaRead"
+                  },
+                  "title": "Response Listar Categorias Api V1 Admin Class Categories Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Categorias",
+        "tags": [
+          "admin-class"
+        ]
+      },
+      "post": {
+        "operationId": "criar_categoria_api_v1_admin_class_categories_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelpCategoriaWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HelpCategoriaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Criar Categoria",
+        "tags": [
+          "admin-class"
+        ]
+      }
+    },
+    "/api/v1/admin/class/categories/{categoria_id}": {
+      "delete": {
+        "operationId": "excluir_categoria_api_v1_admin_class_categories__categoria_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "categoria_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Categoria Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Excluir Categoria",
+        "tags": [
+          "admin-class"
+        ]
+      },
+      "patch": {
+        "operationId": "editar_categoria_api_v1_admin_class_categories__categoria_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "categoria_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Categoria Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelpCategoriaWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HelpCategoriaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Editar Categoria",
+        "tags": [
+          "admin-class"
+        ]
+      }
+    },
+    "/api/v1/admin/class/hint-keys": {
+      "get": {
+        "description": "Catálogo das chaves plantáveis — onde o ícone ⓘ pode aparecer no painel.",
+        "operationId": "listar_chaves_de_hint_api_v1_admin_class_hint_keys_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HintChaveCatalogo"
+                  },
+                  "title": "Response Listar Chaves De Hint Api V1 Admin Class Hint Keys Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Chaves De Hint",
+        "tags": [
+          "admin-class"
+        ]
+      }
+    },
+    "/api/v1/admin/class/hints": {
+      "get": {
+        "operationId": "listar_hints_api_v1_admin_class_hints_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HintAdminRead"
+                  },
+                  "title": "Response Listar Hints Api V1 Admin Class Hints Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Hints",
+        "tags": [
+          "admin-class"
+        ]
+      },
+      "put": {
+        "description": "Planta (ou realoca) o hint: a chave passa a apontar para este artigo.",
+        "operationId": "definir_hint_api_v1_admin_class_hints_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HintSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HintAdminRead"
+                  },
+                  "title": "Response Definir Hint Api V1 Admin Class Hints Put",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Definir Hint",
+        "tags": [
+          "admin-class"
+        ]
+      }
+    },
+    "/api/v1/admin/class/hints/{chave}": {
+      "delete": {
+        "operationId": "remover_hint_api_v1_admin_class_hints__chave__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chave",
+            "required": true,
+            "schema": {
+              "title": "Chave",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Remover Hint",
+        "tags": [
+          "admin-class"
+        ]
+      }
+    },
+    "/api/v1/admin/class/media/{midia_id}": {
+      "delete": {
+        "operationId": "excluir_midia_api_v1_admin_class_media__midia_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "midia_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Midia Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Excluir Midia",
+        "tags": [
+          "admin-class"
+        ]
+      },
+      "patch": {
+        "operationId": "editar_midia_api_v1_admin_class_media__midia_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "midia_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Midia Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelpMidiaPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HelpMidiaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Editar Midia",
+        "tags": [
+          "admin-class"
+        ]
+      }
+    },
+    "/api/v1/admin/class/modules": {
+      "get": {
+        "description": "Todos os módulos, inclusive rascunhos, com contagem total de aulas.",
+        "operationId": "listar_modulos_api_v1_admin_class_modules_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ClassModuloResumo"
+                  },
+                  "title": "Response Listar Modulos Api V1 Admin Class Modules Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Modulos",
+        "tags": [
+          "admin-class"
+        ]
+      },
+      "post": {
+        "operationId": "criar_modulo_api_v1_admin_class_modules_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassModuloCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassModuloRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Criar Modulo",
+        "tags": [
+          "admin-class"
+        ]
+      }
+    },
+    "/api/v1/admin/class/modules/{modulo_id}": {
+      "delete": {
+        "operationId": "excluir_modulo_api_v1_admin_class_modules__modulo_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "modulo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Modulo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Excluir Modulo",
+        "tags": [
+          "admin-class"
+        ]
+      },
+      "get": {
+        "description": "Módulo com TODAS as aulas (inclusive rascunhos) — a visão do editor.",
+        "operationId": "obter_modulo_api_v1_admin_class_modules__modulo_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "modulo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Modulo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassModuloRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Obter Modulo",
+        "tags": [
+          "admin-class"
+        ]
+      },
+      "patch": {
+        "operationId": "editar_modulo_api_v1_admin_class_modules__modulo_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "modulo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Modulo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassModuloPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassModuloRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Editar Modulo",
+        "tags": [
+          "admin-class"
+        ]
+      }
+    },
     "/api/v1/admin/config": {
       "get": {
         "operationId": "listar_config_api_v1_admin_config_get",
@@ -7124,760 +8433,6 @@
         "summary": "Testar Email",
         "tags": [
           "admin-config"
-        ]
-      }
-    },
-    "/api/v1/admin/help/articles": {
-      "get": {
-        "description": "Todos os artigos, inclusive rascunhos (a visão pública filtra publicado).",
-        "operationId": "listar_artigos_api_v1_admin_help_articles_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/HelpArtigoResumo"
-                  },
-                  "title": "Response Listar Artigos Api V1 Admin Help Articles Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Listar Artigos",
-        "tags": [
-          "admin-help"
-        ]
-      },
-      "post": {
-        "operationId": "criar_artigo_api_v1_admin_help_articles_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HelpArtigoCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HelpArtigoRead"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Criar Artigo",
-        "tags": [
-          "admin-help"
-        ]
-      }
-    },
-    "/api/v1/admin/help/articles/{artigo_id}": {
-      "delete": {
-        "operationId": "excluir_artigo_api_v1_admin_help_articles__artigo_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "artigo_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Artigo Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Excluir Artigo",
-        "tags": [
-          "admin-help"
-        ]
-      },
-      "get": {
-        "operationId": "obter_artigo_api_v1_admin_help_articles__artigo_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "artigo_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Artigo Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HelpArtigoRead"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Obter Artigo",
-        "tags": [
-          "admin-help"
-        ]
-      },
-      "patch": {
-        "operationId": "editar_artigo_api_v1_admin_help_articles__artigo_id__patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "artigo_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Artigo Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HelpArtigoPatch"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HelpArtigoRead"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Editar Artigo",
-        "tags": [
-          "admin-help"
-        ]
-      }
-    },
-    "/api/v1/admin/help/articles/{artigo_id}/media": {
-      "post": {
-        "description": "Mídia por URL — vídeo externo (YouTube/Vimeo/mp4 hospedado).",
-        "operationId": "criar_midia_url_api_v1_admin_help_articles__artigo_id__media_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "artigo_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Artigo Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HelpMidiaUrlCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HelpMidiaRead"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Criar Midia Url",
-        "tags": [
-          "admin-help"
-        ]
-      }
-    },
-    "/api/v1/admin/help/articles/{artigo_id}/media/upload": {
-      "post": {
-        "description": "Upload de arquivo (vídeo curto ou documento). Vídeo pesado vai por URL.",
-        "operationId": "enviar_midia_arquivo_api_v1_admin_help_articles__artigo_id__media_upload_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "artigo_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Artigo Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_enviar_midia_arquivo_api_v1_admin_help_articles__artigo_id__media_upload_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HelpMidiaRead"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Enviar Midia Arquivo",
-        "tags": [
-          "admin-help"
-        ]
-      }
-    },
-    "/api/v1/admin/help/categories": {
-      "get": {
-        "operationId": "listar_categorias_api_v1_admin_help_categories_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/HelpCategoriaRead"
-                  },
-                  "title": "Response Listar Categorias Api V1 Admin Help Categories Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Listar Categorias",
-        "tags": [
-          "admin-help"
-        ]
-      },
-      "post": {
-        "operationId": "criar_categoria_api_v1_admin_help_categories_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HelpCategoriaWrite"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HelpCategoriaRead"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Criar Categoria",
-        "tags": [
-          "admin-help"
-        ]
-      }
-    },
-    "/api/v1/admin/help/categories/{categoria_id}": {
-      "delete": {
-        "operationId": "excluir_categoria_api_v1_admin_help_categories__categoria_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "categoria_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Categoria Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Excluir Categoria",
-        "tags": [
-          "admin-help"
-        ]
-      },
-      "patch": {
-        "operationId": "editar_categoria_api_v1_admin_help_categories__categoria_id__patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "categoria_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Categoria Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HelpCategoriaWrite"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HelpCategoriaRead"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Editar Categoria",
-        "tags": [
-          "admin-help"
-        ]
-      }
-    },
-    "/api/v1/admin/help/hint-keys": {
-      "get": {
-        "description": "Catálogo das chaves plantáveis — onde o ícone ⓘ pode aparecer no painel.",
-        "operationId": "listar_chaves_de_hint_api_v1_admin_help_hint_keys_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/HintChaveCatalogo"
-                  },
-                  "title": "Response Listar Chaves De Hint Api V1 Admin Help Hint Keys Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Listar Chaves De Hint",
-        "tags": [
-          "admin-help"
-        ]
-      }
-    },
-    "/api/v1/admin/help/hints": {
-      "get": {
-        "operationId": "listar_hints_api_v1_admin_help_hints_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/HintAdminRead"
-                  },
-                  "title": "Response Listar Hints Api V1 Admin Help Hints Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Listar Hints",
-        "tags": [
-          "admin-help"
-        ]
-      },
-      "put": {
-        "description": "Planta (ou realoca) o hint: a chave passa a apontar para este artigo.",
-        "operationId": "definir_hint_api_v1_admin_help_hints_put",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HintSet"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/HintAdminRead"
-                  },
-                  "title": "Response Definir Hint Api V1 Admin Help Hints Put",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Definir Hint",
-        "tags": [
-          "admin-help"
-        ]
-      }
-    },
-    "/api/v1/admin/help/hints/{chave}": {
-      "delete": {
-        "operationId": "remover_hint_api_v1_admin_help_hints__chave__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "chave",
-            "required": true,
-            "schema": {
-              "title": "Chave",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Remover Hint",
-        "tags": [
-          "admin-help"
-        ]
-      }
-    },
-    "/api/v1/admin/help/media/{midia_id}": {
-      "delete": {
-        "operationId": "excluir_midia_api_v1_admin_help_media__midia_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "midia_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Midia Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Excluir Midia",
-        "tags": [
-          "admin-help"
-        ]
-      },
-      "patch": {
-        "operationId": "editar_midia_api_v1_admin_help_media__midia_id__patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "midia_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Midia Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HelpMidiaPatch"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HelpMidiaRead"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Editar Midia",
-        "tags": [
-          "admin-help"
         ]
       }
     },
@@ -8943,6 +9498,318 @@
         ]
       }
     },
+    "/api/v1/class/articles": {
+      "get": {
+        "operationId": "listar_artigos_api_v1_class_articles_get",
+        "parameters": [
+          {
+            "description": "slug da categoria",
+            "in": "query",
+            "name": "categoria",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "slug da categoria",
+              "title": "Categoria"
+            }
+          },
+          {
+            "description": "busca livre (título/resumo/corpo)",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "busca livre (título/resumo/corpo)",
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HelpArtigoResumo"
+                  },
+                  "title": "Response Listar Artigos Api V1 Class Articles Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Artigos",
+        "tags": [
+          "class"
+        ]
+      }
+    },
+    "/api/v1/class/articles/{slug}": {
+      "get": {
+        "operationId": "obter_artigo_api_v1_class_articles__slug__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HelpArtigoRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Obter Artigo",
+        "tags": [
+          "class"
+        ]
+      }
+    },
+    "/api/v1/class/categories": {
+      "get": {
+        "operationId": "listar_categorias_api_v1_class_categories_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HelpCategoriaRead"
+                  },
+                  "title": "Response Listar Categorias Api V1 Class Categories Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Categorias",
+        "tags": [
+          "class"
+        ]
+      }
+    },
+    "/api/v1/class/hints": {
+      "get": {
+        "description": "Mapa chave→artigo que o painel carrega UMA vez para desenhar os ⓘ.",
+        "operationId": "listar_hints_api_v1_class_hints_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HintPublico"
+                  },
+                  "title": "Response Listar Hints Api V1 Class Hints Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Hints",
+        "tags": [
+          "class"
+        ]
+      }
+    },
+    "/api/v1/class/media/{midia_id}": {
+      "get": {
+        "description": "Arquivo enviado pelo admin (vídeo/documento). Mídia por URL não passa aqui.\n\nO front busca autenticado (Bearer) e toca/baixa via object URL — a rota não\nprecisa ser pública nem carregar token em query string.",
+        "operationId": "baixar_midia_api_v1_class_media__midia_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "midia_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Midia Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Baixar Midia",
+        "tags": [
+          "class"
+        ]
+      }
+    },
+    "/api/v1/class/modules": {
+      "get": {
+        "description": "Módulos publicados com a contagem de aulas publicadas.",
+        "operationId": "listar_modulos_api_v1_class_modules_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ClassModuloResumo"
+                  },
+                  "title": "Response Listar Modulos Api V1 Class Modules Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Modulos",
+        "tags": [
+          "class"
+        ]
+      }
+    },
+    "/api/v1/class/modules/{slug}": {
+      "get": {
+        "description": "Módulo com as aulas em sequência — é daqui que a aula tira o anterior/próxima.",
+        "operationId": "obter_modulo_api_v1_class_modules__slug__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassModuloRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Obter Modulo",
+        "tags": [
+          "class"
+        ]
+      }
+    },
     "/api/v1/compliance": {
       "get": {
         "operationId": "conformidade_resumo_api_v1_compliance_get",
@@ -9958,239 +10825,6 @@
         "summary": "Remover Proposta",
         "tags": [
           "pastas"
-        ]
-      }
-    },
-    "/api/v1/help/articles": {
-      "get": {
-        "operationId": "listar_artigos_api_v1_help_articles_get",
-        "parameters": [
-          {
-            "description": "slug da categoria",
-            "in": "query",
-            "name": "categoria",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "slug da categoria",
-              "title": "Categoria"
-            }
-          },
-          {
-            "description": "busca livre (título/resumo/corpo)",
-            "in": "query",
-            "name": "q",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "busca livre (título/resumo/corpo)",
-              "title": "Q"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/HelpArtigoResumo"
-                  },
-                  "title": "Response Listar Artigos Api V1 Help Articles Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Listar Artigos",
-        "tags": [
-          "help"
-        ]
-      }
-    },
-    "/api/v1/help/articles/{slug}": {
-      "get": {
-        "operationId": "obter_artigo_api_v1_help_articles__slug__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "slug",
-            "required": true,
-            "schema": {
-              "title": "Slug",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HelpArtigoRead"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Obter Artigo",
-        "tags": [
-          "help"
-        ]
-      }
-    },
-    "/api/v1/help/categories": {
-      "get": {
-        "operationId": "listar_categorias_api_v1_help_categories_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/HelpCategoriaRead"
-                  },
-                  "title": "Response Listar Categorias Api V1 Help Categories Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Listar Categorias",
-        "tags": [
-          "help"
-        ]
-      }
-    },
-    "/api/v1/help/hints": {
-      "get": {
-        "description": "Mapa chave→artigo que o painel carrega UMA vez para desenhar os ⓘ.",
-        "operationId": "listar_hints_api_v1_help_hints_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/HintPublico"
-                  },
-                  "title": "Response Listar Hints Api V1 Help Hints Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Listar Hints",
-        "tags": [
-          "help"
-        ]
-      }
-    },
-    "/api/v1/help/media/{midia_id}": {
-      "get": {
-        "description": "Arquivo enviado pelo admin (vídeo/documento). Mídia por URL não passa aqui.\n\nO front busca autenticado (Bearer) e toca/baixa via object URL — a rota não\nprecisa ser pública nem carregar token em query string.",
-        "operationId": "baixar_midia_api_v1_help_media__midia_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "midia_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Midia Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Baixar Midia",
-        "tags": [
-          "help"
         ]
       }
     },

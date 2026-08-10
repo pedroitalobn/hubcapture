@@ -1,10 +1,14 @@
-"""Central de ajuda interna (help desk): categorias, artigos, mídias e hints.
+"""Class (help desk interno): categorias, artigos, módulos/aulas, mídias e hints.
 
 Nível-plataforma (sem RLS), como `base_conhecimento` — todo usuário logado lê
 o que está publicado; só o admin escreve (guard `is_superuser` nos endpoints).
 O hint é o diferencial: mapeia uma CHAVE de elemento de UI (catálogo em
 `services/helpdesk.py`) para um artigo, e o front mostra o ícone ⓘ ao lado do
 elemento (ex.: a variável "Empenhado" no detalhe da proposta).
+
+Camada de curso: `HelpdeskModulo` agrupa AULAS em sequência. Aula NÃO é
+entidade nova — é um artigo com `modulo_id` (reusa corpo, mídias, hints e o
+link compartilhável); `ordem` é a posição da aula dentro do módulo.
 """
 
 from __future__ import annotations
@@ -32,6 +36,29 @@ class HelpdeskCategoria(Base):
     created_at: Mapped[datetime] = created_at_col()
 
 
+class HelpdeskModulo(Base):
+    """Módulo de aprendizagem — a "trilha" que ordena aulas (ex.: Captação 101)."""
+
+    __tablename__ = "helpdesk_modulos"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    titulo: Mapped[str] = mapped_column(String(255))
+    slug: Mapped[str] = mapped_column(String(280), unique=True)
+    descricao: Mapped[str | None] = mapped_column(Text, nullable=True)
+    publicado: Mapped[bool] = mapped_column(Boolean, server_default="false")
+    ordem: Mapped[int] = mapped_column(Integer, server_default="0")
+    created_at: Mapped[datetime] = created_at_col()
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now(), nullable=True
+    )
+
+    aulas: Mapped[list[HelpdeskArtigo]] = relationship(
+        lazy="selectin",
+        order_by="(HelpdeskArtigo.ordem, HelpdeskArtigo.titulo)",
+        back_populates="modulo",
+    )
+
+
 class HelpdeskArtigo(Base):
     __tablename__ = "helpdesk_artigos"
 
@@ -42,8 +69,16 @@ class HelpdeskArtigo(Base):
         index=True,
         nullable=True,
     )
+    # preenchido = este artigo é uma AULA do módulo; `ordem` é a posição nele.
+    # SET NULL: excluir o módulo devolve as aulas ao acervo avulso, nada some.
+    modulo_id: Mapped[uuid.UUID | None] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("helpdesk_modulos.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
     titulo: Mapped[str] = mapped_column(String(255))
-    # slug é a identidade pública do artigo (link compartilhável /panel/help/<slug>)
+    # slug é a identidade pública do artigo/aula (link compartilhável /panel/class/<slug>)
     slug: Mapped[str] = mapped_column(String(280), unique=True)
     resumo: Mapped[str | None] = mapped_column(Text, nullable=True)
     corpo: Mapped[str] = mapped_column(Text, server_default="")
@@ -55,6 +90,7 @@ class HelpdeskArtigo(Base):
     )
 
     categoria: Mapped[HelpdeskCategoria | None] = relationship(lazy="selectin")
+    modulo: Mapped[HelpdeskModulo | None] = relationship(lazy="selectin", back_populates="aulas")
     midias: Mapped[list[HelpdeskMidia]] = relationship(
         lazy="selectin",
         order_by="HelpdeskMidia.ordem",

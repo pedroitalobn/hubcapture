@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Player de vídeo da Central de ajuda.
+ * Player de vídeo do Class.
  *
  * Três origens, um componente: YouTube/Vimeo viram iframe de embed; URL de
  * arquivo (mp4 hospedado) e UPLOAD do admin tocam em <video> nativo — e aí o

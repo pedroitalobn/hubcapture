@@ -1,7 +1,8 @@
-"""Administração da Central de ajuda (help desk interno) — só superuser.
+"""Administração do Class (help desk interno) — só superuser.
 
-O admin cria categorias e artigos (texto em markdown), anexa mídias — vídeo
-por URL (YouTube/Vimeo/mp4) ou ARQUIVO enviado (bytea; o container é efêmero,
+O admin cria categorias, artigos e MÓDULOS de aprendizagem (trilhas que
+ordenam AULAS — aula é um artigo com `modulo_id`), anexa mídias — vídeo por
+URL (YouTube/Vimeo/mp4) ou ARQUIVO enviado (bytea; o container é efêmero,
 disco local não é storage) — e planta HINTS: vincula o artigo a uma chave do
 catálogo (`services/helpdesk.HINT_CHAVES`), fazendo o ícone ⓘ aparecer ao
 lado daquele elemento no painel (ex.: a variável "Empenhado" da proposta).
@@ -22,8 +23,13 @@ from ...models.helpdesk import (
     HelpdeskCategoria,
     HelpdeskHint,
     HelpdeskMidia,
+    HelpdeskModulo,
 )
 from ...schemas.helpdesk import (
+    ClassModuloCreate,
+    ClassModuloPatch,
+    ClassModuloRead,
+    ClassModuloResumo,
     HelpArtigoCreate,
     HelpArtigoPatch,
     HelpArtigoRead,
@@ -40,7 +46,7 @@ from ...schemas.helpdesk import (
 from ...services import helpdesk as service
 from ..deps import get_platform_db
 
-router = APIRouter(tags=["admin-help"], dependencies=[Depends(current_superuser)])
+router = APIRouter(tags=["admin-class"], dependencies=[Depends(current_superuser)])
 
 
 async def _artigo_ou_404(session: AsyncSession, artigo_id: uuid.UUID) -> HelpdeskArtigo:
@@ -58,7 +64,7 @@ async def _artigo_ou_404(session: AsyncSession, artigo_id: uuid.UUID) -> Helpdes
 # ── Categorias ──────────────────────────────────────────────────────────────
 
 
-@router.get("/admin/help/categories", response_model=list[HelpCategoriaRead])
+@router.get("/admin/class/categories", response_model=list[HelpCategoriaRead])
 async def listar_categorias(
     session: AsyncSession = Depends(get_platform_db),
 ) -> list[HelpCategoriaRead]:
@@ -66,7 +72,7 @@ async def listar_categorias(
 
 
 @router.post(
-    "/admin/help/categories",
+    "/admin/class/categories",
     response_model=HelpCategoriaRead,
     status_code=status.HTTP_201_CREATED,
 )
@@ -81,7 +87,7 @@ async def criar_categoria(
     return HelpCategoriaRead.model_validate(cat)
 
 
-@router.patch("/admin/help/categories/{categoria_id}", response_model=HelpCategoriaRead)
+@router.patch("/admin/class/categories/{categoria_id}", response_model=HelpCategoriaRead)
 async def editar_categoria(
     categoria_id: uuid.UUID,
     body: HelpCategoriaWrite,
@@ -101,7 +107,7 @@ async def editar_categoria(
     return HelpCategoriaRead.model_validate(cat)
 
 
-@router.delete("/admin/help/categories/{categoria_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/admin/class/categories/{categoria_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def excluir_categoria(
     categoria_id: uuid.UUID,
     session: AsyncSession = Depends(get_platform_db),
@@ -110,10 +116,91 @@ async def excluir_categoria(
     await session.execute(delete(HelpdeskCategoria).where(HelpdeskCategoria.id == categoria_id))
 
 
+# ── Módulos (trilhas de aulas) ──────────────────────────────────────────────
+
+
+async def _modulo_ou_404(session: AsyncSession, modulo_id: uuid.UUID) -> HelpdeskModulo:
+    modulo = await session.get(HelpdeskModulo, modulo_id)
+    if modulo is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "MODULO_NAO_ENCONTRADO")
+    return modulo
+
+
+@router.get("/admin/class/modules", response_model=list[ClassModuloResumo])
+async def listar_modulos(
+    session: AsyncSession = Depends(get_platform_db),
+) -> list[ClassModuloResumo]:
+    """Todos os módulos, inclusive rascunhos, com contagem total de aulas."""
+    return [
+        ClassModuloResumo(**m)
+        for m in await service.listar_modulos(session, somente_publicados=False)
+    ]
+
+
+@router.post(
+    "/admin/class/modules", response_model=ClassModuloRead, status_code=status.HTTP_201_CREATED
+)
+async def criar_modulo(
+    body: ClassModuloCreate,
+    session: AsyncSession = Depends(get_platform_db),
+) -> ClassModuloRead:
+    slug = await service.slug_unico(session, HelpdeskModulo, service.slugify(body.titulo))
+    modulo = HelpdeskModulo(
+        titulo=body.titulo,
+        slug=slug,
+        descricao=body.descricao,
+        publicado=body.publicado,
+        ordem=body.ordem,
+    )
+    session.add(modulo)
+    await session.flush()
+    completo = await service.modulo_por_slug(session, modulo.slug, somente_publicado=False)
+    return ClassModuloRead(**completo)  # type: ignore[arg-type]
+
+
+@router.get("/admin/class/modules/{modulo_id}", response_model=ClassModuloRead)
+async def obter_modulo(
+    modulo_id: uuid.UUID,
+    session: AsyncSession = Depends(get_platform_db),
+) -> ClassModuloRead:
+    """Módulo com TODAS as aulas (inclusive rascunhos) — a visão do editor."""
+    modulo = await _modulo_ou_404(session, modulo_id)
+    completo = await service.modulo_por_slug(session, modulo.slug, somente_publicado=False)
+    return ClassModuloRead(**completo)  # type: ignore[arg-type]
+
+
+@router.patch("/admin/class/modules/{modulo_id}", response_model=ClassModuloRead)
+async def editar_modulo(
+    modulo_id: uuid.UUID,
+    body: ClassModuloPatch,
+    session: AsyncSession = Depends(get_platform_db),
+) -> ClassModuloRead:
+    modulo = await _modulo_ou_404(session, modulo_id)
+    campos = body.model_dump(exclude_unset=True)
+    if "titulo" in campos and campos["titulo"] != modulo.titulo:
+        modulo.slug = await service.slug_unico(
+            session, HelpdeskModulo, service.slugify(campos["titulo"]), ignorar_id=modulo.id
+        )
+    for campo, valor in campos.items():
+        setattr(modulo, campo, valor)
+    await session.flush()
+    completo = await service.modulo_por_slug(session, modulo.slug, somente_publicado=False)
+    return ClassModuloRead(**completo)  # type: ignore[arg-type]
+
+
+@router.delete("/admin/class/modules/{modulo_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def excluir_modulo(
+    modulo_id: uuid.UUID,
+    session: AsyncSession = Depends(get_platform_db),
+) -> None:
+    # aulas NÃO somem: a FK é SET NULL e elas voltam a ser artigos avulsos
+    await session.execute(delete(HelpdeskModulo).where(HelpdeskModulo.id == modulo_id))
+
+
 # ── Artigos ─────────────────────────────────────────────────────────────────
 
 
-@router.get("/admin/help/articles", response_model=list[HelpArtigoResumo])
+@router.get("/admin/class/articles", response_model=list[HelpArtigoResumo])
 async def listar_artigos(
     session: AsyncSession = Depends(get_platform_db),
 ) -> list[HelpArtigoResumo]:
@@ -123,7 +210,7 @@ async def listar_artigos(
 
 
 @router.post(
-    "/admin/help/articles", response_model=HelpArtigoRead, status_code=status.HTTP_201_CREATED
+    "/admin/class/articles", response_model=HelpArtigoRead, status_code=status.HTTP_201_CREATED
 )
 async def criar_artigo(
     body: HelpArtigoCreate,
@@ -136,6 +223,7 @@ async def criar_artigo(
         resumo=body.resumo,
         corpo=body.corpo,
         categoria_id=body.categoria_id,
+        modulo_id=body.modulo_id,
         publicado=body.publicado,
         ordem=body.ordem,
     )
@@ -144,7 +232,7 @@ async def criar_artigo(
     return HelpArtigoRead.model_validate(await _artigo_ou_404(session, artigo.id))
 
 
-@router.get("/admin/help/articles/{artigo_id}", response_model=HelpArtigoRead)
+@router.get("/admin/class/articles/{artigo_id}", response_model=HelpArtigoRead)
 async def obter_artigo(
     artigo_id: uuid.UUID,
     session: AsyncSession = Depends(get_platform_db),
@@ -152,7 +240,7 @@ async def obter_artigo(
     return HelpArtigoRead.model_validate(await _artigo_ou_404(session, artigo_id))
 
 
-@router.patch("/admin/help/articles/{artigo_id}", response_model=HelpArtigoRead)
+@router.patch("/admin/class/articles/{artigo_id}", response_model=HelpArtigoRead)
 async def editar_artigo(
     artigo_id: uuid.UUID,
     body: HelpArtigoPatch,
@@ -172,7 +260,7 @@ async def editar_artigo(
     return HelpArtigoRead.model_validate(artigo)
 
 
-@router.delete("/admin/help/articles/{artigo_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/admin/class/articles/{artigo_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def excluir_artigo(
     artigo_id: uuid.UUID,
     session: AsyncSession = Depends(get_platform_db),
@@ -185,7 +273,7 @@ async def excluir_artigo(
 
 
 @router.post(
-    "/admin/help/articles/{artigo_id}/media",
+    "/admin/class/articles/{artigo_id}/media",
     response_model=HelpMidiaRead,
     status_code=status.HTTP_201_CREATED,
 )
@@ -210,7 +298,7 @@ async def criar_midia_url(
 
 
 @router.post(
-    "/admin/help/articles/{artigo_id}/media/upload",
+    "/admin/class/articles/{artigo_id}/media/upload",
     response_model=HelpMidiaRead,
     status_code=status.HTTP_201_CREATED,
 )
@@ -248,7 +336,7 @@ async def enviar_midia_arquivo(
     return HelpMidiaRead.model_validate(midia)
 
 
-@router.patch("/admin/help/media/{midia_id}", response_model=HelpMidiaRead)
+@router.patch("/admin/class/media/{midia_id}", response_model=HelpMidiaRead)
 async def editar_midia(
     midia_id: uuid.UUID,
     body: HelpMidiaPatch,
@@ -263,7 +351,7 @@ async def editar_midia(
     return HelpMidiaRead.model_validate(midia)
 
 
-@router.delete("/admin/help/media/{midia_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/admin/class/media/{midia_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def excluir_midia(
     midia_id: uuid.UUID,
     session: AsyncSession = Depends(get_platform_db),
@@ -274,13 +362,13 @@ async def excluir_midia(
 # ── Hints (chave de elemento de UI → artigo) ────────────────────────────────
 
 
-@router.get("/admin/help/hint-keys", response_model=list[HintChaveCatalogo])
+@router.get("/admin/class/hint-keys", response_model=list[HintChaveCatalogo])
 async def listar_chaves_de_hint() -> list[HintChaveCatalogo]:
     """Catálogo das chaves plantáveis — onde o ícone ⓘ pode aparecer no painel."""
     return [HintChaveCatalogo(**c) for c in service.HINT_CHAVES]
 
 
-@router.get("/admin/help/hints", response_model=list[HintAdminRead])
+@router.get("/admin/class/hints", response_model=list[HintAdminRead])
 async def listar_hints(
     session: AsyncSession = Depends(get_platform_db),
 ) -> list[HintAdminRead]:
@@ -304,7 +392,7 @@ async def listar_hints(
     ]
 
 
-@router.put("/admin/help/hints", response_model=list[HintAdminRead])
+@router.put("/admin/class/hints", response_model=list[HintAdminRead])
 async def definir_hint(
     body: HintSet,
     session: AsyncSession = Depends(get_platform_db),
@@ -325,7 +413,7 @@ async def definir_hint(
     return await listar_hints(session)
 
 
-@router.delete("/admin/help/hints/{chave}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/admin/class/hints/{chave}", status_code=status.HTTP_204_NO_CONTENT)
 async def remover_hint(
     chave: str,
     session: AsyncSession = Depends(get_platform_db),

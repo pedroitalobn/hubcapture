@@ -1,4 +1,4 @@
-"""Central de ajuda (help desk interno): artigos, publicação, mídias e hints."""
+"""Class (help desk interno): artigos, módulos/aulas, publicação, mídias e hints."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from src.models.helpdesk import (
     HelpdeskCategoria,
     HelpdeskHint,
     HelpdeskMidia,
+    HelpdeskModulo,
 )
 from src.services import helpdesk as service
 from src.services import modulos as modulos_service
@@ -34,7 +35,13 @@ async def test_modulo_ajuda_nasce_ligado() -> None:
 
 
 async def _seed_artigo(
-    s, titulo: str, *, publicado: bool, categoria: HelpdeskCategoria | None = None
+    s,
+    titulo: str,
+    *,
+    publicado: bool,
+    categoria: HelpdeskCategoria | None = None,
+    modulo: HelpdeskModulo | None = None,
+    ordem: int = 0,
 ) -> HelpdeskArtigo:
     artigo = HelpdeskArtigo(
         titulo=titulo,
@@ -42,6 +49,8 @@ async def _seed_artigo(
         corpo=f"Conteúdo de {titulo}",
         publicado=publicado,
         categoria_id=categoria.id if categoria else None,
+        modulo_id=modulo.id if modulo else None,
+        ordem=ordem,
     )
     s.add(artigo)
     await s.flush()
@@ -112,6 +121,73 @@ async def test_hints_publicos_so_com_hint_ativo_e_artigo_publicado() -> None:
     assert [h["chave"] for h in hints] == ["proposta.empenhado"]
     assert hints[0]["artigo_slug"] == "o-que-e-empenho"
     assert hints[0]["titulo"] == "O que é empenho"
+
+
+async def _seed_modulo(s, titulo: str, *, publicado: bool) -> HelpdeskModulo:
+    modulo = HelpdeskModulo(
+        titulo=titulo,
+        slug=await service.slug_unico(s, HelpdeskModulo, service.slugify(titulo)),
+        publicado=publicado,
+    )
+    s.add(modulo)
+    await s.flush()
+    return modulo
+
+
+async def test_modulo_lista_aulas_em_ordem_e_so_publicadas() -> None:
+    async with SessionLocal() as s:
+        async with s.begin():
+            mod = await _seed_modulo(s, "Captação 101", publicado=True)
+            # semeadas fora de ordem de propósito — a sequência vem de `ordem`
+            await _seed_artigo(s, "Aula 2 — Empenho", publicado=True, modulo=mod, ordem=2)
+            await _seed_artigo(s, "Aula 1 — Proposta", publicado=True, modulo=mod, ordem=1)
+            await _seed_artigo(s, "Aula 3 — rascunho", publicado=False, modulo=mod, ordem=3)
+
+    async with SessionLocal() as s:
+        publico = await service.modulo_por_slug(s, "captacao-101")
+        admin = await service.modulo_por_slug(s, "captacao-101", somente_publicado=False)
+        lista = await service.listar_modulos(s, somente_publicados=True)
+
+    assert publico is not None
+    assert [a["titulo"] for a in publico["aulas"]] == [
+        "Aula 1 — Proposta",
+        "Aula 2 — Empenho",
+    ]
+    # o editor vê o rascunho na sequência; o aluno não
+    assert len(admin["aulas"]) == 3
+    # a contagem pública do módulo também só conta aula publicada
+    assert lista[0]["aulas"] == 2
+
+
+async def test_modulo_rascunho_nao_aparece_ao_publico() -> None:
+    async with SessionLocal() as s:
+        async with s.begin():
+            await _seed_modulo(s, "Ainda montando", publicado=False)
+
+    async with SessionLocal() as s:
+        assert await service.listar_modulos(s, somente_publicados=True) == []
+        assert await service.modulo_por_slug(s, "ainda-montando") is None
+        # a visão do admin enxerga
+        todos = await service.listar_modulos(s, somente_publicados=False)
+        assert [m["titulo"] for m in todos] == ["Ainda montando"]
+
+
+async def test_aula_fica_fora_da_prateleira_mas_entra_na_busca() -> None:
+    async with SessionLocal() as s:
+        async with s.begin():
+            mod = await _seed_modulo(s, "Captação 101", publicado=True)
+            await _seed_artigo(s, "Artigo avulso", publicado=True)
+            await _seed_artigo(s, "Aula sobre empenho", publicado=True, modulo=mod)
+
+    async with SessionLocal() as s:
+        # prateleira do Class: aula não aparece solta (vive dentro do módulo)
+        prateleira = await service.listar_artigos(s, sem_modulo=True)
+        # busca: aula ENTRA no resultado (achar "empenho" numa aula é desejável)
+        busca = await service.listar_artigos(s, q="aula sobre empenho")
+
+    assert [a.titulo for a in prateleira] == ["Artigo avulso"]
+    assert [a.titulo for a in busca] == ["Aula sobre empenho"]
+    assert busca[0].modulo is not None and busca[0].modulo.slug == "captacao-101"
 
 
 async def test_midia_upload_roundtrip_e_resumo_conta_tipos() -> None:

@@ -4,6 +4,241 @@
  */
 
 export interface paths {
+    "/api/v1/admin/class/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Artigos
+         * @description Todos os artigos, inclusive rascunhos (a visão pública filtra publicado).
+         */
+        get: operations["listar_artigos_api_v1_admin_class_articles_get"];
+        put?: never;
+        /** Criar Artigo */
+        post: operations["criar_artigo_api_v1_admin_class_articles_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/class/articles/{artigo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obter Artigo */
+        get: operations["obter_artigo_api_v1_admin_class_articles__artigo_id__get"];
+        put?: never;
+        post?: never;
+        /** Excluir Artigo */
+        delete: operations["excluir_artigo_api_v1_admin_class_articles__artigo_id__delete"];
+        options?: never;
+        head?: never;
+        /** Editar Artigo */
+        patch: operations["editar_artigo_api_v1_admin_class_articles__artigo_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/class/articles/{artigo_id}/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Criar Midia Url
+         * @description Mídia por URL — vídeo externo (YouTube/Vimeo/mp4 hospedado).
+         */
+        post: operations["criar_midia_url_api_v1_admin_class_articles__artigo_id__media_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/class/articles/{artigo_id}/media/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enviar Midia Arquivo
+         * @description Upload de arquivo (vídeo curto ou documento). Vídeo pesado vai por URL.
+         */
+        post: operations["enviar_midia_arquivo_api_v1_admin_class_articles__artigo_id__media_upload_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/class/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Categorias */
+        get: operations["listar_categorias_api_v1_admin_class_categories_get"];
+        put?: never;
+        /** Criar Categoria */
+        post: operations["criar_categoria_api_v1_admin_class_categories_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/class/categories/{categoria_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Excluir Categoria */
+        delete: operations["excluir_categoria_api_v1_admin_class_categories__categoria_id__delete"];
+        options?: never;
+        head?: never;
+        /** Editar Categoria */
+        patch: operations["editar_categoria_api_v1_admin_class_categories__categoria_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/class/hint-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Chaves De Hint
+         * @description Catálogo das chaves plantáveis — onde o ícone ⓘ pode aparecer no painel.
+         */
+        get: operations["listar_chaves_de_hint_api_v1_admin_class_hint_keys_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/class/hints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Hints */
+        get: operations["listar_hints_api_v1_admin_class_hints_get"];
+        /**
+         * Definir Hint
+         * @description Planta (ou realoca) o hint: a chave passa a apontar para este artigo.
+         */
+        put: operations["definir_hint_api_v1_admin_class_hints_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/class/hints/{chave}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remover Hint */
+        delete: operations["remover_hint_api_v1_admin_class_hints__chave__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/class/media/{midia_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Excluir Midia */
+        delete: operations["excluir_midia_api_v1_admin_class_media__midia_id__delete"];
+        options?: never;
+        head?: never;
+        /** Editar Midia */
+        patch: operations["editar_midia_api_v1_admin_class_media__midia_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/class/modules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Modulos
+         * @description Todos os módulos, inclusive rascunhos, com contagem total de aulas.
+         */
+        get: operations["listar_modulos_api_v1_admin_class_modules_get"];
+        put?: never;
+        /** Criar Modulo */
+        post: operations["criar_modulo_api_v1_admin_class_modules_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/class/modules/{modulo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obter Modulo
+         * @description Módulo com TODAS as aulas (inclusive rascunhos) — a visão do editor.
+         */
+        get: operations["obter_modulo_api_v1_admin_class_modules__modulo_id__get"];
+        put?: never;
+        post?: never;
+        /** Excluir Modulo */
+        delete: operations["excluir_modulo_api_v1_admin_class_modules__modulo_id__delete"];
+        options?: never;
+        head?: never;
+        /** Editar Modulo */
+        patch: operations["editar_modulo_api_v1_admin_class_modules__modulo_id__patch"];
+        trace?: never;
+    };
     "/api/v1/admin/config": {
         parameters: {
             query?: never;
@@ -103,198 +338,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/help/articles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Listar Artigos
-         * @description Todos os artigos, inclusive rascunhos (a visão pública filtra publicado).
-         */
-        get: operations["listar_artigos_api_v1_admin_help_articles_get"];
-        put?: never;
-        /** Criar Artigo */
-        post: operations["criar_artigo_api_v1_admin_help_articles_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/help/articles/{artigo_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Obter Artigo */
-        get: operations["obter_artigo_api_v1_admin_help_articles__artigo_id__get"];
-        put?: never;
-        post?: never;
-        /** Excluir Artigo */
-        delete: operations["excluir_artigo_api_v1_admin_help_articles__artigo_id__delete"];
-        options?: never;
-        head?: never;
-        /** Editar Artigo */
-        patch: operations["editar_artigo_api_v1_admin_help_articles__artigo_id__patch"];
-        trace?: never;
-    };
-    "/api/v1/admin/help/articles/{artigo_id}/media": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Criar Midia Url
-         * @description Mídia por URL — vídeo externo (YouTube/Vimeo/mp4 hospedado).
-         */
-        post: operations["criar_midia_url_api_v1_admin_help_articles__artigo_id__media_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/help/articles/{artigo_id}/media/upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Enviar Midia Arquivo
-         * @description Upload de arquivo (vídeo curto ou documento). Vídeo pesado vai por URL.
-         */
-        post: operations["enviar_midia_arquivo_api_v1_admin_help_articles__artigo_id__media_upload_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/help/categories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar Categorias */
-        get: operations["listar_categorias_api_v1_admin_help_categories_get"];
-        put?: never;
-        /** Criar Categoria */
-        post: operations["criar_categoria_api_v1_admin_help_categories_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/help/categories/{categoria_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Excluir Categoria */
-        delete: operations["excluir_categoria_api_v1_admin_help_categories__categoria_id__delete"];
-        options?: never;
-        head?: never;
-        /** Editar Categoria */
-        patch: operations["editar_categoria_api_v1_admin_help_categories__categoria_id__patch"];
-        trace?: never;
-    };
-    "/api/v1/admin/help/hint-keys": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Listar Chaves De Hint
-         * @description Catálogo das chaves plantáveis — onde o ícone ⓘ pode aparecer no painel.
-         */
-        get: operations["listar_chaves_de_hint_api_v1_admin_help_hint_keys_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/help/hints": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar Hints */
-        get: operations["listar_hints_api_v1_admin_help_hints_get"];
-        /**
-         * Definir Hint
-         * @description Planta (ou realoca) o hint: a chave passa a apontar para este artigo.
-         */
-        put: operations["definir_hint_api_v1_admin_help_hints_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/help/hints/{chave}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Remover Hint */
-        delete: operations["remover_hint_api_v1_admin_help_hints__chave__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/help/media/{midia_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Excluir Midia */
-        delete: operations["excluir_midia_api_v1_admin_help_media__midia_id__delete"];
-        options?: never;
-        head?: never;
-        /** Editar Midia */
-        patch: operations["editar_midia_api_v1_admin_help_media__midia_id__patch"];
         trace?: never;
     };
     "/api/v1/admin/invites": {
@@ -661,6 +704,140 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/class/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Artigos */
+        get: operations["listar_artigos_api_v1_class_articles_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/class/articles/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obter Artigo */
+        get: operations["obter_artigo_api_v1_class_articles__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/class/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Categorias */
+        get: operations["listar_categorias_api_v1_class_categories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/class/hints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Hints
+         * @description Mapa chave→artigo que o painel carrega UMA vez para desenhar os ⓘ.
+         */
+        get: operations["listar_hints_api_v1_class_hints_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/class/media/{midia_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Baixar Midia
+         * @description Arquivo enviado pelo admin (vídeo/documento). Mídia por URL não passa aqui.
+         *
+         *     O front busca autenticado (Bearer) e toca/baixa via object URL — a rota não
+         *     precisa ser pública nem carregar token em query string.
+         */
+        get: operations["baixar_midia_api_v1_class_media__midia_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/class/modules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Modulos
+         * @description Módulos publicados com a contagem de aulas publicadas.
+         */
+        get: operations["listar_modulos_api_v1_class_modules_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/class/modules/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obter Modulo
+         * @description Módulo com as aulas em sequência — é daqui que a aula tira o anterior/próxima.
+         */
+        get: operations["obter_modulo_api_v1_class_modules__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/compliance": {
         parameters: {
             query?: never;
@@ -928,100 +1105,6 @@ export interface paths {
         post?: never;
         /** Remover Proposta */
         delete: operations["remover_proposta_api_v1_folders__pasta_id__proposals__proposta_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/help/articles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar Artigos */
-        get: operations["listar_artigos_api_v1_help_articles_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/help/articles/{slug}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Obter Artigo */
-        get: operations["obter_artigo_api_v1_help_articles__slug__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/help/categories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar Categorias */
-        get: operations["listar_categorias_api_v1_help_categories_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/help/hints": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Listar Hints
-         * @description Mapa chave→artigo que o painel carrega UMA vez para desenhar os ⓘ.
-         */
-        get: operations["listar_hints_api_v1_help_hints_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/help/media/{midia_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Baixar Midia
-         * @description Arquivo enviado pelo admin (vídeo/documento). Mídia por URL não passa aqui.
-         *
-         *     O front busca autenticado (Bearer) e toca/baixa via object URL — a rota não
-         *     precisa ser pública nem carregar token em query string.
-         */
-        get: operations["baixar_midia_api_v1_help_media__midia_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1917,6 +2000,40 @@ export interface components {
             /** Plano Id */
             plano_id?: string | null;
         };
+        /**
+         * AulaResumo
+         * @description Uma aula na página do módulo (sem corpo — o link leva à aula).
+         */
+        AulaResumo: {
+            /**
+             * Documentos
+             * @default 0
+             */
+            documentos: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Ordem
+             * @default 0
+             */
+            ordem: number;
+            /** Publicado */
+            publicado: boolean;
+            /** Resumo */
+            resumo?: string | null;
+            /** Slug */
+            slug: string;
+            /** Titulo */
+            titulo: string;
+            /**
+             * Videos
+             * @default 0
+             */
+            videos: number;
+        };
         /** AutorizacaoOAuth */
         AutorizacaoOAuth: {
             /** State */
@@ -1924,8 +2041,8 @@ export interface components {
             /** Url */
             url: string;
         };
-        /** Body_enviar_midia_arquivo_api_v1_admin_help_articles__artigo_id__media_upload_post */
-        Body_enviar_midia_arquivo_api_v1_admin_help_articles__artigo_id__media_upload_post: {
+        /** Body_enviar_midia_arquivo_api_v1_admin_class_articles__artigo_id__media_upload_post */
+        Body_enviar_midia_arquivo_api_v1_admin_class_articles__artigo_id__media_upload_post: {
             /** Arquivo */
             arquivo: string;
             /**
@@ -2028,6 +2145,99 @@ export interface components {
             modo: string;
             /** Pergunta */
             pergunta: string;
+        };
+        /** ClassModuloCreate */
+        ClassModuloCreate: {
+            /** Descricao */
+            descricao?: string | null;
+            /**
+             * Ordem
+             * @default 0
+             */
+            ordem: number;
+            /**
+             * Publicado
+             * @default false
+             */
+            publicado: boolean;
+            /** Titulo */
+            titulo: string;
+        };
+        /** ClassModuloPatch */
+        ClassModuloPatch: {
+            /** Descricao */
+            descricao?: string | null;
+            /** Ordem */
+            ordem?: number | null;
+            /** Publicado */
+            publicado?: boolean | null;
+            /** Titulo */
+            titulo?: string | null;
+        };
+        /**
+         * ClassModuloRead
+         * @description Módulo completo com as aulas em sequência.
+         */
+        ClassModuloRead: {
+            /**
+             * Aulas
+             * @default []
+             */
+            aulas: components["schemas"]["AulaResumo"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Descricao */
+            descricao?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Ordem
+             * @default 0
+             */
+            ordem: number;
+            /** Publicado */
+            publicado: boolean;
+            /** Slug */
+            slug: string;
+            /** Titulo */
+            titulo: string;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /**
+         * ClassModuloResumo
+         * @description Item de listagem de módulos (Class e admin).
+         */
+        ClassModuloResumo: {
+            /**
+             * Aulas
+             * @default 0
+             */
+            aulas: number;
+            /** Descricao */
+            descricao?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Ordem
+             * @default 0
+             */
+            ordem: number;
+            /** Publicado */
+            publicado: boolean;
+            /** Slug */
+            slug: string;
+            /** Titulo */
+            titulo: string;
         };
         /**
          * ConectarSenhaApp
@@ -2534,6 +2744,8 @@ export interface components {
              * @default
              */
             corpo: string;
+            /** Modulo Id */
+            modulo_id?: string | null;
             /**
              * Ordem
              * @default 0
@@ -2555,6 +2767,8 @@ export interface components {
             categoria_id?: string | null;
             /** Corpo */
             corpo?: string | null;
+            /** Modulo Id */
+            modulo_id?: string | null;
             /** Ordem */
             ordem?: number | null;
             /** Publicado */
@@ -2592,6 +2806,7 @@ export interface components {
              * @default []
              */
             midias: components["schemas"]["HelpMidiaRead"][];
+            modulo?: components["schemas"]["ModuloRef"] | null;
             /**
              * Ordem
              * @default 0
@@ -2629,6 +2844,7 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            modulo?: components["schemas"]["ModuloRef"] | null;
             /**
              * Ordem
              * @default 0
@@ -3032,6 +3248,21 @@ export interface components {
             label: string;
             /** Padrao */
             padrao: boolean;
+        };
+        /**
+         * ModuloRef
+         * @description Referência curta do módulo dentro do artigo/aula.
+         */
+        ModuloRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Slug */
+            slug: string;
+            /** Titulo */
+            titulo: string;
         };
         /** ModuloSet */
         ModuloSet: {
@@ -4252,6 +4483,655 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listar_artigos_api_v1_admin_class_articles_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HelpArtigoResumo"][];
+                };
+            };
+        };
+    };
+    criar_artigo_api_v1_admin_class_articles_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HelpArtigoCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HelpArtigoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    obter_artigo_api_v1_admin_class_articles__artigo_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artigo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HelpArtigoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    excluir_artigo_api_v1_admin_class_articles__artigo_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artigo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    editar_artigo_api_v1_admin_class_articles__artigo_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artigo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HelpArtigoPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HelpArtigoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    criar_midia_url_api_v1_admin_class_articles__artigo_id__media_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artigo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HelpMidiaUrlCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HelpMidiaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    enviar_midia_arquivo_api_v1_admin_class_articles__artigo_id__media_upload_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artigo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_enviar_midia_arquivo_api_v1_admin_class_articles__artigo_id__media_upload_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HelpMidiaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_categorias_api_v1_admin_class_categories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HelpCategoriaRead"][];
+                };
+            };
+        };
+    };
+    criar_categoria_api_v1_admin_class_categories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HelpCategoriaWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HelpCategoriaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    excluir_categoria_api_v1_admin_class_categories__categoria_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                categoria_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    editar_categoria_api_v1_admin_class_categories__categoria_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                categoria_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HelpCategoriaWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HelpCategoriaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_chaves_de_hint_api_v1_admin_class_hint_keys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HintChaveCatalogo"][];
+                };
+            };
+        };
+    };
+    listar_hints_api_v1_admin_class_hints_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HintAdminRead"][];
+                };
+            };
+        };
+    };
+    definir_hint_api_v1_admin_class_hints_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HintSet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HintAdminRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_hint_api_v1_admin_class_hints__chave__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chave: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    excluir_midia_api_v1_admin_class_media__midia_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                midia_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    editar_midia_api_v1_admin_class_media__midia_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                midia_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HelpMidiaPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HelpMidiaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_modulos_api_v1_admin_class_modules_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassModuloResumo"][];
+                };
+            };
+        };
+    };
+    criar_modulo_api_v1_admin_class_modules_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassModuloCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassModuloRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    obter_modulo_api_v1_admin_class_modules__modulo_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                modulo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassModuloRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    excluir_modulo_api_v1_admin_class_modules__modulo_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                modulo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    editar_modulo_api_v1_admin_class_modules__modulo_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                modulo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassModuloPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassModuloRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listar_config_api_v1_admin_config_get: {
         parameters: {
             query?: never;
@@ -4411,507 +5291,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmailTesteOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    listar_artigos_api_v1_admin_help_articles_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HelpArtigoResumo"][];
-                };
-            };
-        };
-    };
-    criar_artigo_api_v1_admin_help_articles_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["HelpArtigoCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HelpArtigoRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    obter_artigo_api_v1_admin_help_articles__artigo_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artigo_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HelpArtigoRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    excluir_artigo_api_v1_admin_help_articles__artigo_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artigo_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    editar_artigo_api_v1_admin_help_articles__artigo_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artigo_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["HelpArtigoPatch"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HelpArtigoRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    criar_midia_url_api_v1_admin_help_articles__artigo_id__media_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artigo_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["HelpMidiaUrlCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HelpMidiaRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    enviar_midia_arquivo_api_v1_admin_help_articles__artigo_id__media_upload_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artigo_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_enviar_midia_arquivo_api_v1_admin_help_articles__artigo_id__media_upload_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HelpMidiaRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    listar_categorias_api_v1_admin_help_categories_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HelpCategoriaRead"][];
-                };
-            };
-        };
-    };
-    criar_categoria_api_v1_admin_help_categories_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["HelpCategoriaWrite"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HelpCategoriaRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    excluir_categoria_api_v1_admin_help_categories__categoria_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                categoria_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    editar_categoria_api_v1_admin_help_categories__categoria_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                categoria_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["HelpCategoriaWrite"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HelpCategoriaRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    listar_chaves_de_hint_api_v1_admin_help_hint_keys_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HintChaveCatalogo"][];
-                };
-            };
-        };
-    };
-    listar_hints_api_v1_admin_help_hints_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HintAdminRead"][];
-                };
-            };
-        };
-    };
-    definir_hint_api_v1_admin_help_hints_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["HintSet"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HintAdminRead"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    remover_hint_api_v1_admin_help_hints__chave__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                chave: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    excluir_midia_api_v1_admin_help_media__midia_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                midia_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    editar_midia_api_v1_admin_help_media__midia_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                midia_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["HelpMidiaPatch"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HelpMidiaRead"];
                 };
             };
             /** @description Validation Error */
@@ -5660,6 +6039,193 @@ export interface operations {
             };
         };
     };
+    listar_artigos_api_v1_class_articles_get: {
+        parameters: {
+            query?: {
+                /** @description slug da categoria */
+                categoria?: string | null;
+                /** @description busca livre (título/resumo/corpo) */
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HelpArtigoResumo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    obter_artigo_api_v1_class_articles__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HelpArtigoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_categorias_api_v1_class_categories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HelpCategoriaRead"][];
+                };
+            };
+        };
+    };
+    listar_hints_api_v1_class_hints_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HintPublico"][];
+                };
+            };
+        };
+    };
+    baixar_midia_api_v1_class_media__midia_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                midia_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_modulos_api_v1_class_modules_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassModuloResumo"][];
+                };
+            };
+        };
+    };
+    obter_modulo_api_v1_class_modules__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassModuloRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     conformidade_resumo_api_v1_compliance_get: {
         parameters: {
             query?: {
@@ -6290,142 +6856,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    listar_artigos_api_v1_help_articles_get: {
-        parameters: {
-            query?: {
-                /** @description slug da categoria */
-                categoria?: string | null;
-                /** @description busca livre (título/resumo/corpo) */
-                q?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HelpArtigoResumo"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    obter_artigo_api_v1_help_articles__slug__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HelpArtigoRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    listar_categorias_api_v1_help_categories_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HelpCategoriaRead"][];
-                };
-            };
-        };
-    };
-    listar_hints_api_v1_help_hints_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HintPublico"][];
-                };
-            };
-        };
-    };
-    baixar_midia_api_v1_help_media__midia_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                midia_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
             };
             /** @description Validation Error */
             422: {

@@ -1247,19 +1247,24 @@ ela, o scraping é pulado sem virar erro. O connector nunca devolve vazio como s
 não houvesse parecer: falha de fonte vira mensagem explícita em `sync_runs` e na
 tela.
 
-## 37. Help desk interno — Central de ajuda + hints contextuais (ⓘ)
+## 37. Class — help desk interno + módulos de aulas + hints contextuais (ⓘ)
 
 O gestor tem dúvida de VOCABULÁRIO ("o que é um empenho?") no momento em que o
-dado aparece na tela. O help desk interno responde isso com TRÊS portas para o
-mesmo artigo: a página da Central de ajuda, o link compartilhável e — o
-diferencial — o **hint contextual**: um ícone ⓘ ao lado do próprio elemento
-(ex.: a variável "Empenhado" no detalhe da proposta) que abre popover com
-resumo, o primeiro vídeo do artigo e o link para o conteúdo completo.
+dado aparece na tela. O **Class** (nome de produto do help desk interno)
+responde isso com TRÊS portas para o mesmo conteúdo: a página do Class, o link
+compartilhável e — o diferencial — o **hint contextual**: um ícone ⓘ ao lado
+do próprio elemento (ex.: a variável "Empenhado" no detalhe da proposta) que
+abre popover com resumo, o primeiro vídeo do artigo e o link para o conteúdo
+completo. Além dos artigos avulsos, o Class tem **módulos de aprendizagem**:
+trilhas que ordenam AULAS (aula = artigo com `modulo_id` — MESMO motor de
+corpo/mídias/hints/link; `ordem` é a posição na sequência).
 
-- **Tabelas** (migration `d4e5f6a7b8c9`, nível-plataforma sem RLS, como
-  `base_conhecimento`; só admin escreve): `helpdesk_categorias` ·
+- **Tabelas** (migrations `d4e5f6a7b8c9` + `e5f6a7b8c9d0`, nível-plataforma sem
+  RLS, como `base_conhecimento`; só admin escreve): `helpdesk_categorias` ·
+  `helpdesk_modulos` (titulo, slug, descricao, publicado, ordem) ·
   `helpdesk_artigos` (corpo em markdown leve, `slug` único = link compartilhável
-  `/panel/help/<slug>`, `publicado`) · `helpdesk_midias` (vídeo por URL
+  `/panel/class/<slug>`, `publicado`, `modulo_id` FK **SET NULL** — excluir
+  módulo devolve as aulas ao acervo avulso) · `helpdesk_midias` (vídeo por URL
   YouTube/Vimeo/mp4 OU arquivo em bytea `conteudo` — container efêmero, disco
   não é storage; teto 50MB, vídeo maior vai por URL; `orientacao`
   horizontal|vertical) · `helpdesk_hints` (`chave` única do elemento de UI →
@@ -1269,17 +1274,23 @@ resumo, o primeiro vídeo do artigo e o link para o conteúdo completo.
   `funding.tipo`…), com rótulo e tela p/ o admin escolher. Ponto novo de hint =
   entrada no catálogo + `<Hint chave="..."/>` na tela. O PUT de hint valida a
   chave contra o catálogo.
-- **Endpoints usuário** (`/help/*`, módulo `ajuda` da §29 — desligado → 404 e o
-  front não desenha ícone): `GET /help/categories` · `GET /help/articles?q=&categoria=`
-  (só publicados) · `GET /help/articles/{slug}` · `GET /help/hints` (mapa
-  chave→artigo, só hint ativo + artigo publicado) · `GET /help/media/{id}`
-  (arquivo autenticado — o front busca com Bearer e toca via object URL, tag
-  `<video>`/`<a>` não manda header).
-- **Endpoints admin** (`/admin/help/*`, superuser): CRUD de categorias e
-  artigos (PATCH de título regenera o slug; DELETE cascateia mídias/hints),
-  mídia por URL (`POST .../media`) e upload multipart (`POST .../media/upload`),
-  `GET /admin/help/hint-keys` (catálogo) · `GET/PUT /admin/help/hints` (upsert
-  por chave — realocar transfere o ícone) · `DELETE /admin/help/hints/{chave}`.
+- **Endpoints usuário** (`/class/*`, módulo de plataforma `ajuda` da §29 — a
+  CHAVE interna segue `ajuda`, o label é "Class"; desligado → 404 e o front não
+  desenha ícone): `GET /class/categories` · `GET /class/modules` (publicados,
+  contagem de aulas publicadas) · `GET /class/modules/{slug}` (aulas em
+  sequência — é daqui que a aula tira anterior/próxima) ·
+  `GET /class/articles?q=&categoria=` (sem busca só artigos AVULSOS — aula vive
+  no módulo; com `q` as aulas entram no resultado) · `GET /class/articles/{slug}`
+  (serve artigo E aula) · `GET /class/hints` · `GET /class/media/{id}` (arquivo
+  autenticado — o front busca com Bearer e toca via object URL).
+- **Endpoints admin** (`/admin/class/*`, superuser): CRUD de categorias,
+  módulos (`GET/POST /admin/class/modules` · `GET/PATCH/DELETE .../{id}` — o GET
+  devolve TODAS as aulas, inclusive rascunhos) e artigos (create/PATCH aceitam
+  `modulo_id` + `ordem` = virar aula; PATCH de título regenera o slug; DELETE
+  cascateia mídias/hints), mídia por URL (`POST .../media`) e upload multipart
+  (`POST .../media/upload`), `GET /admin/class/hint-keys` ·
+  `GET/PUT /admin/class/hints` (upsert por chave — realocar transfere o ícone) ·
+  `DELETE /admin/class/hints/{chave}`.
 - **Web usuário**: `lib/help.tsx` (`HelpProvider` no layout do painel carrega o
   mapa de hints UMA vez; degrada silencioso sem módulo/sem rede),
   `components/Hint.tsx` (ⓘ + popover; busca o artigo só na 1ª abertura) e
@@ -1287,15 +1298,17 @@ resumo, o primeiro vídeo do artigo e o link para o conteúdo completo.
   YouTube/Vimeo por iframe, mp4/upload em `<video>` nativo com botão
   **picture-in-picture**: dá para assistir a explicação flutuando sobre a
   página da proposta. Com PiP ativo, clique fora NÃO fecha o popover (fecharia
-  o vídeo). Páginas `app/panel/help` (busca + chips de categoria) e
-  `app/panel/help/[slug]` (corpo em markdown leve sem HTML cru, vídeos,
-  materiais p/ download, botão compartilhar). Item "Central de ajuda" no menu
-  profile-centric.
-- **Web admin**: `app/admin/helpdesk` (criar artigo → editor; categorias) e
-  `app/admin/helpdesk/[id]` (conteúdo + publicar/despublicar, mídias com
-  orientação, e a seção Hints: escolhe a chave no catálogo agrupado por tela,
-  vê se a chave já pertence a outro artigo, pausa/remove). Publicação é o
-  interruptor: rascunho não aparece na Central nem vira ícone.
+  o vídeo). Páginas `app/panel/class` (módulos + busca + chips de categoria),
+  `app/panel/class/modules/[slug]` (trilha de aulas) e `app/panel/class/[slug]`
+  (artigo/aula; aula mostra "aula N de M" + anterior/próxima via
+  `/class/modules/{slug}`). Item "Class" no menu profile-centric.
+- **Web admin**: `app/admin/class` (criar artigo → editor; módulos com
+  publicar/excluir inline; categorias) e `app/admin/class/[id]` (conteúdo +
+  publicar/despublicar, seletor de módulo + posição — transforma artigo em
+  aula —, mídias com orientação, e a seção Hints: escolhe a chave no catálogo
+  agrupado por tela, vê se a chave já pertence a outro artigo, pausa/remove).
+  Publicação é o interruptor em DOIS níveis: módulo rascunho não lista (aulas
+  publicadas seguem acessáveis por link/busca); aula rascunho não abre.
 - **Hints plantados hoje**: detalhe da proposta (valor total, contrapartida,
   empenhado, prazo, situação, pendências, modalidade, nº da proposta, execução
   financeira) e captação (chips cadastrada×disponível). `Dado` de `ui.tsx`
