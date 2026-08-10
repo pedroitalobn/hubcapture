@@ -67,3 +67,31 @@ def test_compute_hash_ignora_campos_nao_materiais() -> None:
     h1 = compute_hash({**base, "id": "aaa"})
     h2 = compute_hash({**base, "id": "bbb"})
     assert h1 == h2  # 'id' não entra no hash
+
+
+def test_valor_em_formato_br() -> None:
+    rec = _record()
+    rec.raw["plano_acao"]["valor_total"] = "1.500.000,00"
+    rec.raw["plano_acao"]["valor_contrapartida"] = "1.234,56"
+    p = normalize(rec)
+    assert p.valor_total == Decimal("1500000.00")
+    assert p.contrapartida == Decimal("1234.56")
+
+
+def test_valor_total_soma_custeio_e_investimento_das_especiais() -> None:
+    # especiais sem campo de total: pegar só investimento OU custeio subestima
+    rec = RawRecord(
+        source_id="transferegov_esp",
+        id_externo="E-1",
+        municipio_ibge="3550308",
+        raw={
+            "plano_acao": {
+                "numero_plano_acao": "000001/2025",
+                "valor_investimento_plano_acao": "1.000.000,50",
+                "valor_custeio_plano_acao": "500,50",
+                "situacao": "Aprovada",
+            }
+        },
+    )
+    p = normalize(rec)
+    assert p.valor_total == Decimal("1000501.00")

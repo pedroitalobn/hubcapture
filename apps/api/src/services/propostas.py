@@ -6,6 +6,7 @@ Nunca chamam connector. O fetch ao vivo mora no serviço de consulta-avulsa.
 
 from __future__ import annotations
 
+import re
 import unicodedata
 import uuid
 from collections.abc import Sequence
@@ -121,8 +122,26 @@ def qualificacao_de(p: Proposta) -> str | None:
     return str(v) if v not in (None, "") else None
 
 
+# ano embutido no nº da proposta ("043210/2025" → 2025)
+_ANO_NO_NUMERO = re.compile(r"/((?:19|20)\d{2})\s*$")
+
+
+def _ano_plausivel(ano: int) -> bool:
+    return 1990 <= ano <= date.today().year + 1
+
+
 def ano_de(p: Proposta) -> str | None:
-    """Ano de referência: o da execução; senão o da data de atualização da fonte."""
+    """Ano de referência: o de CRIAÇÃO na fonte, nunca o da última movimentação.
+
+    `data_proposta` > sufixo do nº da proposta > exercício da execução >
+    data de atualização (último recurso) — proposta de 2022 movimentada em
+    2026 não é uma proposta de 2026.
+    """
+    if p.data_proposta and _ano_plausivel(p.data_proposta.year):
+        return str(p.data_proposta.year)
+    m = _ANO_NO_NUMERO.search(str(p.numero_proposta or ""))
+    if m and _ano_plausivel(int(m.group(1))):
+        return m.group(1)
     ano = _execucao(p).get("ano")
     if ano not in (None, ""):
         return str(ano)[:4]
@@ -620,6 +639,7 @@ _COLUNAS_RELATORIO = (
     "fonte",
     "codigo",
     "numero_proposta",
+    "data_proposta",
     "titulo",
     "objeto",
     "orgao_superior",
