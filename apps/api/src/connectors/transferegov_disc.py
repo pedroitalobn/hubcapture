@@ -10,8 +10,10 @@ gestor quer ver: quanto foi disponibilizado ao município e ainda não usado.
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
+import time
 import unicodedata
 import zipfile
 from datetime import date
@@ -35,6 +37,17 @@ ZIP_URL = (
 # rebaixar. Guarda bytes (não o texto ~1GB descompactado).
 _CACHE_TTL = 3600.0
 _fonte_cache: dict[str, tuple[float, bytes]] = {}
+# resultado do PARSE por (url, município): varrer o CSV nacional custa minutos
+# de CPU — sem este cache, cada busca do painel reparseava o arquivo inteiro.
+_registros_cache: dict[tuple[str, str], tuple[float, list[RawRecord]]] = {}
+# N buscas simultâneas não podem baixar N × 200MB do mesmo arquivo
+_download_lock = asyncio.Lock()
+
+
+def limpar_cache() -> None:
+    """Zera bytes e parse cacheados (testes/ops)."""
+    _fonte_cache.clear()
+    _registros_cache.clear()
 
 
 def _digits(v: Any) -> str:
@@ -98,21 +111,28 @@ class TransferegovDiscConnector:
         return ZIP_URL
 
     async def _bytes_da_fonte(self, url: str) -> bytes:
-        import time
+        def _fresco() -> bytes | None:
+            em_cache = _fonte_cache.get(url)
+            if em_cache and time.monotonic() - em_cache[0] < _CACHE_TTL:
+                return em_cache[1]
+            return None
 
-        agora = time.monotonic()
-        em_cache = _fonte_cache.get(url)
-        if em_cache and agora - em_cache[0] < _CACHE_TTL:
-            return em_cache[1]
-        # ZIP nacional é grande (~200MB); timeout folgado só p/ esta baixada
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(180.0, connect=15.0), follow_redirects=True
-        ) as client:
-            resp = await client.get(url)
-            resp.raise_for_status()
-            conteudo = resp.content
-        _fonte_cache[url] = (agora, conteudo)
-        return conteudo
+        conteudo = _fresco()
+        if conteudo is not None:
+            return conteudo
+        async with _download_lock:
+            conteudo = _fresco()  # outra coleta pode ter baixado enquanto esperávamos
+            if conteudo is not None:
+                return conteudo
+            # ZIP nacional é grande (~200MB); timeout folgado só p/ esta baixada
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(180.0, connect=15.0), follow_redirects=True
+            ) as client:
+                resp = await client.get(url)
+                resp.raise_for_status()
+                conteudo = resp.content
+            _fonte_cache[url] = (time.monotonic(), conteudo)
+            return conteudo
 
     def _abrir_csv(self, url: str, conteudo: bytes) -> io.TextIOBase:
         """Stream de texto do CSV — direto ou de dentro do ZIP (sem carregar o
@@ -128,8 +148,22 @@ class TransferegovDiscConnector:
     async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
         base = await config_service.resolver("transferegov_disc_csv_url") or self.base_url
         url = self._resolver_url(base)
-        conteudo = await self._bytes_da_fonte(url)
 
+        em_cache = _registros_cache.get((url, municipio_ibge))
+        if em_cache and time.monotonic() - em_cache[0] < _CACHE_TTL:
+            return em_cache[1]
+
+        conteudo = await self._bytes_da_fonte(url)
+        # o parse varre o arquivo nacional inteiro (CPU puro, minutos) — vai
+        # para uma thread; no event loop ele pararia a API TODA enquanto roda
+        records = await asyncio.to_thread(self._filtrar_municipio, url, conteudo, municipio_ibge)
+        _registros_cache[(url, municipio_ibge)] = (time.monotonic(), records)
+        return records
+
+    def _filtrar_municipio(
+        self, url: str, conteudo: bytes, municipio_ibge: str
+    ) -> list[RawRecord]:
+        """Varre o CSV nacional e devolve só as linhas do município (síncrono)."""
         f = self._abrir_csv(url, conteudo)
         header_line = f.readline()
         delim = ";" if header_line.count(";") >= header_line.count(",") else ","

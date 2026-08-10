@@ -1328,3 +1328,37 @@ corpo/mídias/hints/link; `ordem` é a posição na sequência).
   empenhado, prazo, situação, pendências, modalidade, nº da proposta, execução
   financeira) e captação (chips cadastrada×disponível). `Dado` de `ui.tsx`
   aceita `rotulo: ReactNode` para acomodar o ⓘ.
+
+## 38. Desempenho — a busca ao vivo não pode parar o painel (decisão travada)
+
+A lentidão generalizada (painel, central de ajuda, admin) não vinha das telas:
+vinha da busca ao vivo monopolizando o processo da API (uvicorn de 1 worker).
+Três causas, três correções — e a regra que fica: **coleta é I/O externo; não
+bloqueia o event loop, não segura conexão de banco e não se repete sem TTL.**
+
+- **Event loop bloqueado**: o parse do CSV nacional do `transferegov_disc`
+  (~1 GB descomprimido) rodava síncrono no event loop — enquanto varria o
+  arquivo, a API INTEIRA parava (qualquer rota, qualquer usuário). Agora roda
+  em thread (`asyncio.to_thread`), com cache do RESULTADO por (url, município)
+  no mesmo TTL de 1h dos bytes, e lock de download (N buscas simultâneas não
+  baixam N × 200MB). Connector novo com parse pesado segue o mesmo padrão.
+- **Coleta sem memória de "não achei nada"**: o frescor do cache-first era
+  julgado pela EXISTÊNCIA de linhas frescas — município sem registro numa fonte
+  refazia a coleta inteira (CSV, Chromium) em TODA carga do painel.
+  `services/consulta_avulsa` ganhou cache de TENTATIVA em memória por
+  (fonte, município): sucesso vale `cache_ttl_seconds` (6h), falha vale
+  `coleta_erro_ttl_seconds` (10 min). Cada coleta tem teto
+  `coleta_timeout_seconds` (5 min) — fonte pendurada não segura o request.
+  `limpar_cache_coleta()` zera (conftest limpa por teste, junto do TRUNCATE).
+- **Fontes em série segurando a sessão RLS**: o `live_search` chamava fonte
+  atrás de fonte dentro da transação do request (conexão presa por minutos →
+  pool esgotado → até o `/users/me` do guard de admin esperava vaga). Agora o
+  fluxo é: (1) sob a sessão, decidir o que precisa coletar; (2) coletas em
+  PARALELO (semáforo de 3 — Chromium/CSV disputam CPU) sem tocar o banco;
+  (3) ingestão sequencial + `sync_runs` + status. O pool subiu para
+  `db_pool_size=10`/`db_max_overflow=20` (cada request segura até 2 conexões:
+  auth + RLS).
+- **Guard de módulos cacheado**: `require_modulo` abria sessão de banco em toda
+  request de router guardado. `esta_ativo` agora usa snapshot em memória com
+  TTL 10s, invalidado por `definir()` (toggle do painel propaga em segundos);
+  banco fora do ar degrada para os `padrao` do registro em vez de 500.

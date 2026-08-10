@@ -25,6 +25,10 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://hubcapture:postgres_secret@localhost:5432/hubcapture"
     )
     db_echo: bool = False
+    # Pool do runtime: cada request segura até 2 conexões (sessão de auth +
+    # sessão RLS), então o teto precisa acomodar as cargas paralelas do painel.
+    db_pool_size: int = 10
+    db_max_overflow: int = 20
 
     # ── Auth / JWT ───────────────────────────────────────────────────────────
     # ATENÇÃO: estes padrões são só para o dev local. Em produção o boot é
@@ -45,6 +49,14 @@ class Settings(BaseSettings):
 
     # ── Cache-first ──────────────────────────────────────────────────────────
     cache_ttl_seconds: int = 21600  # 6h
+    # Coleta que não deixou linha no cache (município sem registros na fonte, ou
+    # falha) é lembrada em memória: sucesso vale o TTL do cache; falha espera
+    # este intervalo antes de tentar a fonte de novo.
+    coleta_erro_ttl_seconds: int = 600
+    # Teto de UMA coleta ao vivo (fonte × município) dentro de um request. Os
+    # connectors já têm timeouts internos; isto é o cinto de segurança contra
+    # fonte pendurada segurando a busca (e a conexão de banco) sem fim.
+    coleta_timeout_seconds: int = 300
 
     # ── Fontes ───────────────────────────────────────────────────────────────
     transferegov_ff_base_url: str = "https://api.transferegov.gestao.gov.br/fundoafundo/"
