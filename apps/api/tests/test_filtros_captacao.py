@@ -27,15 +27,22 @@ def test_ano_de_prefere_criacao_a_atualizacao() -> None:
     p = Proposta(numero_proposta="043210/2024", data_atualizacao_fonte=date(2026, 1, 5))
     assert prop_service.ano_de(p) == "2024"
 
-    # sem criação nem nº com ano: exercício da execução, depois a atualização
+    # sem criação nem nº com ano: o exercício da execução
     p = Proposta(execucao={"ano": "2023"}, data_atualizacao_fonte=date(2026, 1, 5))
     assert prop_service.ano_de(p) == "2023"
+
+    # sem NENHUM sinal de criação o ano é indefinido — a movimentação de 2026
+    # não promove a proposta à safra 2026
     p = Proposta(data_atualizacao_fonte=date(2026, 1, 5))
-    assert prop_service.ano_de(p) == "2026"
+    assert prop_service.ano_de(p) is None
 
     # sufixo implausível não vira ano ("12/3456" não é uma safra)
     p = Proposta(numero_proposta="12/3456", data_atualizacao_fonte=date(2026, 1, 5))
-    assert prop_service.ano_de(p) == "2026"
+    assert prop_service.ano_de(p) is None
+
+    # exercício lixo também não vira safra
+    p = Proposta(execucao={"ano": "26"}, data_atualizacao_fonte=date(2026, 1, 5))
+    assert prop_service.ano_de(p) is None
 
 
 # ── classificador de natureza jurídica (puro) ───────────────────────────────
@@ -70,6 +77,8 @@ async def _seed(
     uf: str | None = None,
     municipio_nome: str | None = None,
     data_fonte: str | None = None,
+    data_proposta: str | None = None,
+    numero: str | None = None,
     categorias: str | None = None,
 ) -> None:
     async with _owner_engine.begin() as conn:
@@ -77,9 +86,11 @@ async def _seed(
             text(
                 "INSERT INTO propostas (fonte, id_externo, titulo, orgao_superior, "
                 "modalidade, situacao, municipio_ibge, municipio_nome, uf, valor_total, "
-                "execucao, prazos, data_atualizacao_fonte, categorias_ia, "
-                "cache_atualizado_em) VALUES (:f,:e,:t,:o,:m,:s,:ibge,:nome,:uf,:v,"
-                "CAST(:ex AS jsonb), CAST(:p AS jsonb), :d, CAST(:cat AS jsonb), now())"
+                "execucao, prazos, data_atualizacao_fonte, data_proposta, "
+                "numero_proposta, categorias_ia, cache_atualizado_em) "
+                "VALUES (:f,:e,:t,:o,:m,:s,:ibge,:nome,:uf,:v,"
+                "CAST(:ex AS jsonb), CAST(:p AS jsonb), :d, :dp, :num, "
+                "CAST(:cat AS jsonb), now())"
             ),
             {
                 "f": fonte,
@@ -95,6 +106,8 @@ async def _seed(
                 "ex": execucao,
                 "p": prazos,
                 "d": date.fromisoformat(data_fonte) if data_fonte else None,
+                "dp": date.fromisoformat(data_proposta) if data_proposta else None,
+                "num": numero,
                 "cat": categorias,
             },
         )
@@ -110,6 +123,29 @@ EXEC_CONSORCIO = (
     '{"natureza_juridica": "Consórcio Público", "ano": "2024", '
     '"tipo_transferencia": "Especial", "valor_global": "50000"}'
 )
+
+
+# ── safra: o filtro/faceta de ano segue a criação ───────────────────────────
+async def test_safra_nao_vem_da_movimentacao(seed_user, seed_municipio) -> None:
+    """Movimentação em 2026 não promove nada à safra 2026 — nem cria safra do nada."""
+    u = await seed_user("safra@x.com")
+    await seed_municipio(u, "3550308")
+    # criada em 2022, movimentada em 2026
+    await _seed("C1", "3550308", data_proposta="2022-03-01", data_fonte="2026-01-30")
+    # sem nenhum sinal de criação, só movimentação
+    await _seed("C2", "3550308", data_fonte="2026-01-30")
+
+    async with rls_session(u) as s:
+        de_2022, _ = await prop_service.listar_pagina(s, ano="2022")
+        de_2026, _ = await prop_service.listar_pagina(s, ano="2026")
+        todas, _ = await prop_service.listar_pagina(s)
+        facetas = await prop_service.facetas(s)
+
+    assert [p.id_externo for p in de_2022] == ["C1"]
+    assert de_2026 == []
+    # sem ano a proposta não some da lista — só fica fora das safras
+    assert {p.id_externo for p in todas} == {"C1", "C2"}
+    assert [o["valor"] for o in facetas["ano"]] == ["2022"]
 
 
 # ── busca textual, dimensões e ordenação ────────────────────────────────────
