@@ -13,9 +13,10 @@ import asyncio
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...connectors import transferegov_disc
 from ...connectors.base import available_sources, get_connector
 from ...core.users import current_superuser
 from ...models.proposta import Proposta
@@ -23,7 +24,7 @@ from ...models.sync_run import SyncRun
 from ...models.usuario import Usuario
 from ...schemas.config import DiagnosticoFontes, FonteDiagnostico, UltimaColeta
 from ...services import config as config_service
-from ...services import llm_providers
+from ...services import consulta_avulsa, llm_providers
 from ..deps import get_platform_db
 
 router = APIRouter(tags=["admin"])
@@ -43,10 +44,17 @@ async def zerar_propostas(
     """Zera TODAS as propostas do sistema (uso: validação — recomeçar a coleta do
     zero). As FKs são ON DELETE CASCADE, então favoritos, pastas, monitoramentos,
     alertas e embeddings ligados às propostas somem junto. Só superuser."""
-    total = (await session.execute(select(func.count()).select_from(Proposta))).scalar_one()
-    await session.execute(delete(Proposta))
+    # A contagem sai do rowcount do próprio DELETE: esta sessão não tem tenant e,
+    # sob o FORCE RLS de propostas, um SELECT enxerga 0 linhas — o painel leria
+    # "0 removidas" e a zeragem pareceria falhar mesmo apagando tudo.
+    result = await session.execute(delete(Proposta))
     await session.commit()
-    return ResultadoLimpeza(removidas=int(total or 0))
+    # Recomeçar a coleta do zero inclui a memória de coleta em processo: sem
+    # isto a busca ao vivo pularia as fontes por até 6h (tentativa "fresca") e o
+    # CSV nacional das discricionárias seria reaproveitado do cache.
+    consulta_avulsa.limpar_cache_coleta()
+    transferegov_disc.limpar_cache()
+    return ResultadoLimpeza(removidas=int(result.rowcount or 0))
 
 
 async def _health(fonte: str) -> bool:
