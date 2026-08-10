@@ -6,6 +6,7 @@ Lê de variáveis de ambiente / .env. NUNCA commitar .env (ver .env.example na r
 from __future__ import annotations
 
 from functools import lru_cache
+from urllib.parse import urlsplit
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -57,6 +58,12 @@ class Settings(BaseSettings):
     # connectors já têm timeouts internos; isto é o cinto de segurança contra
     # fonte pendurada segurando a busca (e a conexão de banco) sem fim.
     coleta_timeout_seconds: int = 300
+
+    # ── Observabilidade ──────────────────────────────────────────────────────
+    # Request acima deste teto (ms) sai no log com rota, status, duração e o
+    # estado do pool de conexões (core/latencia.py) — diagnóstico de lentidão
+    # em produção direto do `docker logs`, sem precisar reproduzir.
+    log_request_lenta_ms: int = 1000
 
     # ── Fontes ───────────────────────────────────────────────────────────────
     transferegov_ff_base_url: str = "https://api.transferegov.gestao.gov.br/fundoafundo/"
@@ -161,7 +168,21 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        """Origens liberadas: CORS_ORIGINS + a origem do próprio app.
+
+        A origem de `app_base_url` é confiável por definição — é o domínio do
+        painel. Sem esta união, expor a API num domínio próprio (front com
+        NEXT_PUBLIC_API_URL) exigia lembrar de CORS_ORIGINS; esquecer bloqueava
+        TODA chamada do navegador (visto em produção: painel inteiro pendurado
+        com "No 'Access-Control-Allow-Origin' header").
+        """
+        origens = [o.strip().rstrip("/") for o in self.cors_origins.split(",") if o.strip()]
+        partes = urlsplit(self.app_base_url)
+        if partes.scheme and partes.netloc:
+            origem_app = f"{partes.scheme}://{partes.netloc}"
+            if origem_app not in origens:
+                origens.append(origem_app)
+        return origens
 
 
 @lru_cache

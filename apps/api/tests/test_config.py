@@ -76,3 +76,29 @@ async def test_catalogo_agrupa_por_provider_e_expoe_origem() -> None:
     # sem valor em lugar nenhum → 'padrao' e não-configurado
     assert itens["llm_api_key"]["origem"] == "padrao"
     assert itens["llm_api_key"]["configurado"] is False
+
+
+# ── CORS: a origem do próprio app é liberada por definição ──────────────────
+def test_cors_inclui_origem_do_app_base_url() -> None:
+    from src.core.config import Settings
+
+    s = Settings(
+        cors_origins="http://localhost:3000",
+        app_base_url="https://app.hubcapture.com.br",
+    )
+    assert "https://app.hubcapture.com.br" in s.cors_origins_list
+    assert "http://localhost:3000" in s.cors_origins_list
+
+
+def test_cors_nao_duplica_nem_quebra_sem_app_base_url() -> None:
+    from src.core.config import Settings
+
+    s = Settings(
+        cors_origins="https://app.hubcapture.com.br, https://www.hubcapture.com.br/",
+        app_base_url="https://app.hubcapture.com.br/",
+    )
+    assert s.cors_origins_list.count("https://app.hubcapture.com.br") == 1
+    assert "https://www.hubcapture.com.br" in s.cors_origins_list
+
+    sem_base = Settings(cors_origins="http://localhost:3000", app_base_url="")
+    assert sem_base.cors_origins_list == ["http://localhost:3000"]

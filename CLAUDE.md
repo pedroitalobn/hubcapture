@@ -1415,6 +1415,12 @@ bloqueia o event loop, não segura conexão de banco e não se repete sem TTL.**
   request de router guardado. `esta_ativo` agora usa snapshot em memória com
   TTL 10s, invalidado por `definir()` (toggle do painel propaga em segundos);
   banco fora do ar degrada para os `padrao` do registro em vez de 500.
+- **Latência instrumentada**: `core/latencia.py` (middleware ASGI puro — não
+  embrulha corpo, não interfere no SSE) carimba `X-Response-Time` em todo
+  response e loga WARN para request acima de `log_request_lenta_ms` (1s) com
+  rota, status, duração e estado do pool. "Está lento" em produção vira uma
+  linha de `docker logs` apontando a rota culpada — investigar lentidão começa
+  por aí, não por reproduzir.
 
 ## 39. Gates de features por PLANO (config do plano)
 
