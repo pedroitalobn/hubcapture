@@ -1,7 +1,8 @@
 """Normalização de RECEBIDOS: RawRecord → schema canônico `RepasseCanonico`.
 
 Reusa `compute_hash` do normalizer de propostas para detecção de mudança.
-No P1 tudo vem de API/CSV oficial → proveniência 'api'.
+Proveniência padrão 'api'; connector de coleta combinada (API + scraping)
+marca a origem por campo em `raw["_proveniencia"]`.
 """
 
 from __future__ import annotations
@@ -86,7 +87,10 @@ def normalize_repasse(record: RawRecord) -> RepasseCanonico:
         "detalhe": raw.get("detalhe"),
     }
 
-    proveniencia = {k: "api" for k, v in fields.items() if v not in (None, "", False)}
+    # o connector pode marcar a origem por campo em raw["_proveniencia"]
+    # (coleta combinada: 'api' | 'scrape'); sem marca, o padrão segue 'api'
+    hint = raw.get("_proveniencia") if isinstance(raw.get("_proveniencia"), dict) else {}
+    proveniencia = {k: hint.get(k, "api") for k, v in fields.items() if v not in (None, "", False)}
     proveniencia["_fonte"] = record.source_id
     fields["proveniencia"] = proveniencia
     fields["hash_conteudo"] = compute_hash(fields)

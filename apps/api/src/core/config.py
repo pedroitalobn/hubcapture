@@ -66,6 +66,9 @@ class Settings(BaseSettings):
     transferegov_voluntarias_ibge_field: str = ""
     transferegov_disc_csv_url: str = "http://repositorio.dados.gov.br/seges/detru/"
     fns_consulta_url: str = "https://consultafns.saude.gov.br/"
+    # Backend REST do ConsultaFNS (fonte primária; scraping segue como 2ª fonte)
+    fns_api_url: str = "https://consultafns.saude.gov.br/recursos/"
+    fns_api_endpoint: str = ""  # rota no backend; vazio = candidatos conhecidos
     fnde_base_url: str = "https://www.fnde.gov.br/sigefweb/"
     serpro_base_url: str = "https://gateway.apiserpro.serpro.gov.br/"
     # Painel público do SERPRO (Qlik, JS pesado) — extração via scraping headless.
