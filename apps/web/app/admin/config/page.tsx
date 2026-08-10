@@ -1,6 +1,10 @@
 "use client";
 
+import { KeyRound, Save, Settings } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/Button";
+import { Callout } from "@/components/Callout";
+import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api, getToken } from "@/lib/api/client";
 
@@ -59,17 +63,16 @@ export default function AdminConfigPage() {
   const categorias = Array.from(new Set(itens.map((i) => i.categoria)));
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-8">
-      <header>
-        <h1 className="text-2xl font-bold">Configuração de providers</h1>
-        <p className="text-sm text-gray-500">
-          Credenciais e URLs das fontes. Segredos ficam cifrados e mascarados.
-        </p>
-      </header>
-      {msg && <p className="text-sm text-amber-600">{msg}</p>}
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-6 py-8">
+      <PageHeader
+        icon={Settings}
+        title="Configuração de providers"
+        subtitle="Credenciais e URLs das fontes. Segredos ficam cifrados e mascarados."
+      />
+      {msg && <Callout tone="warning">{msg}</Callout>}
 
       {categorias.map((cat) => (
-        <section key={cat} className="flex flex-col gap-3">
+        <section key={cat} className="flex flex-col gap-3 animate-fade-up">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
             {CATEGORIA_LABEL[cat] ?? cat}
           </h2>
@@ -78,12 +81,19 @@ export default function AdminConfigPage() {
             .map((i) => (
               <div
                 key={i.chave}
-                className="flex flex-wrap items-center gap-3 rounded-md border border-gray-200 p-3 dark:border-gray-800"
+                className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white p-3.5 shadow-card transition-colors hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700"
               >
                 <div className="min-w-40 flex-1">
-                  <div className="text-sm font-medium">{i.label}</div>
+                  <div className="inline-flex items-center gap-1.5 text-sm font-medium">
+                    {i.secreto && (
+                      <KeyRound className="h-3.5 w-3.5 text-gray-400" aria-hidden />
+                    )}
+                    {i.label}
+                  </div>
                   <div className="text-xs text-gray-500">
-                    {i.chave}
+                    <code className="rounded bg-gray-100 px-1 py-0.5 dark:bg-gray-800">
+                      {i.chave}
+                    </code>
                     {i.valor ? ` · ${i.valor}` : ""}
                   </div>
                 </div>
@@ -97,15 +107,16 @@ export default function AdminConfigPage() {
                   onChange={(e) =>
                     setEdits((s) => ({ ...s, [i.chave]: e.target.value }))
                   }
-                  className="w-48 rounded-md border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900"
+                  className="w-48 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm transition-colors focus:border-brand-500 dark:border-gray-700 dark:bg-gray-950"
                 />
-                <button
+                <Button
+                  size="sm"
                   onClick={() => salvar(i.chave)}
                   disabled={!(edits[i.chave] ?? "").length}
-                  className="rounded-md bg-brand px-3 py-1.5 text-sm text-brand-fg disabled:opacity-50"
+                  icon={<Save className="h-3.5 w-3.5" aria-hidden />}
                 >
                   Salvar
-                </button>
+                </Button>
               </div>
             ))}
         </section>

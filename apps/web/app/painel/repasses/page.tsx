@@ -1,11 +1,15 @@
 "use client";
 
+import { Banknote, HandCoins, Layers } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Callout } from "@/components/Callout";
 import { DateRangePresets, presetToInicio, type RangePreset } from "@/components/DateRangePresets";
 import { Feed } from "@/components/Feed";
 import { FilterChips } from "@/components/FilterChips";
+import { PageHeader } from "@/components/PageHeader";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
+import { SyncMunicipioForm } from "@/components/SyncMunicipioForm";
 import { api } from "@/lib/api/client";
 import { formatBRL } from "@/lib/format";
 
@@ -49,8 +53,8 @@ export default function RepassesPage() {
   const [data, setData] = useState<VisaoGeral | null>(null);
   const [loading, setLoading] = useState(true);
   const [fonteSel, setFonteSel] = useState<string | null>(null);
-  const [ibge, setIbge] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
   const [sincronizando, setSincronizando] = useState(false);
 
   const carregar = useCallback(async () => {
@@ -59,7 +63,7 @@ export default function RepassesPage() {
       params: { query: { inicio: presetToInicio(preset) } },
     });
     if (error) {
-      setMsg("Falha ao carregar a visão geral.");
+      setErro("Falha ao carregar a visão geral.");
     } else {
       setData(vg as VisaoGeral);
     }
@@ -70,19 +74,19 @@ export default function RepassesPage() {
     void carregar();
   }, [carregar]);
 
-  async function sincronizar(e: React.FormEvent) {
-    e.preventDefault();
-    setMsg(null);
+  async function sincronizar(ibge: string) {
+    setErro(null);
+    setOk(null);
     setSincronizando(true);
     const { error } = await api.POST("/api/v1/repasses/sync", {
       body: { municipio_ibge: ibge },
     });
     if (error) {
-      setMsg(
+      setErro(
         "As fontes oficiais não responderam agora (comum: instabilidade/rede). Tente novamente.",
       );
     } else {
-      setMsg("Sincronização concluída.");
+      setOk("Sincronização concluída.");
       await carregar();
     }
     setSincronizando(false);
@@ -108,47 +112,36 @@ export default function RepassesPage() {
 
   return (
     <>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Recursos recebidos</h1>
-        <DateRangePresets value={preset} onChange={setPreset} />
-      </header>
+      <PageHeader
+        icon={HandCoins}
+        title="Recursos recebidos"
+        subtitle="Repasses que entraram no caixa do seu território."
+        actions={<DateRangePresets value={preset} onChange={setPreset} />}
+      />
 
-      <form onSubmit={sincronizar} className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          Sincronizar município (IBGE, 7 dígitos)
-          <input
-            value={ibge}
-            onChange={(e) => setIbge(e.target.value)}
-            placeholder="3550308"
-            maxLength={7}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={sincronizando || ibge.length !== 7}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
-        >
-          {sincronizando ? "Sincronizando…" : "Buscar nas fontes"}
-        </button>
-      </form>
+      <SyncMunicipioForm onSync={sincronizar} loading={sincronizando} />
 
-      {msg && <p className="text-sm text-gray-600 dark:text-gray-400">{msg}</p>}
+      {erro && <Callout tone="error">{erro}</Callout>}
+      {ok && <Callout tone="success">{ok}</Callout>}
 
       {loading ? (
         <SkeletonCards />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 stagger">
             <StatCard
               label="Total Pago"
               value={formatBRL(data?.total_pago)}
               context={`${data?.movimentacoes ?? 0} movimentações`}
+              icon={Banknote}
+              tone="success"
             />
             <StatCard
               label="Fontes"
               value={String(data?.fontes.length ?? 0)}
               context="com movimentação no período"
+              icon={Layers}
+              tone="brand"
             />
           </div>
 

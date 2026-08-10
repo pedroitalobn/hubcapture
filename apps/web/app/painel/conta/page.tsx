@@ -1,7 +1,14 @@
 "use client";
 
+import { BellRing, KeyRound, Phone, Save, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/Button";
+import { Callout } from "@/components/Callout";
+import { PageHeader } from "@/components/PageHeader";
 import { atualizarPerfil, meProfile } from "@/lib/api/client";
+
+const INPUT =
+  "rounded-lg border border-gray-300 bg-white px-3 py-2 transition-colors focus:border-brand-500 dark:border-gray-700 dark:bg-gray-950";
 
 export default function ContaPage() {
   const [nome, setNome] = useState("");
@@ -9,7 +16,9 @@ export default function ContaPage() {
   const [optin, setOptin] = useState(false);
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ tone: "success" | "error"; texto: string } | null>(
+    null,
+  );
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
@@ -41,9 +50,12 @@ export default function ContaPage() {
         telefone_wpp: telefone,
         optin_wpp: optin,
       });
-      setMsg("Perfil atualizado.");
+      setMsg({ tone: "success", texto: "Perfil atualizado." });
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "Erro ao salvar");
+      setMsg({
+        tone: "error",
+        texto: err instanceof Error ? err.message : "Erro ao salvar",
+      });
     } finally {
       setSalvando(false);
     }
@@ -53,16 +65,19 @@ export default function ContaPage() {
     e.preventDefault();
     setMsg(null);
     if (senha.length < 8) {
-      setMsg("A senha precisa ter ao menos 8 caracteres.");
+      setMsg({ tone: "error", texto: "A senha precisa ter ao menos 8 caracteres." });
       return;
     }
     setSalvando(true);
     try {
       await atualizarPerfil({ password: senha });
       setSenha("");
-      setMsg("Senha alterada.");
+      setMsg({ tone: "success", texto: "Senha alterada." });
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "Erro ao alterar senha");
+      setMsg({
+        tone: "error",
+        texto: err instanceof Error ? err.message : "Erro ao alterar senha",
+      });
     } finally {
       setSalvando(false);
     }
@@ -70,72 +85,88 @@ export default function ContaPage() {
 
   return (
     <>
-      <header>
-        <h1 className="text-2xl font-bold">Minha conta</h1>
-        <p className="text-sm text-gray-500">{email}</p>
-      </header>
+      <PageHeader icon={UserRound} title="Minha conta" subtitle={email} />
 
-      {msg && <p className="text-sm text-gray-600 dark:text-gray-400">{msg}</p>}
+      {msg && <Callout tone={msg.tone}>{msg.texto}</Callout>}
 
-      <form onSubmit={salvarPerfil} className="flex max-w-md flex-col gap-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+      <form
+        onSubmit={salvarPerfil}
+        className="flex max-w-md flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-card animate-fade-up dark:border-gray-800 dark:bg-gray-900"
+      >
+        <h2 className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-500">
+          <UserRound className="h-4 w-4" aria-hidden />
           Perfil
         </h2>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm font-medium">
           Nome
           <input
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className={INPUT}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm font-medium">
           Telefone (WhatsApp)
-          <input
-            value={telefone}
-            onChange={(e) => setTelefone(e.target.value)}
-            placeholder="+5511999999999"
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-          />
+          <span className="relative">
+            <Phone
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+              aria-hidden
+            />
+            <input
+              value={telefone}
+              onChange={(e) => setTelefone(e.target.value)}
+              placeholder="+5511999999999"
+              className={`${INPUT} w-full pl-9`}
+            />
+          </span>
         </label>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-gray-200 px-3 py-2.5 text-sm transition-colors hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/50">
           <input
             type="checkbox"
             checked={optin}
             onChange={(e) => setOptin(e.target.checked)}
+            className="h-4 w-4 accent-[var(--color-brand-600)]"
           />
+          <BellRing className="h-4 w-4 text-gray-400" aria-hidden />
           Receber alertas por WhatsApp
         </label>
-        <button
+        <Button
           type="submit"
-          disabled={salvando}
-          className="self-start rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
+          loading={salvando}
+          icon={<Save className="h-4 w-4" aria-hidden />}
+          className="self-start"
         >
           Salvar perfil
-        </button>
+        </Button>
       </form>
 
-      <form onSubmit={trocarSenha} className="flex max-w-md flex-col gap-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+      <form
+        onSubmit={trocarSenha}
+        className="flex max-w-md flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-card animate-fade-up dark:border-gray-800 dark:bg-gray-900"
+      >
+        <h2 className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-500">
+          <KeyRound className="h-4 w-4" aria-hidden />
           Trocar senha
         </h2>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm font-medium">
           Nova senha
           <input
             type="password"
             minLength={8}
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className={INPUT}
           />
         </label>
-        <button
+        <Button
           type="submit"
-          disabled={salvando || !senha}
-          className="self-start rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
+          loading={salvando}
+          disabled={!senha}
+          icon={<KeyRound className="h-4 w-4" aria-hidden />}
+          className="self-start"
         >
           Alterar senha
-        </button>
+        </Button>
       </form>
     </>
   );

@@ -1,9 +1,21 @@
 "use client";
 
+import {
+  BadgeCheck,
+  CircleAlert,
+  ClipboardCheck,
+  Scale,
+  ShieldCheck,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { Callout } from "@/components/Callout";
+import { EmptyState } from "@/components/EmptyState";
+import { PageHeader } from "@/components/PageHeader";
+import { ProgressBar } from "@/components/ProgressBar";
+import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
-import { SkeletonCards } from "@/components/Skeleton";
+import { SyncMunicipioForm } from "@/components/SyncMunicipioForm";
 import { api } from "@/lib/api/client";
 
 interface Requisito {
@@ -45,8 +57,8 @@ const LABEL: Record<string, string> = {
 export default function ConformidadePage() {
   const [data, setData] = useState<Resumo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [ibge, setIbge] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
   const [sinc, setSinc] = useState(false);
 
   const carregar = useCallback(async () => {
@@ -62,19 +74,18 @@ export default function ConformidadePage() {
     void carregar();
   }, [carregar]);
 
-  async function sincronizar(e: React.FormEvent) {
-    e.preventDefault();
-    setMsg(null);
+  async function sincronizar(ibge: string) {
+    setErro(null);
+    setOk(null);
     setSinc(true);
     const { error } = await api.POST("/api/v1/conformidade/sync", {
       body: { municipio_ibge: ibge },
     });
-    setMsg(
-      error
-        ? "A fonte (Tesouro) não respondeu agora. Tente novamente."
-        : "Sincronização concluída.",
-    );
-    if (!error) await carregar();
+    if (error) setErro("A fonte (Tesouro) não respondeu agora. Tente novamente.");
+    else {
+      setOk("Sincronização concluída.");
+      await carregar();
+    }
     setSinc(false);
   }
 
@@ -83,71 +94,108 @@ export default function ConformidadePage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold">Conformidade fiscal (CAUC/CAPAG)</h1>
+      <PageHeader
+        icon={ShieldCheck}
+        title="Conformidade fiscal"
+        subtitle="Requisitos CAUC e capacidade de pagamento (CAPAG) do seu território."
+      />
 
-      <form onSubmit={sincronizar} className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          Sincronizar município (IBGE)
-          <input
-            value={ibge}
-            onChange={(e) => setIbge(e.target.value)}
-            placeholder="3550308"
-            maxLength={7}
-            className="rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={sinc || ibge.length !== 7}
-          className="rounded-md bg-brand px-4 py-2 text-brand-fg disabled:opacity-60"
-        >
-          {sinc ? "Sincronizando…" : "Buscar no Tesouro"}
-        </button>
-      </form>
-      {msg && <p className="text-sm text-gray-600 dark:text-gray-400">{msg}</p>}
+      <SyncMunicipioForm
+        onSync={sincronizar}
+        loading={sinc}
+        buttonLabel="Buscar no Tesouro"
+      />
+
+      {erro && <Callout tone="error">{erro}</Callout>}
+      {ok && <Callout tone="success">{ok}</Callout>}
 
       {loading ? (
         <SkeletonCards />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <StatCard label="Requisitos" value={String(data?.total ?? 0)} />
-            <StatCard label="Comprovados" value={String(data?.comprovados ?? 0)} />
-            <StatCard label="A comprovar" value={String(data?.a_comprovar ?? 0)} />
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 stagger">
+            <StatCard
+              label="Requisitos"
+              value={String(data?.total ?? 0)}
+              icon={ClipboardCheck}
+              tone="brand"
+            />
+            <StatCard
+              label="Comprovados"
+              value={String(data?.comprovados ?? 0)}
+              icon={BadgeCheck}
+              tone="success"
+            />
+            <StatCard
+              label="A comprovar"
+              value={String(data?.a_comprovar ?? 0)}
+              icon={CircleAlert}
+              tone="warning"
+            />
             <StatCard
               label="CAPAG"
               value={data?.capag?.status ? "avaliado" : "—"}
               context="capacidade de pagamento"
+              icon={Scale}
+              tone="neutral"
             />
           </div>
 
-          {(data?.secoes ?? []).map((sec) => (
-            <section key={sec.secao} className="flex flex-col gap-2">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                {sec.secao} · {sec.comprovados}/{sec.total} comprovados
-              </h2>
-              <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-900">
-                {requisitosPorSecao(sec.secao).map((r) => (
-                  <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                    <span>
-                      <span className="font-mono text-xs text-gray-500">{r.numero}</span>{" "}
-                      {r.descricao ?? "—"}
-                      {r.orgao ? (
-                        <span className="text-xs text-gray-400"> · {r.orgao}</span>
-                      ) : null}
+          {(data?.secoes ?? []).map((sec) => {
+            const pct = sec.total > 0 ? (sec.comprovados / sec.total) * 100 : 0;
+            return (
+              <section
+                key={sec.secao}
+                className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card animate-fade-up dark:border-gray-800 dark:bg-gray-900"
+              >
+                <div className="border-b border-gray-100 bg-gray-50/70 px-4 py-3 dark:border-gray-800 dark:bg-gray-950/40">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                      {sec.secao}
+                    </h2>
+                    <span className="text-xs font-medium tabular-nums text-gray-500">
+                      {sec.comprovados}/{sec.total} comprovados
                     </span>
-                    <StatusBadge tone={TONE[r.status ?? ""] ?? "neutral"}>
-                      {LABEL[r.status ?? ""] ?? r.status ?? "—"}
-                    </StatusBadge>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
+                  </div>
+                  <ProgressBar
+                    value={pct}
+                    tone={pct >= 100 ? "success" : pct >= 50 ? "brand" : "warning"}
+                    className="mt-2"
+                  />
+                </div>
+                <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {requisitosPorSecao(sec.secao).map((r) => (
+                    <li
+                      key={r.id}
+                      className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    >
+                      <span className="min-w-0">
+                        <span className="mr-1.5 rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-500 dark:bg-gray-800">
+                          {r.numero}
+                        </span>
+                        {r.descricao ?? "—"}
+                        {r.orgao ? (
+                          <span className="text-xs text-gray-400"> · {r.orgao}</span>
+                        ) : null}
+                      </span>
+                      <StatusBadge
+                        tone={TONE[r.status ?? ""] ?? "neutral"}
+                        pulse={r.status === "a_comprovar"}
+                      >
+                        {LABEL[r.status ?? ""] ?? r.status ?? "—"}
+                      </StatusBadge>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
           {(data?.total ?? 0) === 0 && (
-            <p className="text-gray-500">
-              Sem dados de conformidade. Sincronize um município acima.
-            </p>
+            <EmptyState
+              icon={ShieldCheck}
+              title="Sem dados de conformidade"
+              description="Sincronize um município acima para consultar os requisitos CAUC no Tesouro."
+            />
           )}
         </>
       )}
