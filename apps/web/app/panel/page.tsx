@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
+import { NumeroProposta } from "@/components/NumeroProposta";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
@@ -174,6 +175,7 @@ interface Novidade {
   municipio_nome?: string | null;
   href: string;
   proposta_id?: string | null;
+  numero_proposta?: string | null;
 }
 interface SyncRunStatus {
   fonte?: string | null;
@@ -670,8 +672,18 @@ function MeuPainel() {
                       className="flex flex-1 flex-col gap-1 px-2 py-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm text-ink">
-                          {humanizarCaixa(n.titulo)}
+                        {/* O nº abre o item: é por ele que o gestor localiza a
+                            proposta no meio do feed (§35). Sem número — caso
+                            dos repasses — a linha começa direto no título. */}
+                        <p className="flex min-w-0 items-center gap-2">
+                          <NumeroProposta
+                            numero={n.numero_proposta}
+                            tamanho="sm"
+                            copiavel={false}
+                          />
+                          <span className="truncate text-sm text-ink">
+                            {humanizarCaixa(n.titulo)}
+                          </span>
                         </p>
                         <p className="mt-0.5 flex flex-wrap gap-x-2 text-[12px] text-ink-3">
                           <span className="font-mono uppercase tracking-[0.04em]">

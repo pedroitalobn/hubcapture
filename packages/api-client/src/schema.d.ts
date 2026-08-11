@@ -3965,6 +3965,8 @@ export interface components {
             municipio_ibge?: string | null;
             /** Municipio Nome */
             municipio_nome?: string | null;
+            /** Numero Proposta */
+            numero_proposta?: string | null;
             /** Proposta Id */
             proposta_id?: string | null;
             /** Tipo */

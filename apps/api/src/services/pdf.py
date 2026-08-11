@@ -612,8 +612,9 @@ def _cabecalho(p: Proposta) -> list:
     territorio = rotulo_municipio(p.municipio_nome, p.uf, p.municipio_ibge)
     # Nº da proposta e data de criação são dado de cabeçalho: é por eles que o
     # gestor referencia a proposta e confere no portal da fonte.
-    numero = p.numero_proposta or p.id_externo
-    referencia = f"Proposta {numero}" if numero else ""
+    # sem NR_PROPOSTA não há referência: escrever "Proposta <id_externo>" daria
+    # ao gestor um número para citar no órgão que a fonte não reconhece.
+    referencia = f"Proposta {p.numero_proposta}" if p.numero_proposta else ""
     if p.data_proposta:
         referencia = f"{referencia} · de {_data(p.data_proposta)}".lstrip(" ·")
     meta = " · ".join(
@@ -788,7 +789,11 @@ def _bloco_dados_gerais(p: Proposta) -> Table:
         _campo("Órgão superior", _t(p.orgao_superior)),
         _campo("Modalidade", _t(p.modalidade)),
         _campo("Emenda", _t(p.emenda)),
-        _campo("Nº da proposta", _t(p.numero_proposta or p.id_externo)),
+        # SÓ o NR_PROPOSTA: cair para `id_externo` rotulava o identificador da
+        # integração como "nº da proposta" — número que não existe no portal da
+        # fonte, num documento feito para ser levado ao órgão. O id da fonte já
+        # tem o campo próprio na linha seguinte.
+        _campo("Nº da proposta", _t(p.numero_proposta)),
         _campo("Identificador na fonte", escape(str(p.id_externo or "—"))),
         _campo("Fonte", escape(_fonte_rotulo(p))),
         _campo("Criada na fonte", _data(p.data_proposta)),
