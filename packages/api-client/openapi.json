@@ -5216,6 +5216,17 @@
             ],
             "title": "Municipio Nome"
           },
+          "numero_proposta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Proposta"
+          },
           "proposta_id": {
             "anyOf": [
               {

@@ -12,6 +12,7 @@ import {
   EmpenhosProposta,
   type EmpenhoResumo,
 } from "@/components/EmpenhosProposta";
+import { NumeroProposta } from "@/components/NumeroProposta";
 import { Skeleton } from "@/components/Skeleton";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { TextoExpansivel } from "@/components/TextoExpansivel";
@@ -388,14 +389,17 @@ export default function PropostaDetalhePage() {
               ela ("14275/2026, de 26/03") e é o que ele digita para conferir no
               portal da fonte. Dado de cabeçalho — diferente de `id_externo`/UUID,
               que são plumbing e ficam em "Dados gerais". */}
-          <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-ink-2">
-            <span>
-              Proposta{" "}
-              <span className="num select-all font-semibold text-ink">
-                {p.numero_proposta ?? "—"}
-              </span>{" "}
-              <Hint chave="proposta.numero_proposta" className="align-middle" />
-            </span>
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-2">
+            {p.numero_proposta ? (
+              // mesma pílula da lista e do feed: o gestor reconhece o número
+              // pelo formato e daqui copia para colar no portal da fonte
+              <NumeroProposta numero={p.numero_proposta} />
+            ) : (
+              <span>
+                Proposta <span className="num text-ink-3">sem nº na fonte</span>
+              </span>
+            )}
+            <Hint chave="proposta.numero_proposta" className="align-middle" />
             {p.data_proposta && (
               <>
                 <span className="text-ink-3">·</span>
@@ -754,10 +758,12 @@ export default function PropostaDetalhePage() {
             <Dado rotulo="Modalidade" valor={humanizarCaixa(p.modalidade)} />
             <Dado rotulo="Emenda" valor={p.emenda} />
             <Dado rotulo="Natureza jurídica" valor={p.natureza_juridica} />
-            <Dado
-              rotulo="Nº da proposta"
-              valor={p.numero_proposta ?? p.id_externo}
-            />
+            {/* SÓ o NR_PROPOSTA. A retaguarda para `id_externo` fazia o campo
+                exibir o identificador da integração ROTULADO como "nº da
+                proposta" — um número que não existe no portal da fonte e que o
+                gestor levaria para a conversa com o órgão. Sem número o campo
+                fica vazio ("—"), honesto; o id da fonte tem a linha logo abaixo. */}
+            <Dado rotulo="Nº da proposta" valor={p.numero_proposta} />
             <Dado rotulo="Identificador na fonte" valor={p.id_externo} />
             <Dado
               rotulo="Criada na fonte"

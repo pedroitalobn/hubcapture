@@ -6,6 +6,7 @@ import { api, baixarCsv } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { Hint } from "@/components/Hint";
 import { ModuloGate } from "@/components/ModuloGate";
+import { NumeroProposta } from "@/components/NumeroProposta";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import {
   formatBRL,
@@ -878,7 +879,9 @@ function CaptacaoExploracao() {
             <input
               value={filtros.q}
               onChange={(e) => setFiltros({ q: e.target.value })}
-              placeholder="programa, órgão ou código"
+              // o backend já casa `numero_proposta` — dizer isso aqui é o que
+              // transforma o campo em "buscar a proposta pelo número"
+              placeholder="nº da proposta, programa ou órgão"
               className="input w-full"
             />
           </label>
@@ -1314,34 +1317,33 @@ function CaptacaoExploracao() {
                       </div>
                     </td>
                     <td className="px-3 py-3">
+                      {/* O nº ENCABEÇA a linha, em pílula: varrer a lista atrás
+                          de um número era ler todas as linhas de apoio, onde
+                          ele tinha o mesmo peso do órgão e da modalidade.
+                          Realçado pelo termo da busca quando ela casa nele.
+                          O `id_externo` é plumbing e segue fora daqui — vive no
+                          detalhe, em "Dados gerais". */}
+                      <NumeroProposta
+                        numero={p.numero_proposta}
+                        termo={filtros.q}
+                        tamanho="sm"
+                        className="mb-1"
+                      />
                       <Link
                         href={`/panel/funding/${p.id}`}
-                        className="font-medium hover:underline"
+                        className="block font-medium hover:underline"
                       >
                         {humanizarCaixa(p.titulo ?? p.objeto) ||
                           "Proposta sem título na fonte"}
                       </Link>
-                      {/* Nº da proposta (+ data) abre a linha de apoio: é a
-                          referência que o gestor usa. O `id_externo` é plumbing
-                          e sai daqui — vive no detalhe, em "Dados gerais". */}
                       <p className="mt-0.5 max-w-md text-xs text-ink-3">
-                        {p.numero_proposta && (
-                          <span className="num font-medium text-ink-2">
-                            {p.numero_proposta}
-                            {p.data_proposta
-                              ? ` · ${formatDate(p.data_proposta)}`
-                              : ""}
-                          </span>
-                        )}
-                        {(() => {
-                          const resto = [
-                            humanizarCaixa(p.orgao_superior),
-                            humanizarCaixa(p.modalidade),
-                          ].filter(Boolean);
-                          if (resto.length === 0) return null;
-                          const texto = resto.join(" · ");
-                          return p.numero_proposta ? ` · ${texto}` : texto;
-                        })()}
+                        {[
+                          p.data_proposta ? formatDate(p.data_proposta) : null,
+                          humanizarCaixa(p.orgao_superior),
+                          humanizarCaixa(p.modalidade),
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </p>
                       {/* pílulas de categoria — clicar filtra a lista por ela */}
                       {(p.categorias ?? []).length > 0 && (

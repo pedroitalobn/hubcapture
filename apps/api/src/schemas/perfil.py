@@ -111,6 +111,9 @@ class NovidadeItem(BaseModel):
     href: str
     # id da proposta (só p/ tipo 'captacao') — permite favoritar direto do painel
     proposta_id: str | None = None
+    # NR_PROPOSTA: a referência que o gestor procura no feed (§35). Não
+    # confundir com `proposta_id` (UUID interno, que nunca aparece na tela).
+    numero_proposta: str | None = None
 
 
 class SyncRunStatus(BaseModel):

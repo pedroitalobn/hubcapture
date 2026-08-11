@@ -1706,3 +1706,36 @@ AGREGADO, e no módulo especiais o empenho mora em rota própria —
 - **Calibração**: `python -m src.tools.probe_especiais --rotas` passou a mostrar
   também a rota escolhida para empenho, e `--numero-proposta 14275/2026` bate na
   rota e mostra campos brutos + normalizados.
+
+## 44. O nº da proposta é uma PÍLULA (destaque), não linha de apoio
+
+Complemento operacional da §35: a hierarquia já dizia que a referência da
+proposta é dado de CABEÇALHO, mas na prática o número seguia diluído — mesmo
+tamanho e mesma cor do órgão e da modalidade, numa linha `text-xs text-ink-3`.
+Quem varre a lista atrás de um número tinha que ler todas as linhas de apoio.
+
+- **`components/NumeroProposta.tsx`** é a forma única do número em toda
+  superfície de lista: pílula mono com o acento da marca (lime), `Nº` em
+  rótulo, `select-all`, e **clique copia** (o passo seguinte do gestor é colar
+  no portal da fonte ou no WhatsApp). `termo` realça o trecho pesquisado.
+  `copiavel={false}` quando a pílula fica DENTRO de um `<Link>` — botão
+  aninhado em âncora é HTML inválido e o clique disputaria com a navegação.
+  Sem número, o componente **não renderiza** (nunca cai para `id_externo`: §35).
+- **Onde está**: feed do Meu painel (`app/panel/page.tsx`), lista da Captação
+  (encabeçando a célula, acima do título), Minhas Propostas e o cabeçalho do
+  detalhe. Em Minhas Propostas o `id_externo` SAIU da linha de apoio — era
+  plumbing ocupando o lugar da referência.
+- **Feed**: `NovidadeItem.numero_proposta` (schemas/perfil) é preenchido em
+  `services/perfil.novidades`. Não confundir com `proposta_id` (UUID interno,
+  que nunca aparece na tela).
+- **Busca pelo número** já existia no backend (`_busca_textual` casa
+  `numero_proposta` e `id_externo`); o que faltava era a tela dizer isso — o
+  placeholder do campo de busca da Captação abre com "nº da proposta".
+
+**Nº da proposta NUNCA cai para `id_externo`.** O campo "Nº da proposta" de
+"Dados gerais" (detalhe e espelho PDF) e a referência do cabeçalho do PDF
+tinham retaguarda `p.numero_proposta or p.id_externo`: sem NR_PROPOSTA, o
+identificador da INTEGRAÇÃO aparecia rotulado como número da proposta — um
+número que o portal da fonte não reconhece e que o gestor levaria para a
+conversa com o órgão. Sem número, o campo fica vazio ("—") e o id da fonte
+segue no campo próprio ("Identificador na fonte"), logo abaixo.
