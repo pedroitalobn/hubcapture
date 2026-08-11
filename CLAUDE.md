@@ -1793,3 +1793,17 @@ oficial do SIconv (`VL_GLOBAL_CONV` é a do convênio já celebrado).
   propostas dava zero e não informava nada. Os agregados de CARTEIRA continuam
   com o card — `/proposals/summary` (`cards.valor_a_utilizar`), a tela de
   captação e o resumo —, onde a conta tem massa e significado.
+
+**A LINHA BRUTA do CSV é retaguarda de todo campo.** Os connectors de CSV fazem
+o de-para coluna→campo e guardam a linha original em `plano_acao.csv`
+(`transferegov_disc._plano_do_csv`). Quando o de-para não casa uma coluna, o
+campo chegava vazio ao painel MESMO com o valor à vista no registro-fonte — foi
+o caso do `NR_PROPOSTA` ("34530/2009" no `csv`, proposta exibida como "sem
+número na fonte"). `normalizer._com_linha_bruta` põe a linha bruta como camada
+de BAIXO do plano (com alias de caixa): o de-para do connector continua vencendo
+onde preencheu, e o que ele não achou vem da fonte. Vale para qualquer connector
+que embuta a linha em `csv`. A migration `c9d0e1f2a3b4` faz o mesmo com o que já
+está no banco — promove `NR_PROPOSTA` (sobrescrevendo candidato errado, §35b),
+preenche os demais candidatos só onde está NULL e remonta `data_proposta` nos
+níveis que o backfill anterior (`a7b8c9d0e1f2`) não alcançava, porque só olhava a
+raiz de `dados_fonte`.
