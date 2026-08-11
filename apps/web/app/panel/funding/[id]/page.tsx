@@ -8,6 +8,10 @@ import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { Hint } from "@/components/Hint";
 import { AndamentoProposta } from "@/components/AndamentoProposta";
 import { EmendasProposta } from "@/components/EmendasProposta";
+import {
+  EmpenhosProposta,
+  type EmpenhoResumo,
+} from "@/components/EmpenhosProposta";
 import { NumeroProposta } from "@/components/NumeroProposta";
 import { Skeleton } from "@/components/Skeleton";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
@@ -262,6 +266,9 @@ export default function PropostaDetalhePage() {
   );
   // "Ampliar tudo" da seção de dados da fonte (campos de extensão longa)
   const [abrirTudo, setAbrirTudo] = useState(false);
+  // Totais dos empenhos, entregues pela seção: alimentam a faixa de destaque
+  // quando a fonte não publicou o agregado de execução.
+  const [resumoEmpenhos, setResumoEmpenhos] = useState<EmpenhoResumo | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -344,9 +351,14 @@ export default function PropostaDetalhePage() {
   // §40: o detalhe é panel-core; o módulo captação governa só a consulta ATIVA
   // às fontes (o botão "Consultar fonte" das seções de andamento e emenda).
   const podeExplorar = (perfil?.modulos ?? []).includes("captacao");
-  const empenhadoAUtilizar = p.execucao
-    ? Math.max(0, num(p.execucao.valor_empenhado) - num(p.execucao.valor_pago))
-    : 0;
+  // O empenho tem DUAS origens: o agregado do painel da Visão Geral
+  // (`execucao`, que só existe quando aquela fonte publica) e a soma dos
+  // documentos de `/commitments`. Só o primeiro existia, e por isso a faixa
+  // aparecia vazia — agora o agregado manda e a soma cobre a ausência dele.
+  const empenhado = num(p.execucao?.valor_empenhado) || num(resumoEmpenhos?.valor_empenhado);
+  const pago = num(p.execucao?.valor_pago) || num(resumoEmpenhos?.valor_pago);
+  const empenhadoAUtilizar = Math.max(0, empenhado - pago);
+  const temEmpenho = empenhado > 0;
 
   return (
     <div className="flex flex-col gap-5">
@@ -488,11 +500,9 @@ export default function PropostaDetalhePage() {
             <span className="field-label">
               Empenhado <Hint chave="proposta.empenhado" />
             </span>
-            {p.execucao ? (
+            {temEmpenho ? (
               <>
-                <span className="value-hero">
-                  {formatBRL(p.execucao.valor_empenhado)}
-                </span>
+                <span className="value-hero">{formatBRL(String(empenhado))}</span>
                 <span className="num mt-1 text-xs text-ink-3">
                   {empenhadoAUtilizar > 0
                     ? `${formatBRL(String(empenhadoAUtilizar))} a utilizar`
@@ -503,7 +513,7 @@ export default function PropostaDetalhePage() {
               <>
                 <span className="value-hero text-ink-3">—</span>
                 <span className="num mt-1 text-xs text-ink-3">
-                  sem execução informada
+                  {resumoEmpenhos ? "nenhum empenho emitido" : "consultando empenhos…"}
                 </span>
               </>
             )}
@@ -748,10 +758,12 @@ export default function PropostaDetalhePage() {
             <Dado rotulo="Modalidade" valor={humanizarCaixa(p.modalidade)} />
             <Dado rotulo="Emenda" valor={p.emenda} />
             <Dado rotulo="Natureza jurídica" valor={p.natureza_juridica} />
-            <Dado
-              rotulo="Nº da proposta"
-              valor={p.numero_proposta ?? p.id_externo}
-            />
+            {/* SÓ o NR_PROPOSTA. A retaguarda para `id_externo` fazia o campo
+                exibir o identificador da integração ROTULADO como "nº da
+                proposta" — um número que não existe no portal da fonte e que o
+                gestor levaria para a conversa com o órgão. Sem número o campo
+                fica vazio ("—"), honesto; o id da fonte tem a linha logo abaixo. */}
+            <Dado rotulo="Nº da proposta" valor={p.numero_proposta} />
             <Dado rotulo="Identificador na fonte" valor={p.id_externo} />
             <Dado
               rotulo="Criada na fonte"
@@ -802,6 +814,12 @@ export default function PropostaDetalhePage() {
           tela mesmo com a captação desligada. O que o módulo governa é a
           consulta AO VIVO, então só o botão "Consultar fonte" depende dele. */}
       <AndamentoProposta proposta={p} podeConsultarFonte={podeExplorar} />
+
+      <EmpenhosProposta
+        proposta={p}
+        podeConsultarFonte={podeExplorar}
+        onResumo={setResumoEmpenhos}
+      />
 
       <EmendasProposta proposta={p} podeConsultarFonte={podeExplorar} />
 

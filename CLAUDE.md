@@ -1661,6 +1661,52 @@ de coluna única.
   no fim da lista até a próxima recoleta. Usa `to_date` e não `make_date`: um
   registro sujo que passe pelos guardas não pode derrubar a migration.
 
+## 43. Empenho da proposta — `/empenhos_especiais` (o recurso saiu do papel?)
+
+O empenho não aparecia no painel, e a causa não era a tela: `execucao.
+valor_empenhado` (§28) só existe quando o painel da Visão Geral publica o
+AGREGADO, e no módulo especiais o empenho mora em rota própria —
+`/empenhos_especiais`, consultada pelo **número da proposta**. Faltava coletar.
+
+- **Entidade `proposta_empenhos`** (migration `b8c9d0e1f2a3`): 1-N (a proposta
+  acumula ordinário, reforço, anulação), com `numero_empenho`, `data_empenho`,
+  `tipo`, `situacao`, os valores (`empenhado`/`anulado`/`liquidado`/`pago`) e a
+  origem do recurso (UG emitente, gestão, natureza de despesa, fonte, programa
+  de trabalho). Cache global com RLS só-SELECT por município, como `pareceres`.
+- **Refiltro no cliente, SEMPRE** (`connectors/empenhos_especiais.py`): a rota é
+  conhecida, mas o nome do parâmetro de filtro não — e **FastAPI ignora query
+  param desconhecido** em vez de recusar. Mandar `numero_proposta` numa rota que
+  espera outro nome devolveria a tabela NACIONAL paginada, e o gestor veria
+  empenho alheio como se fosse dele. Então toda linha é conferida contra o
+  número da proposta (comparação só-dígitos: "14275/2026" casa "142752026").
+  Linha que não casa é descartada; resposta que não ecoa NENHUMA coluna de
+  identificação só é aceita quando o spec confirmou o filtro (`Rota.confirmada`).
+- **Anulação não é recurso disponível** (`ingestion/normalizer_empenho.py`):
+  `valor_anulado_*` casa "valor" e seria lido como empenhado — `_NAO_EMPENHADO`
+  exclui anulado/cancelado/estorno do candidato. No total
+  (`services/empenhos_proposta.resumir`) o empenhado sai **líquido** das
+  anulações, e nunca negativo.
+- **Totais na faixa de destaque**: `EmpenhoResumo` (empenhado, anulado,
+  liquidado, pago, **a utilizar** = empenhado − pago, primeiro/último empenho). O
+  detalhe usa o agregado da `execucao` quando existe e **cai para a soma dos
+  documentos** quando não — que era o caso em que a faixa aparecia vazia.
+- **Timeline**: cada empenho datado vira evento (§42). Empenho anulado por
+  inteiro sai `danger`, anulado em parte `warn`, emitido `ok` — pintar os três de
+  verde diria que há recurso reservado onde ele foi devolvido. A timeline LÊ o
+  cache (quem coleta é `/commitments`), senão a mesma tela dispararia duas
+  coletas concorrentes da mesma coisa.
+- **Endpoint**: `GET /proposals/{id}/commitments?atualizar=` (§25: empenhos →
+  commitments), com o mesmo gate por endpoint da §40.
+- **De-para compartilhado** (`ingestion/_campos.py`): `palavras`/`por_termos`/
+  `decimal_br`/`data_de`/`so_digitos` saíram do normalizador de emenda e agora
+  servem os dois — a regra de casar por PALAVRA da coluna (nunca substring) mora
+  em um lugar só.
+- **Config** (categoria fonte): `empenhos_esp_endpoint` (padrão
+  `empenhos_especiais`) e `empenhos_esp_chave` (padrão `numero_proposta`).
+- **Calibração**: `python -m src.tools.probe_especiais --rotas` passou a mostrar
+  também a rota escolhida para empenho, e `--numero-proposta 14275/2026` bate na
+  rota e mostra campos brutos + normalizados.
+
 ## 44. O nº da proposta é uma PÍLULA (destaque), não linha de apoio
 
 Complemento operacional da §35: a hierarquia já dizia que a referência da
@@ -1685,3 +1731,11 @@ Quem varre a lista atrás de um número tinha que ler todas as linhas de apoio.
 - **Busca pelo número** já existia no backend (`_busca_textual` casa
   `numero_proposta` e `id_externo`); o que faltava era a tela dizer isso — o
   placeholder do campo de busca da Captação abre com "nº da proposta".
+
+**Nº da proposta NUNCA cai para `id_externo`.** O campo "Nº da proposta" de
+"Dados gerais" (detalhe e espelho PDF) e a referência do cabeçalho do PDF
+tinham retaguarda `p.numero_proposta or p.id_externo`: sem NR_PROPOSTA, o
+identificador da INTEGRAÇÃO aparecia rotulado como número da proposta — um
+número que o portal da fonte não reconhece e que o gestor levaria para a
+conversa com o órgão. Sem número, o campo fica vazio ("—") e o id da fonte
+segue no campo próprio ("Identificador na fonte"), logo abaixo.

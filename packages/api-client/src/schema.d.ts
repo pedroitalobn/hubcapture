@@ -1808,6 +1808,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/proposals/{proposta_id}/commitments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Empenhos Da Proposta
+         * @description Empenhos da proposta e os totais — o recurso saiu do papel ou não.
+         */
+        get: operations["empenhos_da_proposta_api_v1_proposals__proposta_id__commitments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/proposals/{proposta_id}/opinions": {
         parameters: {
             query?: never;
@@ -2191,6 +2211,7 @@ export interface components {
          */
         AndamentoColeta: {
             emendas?: components["schemas"]["EmendaColeta"] | null;
+            empenhos?: components["schemas"]["EmpenhoColeta"] | null;
             pareceres?: components["schemas"]["ParecerColeta"] | null;
         };
         /** AndamentoPagina */
@@ -2975,6 +2996,140 @@ export interface components {
             valor_empenhado?: string | null;
             /** Valor Pago */
             valor_pago?: string | null;
+        };
+        /**
+         * EmpenhoColeta
+         * @description Estado honesto da coleta — "sem empenho" ≠ "não consegui consultar".
+         */
+        EmpenhoColeta: {
+            /** Erro */
+            erro?: string | null;
+            /** Origem */
+            origem?: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+        };
+        /** EmpenhoPagina */
+        EmpenhoPagina: {
+            coleta: components["schemas"]["EmpenhoColeta"];
+            /**
+             * Itens
+             * @default []
+             */
+            itens: components["schemas"]["EmpenhoRead"][];
+            /**
+             * @default {
+             *       "total": 0,
+             *       "valor_a_utilizar": "0",
+             *       "valor_anulado": "0",
+             *       "valor_empenhado": "0",
+             *       "valor_liquidado": "0",
+             *       "valor_pago": "0"
+             *     }
+             */
+            resumo: components["schemas"]["EmpenhoResumo"];
+        };
+        /** EmpenhoRead */
+        EmpenhoRead: {
+            /** Ano */
+            ano?: string | null;
+            /** Cache Atualizado Em */
+            cache_atualizado_em?: string | null;
+            /** Data Empenho */
+            data_empenho?: string | null;
+            /** Fonte */
+            fonte: string;
+            /** Fonte Recurso */
+            fonte_recurso?: string | null;
+            /** Gestao Emitente */
+            gestao_emitente?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Id Externo */
+            id_externo: string;
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Municipio Nome */
+            municipio_nome?: string | null;
+            /** Natureza Despesa */
+            natureza_despesa?: string | null;
+            /** Numero Empenho */
+            numero_empenho?: string | null;
+            /** Numero Plano Acao */
+            numero_plano_acao?: string | null;
+            /** Numero Proposta */
+            numero_proposta?: string | null;
+            /** Observacao */
+            observacao?: string | null;
+            /** Programa Trabalho */
+            programa_trabalho?: string | null;
+            /** Situacao */
+            situacao?: string | null;
+            /** Tipo Empenho */
+            tipo_empenho?: string | null;
+            /** Uf */
+            uf?: string | null;
+            /** Ug Emitente */
+            ug_emitente?: string | null;
+            /** Valor Anulado */
+            valor_anulado?: string | null;
+            /** Valor Empenhado */
+            valor_empenhado?: string | null;
+            /** Valor Liquidado */
+            valor_liquidado?: string | null;
+            /** Valor Pago */
+            valor_pago?: string | null;
+        };
+        /**
+         * EmpenhoResumo
+         * @description Os totais — é o que a faixa de destaque da proposta mostra.
+         *
+         *     `valor_empenhado` já vem LÍQUIDO das anulações: um empenho anulado que
+         *     continuasse somando diria ao gestor que há recurso onde não há.
+         */
+        EmpenhoResumo: {
+            /** Primeiro Empenho */
+            primeiro_empenho?: string | null;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+            /** Ultimo Empenho */
+            ultimo_empenho?: string | null;
+            /**
+             * Valor A Utilizar
+             * @default 0
+             */
+            valor_a_utilizar: string;
+            /**
+             * Valor Anulado
+             * @default 0
+             */
+            valor_anulado: string;
+            /**
+             * Valor Empenhado
+             * @default 0
+             */
+            valor_empenhado: string;
+            /**
+             * Valor Liquidado
+             * @default 0
+             */
+            valor_liquidado: string;
+            /**
+             * Valor Pago
+             * @default 0
+             */
+            valor_pago: string;
         };
         /** ErrorModel */
         ErrorModel: {
@@ -8719,6 +8874,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmendaPagina"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    empenhos_da_proposta_api_v1_proposals__proposta_id__commitments_get: {
+        parameters: {
+            query?: {
+                /** @description forçar coleta na fonte */
+                atualizar?: boolean;
+            };
+            header?: never;
+            path: {
+                proposta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmpenhoPagina"];
                 };
             };
             /** @description Validation Error */
