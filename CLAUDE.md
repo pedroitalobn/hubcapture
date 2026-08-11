@@ -1098,7 +1098,10 @@ Três problemas da tela de captação, resolvidos na camada certa de cada um.
   texto". Aplicado em `panel/funding/[id]` (limite 180), `panel/funding` e
   `panel/my-proposals` (110). O gatilho "ver completo" fica FORA do que `envolver` monta: nas
   listas o trecho vive dentro de um `<Link>` e botão dentro de âncora é HTML inválido (mesma
-  razão do `copiavel={false}` do `NumeroProposta`, §44).
+  razão do `copiavel={false}` do `NumeroProposta`, §44). Nos **cards** — feed do Meu painel e
+  central de alertas — o teto é **80** e sem gatilho: a linha INTEIRA é o `<Link>` do registro,
+  então não cabe botão dentro dela, e o texto completo está a um clique, no detalhe. O
+  `truncate` continua como segunda rede para a tela estreita.
 - **Modal** (`components/Modal.tsx`) é a janela sobreposta do app — portal no `body` (dentro
   da árvore, o `overflow` das tabelas de captação recortaria a janela e o trilho lateral
   passaria por cima), Esc, clique no FUNDO (não no arrasto de seleção), Tab preso e foco
