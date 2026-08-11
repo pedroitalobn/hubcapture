@@ -25,6 +25,7 @@ import uuid
 
 from ..db.session import rls_session
 from ..jobs import curadoria as curadoria_job
+from ..jobs import validacao as validacao_job
 from . import conformidade as conformidade_service
 from . import consulta_avulsa as consulta_service
 from . import fontes as fontes_service
@@ -105,7 +106,22 @@ async def executar(
             except Exception:
                 log.warning("1º sync captação falhou: %s/%s", fonte, ibge, exc_info=True)
 
-        # 1b) Curadoria por IA (resumo + pílulas refinadas) do que acabou de
+        # 1b) Auditoria por IA do que veio de SCRAPING. Antes da curadoria de
+        # propósito: não faz sentido gastar resumo em registro que a auditoria
+        # vai remover. Sem credencial de LLM o job é no-op e nada é removido.
+        try:
+            async with rls_session(usuario_id) as s:
+                auditoria = await validacao_job.auditar_com_ia(s)
+            if auditoria.removidas:
+                log.info(
+                    "1º sync: auditoria removeu %d registro(s) de coleta em %s",
+                    auditoria.removidas,
+                    ibge,
+                )
+        except Exception:
+            log.warning("1º sync auditoria falhou: %s", ibge, exc_info=True)
+
+        # 1c) Curadoria por IA (resumo + pílulas refinadas) do que acabou de
         # entrar. Fora do request de propósito: é a única etapa que chama LLM.
         try:
             async with rls_session(usuario_id) as s:

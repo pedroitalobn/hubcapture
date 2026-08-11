@@ -7,6 +7,7 @@ como OWNER (migrator); as asserções de RLS rodam como a role de app via
 
 from __future__ import annotations
 
+import json
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from datetime import date
@@ -137,14 +138,27 @@ async def seed_repasse() -> Callable[..., Awaitable[None]]:
 
 @pytest_asyncio.fixture
 async def seed_proposta() -> Callable[..., Awaitable[None]]:
-    async def _seed(fonte: str, id_externo: str, ibge: str, titulo: str = "P") -> None:
+    async def _seed(
+        fonte: str,
+        id_externo: str,
+        ibge: str,
+        titulo: str = "P",
+        proveniencia: dict | None = None,
+    ) -> None:
         async with _owner_engine.begin() as conn:
             await conn.execute(
                 text(
                     "INSERT INTO propostas (fonte, id_externo, titulo, municipio_ibge, "
-                    "cache_atualizado_em) VALUES (:f,:e,:t,:ibge, now())"
+                    "proveniencia, cache_atualizado_em) "
+                    "VALUES (:f,:e,:t,:ibge, cast(:prov as jsonb), now())"
                 ),
-                {"f": fonte, "e": id_externo, "t": titulo, "ibge": ibge},
+                {
+                    "f": fonte,
+                    "e": id_externo,
+                    "t": titulo,
+                    "ibge": ibge,
+                    "prov": json.dumps(proveniencia) if proveniencia else None,
+                },
             )
 
     return _seed

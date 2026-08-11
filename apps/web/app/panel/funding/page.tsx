@@ -805,6 +805,12 @@ function CaptacaoExploracao() {
   const fontesErro = Array.from(
     new Set(fontesStatus.filter((f) => f.status === "erro").map((f) => f.fonte)),
   );
+  // 'degradado' = a fonte respondeu, mas parte do retorno não era proposta e
+  // foi descartada na triagem da ingestão. Sem esta linha o status sumiria da
+  // tela (não é "ok" nem "erro") e o descarte ficaria invisível para o gestor.
+  const fontesDegradadas = Array.from(
+    new Set(fontesStatus.filter((f) => f.status === "degradado").map((f) => f.fonte)),
+  );
 
   return (
     <>
@@ -1177,6 +1183,14 @@ function CaptacaoExploracao() {
             {fontesErro.length > 0 && (
               <span className="rounded-full bg-warn/10 px-2 py-0.5 font-mono text-[11px] text-warn">
                 fora do ar agora: {fontesErro.join(", ")}
+              </span>
+            )}
+            {fontesDegradadas.length > 0 && (
+              <span
+                className="rounded-full bg-warn/10 px-2 py-0.5 font-mono text-[11px] text-warn"
+                title="A fonte respondeu, mas parte do retorno não era proposta (página de erro, rodapé de tabela) e foi descartada."
+              >
+                retorno parcial: {fontesDegradadas.join(", ")}
               </span>
             )}
           </>
