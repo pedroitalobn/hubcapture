@@ -122,6 +122,15 @@ class PropostaRead(BaseModel):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
+    def valor_global(self) -> Decimal | None:
+        """Valor global da proposta (VL_GLOBAL_PROP na fonte) — o que o card
+        "Empenho" do detalhe mostra."""
+        from ..services.propostas import valor_global_de
+
+        return valor_global_de(self)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def prazo_final(self) -> date | None:
         """Prazo mais próximo declarado (alimenta o contador do card)."""
         datas = []

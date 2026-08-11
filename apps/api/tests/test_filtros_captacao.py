@@ -78,6 +78,45 @@ def test_proposta_read_expoe_o_ano_para_o_cabecalho() -> None:
     assert PropostaRead.model_validate(p).ano == "2024"
 
 
+# ── valor global (o card "Empenho" do detalhe) ──────────────────────────────
+def test_valor_global_vem_do_vl_global_prop_da_fonte() -> None:
+    """VL_GLOBAL_PROP é a variável do SIconv para o valor global da proposta —
+    é ele que o card "Empenho" mostra. Lido direto do registro-fonte (qualquer
+    nível/caixa, formato BR), vence o agregado de execução e o total ingerido."""
+    from decimal import Decimal
+
+    from src.models.proposta import Proposta
+
+    p = Proposta(
+        valor_total=Decimal("999"),
+        execucao={"valor_global": "500"},
+        dados_fonte={"plano_acao": {"csv": {"VL_GLOBAL_PROP": "1.234.567,89"}}},
+    )
+    assert prop_service.valor_global_de(p) == Decimal("1234567.89")
+
+    # sem a variável na fonte, cai no agregado de execução e depois no total
+    p = Proposta(valor_total=Decimal("999"), execucao={"valor_global": "500"})
+    assert prop_service.valor_global_de(p) == Decimal("500")
+    assert prop_service.valor_global_de(Proposta(valor_total=Decimal("999"))) == Decimal("999")
+
+
+def test_proposta_read_expoe_o_valor_global_para_o_card_empenho() -> None:
+    """O detalhe lê `valor_global` da API — o front não vasculha `dados_fonte`."""
+    import uuid
+    from decimal import Decimal
+
+    from src.models.proposta import Proposta
+    from src.schemas.proposta import PropostaRead
+
+    p = Proposta(
+        id=uuid.uuid4(),
+        fonte="transferegov_disc",
+        id_externo="X1",
+        dados_fonte={"plano_acao": {"csv": {"VL_GLOBAL_PROP": "1.234.567,89"}}},
+    )
+    assert PropostaRead.model_validate(p).valor_global == Decimal("1234567.89")
+
+
 def test_mes_de_usa_mes_prop_e_data_da_proposta() -> None:
     """MES_PROP > mês da criação > prazo final > atualização na fonte."""
     from src.models.proposta import Proposta
