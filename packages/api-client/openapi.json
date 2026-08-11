@@ -348,6 +348,25 @@
         "title": "AndamentoPagina",
         "type": "object"
       },
+      "AnoDisponivel": {
+        "description": "Uma safra com novidade no território — alimenta o filtro de ano do painel.\n\nVem SEMPRE do território inteiro (ignora o ano já escolhido): senão, ao\nfiltrar 2024 o próprio filtro perderia as outras opções e o usuário ficaria\npreso na safra que escolheu.",
+        "properties": {
+          "ano": {
+            "title": "Ano",
+            "type": "string"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ano"
+        ],
+        "title": "AnoDisponivel",
+        "type": "object"
+      },
       "AssessoriaContatosSet": {
         "properties": {
           "contatos": {
@@ -2114,6 +2133,11 @@
             },
             "title": "Quebras",
             "type": "array"
+          },
+          "recorte_ano": {
+            "default": true,
+            "title": "Recorte Ano",
+            "type": "boolean"
           },
           "titulo": {
             "title": "Titulo",
@@ -5171,6 +5195,17 @@
       "NovidadeItem": {
         "description": "Uma novidade do território — proposta/verba recém-atualizada no cache.",
         "properties": {
+          "ano": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ano"
+          },
           "data": {
             "anyOf": [
               {
@@ -5279,6 +5314,14 @@
       "NovidadesPerfil": {
         "description": "Feed 'últimas novidades' do Meu painel, recortado pelo perfil (RLS).",
         "properties": {
+          "anos": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AnoDisponivel"
+            },
+            "title": "Anos",
+            "type": "array"
+          },
           "itens": {
             "default": [],
             "items": {
@@ -13615,7 +13658,7 @@
     },
     "/api/v1/profile/feed": {
       "get": {
-        "description": "Feed 'últimas novidades' do território, recortado pelo perfil do usuário.\n\n`limite` controla a profundidade da janela: o painel pede mais que o padrão\npara o filtro por ano alcançar itens de anos anteriores ao corrente.",
+        "description": "Feed 'últimas novidades' do território, recortado pelo perfil do usuário.\n\n`limite` controla a profundidade da janela e `ano`, a safra: o filtro entra\nANTES da janela, então escolher um ano anterior traz os itens daquele ano —\nnão só os que sobraram das novidades mais recentes.",
         "operationId": "novidades_perfil_api_v1_profile_feed_get",
         "parameters": [
           {
@@ -13651,6 +13694,25 @@
               "minimum": 1,
               "title": "Limite",
               "type": "integer"
+            }
+          },
+          {
+            "description": "safra (ano) do recorte; omitir = todos os anos",
+            "in": "query",
+            "name": "ano",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "safra (ano) do recorte; omitir = todos os anos",
+              "title": "Ano"
             }
           }
         ],
@@ -13710,6 +13772,25 @@
               ],
               "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
+            }
+          },
+          {
+            "description": "safra (ano) do recorte; omitir = todos os anos",
+            "in": "query",
+            "name": "ano",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "safra (ano) do recorte; omitir = todos os anos",
+              "title": "Ano"
             }
           }
         ],
