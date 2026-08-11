@@ -4807,6 +4807,17 @@
             ],
             "title": "Municipio Nome"
           },
+          "numero_proposta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Proposta"
+          },
           "proposta_id": {
             "anyOf": [
               {
@@ -7039,7 +7050,7 @@
         "type": "object"
       },
       "ResetPerfilResultado": {
-        "description": "O que a zeragem do perfil apagou — e o que ela só invalidou.\n\n`cache_invalidado` conta as linhas de cache global (propostas, repasses,\nconformidades, obras) do território que voltaram a ser \"velhas\": elas não\nsão apagadas porque são compartilhadas entre usuários (ver\n`services/perfil.zerar`), mas serão recoletadas do zero no próximo\nonboarding.",
+        "description": "O que a zeragem do perfil apagou — e o que ela só marcou/invalidou.\n\nNada de cache global sai do banco (ver `services/perfil.zerar`):\n`propostas` conta as propostas do território marcadas como excluídas (soft\ndelete — somem do painel e a coleta seguinte as ressuscita) e\n`cache_invalidado`, as linhas de repasses/conformidades/obras que voltaram\na ser \"velhas\" e serão recoletadas.",
         "properties": {
           "alertas": {
             "default": 0,
@@ -7069,6 +7080,11 @@
           "pastas": {
             "default": 0,
             "title": "Pastas",
+            "type": "integer"
+          },
+          "propostas": {
+            "default": 0,
+            "title": "Propostas",
             "type": "integer"
           }
         },
@@ -9819,7 +9835,7 @@
     },
     "/api/v1/admin/proposals": {
       "delete": {
-        "description": "Zera TODAS as propostas do sistema (uso: validação — recomeçar a coleta do\nzero). As FKs são ON DELETE CASCADE, então favoritos, pastas, monitoramentos,\nalertas e embeddings ligados às propostas somem junto. Só superuser.",
+        "description": "Zera TODAS as propostas do sistema (uso: validação — recomeçar a coleta\ndo zero). É SOFT DELETE: marca `excluido_em`, não apaga a linha. Assim o\ncascade das FKs não dispara e favoritos, pastas, monitoramentos e alertas\ndos usuários sobrevivem — e dá para desfazer. Só superuser.",
         "operationId": "zerar_propostas_api_v1_admin_proposals_delete",
         "responses": {
           "200": {
@@ -9839,6 +9855,33 @@
           }
         ],
         "summary": "Zerar Propostas",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/proposals/restore": {
+      "post": {
+        "description": "Desfaz a zeragem: as propostas marcadas voltam ao painel.\n\nÉ o que o soft delete compra — o dado nunca saiu do banco. Alcança TODAS as\nmarcadas (inclusive as de uma zeragem de perfil), porque a sessão de\nplataforma não consegue distinguir território de ninguém sob RLS.",
+        "operationId": "restaurar_propostas_api_v1_admin_proposals_restore_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoLimpeza"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Restaurar Propostas",
         "tags": [
           "admin"
         ]

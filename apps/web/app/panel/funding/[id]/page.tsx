@@ -8,6 +8,7 @@ import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { Hint } from "@/components/Hint";
 import { AndamentoProposta } from "@/components/AndamentoProposta";
 import { EmendasProposta } from "@/components/EmendasProposta";
+import { NumeroProposta } from "@/components/NumeroProposta";
 import { Skeleton } from "@/components/Skeleton";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { TextoExpansivel } from "@/components/TextoExpansivel";
@@ -376,14 +377,17 @@ export default function PropostaDetalhePage() {
               ela ("14275/2026, de 26/03") e é o que ele digita para conferir no
               portal da fonte. Dado de cabeçalho — diferente de `id_externo`/UUID,
               que são plumbing e ficam em "Dados gerais". */}
-          <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-ink-2">
-            <span>
-              Proposta{" "}
-              <span className="num select-all font-semibold text-ink">
-                {p.numero_proposta ?? "—"}
-              </span>{" "}
-              <Hint chave="proposta.numero_proposta" className="align-middle" />
-            </span>
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-2">
+            {p.numero_proposta ? (
+              // mesma pílula da lista e do feed: o gestor reconhece o número
+              // pelo formato e daqui copia para colar no portal da fonte
+              <NumeroProposta numero={p.numero_proposta} />
+            ) : (
+              <span>
+                Proposta <span className="num text-ink-3">sem nº na fonte</span>
+              </span>
+            )}
+            <Hint chave="proposta.numero_proposta" className="align-middle" />
             {p.data_proposta && (
               <>
                 <span className="text-ink-3">·</span>

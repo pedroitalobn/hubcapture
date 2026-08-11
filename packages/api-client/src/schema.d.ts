@@ -498,11 +498,36 @@ export interface paths {
         post?: never;
         /**
          * Zerar Propostas
-         * @description Zera TODAS as propostas do sistema (uso: validação — recomeçar a coleta do
-         *     zero). As FKs são ON DELETE CASCADE, então favoritos, pastas, monitoramentos,
-         *     alertas e embeddings ligados às propostas somem junto. Só superuser.
+         * @description Zera TODAS as propostas do sistema (uso: validação — recomeçar a coleta
+         *     do zero). É SOFT DELETE: marca `excluido_em`, não apaga a linha. Assim o
+         *     cascade das FKs não dispara e favoritos, pastas, monitoramentos e alertas
+         *     dos usuários sobrevivem — e dá para desfazer. Só superuser.
          */
         delete: operations["zerar_propostas_api_v1_admin_proposals_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/proposals/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restaurar Propostas
+         * @description Desfaz a zeragem: as propostas marcadas voltam ao painel.
+         *
+         *     É o que o soft delete compra — o dado nunca saiu do banco. Alcança TODAS as
+         *     marcadas (inclusive as de uma zeragem de perfil), porque a sessão de
+         *     plataforma não consegue distinguir território de ninguém sob RLS.
+         */
+        post: operations["restaurar_propostas_api_v1_admin_proposals_restore_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3785,6 +3810,8 @@ export interface components {
             municipio_ibge?: string | null;
             /** Municipio Nome */
             municipio_nome?: string | null;
+            /** Numero Proposta */
+            numero_proposta?: string | null;
             /** Proposta Id */
             proposta_id?: string | null;
             /** Tipo */
@@ -4545,13 +4572,13 @@ export interface components {
         };
         /**
          * ResetPerfilResultado
-         * @description O que a zeragem do perfil apagou — e o que ela só invalidou.
+         * @description O que a zeragem do perfil apagou — e o que ela só marcou/invalidou.
          *
-         *     `cache_invalidado` conta as linhas de cache global (propostas, repasses,
-         *     conformidades, obras) do território que voltaram a ser "velhas": elas não
-         *     são apagadas porque são compartilhadas entre usuários (ver
-         *     `services/perfil.zerar`), mas serão recoletadas do zero no próximo
-         *     onboarding.
+         *     Nada de cache global sai do banco (ver `services/perfil.zerar`):
+         *     `propostas` conta as propostas do território marcadas como excluídas (soft
+         *     delete — somem do painel e a coleta seguinte as ressuscita) e
+         *     `cache_invalidado`, as linhas de repasses/conformidades/obras que voltaram
+         *     a ser "velhas" e serão recoletadas.
          */
         ResetPerfilResultado: {
             /**
@@ -4584,6 +4611,11 @@ export interface components {
              * @default 0
              */
             pastas: number;
+            /**
+             * Propostas
+             * @default 0
+             */
+            propostas: number;
         };
         /** ResultadoLimpeza */
         ResultadoLimpeza: {
@@ -6109,6 +6141,26 @@ export interface operations {
         };
     };
     zerar_propostas_api_v1_admin_proposals_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoLimpeza"];
+                };
+            };
+        };
+    };
+    restaurar_propostas_api_v1_admin_proposals_restore_post: {
         parameters: {
             query?: never;
             header?: never;

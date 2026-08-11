@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
+import { NumeroProposta } from "@/components/NumeroProposta";
 import { municipioPrincipal, municipioSecundario } from "@/lib/format";
 import { useTerritorio } from "@/lib/territorio";
 
@@ -11,6 +12,7 @@ type Proposta = {
   id: string;
   fonte: string;
   id_externo: string;
+  numero_proposta?: string | null;
   titulo?: string | null;
   objeto?: string | null;
   orgao_superior?: string | null;
@@ -127,11 +129,15 @@ export default function MinhasPropostasPage() {
                     </div>
                   </td>
                   <td className="px-3 py-3">
-                    <Link href={`/panel/funding/${p.id}`} className="font-medium hover:underline">
+                    {/* mesma pílula da captação e do feed. O `id_externo` saiu
+                        da linha de apoio: é plumbing da integração e ocupava o
+                        lugar da referência que o gestor de fato usa (§35). */}
+                    <NumeroProposta numero={p.numero_proposta} tamanho="sm" className="mb-1" />
+                    <Link href={`/panel/funding/${p.id}`} className="block font-medium hover:underline">
                       {p.titulo ?? p.objeto ?? "Proposta sem título na fonte"}
                     </Link>
                     <p className="mt-0.5 max-w-md text-xs text-ink-3">
-                      {[p.orgao_superior, p.modalidade, p.id_externo].filter(Boolean).join(" · ")}
+                      {[p.orgao_superior, p.modalidade].filter(Boolean).join(" · ")}
                     </p>
                   </td>
                   <td className="px-3 py-3 text-ink-2">

@@ -112,6 +112,25 @@ async def test_novidades_sem_preferencias_mostra_tudo_do_territorio(
     assert {i.tipo for i in nov.itens} == {"captacao", "recebido"}
 
 
+async def test_novidades_carrega_numero_da_proposta(
+    seed_user, seed_municipio, seed_proposta
+) -> None:
+    """O feed leva o NR_PROPOSTA — é por ele que o gestor acha a proposta ali."""
+    u = await seed_user("numfeed@a.com")
+    await seed_municipio(u, "3550308")
+    await seed_proposta(
+        "transferegov_ff", "p1", "3550308", titulo="Creche", numero_proposta="014275/2026"
+    )
+
+    async with rls_session(u) as s:
+        nov = await perfil_service.novidades(s, _FakeUser(u))
+
+    captacao = [i for i in nov.itens if i.tipo == "captacao"]
+    assert captacao[0].numero_proposta == "014275/2026"
+    # repasse não tem número de proposta — o campo fica nulo, não inventado
+    assert all(i.numero_proposta is None for i in nov.itens if i.tipo == "recebido")
+
+
 def test_primeiro_sync_seleciona_fontes_pelo_perfil() -> None:
     from src.services import fontes as fontes_service
 
