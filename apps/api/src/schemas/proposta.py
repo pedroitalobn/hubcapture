@@ -113,6 +113,15 @@ class PropostaRead(BaseModel):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
+    def ano(self) -> str | None:
+        """Ano de CRIAÇÃO da proposta (ANO_PROP na fonte) — o que o cabeçalho
+        mostra e o filtro de ano usa como safra."""
+        from ..services.propostas import ano_de
+
+        return ano_de(self)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def prazo_final(self) -> date | None:
         """Prazo mais próximo declarado (alimenta o contador do card)."""
         datas = []

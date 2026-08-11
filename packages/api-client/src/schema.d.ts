@@ -2726,7 +2726,7 @@ export interface components {
             /** Destaque */
             destaque?: string | null;
             /** Href */
-            href: string;
+            href?: string | null;
             /** Titulo */
             titulo: string;
             /**
@@ -4077,6 +4077,12 @@ export interface components {
          * @description Representação da proposta devolvida pela API.
          */
         PropostaRead: {
+            /**
+             * Ano
+             * @description Ano de CRIAÇÃO da proposta (ANO_PROP na fonte) — o que o cabeçalho
+             *     mostra e o filtro de ano usa como safra.
+             */
+            readonly ano: string | null;
             /** Cache Atualizado Em */
             cache_atualizado_em?: string | null;
             /**

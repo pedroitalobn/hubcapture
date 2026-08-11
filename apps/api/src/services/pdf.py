@@ -569,11 +569,6 @@ def _pendencias(p: Proposta) -> list[tuple[str, Any]]:
     return saida
 
 
-def _prazo_foco(p: Proposta) -> date | None:
-    datas = [d for d in (_data_iso(q) for _, q in _prazos(p)) if d]
-    return min(datas) if datas else None
-
-
 def _categorias(p: Proposta) -> list[str]:
     """Pílulas da curadoria; sem curadoria gravada, classifica na hora (como a API)."""
     from ..ai import categorias as categorias_ai
@@ -646,10 +641,14 @@ def _cabecalho(p: Proposta) -> list:
 
 
 def _faixa_destaque(p: Proposta) -> Table:
-    """O topo da hierarquia: valor e prazo — o que decide se o gestor age hoje."""
-    prazo = _prazo_foco(p)
-    dias = _dias_ate(prazo)
-    tom = _tom_prazo(dias)
+    """O topo da hierarquia: valor e ANO da proposta (a safra que a situa).
+
+    O prazo de vencimento saiu daqui: vinha marcado errado com frequência (a
+    retaguarda de vigência não é prazo de proposta) e continua no card "Prazos",
+    onde é conferível item a item.
+    """
+    from .propostas import ano_de
+
     execucao = p.execucao or {}
     empenhado = _dec(execucao.get("valor_empenhado")) or Decimal(0)
     pago = _dec(execucao.get("valor_pago")) or Decimal(0)
@@ -664,25 +663,23 @@ def _faixa_destaque(p: Proposta) -> Table:
     if (_dec(p.contrapartida) or Decimal(0)) > 0:
         valor_col += [Spacer(1, 2), Paragraph(f"contrapartida {_brl(p.contrapartida)}", PEQUENO)]
 
-    prazo_col: list = [
-        Paragraph("PRAZO VENCIDO" if (dias or 0) < 0 else "PRÓXIMO PRAZO", ROTULO),
+    # ANO_PROP na fonte — a mesma safra que o filtro de ano usa
+    ano = ano_de(p)
+    ano_col: list = [
+        Paragraph("ANO DA PROPOSTA", ROTULO),
         Spacer(1, 3),
+        Paragraph(ano or "—", _estilo("hero_ano", parent=VALOR_HERO, textColor=INK)),
+        Spacer(1, 2),
         Paragraph(
-            _data(prazo),
-            _estilo("hero_prazo", parent=VALOR_HERO, textColor=TONS[tom][0] if tom else INK),
+            f"criada em {_data(p.data_proposta)}"
+            if p.data_proposta
+            else "ano de criação na fonte",
+            PEQUENO,
         ),
     ]
-    if prazo:
-        prazo_col += [
-            Spacer(1, 2),
-            Paragraph(
-                _prazo_label(dias),
-                _estilo("prazo_nota", parent=PEQUENO, textColor=TONS[tom][0] if tom else INK_3),
-            ),
-        ]
 
     topo = Table(
-        [[valor_col, prazo_col]],
+        [[valor_col, ano_col]],
         colWidths=[interno, interno],
         style=TableStyle(
             [

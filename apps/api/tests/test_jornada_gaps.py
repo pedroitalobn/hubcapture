@@ -357,3 +357,31 @@ def test_disc_csv_mapeia_colunas_do_relatorio() -> None:
     assert plano["valor_global"] == "453388"
     assert plano["saldo_conta"] == "0"
     assert plano["data_fim_vigencia"] == "2029-07-10"
+
+
+def test_disc_csv_mapeia_referencia_da_proposta_do_siconv() -> None:
+    """siconv_proposta.csv: NR_PROPOSTA e DIA/MES/ANO_PROP são a referência
+    oficial — casamento EXATO por coluna (por substring, 'dia_prop' pescaria
+    DIA_PROPOSTA) e órgão por extenso, nunca o código COD_ORGAO_SUP."""
+    from src.connectors.transferegov_disc import _plano_do_csv
+
+    row = {
+        "ID_PROPOSTA": "998877",
+        "COD_ORGAO_SUP": "26000",
+        "DESC_ORGAO_SUP": "MINISTERIO DA EDUCACAO",
+        "DESC_ORGAO": "FUNDO NACIONAL DE DESENVOLVIMENTO DA EDUCACAO",
+        "NR_PROPOSTA": "14275/2026",
+        "DIA_PROP": "26",
+        "MES_PROP": "3",
+        "ANO_PROP": "2026",
+        "DIA_PROPOSTA": "26/03/2026",
+        "OBJETO_PROPOSTA": "Construção de escola",
+        "SIT_PROPOSTA": "Proposta/Plano de Trabalho em Análise",
+    }
+    plano = _plano_do_csv(row)
+    assert plano["nr_proposta"] == "14275/2026"
+    assert (plano["dia_prop"], plano["mes_prop"], plano["ano_prop"]) == ("26", "3", "2026")
+    assert plano["dia_proposta"] == "26/03/2026"
+    assert plano["desc_orgao"] == "FUNDO NACIONAL DE DESENVOLVIMENTO DA EDUCACAO"
+    assert plano["desc_orgao_superior"] == "MINISTERIO DA EDUCACAO"
+    assert plano["situacao"] == "Proposta/Plano de Trabalho em Análise"

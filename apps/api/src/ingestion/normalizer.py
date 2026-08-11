@@ -74,6 +74,22 @@ def _to_date(v: Any) -> date | None:
     return None
 
 
+def _data_de_componentes(plano: dict) -> date | None:
+    """Data remontada das colunas decompostas do SIconv: DIA_PROP/MES_PROP/ANO_PROP.
+
+    É a data OFICIAL de criação da proposta na fonte — quando os três componentes
+    existem, vencem qualquer candidato de coluna única (que ora é vigência, ora
+    é cadastro de outra coisa e vinha marcando a proposta com data errada).
+    """
+    try:
+        dia = int(str(plano.get("dia_prop")).strip())
+        mes = int(str(plano.get("mes_prop")).strip())
+        ano = int(str(plano.get("ano_prop")).strip())
+        return date(ano, mes, dia)
+    except (TypeError, ValueError):
+        return None
+
+
 def compute_hash(data: dict[str, Any]) -> str:
     """Hash determinístico dos campos materiais (sha256 de JSON sort_keys)."""
     material = {k: data.get(k) for k in _HASH_FIELDS}
@@ -145,9 +161,11 @@ def normalize(record: RawRecord) -> PropostaCanonica:
         "fonte": record.source_id,
         "id_externo": record.id_externo,
         "numero_proposta": _first(
+            # NR_PROPOSTA (SIconv/detru, "14275/2026") é a referência oficial —
+            # é o nº que o gestor digita no portal, então vence os demais
+            plano.get("nr_proposta"),
             plano.get("numero_plano_acao"),
             plano.get("numero_proposta"),
-            plano.get("nr_proposta"),  # SIconv/detru ("14275/2026")
             plano.get("numero_convenio"),
             plano.get("nr_convenio"),  # voluntárias (convênio)
             plano.get("codigo_plano_acao"),  # fundo a fundo
@@ -247,15 +265,18 @@ def normalize(record: RawRecord) -> PropostaCanonica:
         # Quando a proposta foi CRIADA na fonte. O gestor cita a proposta por
         # número e data ("14275/2026, de 26/03") — é dado de cabeçalho, não o
         # mesmo que `data_atualizacao_fonte` (quando a fonte mexeu no registro).
-        "data_proposta": _to_date(
-            _first(
-                plano.get("dia_proposta"),  # SIconv/detru
-                plano.get("data_proposta"),
-                plano.get("data_cadastro"),
-                plano.get("data_criacao"),
-                plano.get("dia_cadastro"),
-                plano.get("data_inicio_vigencia"),  # sem data própria: a vigência abre
-            )
+        "data_proposta": _first(
+            _data_de_componentes(plano),  # SIconv: DIA_PROP/MES_PROP/ANO_PROP
+            _to_date(
+                _first(
+                    plano.get("dia_proposta"),  # SIconv/detru (data em coluna única)
+                    plano.get("data_proposta"),
+                    plano.get("data_cadastro"),
+                    plano.get("data_criacao"),
+                    plano.get("dia_cadastro"),
+                    plano.get("data_inicio_vigencia"),  # sem data própria: a vigência abre
+                )
+            ),
         ),
         "data_atualizacao_fonte": _to_date(
             _first(

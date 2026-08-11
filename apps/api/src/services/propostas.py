@@ -130,15 +130,38 @@ def _ano_plausivel(ano: int) -> bool:
     return 1990 <= ano <= date.today().year + 1
 
 
+def _campo_fonte(dados: object, chave: str, profundidade: int = 3) -> str | None:
+    """Busca um campo no registro-fonte completo (`dados_fonte`), em qualquer
+    nível e caixa — o ANO_PROP do CSV do SIconv vive em `plano_acao.csv`.
+
+    Ler direto da fonte corrige o dado JÁ ingerido no cache (que pode ter a
+    `data_proposta` montada por retaguarda errada) sem esperar re-sync.
+    """
+    if not isinstance(dados, dict) or profundidade < 0:
+        return None
+    for k, v in dados.items():
+        if isinstance(k, str) and k.strip().lower() == chave and v not in (None, ""):
+            return str(v).strip()
+    for v in dados.values():
+        achado = _campo_fonte(v, chave, profundidade - 1)
+        if achado:
+            return achado
+    return None
+
+
 def ano_de(p: Proposta) -> str | None:
     """Ano de referência: o de CRIAÇÃO na fonte, nunca o da última movimentação.
 
-    `data_proposta` > sufixo do nº da proposta > exercício da execução. Sem
-    nenhum desses sinais o ano fica INDEFINIDO (None): cair na data de
-    atualização classificaria uma proposta criada em 2022 e movimentada em 2026
-    como safra 2026 — exatamente o que este critério existe para evitar. Sem
-    ano, a proposta continua na lista, só não entra em nenhuma safra.
+    `ANO_PROP` do registro-fonte (a variável oficial do SIconv) > `data_proposta`
+    > sufixo do nº da proposta > exercício da execução. Sem nenhum desses sinais
+    o ano fica INDEFINIDO (None): cair na data de atualização classificaria uma
+    proposta criada em 2022 e movimentada em 2026 como safra 2026 — exatamente o
+    que este critério existe para evitar. Sem ano, a proposta continua na lista,
+    só não entra em nenhuma safra.
     """
+    ano_fonte = _campo_fonte(p.dados_fonte, "ano_prop")
+    if ano_fonte and ano_fonte[:4].isdigit() and _ano_plausivel(int(ano_fonte[:4])):
+        return ano_fonte[:4]
     if p.data_proposta and _ano_plausivel(p.data_proposta.year):
         return str(p.data_proposta.year)
     m = _ANO_NO_NUMERO.search(str(p.numero_proposta or ""))
@@ -162,9 +185,10 @@ def prazo_final_de(p: Proposta) -> date | None:
 
 
 # ── Mês de referência ───────────────────────────────────────────────────────
-# Companheiro do filtro de ano. Para captação o mês que importa é o do PRAZO
-# (é ele que decide a ação); sem prazo declarado, cai no mês de atualização na
-# fonte — que é o que a lista mostra como "movimentação".
+# Companheiro do filtro de ano e no MESMO referencial dele: o mês de CRIAÇÃO da
+# proposta (MES_PROP do SIconv > data_proposta). Sem sinal de criação, cai no
+# mês do prazo final e, por fim, no da atualização na fonte — proposta antiga
+# sem data própria continua filtrável.
 MESES: tuple[tuple[str, str], ...] = (
     ("01", "Janeiro"),
     ("02", "Fevereiro"),
@@ -182,7 +206,12 @@ MESES: tuple[tuple[str, str], ...] = (
 
 
 def mes_de(p: Proposta) -> str | None:
-    """Mês de referência ('01'…'12'): o do prazo final; senão o da atualização."""
+    """Mês de referência ('01'…'12'): MES_PROP > data_proposta > prazo > atualização."""
+    mes_fonte = _campo_fonte(p.dados_fonte, "mes_prop")
+    if mes_fonte and mes_fonte.isdigit() and 1 <= int(mes_fonte) <= 12:
+        return f"{int(mes_fonte):02d}"
+    if p.data_proposta:
+        return f"{p.data_proposta.month:02d}"
     referencia = prazo_final_de(p) or p.data_atualizacao_fonte
     return f"{referencia.month:02d}" if referencia else None
 
