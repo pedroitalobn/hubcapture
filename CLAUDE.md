@@ -1496,3 +1496,66 @@ padrão, o `/panel` ficava vazio. A regra que fica:
   (favoritas = acompanhamento do cache) saiu do módulo captação no menu; a página
   Captação ganhou `ModuloGate`; o detalhe da proposta é panel-core e, sem o
   módulo, esconde apenas a seção de pareceres.
+
+## 41. Enriquecimento da proposta — emenda, parlamentar autor e TIMELINE de andamento
+
+A proposta deixou de ser uma ficha estática: além dos pareceres (§36), o detalhe
+agora responde **de quem é o dinheiro** (emenda + parlamentar autor) e **em que pé
+está** (linha do tempo da tramitação). Os dois vêm de rotas IRMÃS do módulo
+`especiais`, consultadas pelas chaves da PROPOSTA — não por município.
+
+- **Rota descoberta, não chutada** (`connectors/_especiais.py`): o spec do módulo
+  (`<base>/openapi.json` — o que a página `/docs` consome) é lido em runtime e a
+  rota só é aceita com DUAS evidências: o nome casa o assunto ("emenda") **e** ela
+  aceita uma das nossas chaves (`id_plano_acao` > `numero_plano_acao` >
+  `id_plano_trabalho` > `numero_proposta`). A segunda evidência é a que protege o
+  gestor: rota do assunto sem filtro devolveria o Brasil inteiro paginado como se
+  fosse a emenda dele. Cobre os dois dialetos do TransfereGov — OpenAPI 3
+  (`?id_plano_acao=123`, `pagina`/`tamanho_da_pagina`) e PostgREST/Swagger 2
+  (`?id_plano_acao=eq.123`, `limit`/`offset`). Overrides no painel:
+  `especiais_base_url`, `emendas_esp_endpoint`, `emendas_esp_chave`.
+- **Entidade `proposta_emendas`** (migration `f3a4b5c6d7e8`): 1-N com a proposta
+  (um plano de ação pode somar emendas de autores diferentes), com `codigo/numero`,
+  `ano`, `tipo_emenda`, **autor** (`parlamentar`, `partido`, `uf_parlamentar`,
+  `cargo`, `codigo`) e valores (`valor`, `valor_empenhado`, `valor_pago`).
+  `unique(fonte, id_externo)`; cache global com RLS só-SELECT por município (nulo
+  visível, como `pareceres`). NÃO confundir com a lente de emendas dos repasses
+  (§26b): lá é dinheiro que já caiu; aqui é a origem da captação.
+- **De-para por PALAVRA, não por substring** (`ingestion/normalizer_emenda.py`): as
+  colunas vêm com o sufixo da entidade (`nome_parlamentar_emenda_plano_acao`), então
+  o casamento é por conjunto de palavras da coluna. Casar por substring é armadilha
+  — "ano" está dentro de "pl**ano**", e `id_emenda_plano_acao=90871` virava o ano
+  9087 da emenda (regressão em `test_andamento.py`). `codigo_parlamentar` é excluído
+  do candidato a NOME do autor. Hash local sobre os campos materiais (empenho novo →
+  mudança detectada).
+- **Degradação com conteúdo** (`services/emendas_proposta.py`): sem rota calibrada
+  ou com a fonte fora do ar, a emenda ainda sai do **registro-fonte** que o plano de
+  ação já traz (`emendas_do_registro_fonte` — parlamentar + valor do repasse, sem
+  rede). `coleta.origem` (`fonte` | `registro_fonte` | `cache`) e `coleta.erro` vão
+  na resposta: "não consegui consultar" nunca vira "não tem emenda".
+- **Timeline** (`services/andamento.py` + `schemas/andamento.py`): pareceres +
+  marcos da proposta (cadastro na fonte, assinatura, início/fim de vigência, prazos,
+  pendências, movimentação datada) viram `EventoAndamento`
+  (`data/tipo/titulo/detalhe/ator/tom/valor/texto/url/futuro`), ordenados do mais
+  recente para o mais antigo, sem data por último. `futuro` separa histórico de
+  compromisso a vencer; o tom do prazo usa a mesma escada de `lib/format.ts::tomPrazo`.
+  **Fato sem data não entra**: datar por chute (o ano da emenda virando 1º de
+  janeiro) produziria cronologia verossímil e errada — por isso a emenda tem seção
+  própria em vez de virar evento. Parecer "Aprovar" ainda **em elaboração** não é
+  decisão: sai com tom neutro.
+- **Endpoints** (`api/v1/andamento.py`): `GET /proposals/{id}/timeline` e
+  `GET /proposals/{id}/amendments`, ambos com `?atualizar=true`. Gate por ENDPOINT
+  e não por router (§40): ler do cache é panel-core — desligar `captacao` não pode
+  apagar o andamento do detalhe; o que o módulo governa é a consulta ATIVA, então
+  `atualizar=true` é ignorado com o módulo desligado.
+- **Web**: `components/AndamentoProposta.tsx` (linha do tempo com trilho, dot por
+  tom, veredito em badge e texto do parecer expansível) e
+  `components/EmendasProposta.tsx` (autor lidera — é com o gabinete dele que o
+  gestor fala; a seção some quando a proposta simplesmente não é de emenda).
+  Ambos no detalhe (`app/panel/funding/[id]`), substituindo `PareceresSecao.tsx`
+  (removido — o conteúdo foi absorvido pela timeline). Incidente de fonte virou
+  AVISO no topo, não substituto da lista: o que está no cache continua na tela.
+- **Calibração** — `python -m src.tools.probe_especiais --rotas` lista as rotas do
+  módulo que falam do assunto e os parâmetros de cada uma (é daí que sai o valor dos
+  overrides); `--id-plano-acao <id>` bate na rota e mostra campos brutos +
+  normalizados. Precisa de saída para gov.br (o sandbox de CI/agente bloqueia).

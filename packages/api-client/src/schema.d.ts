@@ -1754,6 +1754,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/proposals/{proposta_id}/amendments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Emendas Da Proposta
+         * @description Qual emenda banca esta proposta e quem é o parlamentar autor.
+         */
+        get: operations["emendas_da_proposta_api_v1_proposals__proposta_id__amendments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/proposals/{proposta_id}/opinions": {
         parameters: {
             query?: never;
@@ -1786,6 +1806,26 @@ export interface paths {
          * @description Espelho da proposta em PDF — a peça que o gestor encaminha a quem decide.
          */
         get: operations["exportar_pdf_api_v1_proposals__proposta_id__pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/{proposta_id}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Timeline Da Proposta
+         * @description Tramitação em ordem cronológica: pareceres, vigência, prazos e pendências.
+         */
+        get: operations["timeline_da_proposta_api_v1_proposals__proposta_id__timeline_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2110,6 +2150,26 @@ export interface components {
             proposta_id?: string | null;
             /** Tipo */
             tipo?: string | null;
+        };
+        /**
+         * AndamentoColeta
+         * @description Estado honesto de cada fonte que alimenta a linha do tempo.
+         */
+        AndamentoColeta: {
+            emendas?: components["schemas"]["EmendaColeta"] | null;
+            pareceres?: components["schemas"]["ParecerColeta"] | null;
+        };
+        /** AndamentoPagina */
+        AndamentoPagina: {
+            /** @default {} */
+            coleta: components["schemas"]["AndamentoColeta"];
+            /**
+             * Itens
+             * @default []
+             */
+            itens: components["schemas"]["EventoAndamento"][];
+            /** Numero Plano Trabalho */
+            numero_plano_trabalho?: string | null;
         };
         /** AssessoriaContatosSet */
         AssessoriaContatosSet: {
@@ -2726,7 +2786,7 @@ export interface components {
             /** Destaque */
             destaque?: string | null;
             /** Href */
-            href: string;
+            href?: string | null;
             /** Titulo */
             titulo: string;
             /**
@@ -2758,6 +2818,27 @@ export interface components {
             detalhe: string;
             /** Enviado */
             enviado: boolean;
+        };
+        /**
+         * EmendaColeta
+         * @description Estado honesto da coleta — "não tem emenda" ≠ "não consegui consultar".
+         *
+         *     `origem` distingue de onde veio o que está na tela: `fonte` (rota do módulo
+         *     consultada agora), `registro_fonte` (o que o próprio plano de ação já
+         *     trazia) ou `cache`.
+         */
+        EmendaColeta: {
+            /** Erro */
+            erro?: string | null;
+            /** Origem */
+            origem?: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
         };
         /**
          * EmendaItem
@@ -2800,12 +2881,108 @@ export interface components {
             /** Uf */
             uf?: string | null;
         };
+        /** EmendaPagina */
+        EmendaPagina: {
+            coleta: components["schemas"]["EmendaColeta"];
+            /**
+             * Itens
+             * @default []
+             */
+            itens: components["schemas"]["EmendaRead"][];
+        };
+        /** EmendaRead */
+        EmendaRead: {
+            /** Ano */
+            ano?: number | null;
+            /** Cache Atualizado Em */
+            cache_atualizado_em?: string | null;
+            /** Cargo Parlamentar */
+            cargo_parlamentar?: string | null;
+            /** Codigo Emenda */
+            codigo_emenda?: string | null;
+            /** Fonte */
+            fonte: string;
+            /** Funcao */
+            funcao?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Id Externo */
+            id_externo: string;
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Municipio Nome */
+            municipio_nome?: string | null;
+            /** Numero Emenda */
+            numero_emenda?: string | null;
+            /** Numero Plano Acao */
+            numero_plano_acao?: string | null;
+            /** Numero Proposta */
+            numero_proposta?: string | null;
+            /** Parlamentar */
+            parlamentar?: string | null;
+            /** Partido */
+            partido?: string | null;
+            /** Situacao */
+            situacao?: string | null;
+            /** Tipo Emenda */
+            tipo_emenda?: string | null;
+            /** Uf */
+            uf?: string | null;
+            /** Uf Parlamentar */
+            uf_parlamentar?: string | null;
+            /** Url Origem */
+            url_origem?: string | null;
+            /** Valor */
+            valor?: string | null;
+            /** Valor Empenhado */
+            valor_empenhado?: string | null;
+            /** Valor Pago */
+            valor_pago?: string | null;
+        };
         /** ErrorModel */
         ErrorModel: {
             /** Detail */
             detail: string | {
                 [key: string]: string;
             };
+        };
+        /**
+         * EventoAndamento
+         * @description Um fato datado da tramitação.
+         *
+         *     `futuro` separa o que JÁ aconteceu do que ainda vai vencer: os dois entram
+         *     na mesma linha do tempo, mas um prazo à frente é compromisso, não histórico.
+         */
+        EventoAndamento: {
+            /** Ator */
+            ator?: string | null;
+            /** Data */
+            data?: string | null;
+            /** Detalhe */
+            detalhe?: string | null;
+            /**
+             * Futuro
+             * @default false
+             */
+            futuro: boolean;
+            /** Texto */
+            texto?: string | null;
+            /** Tipo */
+            tipo: string;
+            /** Titulo */
+            titulo: string;
+            /**
+             * Tom
+             * @default neutral
+             */
+            tom: string;
+            /** Url */
+            url?: string | null;
+            /** Valor */
+            valor?: string | null;
         };
         /**
          * FacetaOpcao
@@ -8392,6 +8569,40 @@ export interface operations {
             };
         };
     };
+    emendas_da_proposta_api_v1_proposals__proposta_id__amendments_get: {
+        parameters: {
+            query?: {
+                /** @description forçar coleta na fonte */
+                atualizar?: boolean;
+            };
+            header?: never;
+            path: {
+                proposta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmendaPagina"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     pareceres_da_proposta_api_v1_proposals__proposta_id__opinions_get: {
         parameters: {
             query?: {
@@ -8447,6 +8658,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    timeline_da_proposta_api_v1_proposals__proposta_id__timeline_get: {
+        parameters: {
+            query?: {
+                /** @description forçar coleta na fonte */
+                atualizar?: boolean;
+            };
+            header?: never;
+            path: {
+                proposta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AndamentoPagina"];
                 };
             };
             /** @description Validation Error */

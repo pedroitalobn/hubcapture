@@ -282,6 +282,62 @@
         "title": "AlertaRead",
         "type": "object"
       },
+      "AndamentoColeta": {
+        "description": "Estado honesto de cada fonte que alimenta a linha do tempo.",
+        "properties": {
+          "emendas": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EmendaColeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pareceres": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ParecerColeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "AndamentoColeta",
+        "type": "object"
+      },
+      "AndamentoPagina": {
+        "properties": {
+          "coleta": {
+            "$ref": "#/components/schemas/AndamentoColeta",
+            "default": {}
+          },
+          "itens": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EventoAndamento"
+            },
+            "title": "Itens",
+            "type": "array"
+          },
+          "numero_plano_trabalho": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Plano Trabalho"
+          }
+        },
+        "title": "AndamentoPagina",
+        "type": "object"
+      },
       "AssessoriaContatosSet": {
         "properties": {
           "contatos": {
@@ -2031,8 +2087,15 @@
             "title": "Destaque"
           },
           "href": {
-            "title": "Href",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Href"
           },
           "titulo": {
             "title": "Titulo",
@@ -2046,8 +2109,7 @@
         },
         "required": [
           "chave",
-          "titulo",
-          "href"
+          "titulo"
         ],
         "title": "DimensaoResumo",
         "type": "object"
@@ -2110,6 +2172,47 @@
           "detalhe"
         ],
         "title": "EmailTesteOut",
+        "type": "object"
+      },
+      "EmendaColeta": {
+        "description": "Estado honesto da coleta — \"não tem emenda\" ≠ \"não consegui consultar\".\n\n`origem` distingue de onde veio o que está na tela: `fonte` (rota do módulo\nconsultada agora), `registro_fonte` (o que o próprio plano de ação já\ntrazia) ou `cache`.",
+        "properties": {
+          "erro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erro"
+          },
+          "origem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origem"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "EmendaColeta",
         "type": "object"
       },
       "EmendaItem": {
@@ -2271,6 +2374,274 @@
         "title": "EmendaItem",
         "type": "object"
       },
+      "EmendaPagina": {
+        "properties": {
+          "coleta": {
+            "$ref": "#/components/schemas/EmendaColeta"
+          },
+          "itens": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EmendaRead"
+            },
+            "title": "Itens",
+            "type": "array"
+          }
+        },
+        "required": [
+          "coleta"
+        ],
+        "title": "EmendaPagina",
+        "type": "object"
+      },
+      "EmendaRead": {
+        "properties": {
+          "ano": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ano"
+          },
+          "cache_atualizado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Atualizado Em"
+          },
+          "cargo_parlamentar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cargo Parlamentar"
+          },
+          "codigo_emenda": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Codigo Emenda"
+          },
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          },
+          "funcao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Funcao"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "id_externo": {
+            "title": "Id Externo",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Ibge"
+          },
+          "municipio_nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Nome"
+          },
+          "numero_emenda": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Emenda"
+          },
+          "numero_plano_acao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Plano Acao"
+          },
+          "numero_proposta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Proposta"
+          },
+          "parlamentar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parlamentar"
+          },
+          "partido": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partido"
+          },
+          "situacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Situacao"
+          },
+          "tipo_emenda": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo Emenda"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          },
+          "uf_parlamentar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf Parlamentar"
+          },
+          "url_origem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url Origem"
+          },
+          "valor": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor"
+          },
+          "valor_empenhado": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Empenhado"
+          },
+          "valor_pago": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Pago"
+          }
+        },
+        "required": [
+          "id",
+          "fonte",
+          "id_externo"
+        ],
+        "title": "EmendaRead",
+        "type": "object"
+      },
       "ErrorModel": {
         "properties": {
           "detail": {
@@ -2292,6 +2663,103 @@
           "detail"
         ],
         "title": "ErrorModel",
+        "type": "object"
+      },
+      "EventoAndamento": {
+        "description": "Um fato datado da tramitação.\n\n`futuro` separa o que JÁ aconteceu do que ainda vai vencer: os dois entram\nna mesma linha do tempo, mas um prazo à frente é compromisso, não histórico.",
+        "properties": {
+          "ator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ator"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "detalhe": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detalhe"
+          },
+          "futuro": {
+            "default": false,
+            "title": "Futuro",
+            "type": "boolean"
+          },
+          "texto": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Texto"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          },
+          "tom": {
+            "default": "neutral",
+            "title": "Tom",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "valor": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor"
+          }
+        },
+        "required": [
+          "tipo",
+          "titulo"
+        ],
+        "title": "EventoAndamento",
         "type": "object"
       },
       "FacetaOpcao": {
@@ -14269,6 +14737,67 @@
         ]
       }
     },
+    "/api/v1/proposals/{proposta_id}/amendments": {
+      "get": {
+        "description": "Qual emenda banca esta proposta e quem é o parlamentar autor.",
+        "operationId": "emendas_da_proposta_api_v1_proposals__proposta_id__amendments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposta Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "forçar coleta na fonte",
+            "in": "query",
+            "name": "atualizar",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "forçar coleta na fonte",
+              "title": "Atualizar",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmendaPagina"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Emendas Da Proposta",
+        "tags": [
+          "andamento"
+        ]
+      }
+    },
     "/api/v1/proposals/{proposta_id}/opinions": {
       "get": {
         "description": "Pareceres do plano de trabalho vinculado à proposta.",
@@ -14386,6 +14915,67 @@
         "summary": "Exportar Pdf",
         "tags": [
           "propostas"
+        ]
+      }
+    },
+    "/api/v1/proposals/{proposta_id}/timeline": {
+      "get": {
+        "description": "Tramitação em ordem cronológica: pareceres, vigência, prazos e pendências.",
+        "operationId": "timeline_da_proposta_api_v1_proposals__proposta_id__timeline_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposta Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "forçar coleta na fonte",
+            "in": "query",
+            "name": "atualizar",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "forçar coleta na fonte",
+              "title": "Atualizar",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AndamentoPagina"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Timeline Da Proposta",
+        "tags": [
+          "andamento"
         ]
       }
     },
