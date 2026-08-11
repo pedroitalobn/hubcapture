@@ -9,7 +9,7 @@ Nenhuma consulta é feita "por fonte": o recorte é sempre o perfil.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -149,8 +149,9 @@ async def get_perfil(session: AsyncSession, usuario: Usuario) -> PerfilRead:
 
 
 # Caches GLOBAIS recortados por município (§4): não pertencem ao usuário, são
-# só a cópia local do que a fonte publicou sobre o território dele.
-_CACHES_DO_TERRITORIO = (Proposta, Repasse, Conformidade, Obra)
+# só a cópia local do que a fonte publicou sobre o território dele. `propostas`
+# tem soft delete próprio; os demais só perdem o frescor.
+_CACHES_DO_TERRITORIO = (Repasse, Conformidade, Obra)
 
 
 async def zerar(session: AsyncSession, usuario: Usuario) -> ResetPerfilResultado:
@@ -161,12 +162,13 @@ async def zerar(session: AsyncSession, usuario: Usuario) -> ResetPerfilResultado
     dados da conta e agenda de contatos ficam: zerar o perfil não é excluir a
     conta.
 
-    O cache do território (propostas, repasses, conformidades, obras) é
-    INVALIDADO, não apagado. Ele é global (§4) — outro usuário pode acompanhar
-    o mesmo município, e as FKs `ON DELETE CASCADE` ignoram RLS: apagar a
-    proposta levaria junto o favorito, a pasta e o monitoramento DELE. Zerando
-    o `cache_atualizado_em`, some do painel deste usuário (sem território o RLS
-    não devolve nada) e a próxima coleta refaz tudo do zero.
+    As propostas do território são zeradas por SOFT DELETE (`excluido_em`), e
+    os demais caches (repasses, conformidades, obras) perdem o frescor. Nada é
+    apagado do banco: o cache é global (§4) — outro usuário pode acompanhar o
+    mesmo município — e as FKs `ON DELETE CASCADE` ignoram RLS, então um DELETE
+    levaria junto o favorito, a pasta e o monitoramento DELE. Marcada, a linha
+    some do painel (os serviços de leitura filtram `excluido_em IS NULL`) e a
+    coleta seguinte a RESSUSCITA quando a fonte ainda a publica.
     """
     ibges = list(
         (
@@ -178,13 +180,20 @@ async def zerar(session: AsyncSession, usuario: Usuario) -> ResetPerfilResultado
         .all()
     )
 
-    # ORDEM IMPORTA: o cache é invalidado ENQUANTO o território ainda existe.
-    # O UPDATE tem WHERE, então lê linha — e leitura em `propostas` passa pela
-    # policy de SELECT, que só enxerga município em `municipios_interesse`.
-    # Apagando o território antes, o UPDATE não acharia nada e o cache ficaria
-    # fresco para sempre (a próxima coleta serviria dados velhos).
+    # ORDEM IMPORTA: o cache é zerado ENQUANTO o território ainda existe. Os
+    # UPDATEs têm WHERE, então leem linha — e leitura passa pela policy de
+    # SELECT, que só enxerga município em `municipios_interesse`. Apagando o
+    # território antes, nada seria encontrado e o cache ficaria fresco para
+    # sempre (a próxima coleta serviria dados velhos).
+    propostas_n = 0
     invalidado = 0
-    if ibges:  # sem território não há o que invalidar (e um IN vazio é perigoso)
+    if ibges:  # sem território não há o que zerar (e um IN vazio é perigoso)
+        result = await session.execute(
+            update(Proposta)
+            .where(Proposta.municipio_ibge.in_(ibges))
+            .values(excluido_em=datetime.now(UTC), cache_atualizado_em=None)
+        )
+        propostas_n = int(result.rowcount or 0)
         for model in _CACHES_DO_TERRITORIO:
             result = await session.execute(
                 update(model)
@@ -217,6 +226,7 @@ async def zerar(session: AsyncSession, usuario: Usuario) -> ResetPerfilResultado
 
     return ResetPerfilResultado(
         municipios=municipios_n,
+        propostas=propostas_n,
         favoritos=favoritos_n,
         pastas=pastas_n,
         monitoramentos=monitoramentos_n,
@@ -268,7 +278,9 @@ async def visao_geral(
                 select(
                     func.count(Proposta.id),
                     func.coalesce(func.sum(Proposta.valor_total), 0),
-                ),
+                ).where(
+                    Proposta.excluido_em.is_(None)
+                ),  # zerada não conta
                 Proposta.municipio_ibge,
             )
         )
@@ -378,7 +390,11 @@ async def novidades(
     pref = await _preferencias(session, usuario.id)
     fontes = _fontes_do_perfil(pref)
 
-    stmt_p = select(Proposta).order_by(Proposta.cache_atualizado_em.desc().nullslast())
+    stmt_p = (
+        select(Proposta)
+        .where(Proposta.excluido_em.is_(None))
+        .order_by(Proposta.data_proposta.desc().nullslast())
+    )
     stmt_r = select(Repasse).order_by(Repasse.data_repasse.desc().nullslast())
     stmt_p = filtrar_municipio(stmt_p, Proposta.municipio_ibge, municipios_filtro)
     stmt_r = filtrar_municipio(stmt_r, Repasse.municipio_ibge, municipios_filtro)

@@ -76,9 +76,7 @@ async def listar(session: AsyncSession) -> list[IntegracaoContatos]:
     return list((await session.execute(stmt)).scalars().all())
 
 
-async def obter(
-    session: AsyncSession, integracao_id: uuid.UUID
-) -> IntegracaoContatos | None:
+async def obter(session: AsyncSession, integracao_id: uuid.UUID) -> IntegracaoContatos | None:
     return (
         await session.execute(
             select(IntegracaoContatos).where(IntegracaoContatos.id == integracao_id)
@@ -103,9 +101,7 @@ def salvar_credencial(integracao: IntegracaoContatos, cred: Credencial) -> None:
 
 
 def _assinar(payload: str) -> str:
-    return hmac.new(
-        settings.jwt_secret.encode(), payload.encode(), hashlib.sha256
-    ).hexdigest()[:32]
+    return hmac.new(settings.jwt_secret.encode(), payload.encode(), hashlib.sha256).hexdigest()[:32]
 
 
 def gerar_state(provedor: str, usuario_id: uuid.UUID) -> str:

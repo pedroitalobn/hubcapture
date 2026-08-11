@@ -306,9 +306,7 @@ async def test_paginacao_depois_do_pos_filtro(seed_user, seed_municipio) -> None
 
     async with rls_session(u) as s:
         # ano=2025 é pós-filtro em Python; ordenar=nome também reordena depois
-        pagina, total = await prop_service.listar_pagina(
-            s, ano="2025", ordenar="nome", limite=2
-        )
+        pagina, total = await prop_service.listar_pagina(s, ano="2025", ordenar="nome", limite=2)
         assert total == 3  # só as de 2025 — não as 5 do SQL
         assert [p.titulo for p in pagina] == ["Ambulância", "Creche"]
 

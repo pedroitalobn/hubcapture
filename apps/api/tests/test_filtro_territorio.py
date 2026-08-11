@@ -146,9 +146,7 @@ async def test_visao_geral_e_feed_do_perfil_seguem_o_recorte(
 
 
 # ── alertas ─────────────────────────────────────────────────────────────────
-async def test_alertas_seguem_o_recorte_por_payload_ou_proposta(
-    seed_user, seed_municipio
-) -> None:
+async def test_alertas_seguem_o_recorte_por_payload_ou_proposta(seed_user, seed_municipio) -> None:
     """O município do alerta vem do payload; nos de mudança, da proposta ligada."""
     u = await _territorio(seed_user, seed_municipio, "alerta-recorte@x.com")
 
@@ -156,9 +154,7 @@ async def test_alertas_seguem_o_recorte_por_payload_ou_proposta(
         proposta_sp = (await prop_service.listar(s, municipio="3550308"))[0]
 
     async with _owner_engine.begin() as conn:
-        await conn.execute(
-            text("SELECT set_config('app.usuario_id', :uid, true)"), {"uid": str(u)}
-        )
+        await conn.execute(text("SELECT set_config('app.usuario_id', :uid, true)"), {"uid": str(u)})
         await conn.execute(
             text(
                 "INSERT INTO alertas (usuario_id, proposta_id, tipo, payload) VALUES "

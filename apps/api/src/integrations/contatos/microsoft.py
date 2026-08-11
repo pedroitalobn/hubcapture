@@ -39,9 +39,7 @@ async def _headers(cred: Credencial) -> dict[str, str]:
 
 def para_canonico(contato: dict) -> ContatoCanonico:
     telefones = [
-        ContatoTelefone(tipo="trabalho", valor=v)
-        for v in contato.get("businessPhones") or []
-        if v
+        ContatoTelefone(tipo="trabalho", valor=v) for v in contato.get("businessPhones") or [] if v
     ]
     if contato.get("mobilePhone"):
         telefones.insert(0, ContatoTelefone(tipo="celular", valor=contato["mobilePhone"]))

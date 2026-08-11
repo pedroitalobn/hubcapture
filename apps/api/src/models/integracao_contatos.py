@@ -39,9 +39,7 @@ DIRECOES = ("bidirecional", "importar", "exportar")
 class IntegracaoContatos(Base):
     __tablename__ = "integracoes_contatos"
     __table_args__ = (
-        UniqueConstraint(
-            "usuario_id", "provedor", "conta", name="uq_integracoes_contatos_conta"
-        ),
+        UniqueConstraint("usuario_id", "provedor", "conta", name="uq_integracoes_contatos_conta"),
     )
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -54,16 +52,12 @@ class IntegracaoContatos(Base):
     direcao: Mapped[str] = mapped_column(String(16), default="bidirecional")
     credenciais: Mapped[str | None] = mapped_column(Text, nullable=True)  # Fernet
     sync_token: Mapped[str | None] = mapped_column(Text, nullable=True)
-    ultima_sync_em: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    ultima_sync_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ultimo_erro: Mapped[str | None] = mapped_column(Text, nullable=True)
     total_contatos: Mapped[int] = mapped_column(Integer, default=0)
     ativo: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), onupdate=func.now(), nullable=True
     )
@@ -74,9 +68,7 @@ class ContatoVinculo(Base):
 
     __tablename__ = "contato_vinculos"
     __table_args__ = (
-        UniqueConstraint(
-            "integracao_id", "id_externo", name="uq_contato_vinculos_externo"
-        ),
+        UniqueConstraint("integracao_id", "id_externo", name="uq_contato_vinculos_externo"),
     )
 
     integracao_id: Mapped[uuid.UUID] = mapped_column(
@@ -96,6 +88,8 @@ class ContatoVinculo(Base):
     hash_sincronizado: Mapped[str | None] = mapped_column(String(64), nullable=True)
     removido_remoto: Mapped[bool] = mapped_column(Boolean, default=False)
     atualizado_em: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(),
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
         nullable=True,
     )

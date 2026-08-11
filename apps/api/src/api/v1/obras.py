@@ -33,9 +33,7 @@ async def listar_obras(
     session: AsyncSession = Depends(get_rls_db),
 ) -> list[ObraRead]:
     rows = await service.listar(session, municipio=municipio, fonte=fonte, situacao=situacao)
-    return await municipios_service.enriquecer(
-        session, [ObraRead.model_validate(o) for o in rows]
-    )
+    return await municipios_service.enriquecer(session, [ObraRead.model_validate(o) for o in rows])
 
 
 @router.get("/works/summary", response_model=ObrasResumo)

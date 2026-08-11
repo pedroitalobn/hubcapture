@@ -24,9 +24,7 @@ from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
 # Faz parte do eixo de captação — segue o mesmo módulo de `proposals`.
-router = APIRouter(
-    tags=["proposals"], dependencies=[Depends(require_modulo("captacao"))]
-)
+router = APIRouter(tags=["proposals"], dependencies=[Depends(require_modulo("captacao"))])
 
 
 class LiveSearchRequest(BaseModel):

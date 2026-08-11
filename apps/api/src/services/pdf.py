@@ -671,9 +671,7 @@ def _faixa_destaque(p: Proposta) -> Table:
         Paragraph(ano or "—", _estilo("hero_ano", parent=VALOR_HERO, textColor=INK)),
         Spacer(1, 2),
         Paragraph(
-            f"criada em {_data(p.data_proposta)}"
-            if p.data_proposta
-            else "ano de criação na fonte",
+            f"criada em {_data(p.data_proposta)}" if p.data_proposta else "ano de criação na fonte",
             PEQUENO,
         ),
     ]

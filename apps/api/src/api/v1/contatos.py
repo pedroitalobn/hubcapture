@@ -31,9 +31,7 @@ router = APIRouter(tags=["contatos"], dependencies=[Depends(require_modulo("cont
 async def _get_ou_404(session: AsyncSession, contato_id: uuid.UUID):
     contato = await service.obter(session, contato_id)
     if contato is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="CONTATO_NAO_ENCONTRADO"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CONTATO_NAO_ENCONTRADO")
     return contato
 
 

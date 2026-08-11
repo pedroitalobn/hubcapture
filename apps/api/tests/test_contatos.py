@@ -129,9 +129,7 @@ def test_vcard_roundtrip_preserva_campos_e_escape() -> None:
     assert volta.sobrenome == "Silva; Costa"  # ';' escapado dentro do campo
     assert volta.organizacao == "Prefeitura de Cuiabá"
     assert volta.cargo == "Chefe de Gabinete"
-    assert [(e.tipo, e.valor) for e in volta.emails] == [
-        ("trabalho", "joao@cuiaba.mt.gov.br")
-    ]
+    assert [(e.tipo, e.valor) for e in volta.emails] == [("trabalho", "joao@cuiaba.mt.gov.br")]
     assert [(t.tipo, t.valor) for t in volta.telefones] == [("celular", "(65) 99999-1111")]
     assert volta.notas == "linha 1\nlinha 2, com vírgula"
     assert volta.tags == ["gabinete", "saude"]
@@ -157,9 +155,7 @@ def test_vcard_le_varios_cartoes_com_dobra_e_grupo_apple() -> None:
 
 def test_vcard_serializa_com_dobra_de_75_octetos() -> None:
     texto = vcard.serializar(_canon(notas="x" * 200))
-    assert all(
-        len(linha.encode()) <= 75 for linha in texto.split("\r\n") if linha
-    )
+    assert all(len(linha.encode()) <= 75 for linha in texto.split("\r\n") if linha)
 
 
 # ── serviço (RLS/CRUD/import) ───────────────────────────────────────────────

@@ -48,9 +48,7 @@ def escolher_coluna_ibge(colunas: list[str]) -> str | None:
     return None
 
 
-def escolher_endpoint_e_coluna(
-    defs: dict, preferidas: tuple[str, ...]
-) -> tuple[str, str] | None:
+def escolher_endpoint_e_coluna(defs: dict, preferidas: tuple[str, ...]) -> tuple[str, str] | None:
     """(tabela, coluna_ibge) a partir das definições do OpenAPI do PostgREST."""
     # 1) tabelas preferidas, na ordem
     for tabela in preferidas:
@@ -74,9 +72,7 @@ def escolher_endpoint_e_coluna(
     return None
 
 
-async def descobrir(
-    base_url: str, preferidas: tuple[str, ...]
-) -> tuple[str, str] | None:
+async def descobrir(base_url: str, preferidas: tuple[str, ...]) -> tuple[str, str] | None:
     """Baixa o OpenAPI do módulo e escolhe (endpoint, coluna_ibge). Cacheado."""
     chave = (base_url, preferidas)
     if chave in _cache:

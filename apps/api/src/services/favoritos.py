@@ -40,6 +40,7 @@ async def listar_propostas(session: AsyncSession, usuario_id: uuid.UUID) -> list
     território não aparece (comportamento correto — sem vazamento)."""
     result = await session.execute(
         select(Proposta)
+        .where(Proposta.excluido_em.is_(None))
         .join(Favorito, Favorito.proposta_id == Proposta.id)
         .where(Favorito.usuario_id == usuario_id)
         .order_by(Favorito.created_at.desc())

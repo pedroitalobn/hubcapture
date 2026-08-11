@@ -88,11 +88,7 @@ class ParecerConnector:
         self._base_url = base_url
 
     async def _base(self) -> str:
-        return (
-            self._base_url
-            or await config_service.resolver("pareceres_base_url")
-            or BASE_PADRAO
-        )
+        return self._base_url or await config_service.resolver("pareceres_base_url") or BASE_PADRAO
 
     async def _endpoint(self) -> str:
         return await config_service.resolver("pareceres_endpoint") or ENDPOINT_PADRAO
@@ -174,9 +170,7 @@ class ParecerConnector:
 
     async def health_check(self) -> bool:
         try:
-            await get_json(
-                await self._base(), await self._endpoint(), {PARAM_TAMANHO: "1"}
-            )
+            await get_json(await self._base(), await self._endpoint(), {PARAM_TAMANHO: "1"})
             return True
         except Exception:
             return False
