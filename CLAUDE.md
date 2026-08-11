@@ -1706,7 +1706,6 @@ AGREGADO, e no módulo especiais o empenho mora em rota própria —
 - **Calibração**: `python -m src.tools.probe_especiais --rotas` passou a mostrar
   também a rota escolhida para empenho, e `--numero-proposta 14275/2026` bate na
   rota e mostra campos brutos + normalizados.
-
 ## 44. O nº da proposta é uma PÍLULA (destaque), não linha de apoio
 
 Complemento operacional da §35: a hierarquia já dizia que a referência da
@@ -1740,7 +1739,39 @@ número que o portal da fonte não reconhece e que o gestor levaria para a
 conversa com o órgão. Sem número, o campo fica vazio ("—") e o id da fonte
 segue no campo próprio ("Identificador na fonte"), logo abaixo.
 
-## 45. Faixa de destaque do detalhe — EMPENHO é `VL_GLOBAL_PROP`
+## 45. Lentes de natureza jurídica — entes municipais × outros
+
+A consulta de propostas por **natureza jurídica** parte de DUAS lentes (decisão de
+produto), não da taxonomia inteira: `entes_municipais` (prefeitura, secretaria
+municipal, câmara de vereadores, fundo/autarquia/fundação municipal e consórcio
+intermunicipal) e `outros` (organizações da sociedade civil, entes estaduais/federais,
+empresas). Os 6 slugs detalhados de §31 continuam valendo — a lente os **agrupa**,
+não os substitui.
+
+- **Backend** (`services/propostas.py`): `GRUPOS_NATUREZA` (slug → rótulo) e
+  `grupo_natureza_de(p)`, que devolve SEMPRE uma das duas lentes — sem natureza
+  conhecida a proposta cai em `outros`, então as duas somadas cobrem o recorte
+  inteiro e nenhuma proposta fica invisível às duas. `_NATUREZAS_MUNICIPAIS`
+  (`municipal` + `consorcio`) é o ponto de calibração do agrupamento.
+- **Sinais de reserva da natureza**: `natureza_juridica_de` deixou de depender só de
+  `execucao.natureza_juridica`. A ordem é execução → texto no registro-fonte
+  (`_CAMPOS_NATUREZA_FONTE` via `_campo_fonte`) → código CONCLA/RFB
+  (`_CODIGOS_MUNICIPAIS`/`_CODIGOS_CONSORCIO`) → nome do proponente
+  (`_CAMPOS_PROPONENTE`, só quando reconhece um marcador) → `_NATUREZA_PADRAO_FONTE`
+  (fundo a fundo repassa ao próprio município). Isso também aumenta a cobertura do
+  filtro detalhado, que antes perdia toda proposta sem o campo na execução.
+- **API**: `natureza_grupo=entes_municipais|outros` em `FiltrosProposta` — vale para
+  `/proposals`, `/proposals/facets`, `/proposals/summary` e o relatório CSV. Entra
+  também como dimensão de faceta (`natureza_grupo`), com contagem.
+- **Meu painel**: `DimensaoResumo.quebras` (`schemas/perfil.py`) leva recortes de uma
+  dimensão para o card; a captação traz a contagem por lente com link já filtrado
+  (`/panel/funding?natureza_grupo=…`). Sem navegação (módulo desligado, §40) a quebra
+  vem vazia. A contagem é em Python — a natureza é derivada de jsonb/registro-fonte.
+- **Web**: `app/panel/funding` mostra as lentes na barra PRINCIPAL ("Quem propõe"),
+  não nos filtros avançados, e lê `?natureza_grupo=` na chegada (o card do painel abre
+  a tela já filtrada). Os 6 slugs seguem no avançado, para refinar.
+
+## 46. Faixa de destaque do detalhe — EMPENHO é `VL_GLOBAL_PROP`
 
 O card **Empenho** da faixa de destaque da página da proposta mostra o **valor
 global que a fonte publica para a proposta** — `VL_GLOBAL_PROP`, a variável

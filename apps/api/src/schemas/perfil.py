@@ -76,6 +76,18 @@ class ResetPerfilResultado(BaseModel):
     cache_invalidado: int = 0
 
 
+class QuebraDimensao(BaseModel):
+    """Recorte rápido dentro de uma dimensão (ex.: propostas por natureza).
+
+    É uma lente sobre o próprio território — não uma aba por fonte de dados.
+    """
+
+    chave: str  # ex.: 'entes_municipais' | 'outros'
+    rotulo: str  # ex.: 'Entes municipais'
+    total: int = 0
+    href: str  # rota web já filtrada
+
+
 class DimensaoResumo(BaseModel):
     """Um eixo do ciclo (captação/recebidos/conformidade/obras) para o perfil."""
 
@@ -86,6 +98,8 @@ class DimensaoResumo(BaseModel):
     # rota web da dimensão; None = módulo de exploração desligado — o card
     # informa o número do território sem navegar (§40)
     href: str | None = None
+    # recortes dentro da dimensão (vazio quando não há navegação)
+    quebras: list[QuebraDimensao] = []
 
 
 class VisaoGeralPerfil(BaseModel):

@@ -9,6 +9,7 @@ Nenhuma consulta é feita "por fonte": o recorte é sempre o perfil.
 
 from __future__ import annotations
 
+from collections import Counter
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
@@ -36,6 +37,7 @@ from ..schemas.perfil import (
     NovidadesPerfil,
     PerfilRead,
     PlanoPerfil,
+    QuebraDimensao,
     ResetPerfilResultado,
     SyncRunStatus,
     VisaoGeralPerfil,
@@ -43,6 +45,7 @@ from ..schemas.perfil import (
 from . import fontes as fontes_service
 from . import modulos as modulos_service
 from . import plano_gates
+from . import propostas as propostas_service
 from ._territorio import Municipios
 from ._territorio import filtrar as filtrar_municipio
 
@@ -258,16 +261,26 @@ async def visao_geral(
 
     dimensoes: list[DimensaoResumo] = []
 
-    def _dimensao(chave: str, titulo: str, total: int, destaque: str, href: str) -> None:
+    def _dimensao(
+        chave: str,
+        titulo: str,
+        total: int,
+        destaque: str,
+        href: str,
+        quebras: list[QuebraDimensao] | None = None,
+    ) -> None:
         if not ativos.get(chave) and not total:
             return
+        ativo = bool(ativos.get(chave))
         dimensoes.append(
             DimensaoResumo(
                 chave=chave,
                 titulo=titulo,
                 total=total,
                 destaque=destaque,
-                href=href if ativos.get(chave) else None,
+                href=href if ativo else None,
+                # sem navegação (módulo desligado) a quebra não tem para onde ir
+                quebras=(quebras or []) if ativo else [],
             )
         )
 
@@ -285,12 +298,41 @@ async def visao_geral(
             )
         )
     ).one()
+    # Quebra por natureza jurídica do proponente — as duas lentes da captação.
+    # Derivada de jsonb/registro-fonte, então conta em Python (o recorte já é o
+    # território); só vale a pena quando há propostas.
+    quebras_captacao: list[QuebraDimensao] = []
+    if prop_n:
+        propostas = (
+            (
+                await session.execute(
+                    _no_territorio(
+                        select(Proposta).where(Proposta.excluido_em.is_(None)),
+                        Proposta.municipio_ibge,
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        contagem = Counter(propostas_service.grupo_natureza_de(p) for p in propostas)
+        quebras_captacao = [
+            QuebraDimensao(
+                chave=slug,
+                rotulo=rotulo,
+                total=contagem.get(slug, 0),
+                href=f"/panel/funding?natureza_grupo={slug}",
+            )
+            for slug, rotulo in propostas_service.GRUPOS_NATUREZA
+        ]
+
     _dimensao(
         "captacao",
         "Captação",
         int(prop_n),
         f"{_brl(prop_valor)} em propostas" if prop_n else "sem propostas ainda",
         "/panel/funding",
+        quebras_captacao,
     )
 
     # Recebidos (repasses).
