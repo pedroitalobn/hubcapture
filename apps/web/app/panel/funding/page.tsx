@@ -13,8 +13,6 @@ import {
   humanizarCaixa,
   municipioPrincipal,
   municipioSecundario,
-  prazoLabel,
-  tomPrazo,
 } from "@/lib/format";
 import { paramMunicipio, rotuloMunicipio, useTerritorio } from "@/lib/territorio";
 import { cx } from "@/components/ui";
@@ -49,6 +47,9 @@ type Proposta = {
   fonte: string;
   tipo?: string;
   natureza_juridica?: string | null;
+  /** Ano de CRIAÇÃO da proposta (ANO_PROP na fonte) — a safra da coluna "Ano". */
+  ano?: string | null;
+  // o prazo continua vindo da API (e no banco); só não é mais exibido na lista
   prazo_final?: string | null;
   dias_restantes?: number | null;
   resumo_ia?: string | null;
@@ -157,10 +158,11 @@ const NATUREZAS: [string, string][] = [
   ["osc", "Organização da Sociedade Civil"],
 ];
 
+// Ordenar por prazo saiu da UI junto com a coluna: ordenava por fim de
+// vigência, que não é prazo de proposta. A API mantém `ordenar=prazo`
+// (e `prazo_distante`) para quem consome o contrato direto.
 const ORDENACOES: [string, string][] = [
   ["recentes", "Mais recentes"],
-  ["prazo", "Prazo (mais próximo)"],
-  ["prazo_distante", "Prazo (mais distante)"],
   ["nome", "Nome A-Z"],
   ["orgao", "Órgão A-Z"],
   ["valor", "Maior valor"],
@@ -1055,8 +1057,10 @@ function CaptacaoExploracao() {
                 largura="w-28"
                 aoMudar={(v) => setFiltros({ ano: v })}
               />
+              {/* o mês acompanha o ano no mesmo referencial: MES_PROP, o mês
+                  de CRIAÇÃO da proposta — não é mais o mês do prazo */}
               <SelectFaceta
-                rotulo="Mês (prazo)"
+                rotulo="Mês"
                 valor={filtros.mes}
                 opcoes={facetas.mes}
                 largura="w-36"
@@ -1244,7 +1248,10 @@ function CaptacaoExploracao() {
                   <th className="w-20 px-4 py-3"></th>
                   <th className="px-3 py-3">Proposta</th>
                   <th className="px-3 py-3">Município</th>
-                  <th className="px-3 py-3">Prazo</th>
+                  {/* a coluna "Prazo" saiu: vinha do fim de vigência, que não é
+                      prazo de proposta. O dado segue no detalhe, no card
+                      "Prazos", onde é conferível item a item. */}
+                  <th className="px-3 py-3">Ano</th>
                   <th className="px-3 py-3 text-right">Valor global</th>
                   <th className="px-3 py-3 text-right">Empenhado</th>
                   <th className="px-3 py-3">Situação</th>
@@ -1371,30 +1378,11 @@ function CaptacaoExploracao() {
                         </span>
                       )}
                     </td>
+                    {/* Ano da proposta (ANO_PROP na fonte) — a safra, no lugar
+                        do prazo. É o mesmo critério do filtro de ano. */}
                     <td className="px-3 py-3 text-ink-2">
-                      {p.prazo_final ? (
-                        (() => {
-                          // uma regra só (lib/format::tomPrazo) — antes o vencido
-                          // saía em cinza, menos visível que "vence em 30 dias".
-                          const tom = tomPrazo(
-                            p.dias_restantes ?? p.prazo_final,
-                          );
-                          return (
-                            <span className="flex flex-col">
-                              <span className={cx("num", tom && `tone-${tom}`)}>
-                                {formatDate(p.prazo_final)}
-                              </span>
-                              <span
-                                className={cx(
-                                  "font-mono text-[10px] uppercase tracking-[0.04em]",
-                                  tom ? `tone-${tom}` : "text-ink-3",
-                                )}
-                              >
-                                {prazoLabel(p.prazo_final)}
-                              </span>
-                            </span>
-                          );
-                        })()
+                      {p.ano ? (
+                        <span className="num">{p.ano}</span>
                       ) : (
                         <span className="text-ink-3">—</span>
                       )}
