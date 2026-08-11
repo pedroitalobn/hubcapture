@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import unicodedata
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -15,7 +16,31 @@ from typing import Any
 from ..connectors.base import RawRecord
 from ..schemas.proposta import PropostaCanonica
 
+# de-para do rótulo bruto da fonte → slug de `models.proposta.NATUREZAS_JURIDICAS`.
+# Casamento por trecho no texto sem acento/minúsculo; a ORDEM importa (o mais
+# específico primeiro: "administracao publica municipal" antes de "municipal").
+NATUREZA_JURIDICA_MAP: tuple[tuple[str, str], ...] = (
+    ("consorcio", "consorcio_publico"),
+    ("municipal", "administracao_publica_municipal"),
+    ("prefeitura", "administracao_publica_municipal"),
+    ("municipio", "administracao_publica_municipal"),
+    ("estadual", "administracao_publica_estadual"),
+    ("distrital", "administracao_publica_estadual"),
+    ("estado", "administracao_publica_estadual"),
+    ("federal", "administracao_publica_federal"),
+    ("uniao", "administracao_publica_federal"),
+    ("sociedade civil", "organizacao_sociedade_civil"),
+    ("osc", "organizacao_sociedade_civil"),
+    ("associacao", "organizacao_sociedade_civil"),
+    ("fundacao privada", "organizacao_sociedade_civil"),
+    ("empresa publica", "empresa_publica"),
+    ("economia mista", "empresa_publica"),
+)
+
 # campos "materiais" que entram no hash (mudança neles = mudança relevante)
+# NOTA: `natureza_juridica` fica FORA de propósito — é atributo estável do
+# proponente; incluí-lo faria toda proposta já cacheada parecer "alterada" e
+# dispararia alerta falso no detect_changes.
 _HASH_FIELDS = (
     "numero_proposta",
     "titulo",
@@ -62,6 +87,27 @@ def _to_date(v: Any) -> date | None:
     return None
 
 
+def _sem_acento(v: str) -> str:
+    nfkd = unicodedata.normalize("NFKD", v)
+    return "".join(c for c in nfkd if not unicodedata.combining(c)).lower()
+
+
+def natureza_juridica(*values: Any) -> str | None:
+    """Normaliza o rótulo de natureza jurídica da fonte para um slug canônico.
+
+    Devolve `None` quando a fonte não informou nada (não vale marcar 'outros'
+    num campo ausente — o filtro do painel ficaria com falso positivo).
+    """
+    bruto = _first(*values)
+    if bruto in (None, ""):
+        return None
+    texto = _sem_acento(str(bruto))
+    for trecho, slug in NATUREZA_JURIDICA_MAP:
+        if trecho in texto:
+            return slug
+    return "outros"
+
+
 def compute_hash(data: dict[str, Any]) -> str:
     """Hash determinístico dos campos materiais (sha256 de JSON sort_keys)."""
     material = {k: data.get(k) for k in _HASH_FIELDS}
@@ -89,6 +135,13 @@ def normalize(record: RawRecord) -> PropostaCanonica:
             programa.get("nome_orgao_superior"),
         ),
         "modalidade": _first(programa.get("modalidade"), "Fundo a Fundo"),
+        "natureza_juridica": natureza_juridica(
+            benef.get("natureza_juridica"),
+            benef.get("nome_natureza_juridica"),
+            benef.get("descricao_natureza_juridica"),
+            benef.get("tipo_beneficiario"),
+            plano.get("natureza_juridica"),
+        ),
         "municipio_ibge": _first(
             record.municipio_ibge, benef.get("codigo_ibge"), plano.get("codigo_ibge")
         ),

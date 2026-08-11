@@ -952,6 +952,76 @@
         "title": "FavoritoRead",
         "type": "object"
       },
+      "FiltrosPropostas": {
+        "description": "Opções disponíveis para os filtros de busca do painel.\n\nCalculadas sobre o que o usuário enxerga (RLS), para nunca oferecer um\nfiltro que devolveria zero — e para o valor mín/máx sugerir o range real.",
+        "properties": {
+          "fontes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OpcaoFiltro"
+            },
+            "title": "Fontes",
+            "type": "array"
+          },
+          "municipios": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OpcaoFiltro"
+            },
+            "title": "Municipios",
+            "type": "array"
+          },
+          "naturezas_juridicas": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OpcaoFiltro"
+            },
+            "title": "Naturezas Juridicas",
+            "type": "array"
+          },
+          "situacoes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OpcaoFiltro"
+            },
+            "title": "Situacoes",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "valor_max": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Max"
+          },
+          "valor_min": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Min"
+          }
+        },
+        "required": [
+          "total"
+        ],
+        "title": "FiltrosPropostas",
+        "type": "object"
+      },
       "FonteResumo": {
         "description": "Card por fonte no dashboard (ícone/valor/nº de movimentações).",
         "properties": {
@@ -1488,6 +1558,30 @@
         "title": "OnboardingResponse",
         "type": "object"
       },
+      "OpcaoFiltro": {
+        "description": "Uma opção de filtro com quantas propostas ela alcança.",
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "valor": {
+            "title": "Valor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "valor",
+          "label",
+          "total"
+        ],
+        "title": "OpcaoFiltro",
+        "type": "object"
+      },
       "PastaCreate": {
         "properties": {
           "cor": {
@@ -1953,6 +2047,17 @@
               }
             ],
             "title": "Municipio Nome"
+          },
+          "natureza_juridica": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Natureza Juridica"
           },
           "numero_proposta": {
             "anyOf": [
@@ -4934,9 +5039,9 @@
         "operationId": "listar_propostas_api_v1_propostas_get",
         "parameters": [
           {
-            "description": "código IBGE (7 dígitos)",
+            "description": "busca por número da proposta / id externo / emenda (contém)",
             "in": "query",
-            "name": "municipio",
+            "name": "numero",
             "required": false,
             "schema": {
               "anyOf": [
@@ -4947,7 +5052,28 @@
                   "type": "null"
                 }
               ],
-              "description": "código IBGE (7 dígitos)",
+              "description": "busca por número da proposta / id externo / emenda (contém)",
+              "title": "Numero"
+            }
+          },
+          {
+            "description": "código(s) IBGE (7 dígitos) — repetir p/ vários",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "código(s) IBGE (7 dígitos) — repetir p/ vários",
               "title": "Municipio"
             }
           },
@@ -5000,6 +5126,73 @@
               ],
               "title": "Situacao"
             }
+          },
+          {
+            "description": "slug(s) de natureza jurídica do proponente",
+            "in": "query",
+            "name": "natureza_juridica",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "slug(s) de natureza jurídica do proponente",
+              "title": "Natureza Juridica"
+            }
+          },
+          {
+            "description": "valor total ≥",
+            "in": "query",
+            "name": "valor_min",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "valor total ≥",
+              "title": "Valor Min"
+            }
+          },
+          {
+            "description": "valor total ≤",
+            "in": "query",
+            "name": "valor_max",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "valor total ≤",
+              "title": "Valor Max"
+            }
           }
         ],
         "responses": {
@@ -5034,6 +5227,32 @@
           }
         ],
         "summary": "Listar Propostas",
+        "tags": [
+          "propostas"
+        ]
+      }
+    },
+    "/api/v1/propostas/filtros": {
+      "get": {
+        "operationId": "opcoes_de_filtro_api_v1_propostas_filtros_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiltrosPropostas"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Opcoes De Filtro",
         "tags": [
           "propostas"
         ]

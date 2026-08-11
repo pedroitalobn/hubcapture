@@ -9,7 +9,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from ..models.proposta import Proposta
+from ..models.proposta import NATUREZAS_JURIDICAS, Proposta
 
 
 def gerar_pdf_proposta(p: Proposta) -> bytes:
@@ -26,6 +26,7 @@ def gerar_pdf_proposta(p: Proposta) -> bytes:
         ("Nº proposta", p.numero_proposta or p.id_externo),
         ("Órgão", p.orgao_superior or "—"),
         ("Modalidade", p.modalidade or "—"),
+        ("Natureza jurídica", NATUREZAS_JURIDICAS.get(p.natureza_juridica or "", "—")),
         ("Município (IBGE)", p.municipio_ibge or "—"),
         ("UF", p.uf or "—"),
         ("Valor total", f"R$ {p.valor_total}" if p.valor_total is not None else "—"),

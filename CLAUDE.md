@@ -169,6 +169,7 @@ propostas (
   objeto                text,
   orgao_superior        text,
   modalidade            text,
+  natureza_juridica     text,     -- slug do proponente (ver seção 23)
   municipio_ibge        varchar(7),
   municipio_nome        text,
   uf                    char(2),
@@ -600,3 +601,35 @@ Stack completo sobe com um comando; o superadmin é criado no boot.
   alterna papel/admin/ativo inline. Backend: `GET /admin/usuarios`,
   `POST /admin/usuarios` (agora aceita `is_superuser`), `PATCH /admin/usuarios/{id}`
   (papel/is_superuser/is_active/plano). Env `ADMIN_EMAIL`/`ADMIN_PASSWORD`/`APP_BASE_URL`.
+
+## 23. Busca e filtros de propostas (painel de Captação)
+
+Busca sobre o **cache** (nunca chama fonte — o fetch ao vivo continua sendo a
+consulta avulsa) e sempre sob RLS: o usuário só filtra o que já enxerga.
+
+- **`GET /propostas`** aceita `numero`, `municipio` (repetível), `natureza_juridica`
+  (repetível), `valor_min`, `valor_max`, além de `fonte`/`situacao`. `numero` é
+  ILIKE "contém" em `numero_proposta` + `id_externo` + `emenda` (o painel mostra o
+  `id_externo` como "Nº", então buscar por ele precisa funcionar); os curingas
+  digitados pelo usuário são escapados. `valor_min > valor_max` → 400
+  `RANGE_VALOR_INVALIDO`. Proposta sem `valor_total` fica fora quando há corte.
+- **`GET /propostas/filtros`** devolve as opções derivadas do cache visível
+  (municípios, naturezas, fontes, situações — cada uma com contagem — e o range
+  real de valor). Declarado ANTES de `/propostas/{proposta_id}`, senão "filtros"
+  cairia no path param UUID.
+- **`natureza_juridica`** é slug normalizado (catálogo em
+  `models/proposta.NATUREZAS_JURIDICAS`; de-para do rótulo bruto da fonte em
+  `ingestion/normalizer.NATUREZA_JURIDICA_MAP`, casamento sem acento). Fica **fora**
+  de `_HASH_FIELDS` de propósito: é atributo estável do proponente e entraria como
+  mudança falsa no `detect_changes`. Nova fonte = acrescentar o campo de origem na
+  chamada de `natureza_juridica(...)` do normalizador.
+- Migration `b3f1c9a742de`: coluna + índices (trigram em `numero_proposta`/
+  `id_externo` para o ILIKE, btree em `valor_total`). Propostas já cacheadas ficam
+  com natureza NULL até o próximo sync.
+- Web: a busca fica em **`app/painel`** (Meu painel), abaixo dos cards de dimensão —
+  é a primeira tela do usuário. Componente `components/BuscaPropostas` (campo de
+  número com debounce 300 ms, chips multi-seleção de município e de natureza
+  jurídica via `components/MultiSelectChips`, valor mín/máx, "Limpar filtros";
+  respostas fora de ordem são descartadas por sequência) + `PropostasTable`
+  compartilhada. `app/painel/captacao` continua como lente de captação — lista do
+  território + consulta avulsa (o único fetch ao vivo), sem os filtros.

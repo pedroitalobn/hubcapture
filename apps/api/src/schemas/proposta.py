@@ -19,6 +19,7 @@ class PropostaCanonica(BaseModel):
     objeto: str | None = None
     orgao_superior: str | None = None
     modalidade: str | None = None
+    natureza_juridica: str | None = None
     municipio_ibge: str | None = None
     municipio_nome: str | None = None
     uf: str | None = None
@@ -48,6 +49,7 @@ class PropostaRead(BaseModel):
     objeto: str | None = None
     orgao_superior: str | None = None
     modalidade: str | None = None
+    natureza_juridica: str | None = None
     municipio_ibge: str | None = None
     municipio_nome: str | None = None
     uf: str | None = None
@@ -63,3 +65,27 @@ class PropostaRead(BaseModel):
     proveniencia: dict | None = None
     resumo_ia: str | None = None
     cache_atualizado_em: datetime | None = None
+
+
+class OpcaoFiltro(BaseModel):
+    """Uma opção de filtro com quantas propostas ela alcança."""
+
+    valor: str
+    label: str
+    total: int
+
+
+class FiltrosPropostas(BaseModel):
+    """Opções disponíveis para os filtros de busca do painel.
+
+    Calculadas sobre o que o usuário enxerga (RLS), para nunca oferecer um
+    filtro que devolveria zero — e para o valor mín/máx sugerir o range real.
+    """
+
+    total: int
+    municipios: list[OpcaoFiltro] = []
+    naturezas_juridicas: list[OpcaoFiltro] = []
+    fontes: list[OpcaoFiltro] = []
+    situacoes: list[OpcaoFiltro] = []
+    valor_min: Decimal | None = None
+    valor_max: Decimal | None = None

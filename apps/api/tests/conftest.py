@@ -115,14 +115,30 @@ async def seed_repasse() -> Callable[..., Awaitable[None]]:
 
 @pytest_asyncio.fixture
 async def seed_proposta() -> Callable[..., Awaitable[None]]:
-    async def _seed(fonte: str, id_externo: str, ibge: str, titulo: str = "P") -> None:
+    async def _seed(
+        fonte: str,
+        id_externo: str,
+        ibge: str,
+        titulo: str = "P",
+        *,
+        numero_proposta: str | None = None,
+        natureza_juridica: str | None = None,
+        valor_total: str | None = None,
+        municipio_nome: str | None = None,
+        uf: str | None = None,
+        emenda: str | None = None,
+    ) -> None:
         async with _owner_engine.begin() as conn:
             await conn.execute(
                 text(
                     "INSERT INTO propostas (fonte, id_externo, titulo, municipio_ibge, "
-                    "cache_atualizado_em) VALUES (:f,:e,:t,:ibge, now())"
+                    "municipio_nome, uf, numero_proposta, natureza_juridica, "
+                    "valor_total, emenda, cache_atualizado_em) "
+                    "VALUES (:f,:e,:t,:ibge,:mn,:uf,:num,:nj,:val,:em, now())"
                 ),
-                {"f": fonte, "e": id_externo, "t": titulo, "ibge": ibge},
+                {"f": fonte, "e": id_externo, "t": titulo, "ibge": ibge,
+                 "mn": municipio_nome, "uf": uf, "num": numero_proposta,
+                 "nj": natureza_juridica, "val": valor_total, "em": emenda},
             )
 
     return _seed
