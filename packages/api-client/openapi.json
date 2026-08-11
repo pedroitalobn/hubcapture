@@ -2031,8 +2031,15 @@
             "title": "Destaque"
           },
           "href": {
-            "title": "Href",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Href"
           },
           "titulo": {
             "title": "Titulo",
@@ -2046,8 +2053,7 @@
         },
         "required": [
           "chave",
-          "titulo",
-          "href"
+          "titulo"
         ],
         "title": "DimensaoResumo",
         "type": "object"
@@ -5751,6 +5757,19 @@
       "PropostaRead": {
         "description": "Representação da proposta devolvida pela API.",
         "properties": {
+          "ano": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ano de CRIAÇÃO da proposta (ANO_PROP na fonte) — o que o cabeçalho\nmostra e o filtro de ano usa como safra.",
+            "readOnly": true,
+            "title": "Ano"
+          },
           "cache_atualizado_em": {
             "anyOf": [
               {
@@ -6115,6 +6134,7 @@
           "categorias",
           "tipo",
           "natureza_juridica",
+          "ano",
           "prazo_final",
           "dias_restantes"
         ],

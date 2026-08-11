@@ -1242,6 +1242,40 @@ utilizar" (empenhado − pago) como linha de apoio.
 Fonte de dados **nunca** vira identidade de registro na UI (seção 19) — e código
 de município **nunca** vira nome.
 
+### 35b. As variáveis-fonte da referência da proposta (decisão travada)
+
+O SIconv publica a referência da proposta em colunas PRÓPRIAS, e são elas — não
+retaguardas inferidas — que mandam. Quando o dado sai errado na tela, é aqui que
+se confere antes de suspeitar de qualquer outra coisa:
+
+| Variável da fonte | Para onde vai | Quem usa |
+|---|---|---|
+| `NR_PROPOSTA` | `propostas.numero_proposta` | nº no cabeçalho do detalhe, da lista e do PDF |
+| `DIA_PROP` + `MES_PROP` + `ANO_PROP` | `propostas.data_proposta` (remontada) | "criada em" no cabeçalho |
+| `ANO_PROP` | `services/propostas.ano_de` | **filtro/faceta de ano** e o card "Ano da proposta" |
+| `MES_PROP` | `services/propostas.mes_de` | filtro/faceta de mês |
+
+- **`NR_PROPOSTA` vence** os demais candidatos de `numero_proposta` no
+  normalizador (é o nº que o gestor digita no portal para conferir).
+- **A data de criação é remontada dos TRÊS componentes** (`_data_de_componentes`)
+  e vence qualquer coluna única de data: as retaguardas (`data_inicio_vigencia`,
+  `data_cadastro`) marcavam a proposta com data que não é a dela.
+- **`ano_de`/`mes_de` leem `ANO_PROP`/`MES_PROP` direto do registro-fonte**
+  (`dados_fonte`, em qualquer nível/caixa — no CSV eles vivem em
+  `plano_acao.csv`). Isso corrige o dado JÁ ingerido no cache sem esperar
+  re-sync. Só depois vêm `data_proposta` → sufixo do nº → exercício da execução.
+- `mes_de` passou a acompanhar o ano no MESMO referencial (mês de criação);
+  prazo final e atualização na fonte viraram retaguarda.
+- No connector do CSV o casamento dessas colunas é **exato** (`_col_exata`), não
+  por substring: `dia_prop` pescaria também `DIA_PROPOSTA`, e a palavra-chave
+  "orgao" pescava `COD_ORGAO_SUP` (código) no lugar do ministério por extenso.
+
+**O prazo de vencimento saiu do cabeçalho** (detalhe e PDF): vinha marcado
+errado com frequência — o fim de vigência não é prazo de proposta — e o lugar
+dele é o card "Prazos", conferível item a item. No lugar entrou o **ano da
+proposta**, exposto pela API como o computado `PropostaRead.ano` (o front não
+recalcula safra). A coluna "Prazo" da LISTA de captação segue como está.
+
 ## 36. Pareceres do plano de trabalho (consulta pelo nº do plano)
 
 Na fonte, o parecer **não é emitido sobre a proposta**: é emitido sobre o

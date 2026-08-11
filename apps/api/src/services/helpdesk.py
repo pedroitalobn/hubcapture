@@ -45,6 +45,7 @@ HINT_CHAVES: list[dict[str, str]] = [
     {"chave": "proposta.contrapartida", "rotulo": "Contrapartida", "tela": "Detalhe da proposta"},
     {"chave": "proposta.empenhado", "rotulo": "Empenhado", "tela": "Detalhe da proposta"},
     {"chave": "proposta.prazo", "rotulo": "Próximo prazo", "tela": "Detalhe da proposta"},
+    {"chave": "proposta.ano", "rotulo": "Ano da proposta", "tela": "Detalhe da proposta"},
     {"chave": "proposta.situacao", "rotulo": "Situação", "tela": "Detalhe da proposta"},
     {"chave": "proposta.pendencias", "rotulo": "Pendências", "tela": "Detalhe da proposta"},
     {"chave": "proposta.modalidade", "rotulo": "Modalidade", "tela": "Detalhe da proposta"},

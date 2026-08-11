@@ -45,6 +45,57 @@ def test_ano_de_prefere_criacao_a_atualizacao() -> None:
     assert prop_service.ano_de(p) is None
 
 
+def test_ano_de_prefere_ano_prop_do_registro_fonte() -> None:
+    """ANO_PROP (SIconv) é a variável oficial da safra — vence até a
+    `data_proposta` ingerida (que pode ter vindo de retaguarda errada), e é
+    achada no registro-fonte em qualquer nível/caixa (plano_acao.csv)."""
+    from src.models.proposta import Proposta
+
+    p = Proposta(
+        data_proposta=date(2026, 1, 5),
+        dados_fonte={"plano_acao": {"csv": {"ANO_PROP": "2024"}}},
+    )
+    assert prop_service.ano_de(p) == "2024"
+
+    # ANO_PROP lixo não vira safra — cai para a data de criação
+    p = Proposta(data_proposta=date(2022, 3, 1), dados_fonte={"ANO_PROP": "lixo"})
+    assert prop_service.ano_de(p) == "2022"
+
+
+def test_proposta_read_expoe_o_ano_para_o_cabecalho() -> None:
+    """O cabeçalho do painel lê `ano` da API — não recalcula a safra no front."""
+    import uuid
+
+    from src.models.proposta import Proposta
+    from src.schemas.proposta import PropostaRead
+
+    p = Proposta(
+        id=uuid.uuid4(),
+        fonte="transferegov_disc",
+        id_externo="X1",
+        dados_fonte={"plano_acao": {"csv": {"ANO_PROP": "2024"}}},
+    )
+    assert PropostaRead.model_validate(p).ano == "2024"
+
+
+def test_mes_de_usa_mes_prop_e_data_da_proposta() -> None:
+    """MES_PROP > mês da criação > prazo final > atualização na fonte."""
+    from src.models.proposta import Proposta
+
+    p = Proposta(dados_fonte={"plano_acao": {"csv": {"MES_PROP": "3"}}})
+    assert prop_service.mes_de(p) == "03"
+
+    # com data de criação, o mês é o DELA — não o do prazo
+    p = Proposta(data_proposta=date(2024, 7, 1), prazos=[{"data_limite": "2026-01-10"}])
+    assert prop_service.mes_de(p) == "07"
+
+    # sem sinal de criação: prazo final e, por fim, atualização
+    p = Proposta(prazos=[{"data_limite": "2026-01-10"}])
+    assert prop_service.mes_de(p) == "01"
+    p = Proposta(data_atualizacao_fonte=date(2026, 5, 2))
+    assert prop_service.mes_de(p) == "05"
+
+
 # ── classificador de natureza jurídica (puro) ───────────────────────────────
 def test_classificar_natureza_juridica() -> None:
     assert prop_service.classificar_natureza_juridica("Administração Pública Municipal") == (
