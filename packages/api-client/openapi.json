@@ -295,6 +295,16 @@
               }
             ]
           },
+          "empenhos": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EmpenhoColeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "pareceres": {
             "anyOf": [
               {
@@ -2640,6 +2650,405 @@
           "id_externo"
         ],
         "title": "EmendaRead",
+        "type": "object"
+      },
+      "EmpenhoColeta": {
+        "description": "Estado honesto da coleta — \"sem empenho\" ≠ \"não consegui consultar\".",
+        "properties": {
+          "erro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erro"
+          },
+          "origem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origem"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "EmpenhoColeta",
+        "type": "object"
+      },
+      "EmpenhoPagina": {
+        "properties": {
+          "coleta": {
+            "$ref": "#/components/schemas/EmpenhoColeta"
+          },
+          "itens": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EmpenhoRead"
+            },
+            "title": "Itens",
+            "type": "array"
+          },
+          "resumo": {
+            "$ref": "#/components/schemas/EmpenhoResumo",
+            "default": {
+              "total": 0,
+              "valor_a_utilizar": "0",
+              "valor_anulado": "0",
+              "valor_empenhado": "0",
+              "valor_liquidado": "0",
+              "valor_pago": "0"
+            }
+          }
+        },
+        "required": [
+          "coleta"
+        ],
+        "title": "EmpenhoPagina",
+        "type": "object"
+      },
+      "EmpenhoRead": {
+        "properties": {
+          "ano": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ano"
+          },
+          "cache_atualizado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Atualizado Em"
+          },
+          "data_empenho": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Empenho"
+          },
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          },
+          "fonte_recurso": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fonte Recurso"
+          },
+          "gestao_emitente": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gestao Emitente"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "id_externo": {
+            "title": "Id Externo",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Ibge"
+          },
+          "municipio_nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Nome"
+          },
+          "natureza_despesa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Natureza Despesa"
+          },
+          "numero_empenho": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Empenho"
+          },
+          "numero_plano_acao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Plano Acao"
+          },
+          "numero_proposta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Proposta"
+          },
+          "observacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observacao"
+          },
+          "programa_trabalho": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Programa Trabalho"
+          },
+          "situacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Situacao"
+          },
+          "tipo_empenho": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo Empenho"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          },
+          "ug_emitente": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ug Emitente"
+          },
+          "valor_anulado": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Anulado"
+          },
+          "valor_empenhado": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Empenhado"
+          },
+          "valor_liquidado": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Liquidado"
+          },
+          "valor_pago": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Pago"
+          }
+        },
+        "required": [
+          "id",
+          "fonte",
+          "id_externo"
+        ],
+        "title": "EmpenhoRead",
+        "type": "object"
+      },
+      "EmpenhoResumo": {
+        "description": "Os totais — é o que a faixa de destaque da proposta mostra.\n\n`valor_empenhado` já vem LÍQUIDO das anulações: um empenho anulado que\ncontinuasse somando diria ao gestor que há recurso onde não há.",
+        "properties": {
+          "primeiro_empenho": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primeiro Empenho"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "ultimo_empenho": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ultimo Empenho"
+          },
+          "valor_a_utilizar": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor A Utilizar",
+            "type": "string"
+          },
+          "valor_anulado": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Anulado",
+            "type": "string"
+          },
+          "valor_empenhado": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Empenhado",
+            "type": "string"
+          },
+          "valor_liquidado": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Liquidado",
+            "type": "string"
+          },
+          "valor_pago": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Pago",
+            "type": "string"
+          }
+        },
+        "title": "EmpenhoResumo",
         "type": "object"
       },
       "ErrorModel": {
@@ -7039,7 +7448,7 @@
         "type": "object"
       },
       "ResetPerfilResultado": {
-        "description": "O que a zeragem do perfil apagou — e o que ela só invalidou.\n\n`cache_invalidado` conta as linhas de cache global (propostas, repasses,\nconformidades, obras) do território que voltaram a ser \"velhas\": elas não\nsão apagadas porque são compartilhadas entre usuários (ver\n`services/perfil.zerar`), mas serão recoletadas do zero no próximo\nonboarding.",
+        "description": "O que a zeragem do perfil apagou — e o que ela só marcou/invalidou.\n\nNada de cache global sai do banco (ver `services/perfil.zerar`):\n`propostas` conta as propostas do território marcadas como excluídas (soft\ndelete — somem do painel e a coleta seguinte as ressuscita) e\n`cache_invalidado`, as linhas de repasses/conformidades/obras que voltaram\na ser \"velhas\" e serão recoletadas.",
         "properties": {
           "alertas": {
             "default": 0,
@@ -7069,6 +7478,11 @@
           "pastas": {
             "default": 0,
             "title": "Pastas",
+            "type": "integer"
+          },
+          "propostas": {
+            "default": 0,
+            "title": "Propostas",
             "type": "integer"
           }
         },
@@ -9819,7 +10233,7 @@
     },
     "/api/v1/admin/proposals": {
       "delete": {
-        "description": "Zera TODAS as propostas do sistema (uso: validação — recomeçar a coleta do\nzero). As FKs são ON DELETE CASCADE, então favoritos, pastas, monitoramentos,\nalertas e embeddings ligados às propostas somem junto. Só superuser.",
+        "description": "Zera TODAS as propostas do sistema (uso: validação — recomeçar a coleta\ndo zero). É SOFT DELETE: marca `excluido_em`, não apaga a linha. Assim o\ncascade das FKs não dispara e favoritos, pastas, monitoramentos e alertas\ndos usuários sobrevivem — e dá para desfazer. Só superuser.",
         "operationId": "zerar_propostas_api_v1_admin_proposals_delete",
         "responses": {
           "200": {
@@ -9839,6 +10253,33 @@
           }
         ],
         "summary": "Zerar Propostas",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/proposals/restore": {
+      "post": {
+        "description": "Desfaz a zeragem: as propostas marcadas voltam ao painel.\n\nÉ o que o soft delete compra — o dado nunca saiu do banco. Alcança TODAS as\nmarcadas (inclusive as de uma zeragem de perfil), porque a sessão de\nplataforma não consegue distinguir território de ninguém sob RLS.",
+        "operationId": "restaurar_propostas_api_v1_admin_proposals_restore_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoLimpeza"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Restaurar Propostas",
         "tags": [
           "admin"
         ]
@@ -14869,6 +15310,67 @@
           }
         ],
         "summary": "Emendas Da Proposta",
+        "tags": [
+          "andamento"
+        ]
+      }
+    },
+    "/api/v1/proposals/{proposta_id}/commitments": {
+      "get": {
+        "description": "Empenhos da proposta e os totais — o recurso saiu do papel ou não.",
+        "operationId": "empenhos_da_proposta_api_v1_proposals__proposta_id__commitments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposta Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "forçar coleta na fonte",
+            "in": "query",
+            "name": "atualizar",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "forçar coleta na fonte",
+              "title": "Atualizar",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmpenhoPagina"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Empenhos Da Proposta",
         "tags": [
           "andamento"
         ]
