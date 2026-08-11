@@ -6,7 +6,8 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { Hint } from "@/components/Hint";
-import { PareceresSecao } from "@/components/PareceresSecao";
+import { AndamentoProposta } from "@/components/AndamentoProposta";
+import { EmendasProposta } from "@/components/EmendasProposta";
 import { Skeleton } from "@/components/Skeleton";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { TextoExpansivel } from "@/components/TextoExpansivel";
@@ -339,6 +340,9 @@ export default function PropostaDetalhePage() {
   // retaguarda no ano da data de criação já ingerida.
   const anoProposta = p.ano ?? (p.data_proposta ? p.data_proposta.slice(0, 4) : null);
   const disponivel = p.tipo === "disponivel";
+  // §40: o detalhe é panel-core; o módulo captação governa só a consulta ATIVA
+  // às fontes (o botão "Consultar fonte" das seções de andamento e emenda).
+  const podeExplorar = (perfil?.modulos ?? []).includes("captacao");
   const empenhadoAUtilizar = p.execucao
     ? Math.max(0, num(p.execucao.valor_empenhado) - num(p.execucao.valor_pago))
     : 0;
@@ -790,11 +794,12 @@ export default function PropostaDetalhePage() {
         </Secao>
       </div>
 
-      {/* Pareceres consultam a fonte ao vivo — exploração do módulo captação
-          (§40); sem o módulo, a seção some e o detalhe (cache) segue inteiro. */}
-      {(perfil?.modulos ?? []).includes("captacao") && (
-        <PareceresSecao proposta={p} />
-      )}
+      {/* Andamento e emenda são leitura de CACHE (panel-core, §40) — ficam na
+          tela mesmo com a captação desligada. O que o módulo governa é a
+          consulta AO VIVO, então só o botão "Consultar fonte" depende dele. */}
+      <AndamentoProposta proposta={p} podeConsultarFonte={podeExplorar} />
+
+      <EmendasProposta proposta={p} podeConsultarFonte={podeExplorar} />
 
       <Secao titulo="Acompanhar e ser avisado">
         {monitorando ? (
