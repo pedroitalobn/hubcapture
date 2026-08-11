@@ -6,14 +6,13 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { formatBRL, formatDate, humanizarCaixa } from "@/lib/format";
 
 /**
- * Empenhos da proposta — o fato que diz se o recurso saiu do papel.
+ * Empenhos da proposta — os documentos que reservam o recurso no orçamento.
  *
  * O empenho não vem na linha do plano de ação; mora em rota própria do módulo
- * especiais, consultada pelo número da proposta. Por isso a faixa de destaque
- * aparecia sem empenho: o agregado (`execucao.valor_empenhado`) só existe
- * quando o painel da Visão Geral publica. Aqui o total é somado dos documentos
- * e sobe para a página via `onResumo` — a faixa mostra o número mesmo quando o
- * agregado não veio.
+ * especiais, consultada pelo número da proposta. A seção soma os documentos
+ * (empenhado líquido das anulações e pago); o "a utilizar" (empenhado − pago)
+ * saiu daqui — era conta derivada que nas propostas dava zero. A faixa de
+ * destaque da página mostra o valor global da fonte (VL_GLOBAL_PROP).
  */
 
 export type EmpenhoResumo = {
@@ -53,11 +52,9 @@ function num(v?: string | null): number {
 interface Props {
   proposta: { id: string };
   podeConsultarFonte?: boolean;
-  /** Entrega os totais à página — é a faixa de destaque que os exibe. */
-  onResumo?: (resumo: EmpenhoResumo | null) => void;
 }
 
-export function EmpenhosProposta({ proposta, podeConsultarFonte = true, onResumo }: Props) {
+export function EmpenhosProposta({ proposta, podeConsultarFonte = true }: Props) {
   const [itens, setItens] = useState<Empenho[]>([]);
   const [resumo, setResumo] = useState<EmpenhoResumo | null>(null);
   const [coleta, setColeta] = useState<Coleta | null>(null);
@@ -72,17 +69,12 @@ export function EmpenhosProposta({ proposta, podeConsultarFonte = true, onResumo
       });
       if (data) {
         setItens((data.itens ?? []) as Empenho[]);
-        const r = (data.resumo ?? null) as EmpenhoResumo | null;
-        setResumo(r);
-        onResumo?.(r);
+        setResumo((data.resumo ?? null) as EmpenhoResumo | null);
         setColeta(data.coleta as Coleta);
       }
       setCarregando(false);
       setAtualizando(false);
     },
-    // `onResumo` fica fora das dependências de propósito: a página passa uma
-    // função nova a cada render, e incluí-la aqui refaria a busca em loop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [proposta.id],
   );
 
@@ -143,11 +135,6 @@ export function EmpenhosProposta({ proposta, podeConsultarFonte = true, onResumo
           {resumo && (
             <div className="data-grid mb-4">
               <Valor rotulo="Empenhado" valor={resumo.valor_empenhado} destaque />
-              <Valor
-                rotulo="A utilizar"
-                valor={resumo.valor_a_utilizar}
-                tom={num(resumo.valor_a_utilizar) > 0 ? "ok" : undefined}
-              />
               <Valor rotulo="Pago" valor={resumo.valor_pago} />
               {num(resumo.valor_anulado) > 0 && (
                 <Valor rotulo="Anulado" valor={resumo.valor_anulado} tom="danger" />

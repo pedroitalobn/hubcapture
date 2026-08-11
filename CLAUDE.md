@@ -1706,3 +1706,26 @@ AGREGADO, e no módulo especiais o empenho mora em rota própria —
 - **Calibração**: `python -m src.tools.probe_especiais --rotas` passou a mostrar
   também a rota escolhida para empenho, e `--numero-proposta 14275/2026` bate na
   rota e mostra campos brutos + normalizados.
+
+## 44. Faixa de destaque do detalhe — EMPENHO é `VL_GLOBAL_PROP`
+
+O card **Empenho** da faixa de destaque da página da proposta mostra o **valor
+global que a fonte publica para a proposta** — `VL_GLOBAL_PROP`, a variável
+oficial do SIconv (`VL_GLOBAL_CONV` é a do convênio já celebrado).
+
+- **Resolução do valor** (`services/propostas.valor_global_de`): lê
+  `VL_GLOBAL_PROP` direto de `dados_fonte`, em qualquer nível e caixa e em
+  formato BR — mesma disciplina de `ano_de`/`mes_de`, então **corrige o que já
+  está no cache sem esperar re-sync**. Sem a variável, cai em
+  `execucao.valor_global` e, por fim, em `valor_total`. A API expõe o resultado
+  no campo computado `PropostaRead.valor_global`; o front **não** vasculha
+  `dados_fonte`.
+- **Ingestão**: `_EXEC_KEYS["valor_global"]` do normalizador aceita
+  `vl_global_prop`/`vl_global_conv` além de `vl_global`, para as fontes que
+  publicam a coluna sem passar pelo de-para por palavra-chave do connector.
+- **"Empenhado a utilizar" foi DESCARTADO** da página da proposta e do espelho
+  em PDF (faixa de destaque, seção "Execução financeira" e o card "A utilizar"
+  da seção "Empenhos"). Era conta derivada (`empenhado − pago`) que nas
+  propostas dava zero e não informava nada. Os agregados de CARTEIRA continuam
+  com o card — `/proposals/summary` (`cards.valor_a_utilizar`), a tela de
+  captação e o resumo —, onde a conta tem massa e significado.

@@ -6985,6 +6985,20 @@
             ],
             "title": "Url Origem"
           },
+          "valor_global": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Valor global da proposta (VL_GLOBAL_PROP na fonte) — o que o card\n\"Empenho\" do detalhe mostra.",
+            "readOnly": true,
+            "title": "Valor Global"
+          },
           "valor_total": {
             "anyOf": [
               {
@@ -7006,6 +7020,7 @@
           "tipo",
           "natureza_juridica",
           "ano",
+          "valor_global",
           "prazo_final",
           "dias_restantes"
         ],

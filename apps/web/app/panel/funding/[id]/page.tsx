@@ -8,10 +8,7 @@ import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { Hint } from "@/components/Hint";
 import { AndamentoProposta } from "@/components/AndamentoProposta";
 import { EmendasProposta } from "@/components/EmendasProposta";
-import {
-  EmpenhosProposta,
-  type EmpenhoResumo,
-} from "@/components/EmpenhosProposta";
+import { EmpenhosProposta } from "@/components/EmpenhosProposta";
 import { Skeleton } from "@/components/Skeleton";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { TextoExpansivel } from "@/components/TextoExpansivel";
@@ -46,6 +43,8 @@ type Proposta = {
   municipio_nome?: string | null;
   uf?: string | null;
   valor_total?: string | null;
+  /** Valor global publicado pela fonte (VL_GLOBAL_PROP) — o card "Empenho". */
+  valor_global?: string | null;
   contrapartida?: string | null;
   situacao?: string | null;
   emenda?: string | null;
@@ -265,9 +264,6 @@ export default function PropostaDetalhePage() {
   );
   // "Ampliar tudo" da seção de dados da fonte (campos de extensão longa)
   const [abrirTudo, setAbrirTudo] = useState(false);
-  // Totais dos empenhos, entregues pela seção: alimentam a faixa de destaque
-  // quando a fonte não publicou o agregado de execução.
-  const [resumoEmpenhos, setResumoEmpenhos] = useState<EmpenhoResumo | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -350,14 +346,12 @@ export default function PropostaDetalhePage() {
   // §40: o detalhe é panel-core; o módulo captação governa só a consulta ATIVA
   // às fontes (o botão "Consultar fonte" das seções de andamento e emenda).
   const podeExplorar = (perfil?.modulos ?? []).includes("captacao");
-  // O empenho tem DUAS origens: o agregado do painel da Visão Geral
-  // (`execucao`, que só existe quando aquela fonte publica) e a soma dos
-  // documentos de `/commitments`. Só o primeiro existia, e por isso a faixa
-  // aparecia vazia — agora o agregado manda e a soma cobre a ausência dele.
-  const empenhado = num(p.execucao?.valor_empenhado) || num(resumoEmpenhos?.valor_empenhado);
-  const pago = num(p.execucao?.valor_pago) || num(resumoEmpenhos?.valor_pago);
-  const empenhadoAUtilizar = Math.max(0, empenhado - pago);
-  const temEmpenho = empenhado > 0;
+  // EMPENHO na faixa de destaque = VL_GLOBAL_PROP, o valor global que a fonte
+  // publica para a proposta (a API resolve o campo cru e devolve em
+  // `valor_global`). A conta derivada "empenhado − pago" saiu da tela: nas
+  // propostas ela dava zero e não dizia nada ao gestor.
+  const valorGlobal = p.valor_global ?? p.execucao?.valor_global ?? null;
+  const temValorGlobal = num(valorGlobal) > 0;
 
   return (
     <div className="flex flex-col gap-5">
@@ -488,28 +482,27 @@ export default function PropostaDetalhePage() {
             )}
           </div>
 
-          {/* EMPENHO no primeiro degrau: é o que diz se o recurso saiu do
-              papel. Antes vivia lá embaixo, na grade secundária. */}
-          {/* O hint contextual em ação: o ⓘ ao lado de "Empenhado" abre o
+          {/* EMPENHO no primeiro degrau: é o valor global que a fonte publica
+              para a proposta (VL_GLOBAL_PROP). Antes vivia lá embaixo, na
+              grade secundária. */}
+          {/* O hint contextual em ação: o ⓘ ao lado de "Empenho" abre o
               artigo que o admin plantou na chave proposta.empenhado. */}
           <div className="field">
             <span className="field-label">
-              Empenhado <Hint chave="proposta.empenhado" />
+              Empenho <Hint chave="proposta.empenhado" />
             </span>
-            {temEmpenho ? (
+            {temValorGlobal ? (
               <>
-                <span className="value-hero">{formatBRL(String(empenhado))}</span>
+                <span className="value-hero">{formatBRL(valorGlobal)}</span>
                 <span className="num mt-1 text-xs text-ink-3">
-                  {empenhadoAUtilizar > 0
-                    ? `${formatBRL(String(empenhadoAUtilizar))} a utilizar`
-                    : "nada a utilizar"}
+                  valor global da proposta na fonte
                 </span>
               </>
             ) : (
               <>
                 <span className="value-hero text-ink-3">—</span>
                 <span className="num mt-1 text-xs text-ink-3">
-                  {resumoEmpenhos ? "nenhum empenho emitido" : "consultando empenhos…"}
+                  sem valor global informado na fonte
                 </span>
               </>
             )}
@@ -556,8 +549,6 @@ export default function PropostaDetalhePage() {
             </span>
           </div>
 
-          {/* "Empenhado a utilizar" subiu para a faixa de destaque, junto do
-              valor empenhado — não se repete aqui. */}
           <Dado
             rotulo={
               <>
@@ -700,12 +691,6 @@ export default function PropostaDetalhePage() {
                     rotulo="Saldo em conta"
                     valor={formatBRL(p.execucao!.saldo_conta)}
                   />
-                  <Dado
-                    rotulo="Empenhado a utilizar"
-                    valor={formatBRL(String(empenhadoAUtilizar))}
-                    tom={empenhadoAUtilizar > 0 ? "ok" : undefined}
-                    destaque
-                  />
                 </div>
                 <hr className="hairline-rule" />
                 <div className="data-grid">
@@ -809,11 +794,7 @@ export default function PropostaDetalhePage() {
           consulta AO VIVO, então só o botão "Consultar fonte" depende dele. */}
       <AndamentoProposta proposta={p} podeConsultarFonte={podeExplorar} />
 
-      <EmpenhosProposta
-        proposta={p}
-        podeConsultarFonte={podeExplorar}
-        onResumo={setResumoEmpenhos}
-      />
+      <EmpenhosProposta proposta={p} podeConsultarFonte={podeExplorar} />
 
       <EmendasProposta proposta={p} podeConsultarFonte={podeExplorar} />
 
