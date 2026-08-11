@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { NumeroProposta } from "@/components/NumeroProposta";
+import { TextoLimitado } from "@/components/TextoLimitado";
 import { municipioPrincipal, municipioSecundario } from "@/lib/format";
 import { useTerritorio } from "@/lib/territorio";
 
@@ -133,9 +134,31 @@ export default function MinhasPropostasPage() {
                         da linha de apoio: é plumbing da integração e ocupava o
                         lugar da referência que o gestor de fato usa (§35). */}
                     <NumeroProposta numero={p.numero_proposta} tamanho="sm" className="mb-1" />
-                    <Link href={`/panel/funding/${p.id}`} className="block font-medium hover:underline">
-                      {p.titulo ?? p.objeto ?? "Proposta sem título na fonte"}
-                    </Link>
+                    {/* mesmo teto de caracteres da lista de captação: o objeto
+                        da fonte vem como título e pode ter milhares deles */}
+                    <TextoLimitado
+                      texto={p.titulo ?? p.objeto}
+                      limite={110}
+                      titulo={municipioPrincipal(p)}
+                      rotulo="Objeto da proposta"
+                      className="block"
+                      vazio={
+                        <Link
+                          href={`/panel/funding/${p.id}`}
+                          className="block font-medium hover:underline"
+                        >
+                          Proposta sem título na fonte
+                        </Link>
+                      }
+                      envolver={(trecho) => (
+                        <Link
+                          href={`/panel/funding/${p.id}`}
+                          className="font-medium hover:underline"
+                        >
+                          {trecho}
+                        </Link>
+                      )}
+                    />
                     <p className="mt-0.5 max-w-md text-xs text-ink-3">
                       {[p.orgao_superior, p.modalidade].filter(Boolean).join(" · ")}
                     </p>

@@ -1088,6 +1088,22 @@ Três problemas da tela de captação, resolvidos na camada certa de cada um.
   caracteres); ampliado, o texto rola dentro de si em vez de esticar a página. Em
   `app/panel/funding/[id]`, "Dados completos da fonte" separa campos curtos (grade) de longos
   (linha inteira) e ganha **Ampliar tudo**; `objeto` e `movimentacao` usam o mesmo componente.
+- **TÍTULO com teto de caracteres** (`components/TextoLimitado.tsx` + `lib/format.recortarTexto`):
+  as fontes não separam título de descrição — o `objeto` vira título e chega com o projeto
+  inteiro dentro (mais de 2 mil caracteres num edital de cultura). Ampliar in loco não serve
+  aqui: no cabeçalho do detalhe o título empurrava valor, empenho e prazo para fora da dobra,
+  e na lista esticava a linha por meia tela. O corte é por CARACTERE (previsível em qualquer
+  largura, ao contrário do clamp de linhas do `TextoExpansivel`), sempre em palavra inteira, e
+  o inteiro abre em **modal** — que é onde ele pode ocupar o espaço que precisa, com "copiar
+  texto". Aplicado em `panel/funding/[id]` (limite 180), `panel/funding` e
+  `panel/my-proposals` (110). O gatilho "ver completo" fica FORA do que `envolver` monta: nas
+  listas o trecho vive dentro de um `<Link>` e botão dentro de âncora é HTML inválido (mesma
+  razão do `copiavel={false}` do `NumeroProposta`, §44).
+- **Modal** (`components/Modal.tsx`) é a janela sobreposta do app — portal no `body` (dentro
+  da árvore, o `overflow` das tabelas de captação recortaria a janela e o trilho lateral
+  passaria por cima), Esc, clique no FUNDO (não no arrasto de seleção), Tab preso e foco
+  devolvido a quem abriu. `bg-card` sobrepõe o vidro translúcido do `.card`: sobre o fundo
+  escurecido, o texto de trás vazaria para dentro da janela.
 - **CAIXA ALTA das fontes**: `lib/format.humanizarCaixa()` normaliza só na APRESENTAÇÃO
   ("MTUR/SECULT - ALDIR BLANC - MUNICÍPIOS" → "MTUR/SECULT - Aldir Blanc - Municípios";
   "FUNDO_A_FUNDO" → "Fundo a Fundo"). Texto já em caixa mista passa intacto; siglas e códigos
