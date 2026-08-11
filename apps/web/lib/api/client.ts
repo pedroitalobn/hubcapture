@@ -111,6 +111,30 @@ export async function zerarPropostas(): Promise<{ removidas: number }> {
   return resp.json();
 }
 
+export interface ResetPerfil {
+  municipios: number;
+  favoritos: number;
+  pastas: number;
+  monitoramentos: number;
+  alertas: number;
+  cache_invalidado: number;
+}
+
+/**
+ * Zera o PRÓPRIO perfil (zona de perigo da conta): apaga território,
+ * preferências e curadoria do usuário e manda o cache do território ser
+ * recoletado. A conta continua existindo — o usuário volta ao onboarding.
+ * Fetch cru autenticado (o client tipado só conhece o GET /profile).
+ */
+export async function zerarPerfil(): Promise<ResetPerfil> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/profile`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+  });
+  if (!resp.ok) throw new Error(`Falha ao zerar o perfil (HTTP ${resp.status})`);
+  return resp.json();
+}
+
 /** Exclui um convite (admin). Rota fora do client tipado → fetch cru. */
 export async function excluirConvite(id: string): Promise<void> {
   const resp = await fetch(`${API_ORIGIN}/api/v1/admin/invites/${id}`, {

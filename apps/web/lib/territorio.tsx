@@ -68,6 +68,12 @@ function lerSalvos(): string[] {
   }
 }
 
+/** Esquece o recorte salvo (usado ao zerar o perfil: o território deixa de existir). */
+export function limparTerritorioSalvo(): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(CHAVE);
+}
+
 export function TerritorioProvider({ children }: { children: React.ReactNode }) {
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [carregando, setCarregando] = useState(true);

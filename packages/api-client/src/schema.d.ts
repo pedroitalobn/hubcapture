@@ -1574,7 +1574,16 @@ export interface paths {
         get: operations["get_perfil_api_v1_profile_get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Zerar Perfil
+         * @description Zona de perigo da conta: volta ao estado pré-onboarding.
+         *
+         *     Apaga território, preferências e curadoria do PRÓPRIO usuário (o RLS não
+         *     deixa alcançar outro tenant) e invalida o cache do território para a
+         *     próxima coleta recomeçar do zero. A conta continua existindo — o usuário
+         *     cai no onboarding de novo.
+         */
+        delete: operations["zerar_perfil_api_v1_profile_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -4254,6 +4263,12 @@ export interface components {
          * @description Representação da proposta devolvida pela API.
          */
         PropostaRead: {
+            /**
+             * Ano
+             * @description Ano de CRIAÇÃO da proposta (ANO_PROP na fonte) — o que o cabeçalho
+             *     mostra e o filtro de ano usa como safra.
+             */
+            readonly ano: string | null;
             /** Cache Atualizado Em */
             cache_atualizado_em?: string | null;
             /**
@@ -4527,6 +4542,48 @@ export interface components {
             itens: components["schemas"]["RepasseRead"][];
             /** Subtotal */
             subtotal: string;
+        };
+        /**
+         * ResetPerfilResultado
+         * @description O que a zeragem do perfil apagou — e o que ela só invalidou.
+         *
+         *     `cache_invalidado` conta as linhas de cache global (propostas, repasses,
+         *     conformidades, obras) do território que voltaram a ser "velhas": elas não
+         *     são apagadas porque são compartilhadas entre usuários (ver
+         *     `services/perfil.zerar`), mas serão recoletadas do zero no próximo
+         *     onboarding.
+         */
+        ResetPerfilResultado: {
+            /**
+             * Alertas
+             * @default 0
+             */
+            alertas: number;
+            /**
+             * Cache Invalidado
+             * @default 0
+             */
+            cache_invalidado: number;
+            /**
+             * Favoritos
+             * @default 0
+             */
+            favoritos: number;
+            /**
+             * Monitoramentos
+             * @default 0
+             */
+            monitoramentos: number;
+            /**
+             * Municipios
+             * @default 0
+             */
+            municipios: number;
+            /**
+             * Pastas
+             * @default 0
+             */
+            pastas: number;
         };
         /** ResultadoLimpeza */
         ResultadoLimpeza: {
@@ -8170,6 +8227,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PerfilRead"];
+                };
+            };
+        };
+    };
+    zerar_perfil_api_v1_profile_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResetPerfilResultado"];
                 };
             };
         };

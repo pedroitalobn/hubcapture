@@ -1242,6 +1242,40 @@ utilizar" (empenhado − pago) como linha de apoio.
 Fonte de dados **nunca** vira identidade de registro na UI (seção 19) — e código
 de município **nunca** vira nome.
 
+### 35b. As variáveis-fonte da referência da proposta (decisão travada)
+
+O SIconv publica a referência da proposta em colunas PRÓPRIAS, e são elas — não
+retaguardas inferidas — que mandam. Quando o dado sai errado na tela, é aqui que
+se confere antes de suspeitar de qualquer outra coisa:
+
+| Variável da fonte | Para onde vai | Quem usa |
+|---|---|---|
+| `NR_PROPOSTA` | `propostas.numero_proposta` | nº no cabeçalho do detalhe, da lista e do PDF |
+| `DIA_PROP` + `MES_PROP` + `ANO_PROP` | `propostas.data_proposta` (remontada) | "criada em" no cabeçalho |
+| `ANO_PROP` | `services/propostas.ano_de` | **filtro/faceta de ano** e o card "Ano da proposta" |
+| `MES_PROP` | `services/propostas.mes_de` | filtro/faceta de mês |
+
+- **`NR_PROPOSTA` vence** os demais candidatos de `numero_proposta` no
+  normalizador (é o nº que o gestor digita no portal para conferir).
+- **A data de criação é remontada dos TRÊS componentes** (`_data_de_componentes`)
+  e vence qualquer coluna única de data: as retaguardas (`data_inicio_vigencia`,
+  `data_cadastro`) marcavam a proposta com data que não é a dela.
+- **`ano_de`/`mes_de` leem `ANO_PROP`/`MES_PROP` direto do registro-fonte**
+  (`dados_fonte`, em qualquer nível/caixa — no CSV eles vivem em
+  `plano_acao.csv`). Isso corrige o dado JÁ ingerido no cache sem esperar
+  re-sync. Só depois vêm `data_proposta` → sufixo do nº → exercício da execução.
+- `mes_de` passou a acompanhar o ano no MESMO referencial (mês de criação);
+  prazo final e atualização na fonte viraram retaguarda.
+- No connector do CSV o casamento dessas colunas é **exato** (`_col_exata`), não
+  por substring: `dia_prop` pescaria também `DIA_PROPOSTA`, e a palavra-chave
+  "orgao" pescava `COD_ORGAO_SUP` (código) no lugar do ministério por extenso.
+
+**O prazo de vencimento saiu do cabeçalho** (detalhe e PDF): vinha marcado
+errado com frequência — o fim de vigência não é prazo de proposta — e o lugar
+dele é o card "Prazos", conferível item a item. No lugar entrou o **ano da
+proposta**, exposto pela API como o computado `PropostaRead.ano` (o front não
+recalcula safra). A coluna "Prazo" da LISTA de captação segue como está.
+
 ## 36. Pareceres do plano de trabalho (consulta pelo nº do plano)
 
 Na fonte, o parecer **não é emitido sobre a proposta**: é emitido sobre o
@@ -1497,7 +1531,43 @@ padrão, o `/panel` ficava vazio. A regra que fica:
   Captação ganhou `ModuloGate`; o detalhe da proposta é panel-core e, sem o
   módulo, esconde apenas a seção de pareceres.
 
-## 41. Enriquecimento da proposta — emenda, parlamentar autor e TIMELINE de andamento
+## 41. Zeragem — admin (global) e usuário (zona de perigo da conta)
+
+Duas zeragens com ALCANCES diferentes, porque `propostas` (e `repasses`,
+`conformidades`, `obras`) é **cache global** (§4) e não pertence a um usuário.
+
+- **Admin — `DELETE /admin/proposals`** (`api/v1/admin_fontes.py`, superuser):
+  apaga TODAS as propostas do sistema. A contagem sai do **`rowcount` do
+  DELETE**, nunca de um `SELECT count(*)`: a sessão é a de plataforma (sem
+  tenant) e, sob o `FORCE RLS` de `propostas`, um SELECT enxerga 0 linhas — o
+  painel respondia "0 removidas" com a tabela apagada. Um DELETE **sem WHERE**
+  não lê linha, então só a policy `FOR DELETE USING (true)` se aplica.
+- **Usuário — `DELETE /profile`** (`services/perfil.py::zerar`, zona de perigo
+  em `app/panel/account`): devolve a conta ao estado **pré-onboarding**. Apaga
+  o que é do tenant — território (todos os municípios), preferências
+  (áreas/fontes) e curadoria (favoritos, pastas, monitoramentos, buscas
+  monitoradas, alertas). **Não** apaga conta, login nem agenda de contatos, e
+  registra `audit_log('zerar_perfil')`.
+- **Por que o usuário INVALIDA o cache em vez de apagar**: outro tenant pode
+  acompanhar o mesmo município, e as FKs `ON DELETE CASCADE` **ignoram RLS** —
+  apagar a proposta levaria junto o favorito/pasta/monitoramento DELE. Então a
+  zeragem por usuário zera `cache_atualizado_em` do território (as 4 tabelas de
+  cache): some do painel de quem zerou (sem território o RLS não devolve nada) e
+  a próxima coleta refaz do zero. Nuke global continua sendo prerrogativa do
+  admin. O app-role NÃO consegue detectar "esse município é só meu": `FORCE RLS`
+  em `municipios_interesse` bloqueia leitura cross-tenant até para a sessão de
+  plataforma — por isso a regra é invalidar, não apagar.
+- **ORDEM IMPORTA**: o cache é invalidado ENQUANTO o território ainda existe. O
+  UPDATE tem WHERE, logo LÊ linha — e leitura em `propostas` passa pela policy
+  de SELECT (município ∈ `municipios_interesse`). Apagando o território antes, o
+  UPDATE não acha nada e o cache fica fresco para sempre.
+- **Memória de coleta**: as duas zeragens limpam o cache de TENTATIVA de
+  `consulta_avulsa` (`limpar_cache_coleta()` no admin, `esquecer_municipio(ibge)`
+  por município no usuário) e o admin limpa também o CSV do `transferegov_disc`.
+  Sem isso, "recomeçar do zero" não recoletaria nada por até 6h (§38) e o painel
+  novo abriria vazio como se as fontes não tivessem dados.
+
+## 42. Enriquecimento da proposta — emenda, parlamentar autor e TIMELINE de andamento
 
 A proposta deixou de ser uma ficha estática: além dos pareceres (§36), o detalhe
 agora responde **de quem é o dinheiro** (emenda + parlamentar autor) e **em que pé
@@ -1559,3 +1629,4 @@ está** (linha do tempo da tramitação). Os dois vêm de rotas IRMÃS do módul
   módulo que falam do assunto e os parâmetros de cada uma (é daí que sai o valor dos
   overrides); `--id-plano-acao <id>` bate na rota e mostra campos brutos +
   normalizados. Precisa de saída para gov.br (o sandbox de CI/agente bloqueia).
+

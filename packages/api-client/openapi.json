@@ -6219,6 +6219,19 @@
       "PropostaRead": {
         "description": "Representação da proposta devolvida pela API.",
         "properties": {
+          "ano": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ano de CRIAÇÃO da proposta (ANO_PROP na fonte) — o que o cabeçalho\nmostra e o filtro de ano usa como safra.",
+            "readOnly": true,
+            "title": "Ano"
+          },
           "cache_atualizado_em": {
             "anyOf": [
               {
@@ -6583,6 +6596,7 @@
           "categorias",
           "tipo",
           "natureza_juridica",
+          "ano",
           "prazo_final",
           "dias_restantes"
         ],
@@ -7022,6 +7036,43 @@
           "itens"
         ],
         "title": "RepassesPorDia",
+        "type": "object"
+      },
+      "ResetPerfilResultado": {
+        "description": "O que a zeragem do perfil apagou — e o que ela só invalidou.\n\n`cache_invalidado` conta as linhas de cache global (propostas, repasses,\nconformidades, obras) do território que voltaram a ser \"velhas\": elas não\nsão apagadas porque são compartilhadas entre usuários (ver\n`services/perfil.zerar`), mas serão recoletadas do zero no próximo\nonboarding.",
+        "properties": {
+          "alertas": {
+            "default": 0,
+            "title": "Alertas",
+            "type": "integer"
+          },
+          "cache_invalidado": {
+            "default": 0,
+            "title": "Cache Invalidado",
+            "type": "integer"
+          },
+          "favoritos": {
+            "default": 0,
+            "title": "Favoritos",
+            "type": "integer"
+          },
+          "monitoramentos": {
+            "default": 0,
+            "title": "Monitoramentos",
+            "type": "integer"
+          },
+          "municipios": {
+            "default": 0,
+            "title": "Municipios",
+            "type": "integer"
+          },
+          "pastas": {
+            "default": 0,
+            "title": "Pastas",
+            "type": "integer"
+          }
+        },
+        "title": "ResetPerfilResultado",
         "type": "object"
       },
       "ResultadoLimpeza": {
@@ -13008,6 +13059,31 @@
       }
     },
     "/api/v1/profile": {
+      "delete": {
+        "description": "Zona de perigo da conta: volta ao estado pré-onboarding.\n\nApaga território, preferências e curadoria do PRÓPRIO usuário (o RLS não\ndeixa alcançar outro tenant) e invalida o cache do território para a\npróxima coleta recomeçar do zero. A conta continua existindo — o usuário\ncai no onboarding de novo.",
+        "operationId": "zerar_perfil_api_v1_profile_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetPerfilResultado"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Zerar Perfil",
+        "tags": [
+          "perfil"
+        ]
+      },
       "get": {
         "operationId": "get_perfil_api_v1_profile_get",
         "responses": {

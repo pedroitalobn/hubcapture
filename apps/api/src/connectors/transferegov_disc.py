@@ -69,11 +69,38 @@ def _col(row: dict, *keywords: str) -> Any:
     return None
 
 
+def _col_exata(row: dict, *nomes: str) -> Any:
+    """Valor da coluna cujo nome normalizado é EXATAMENTE um dos pedidos.
+
+    Necessário para as colunas do SIconv que são prefixo umas das outras:
+    por substring, 'dia_prop' casaria também com DIA_PROPOSTA.
+    """
+    chaves = {_norm(k).strip(): v for k, v in row.items() if isinstance(k, str)}
+    for nome in nomes:
+        if chaves.get(nome) not in (None, ""):
+            return chaves[nome]
+    return None
+
+
 def _plano_do_csv(row: dict) -> dict:
     """Linha do CSV → dict no vocabulário do normalizador (com execução)."""
     return {
         "numero": _col(row, "nr_convenio", "transferencia", "numero"),
-        "situacao": _col(row, "situa"),
+        # SIconv/detru (siconv_proposta.csv): a REFERÊNCIA da proposta vem em
+        # colunas próprias — NR_PROPOSTA (o nº que o gestor digita no portal) e
+        # a data de criação decomposta em DIA_PROP/MES_PROP/ANO_PROP. Sem este
+        # de-para o normalizador caía em retaguardas erradas (vigência,
+        # exercício) e o painel mostrava ano/data que não são os da proposta.
+        "nr_proposta": _col_exata(row, "nr_proposta"),
+        "dia_prop": _col_exata(row, "dia_prop"),
+        "mes_prop": _col_exata(row, "mes_prop"),
+        "ano_prop": _col_exata(row, "ano_prop"),
+        "dia_proposta": _col_exata(row, "dia_proposta"),
+        # órgão por extenso — a palavra-chave "orgao" pescava COD_ORGAO_SUP
+        # (código numérico) e a tela mostrava número onde vai o ministério
+        "desc_orgao": _col_exata(row, "desc_orgao"),
+        "desc_orgao_superior": _col_exata(row, "desc_orgao_sup", "desc_orgao_superior"),
+        "situacao": _col(row, "situa", "sit_proposta"),
         "modalidade": _col(row, "modalidade"),
         "tipo_transferencia": _col(row, "tipo"),
         "objeto": _col(row, "objeto"),

@@ -57,6 +57,24 @@ class PerfilRead(BaseModel):
     plano: PlanoPerfil | None = None  # None = sem plano atribuído (sem restrição)
 
 
+class ResetPerfilResultado(BaseModel):
+    """O que a zeragem do perfil apagou — e o que ela só invalidou.
+
+    `cache_invalidado` conta as linhas de cache global (propostas, repasses,
+    conformidades, obras) do território que voltaram a ser "velhas": elas não
+    são apagadas porque são compartilhadas entre usuários (ver
+    `services/perfil.zerar`), mas serão recoletadas do zero no próximo
+    onboarding.
+    """
+
+    municipios: int = 0
+    favoritos: int = 0
+    pastas: int = 0
+    monitoramentos: int = 0
+    alertas: int = 0
+    cache_invalidado: int = 0
+
+
 class DimensaoResumo(BaseModel):
     """Um eixo do ciclo (captação/recebidos/conformidade/obras) para o perfil."""
 

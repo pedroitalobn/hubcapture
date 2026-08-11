@@ -12,7 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.users import current_active_user
 from ...models.usuario import Usuario
-from ...schemas.perfil import NovidadesPerfil, PerfilRead, VisaoGeralPerfil
+from ...schemas.perfil import (
+    NovidadesPerfil,
+    PerfilRead,
+    ResetPerfilResultado,
+    VisaoGeralPerfil,
+)
 from ...services import perfil as service
 from ..deps import get_rls_db
 
@@ -25,6 +30,21 @@ async def get_perfil(
     session: AsyncSession = Depends(get_rls_db),
 ) -> PerfilRead:
     return await service.get_perfil(session, user)
+
+
+@router.delete("/profile", response_model=ResetPerfilResultado)
+async def zerar_perfil(
+    user: Usuario = Depends(current_active_user),
+    session: AsyncSession = Depends(get_rls_db),
+) -> ResetPerfilResultado:
+    """Zona de perigo da conta: volta ao estado pré-onboarding.
+
+    Apaga território, preferências e curadoria do PRÓPRIO usuário (o RLS não
+    deixa alcançar outro tenant) e invalida o cache do território para a
+    próxima coleta recomeçar do zero. A conta continua existindo — o usuário
+    cai no onboarding de novo.
+    """
+    return await service.zerar(session, user)
 
 
 # O painel filtra QUAIS dos municípios do perfil o usuário quer ver agora —

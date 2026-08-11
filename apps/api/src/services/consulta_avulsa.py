@@ -90,6 +90,18 @@ def limpar_cache_coleta() -> None:
     _TENTATIVAS.clear()
 
 
+def esquecer_municipio(ibge: str) -> None:
+    """Esquece as tentativas de UM município (usado ao zerar o perfil).
+
+    Sem isto, recomeçar do zero num município recém-coletado não recoletaria
+    nada por até 6h — a tentativa recente conta como frescor e nenhuma fonte
+    seria consultada, deixando o painel vazio como se as fontes não tivessem
+    dados.
+    """
+    for chave in [c for c in _TENTATIVAS if c[1] == ibge]:
+        del _TENTATIVAS[chave]
+
+
 def _tentativa_fresca(fonte: str, ibge: str) -> bool:
     registro = _TENTATIVAS.get((fonte, ibge))
     if registro is None:
