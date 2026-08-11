@@ -112,8 +112,98 @@ def _execucao(p: Proposta) -> dict:
     return p.execucao if isinstance(p.execucao, dict) else {}
 
 
+# Sinais alternativos da natureza: quando a execução não traz o campo, o
+# registro-fonte completo (`dados_fonte`) costuma trazer — texto, código
+# CONCLA/RFB ou o nome do proponente. Ponto de calibração por fonte.
+_CAMPOS_NATUREZA_FONTE = (
+    "natureza_juridica",
+    "natureza_juridica_proponente",
+    "nome_natureza_juridica",
+    "nat_jur",
+)
+_CAMPOS_CODIGO_NATUREZA = ("codigo_natureza_juridica", "cod_nat_jur", "id_natureza_juridica")
+_CAMPOS_PROPONENTE = (
+    "nm_proponente",
+    "nome_proponente",
+    "proponente",
+    "nome_beneficiario",
+    "razao_social",
+)
+
+# Códigos de esfera municipal da tabela de Natureza Jurídica (CONCLA/RFB):
+# 103-1 Executivo · 106-6 Legislativo · 112-0 Autarquia · 115-5 e 127-9 Fundação
+# · 118-0 Órgão Autônomo · 124-4 Município · 130-9 e 133-3 Fundo Público.
+_CODIGOS_MUNICIPAIS = frozenset(
+    {"1031", "1066", "1120", "1155", "1180", "1244", "1279", "1309", "1333"}
+)
+# 121-0 (associação pública) e 122-8 (direito privado) — consórcio público.
+_CODIGOS_CONSORCIO = frozenset({"1210", "1228"})
+
+# Fontes cujo beneficiário é, por desenho do programa, o próprio ente municipal
+# (repasse fundo a fundo ao município). Último recurso, sem nenhum outro sinal.
+_NATUREZA_PADRAO_FONTE = {"transferegov_ff": "municipal", "fns": "municipal"}
+
+
+def _natureza_por_codigo(valor: str | None) -> str | None:
+    """Slug a partir do código CONCLA/RFB (só o que ele decide com certeza)."""
+    digitos = re.sub(r"\D", "", str(valor or ""))
+    if len(digitos) != 4:
+        return None
+    if digitos in _CODIGOS_MUNICIPAIS:
+        return "municipal"
+    return "consorcio" if digitos in _CODIGOS_CONSORCIO else None
+
+
 def natureza_juridica_de(p: Proposta) -> str | None:
-    return classificar_natureza_juridica(_execucao(p).get("natureza_juridica"))
+    """Natureza jurídica do proponente, do sinal mais forte ao mais fraco.
+
+    Execução > texto no registro-fonte > código CONCLA/RFB > nome do proponente
+    > padrão da fonte. Sem nenhum sinal continua None (a proposta fica fora dos
+    filtros detalhados) — as duas LENTES (`grupo_natureza_de`) é que sempre
+    classificam, para que a consulta cubra a base inteira.
+    """
+    slug = classificar_natureza_juridica(_execucao(p).get("natureza_juridica"))
+    if slug:
+        return slug
+    for campo in _CAMPOS_NATUREZA_FONTE:
+        slug = classificar_natureza_juridica(_campo_fonte(p.dados_fonte, campo))
+        if slug:
+            return slug
+    for campo in _CAMPOS_CODIGO_NATUREZA:
+        slug = _natureza_por_codigo(_campo_fonte(p.dados_fonte, campo))
+        if slug:
+            return slug
+    for campo in _CAMPOS_PROPONENTE:
+        # o NOME só vale quando reconhece um marcador ("Prefeitura de…"); texto
+        # não reconhecido não vira "outros" aqui, senão o nome de qualquer
+        # proponente encerraria a busca por sinal.
+        slug = classificar_natureza_juridica(_campo_fonte(p.dados_fonte, campo))
+        if slug and slug != "outros":
+            return slug
+    return _NATUREZA_PADRAO_FONTE.get(p.fonte)
+
+
+# ── Lentes de natureza jurídica (o recorte de consulta do painel) ───────────
+# A consulta parte de DUAS lentes, não da taxonomia inteira (decisão de
+# produto): quem propõe é o MUNICÍPIO (prefeitura, secretaria, câmara,
+# fundo/autarquia municipal) ou é OUTRO (OSC, entes estaduais/federais,
+# empresas). Os slugs detalhados acima seguem valendo no filtro avançado.
+GRUPOS_NATUREZA: tuple[tuple[str, str], ...] = (
+    ("entes_municipais", "Entes municipais"),
+    ("outros", "Outros"),
+)
+# Consórcio público entra como ente municipal: na prática é intermunicipal —
+# formado pelos próprios municípios (calibrável).
+_NATUREZAS_MUNICIPAIS = frozenset({"municipal", "consorcio"})
+
+
+def grupo_natureza_de(p: Proposta) -> str:
+    """A lente da proposta — SEMPRE uma das duas (sem sinal ⇒ 'outros').
+
+    Por isso as duas lentes somadas cobrem sempre o recorte inteiro: nenhuma
+    proposta fica invisível às duas.
+    """
+    return "entes_municipais" if natureza_juridica_de(p) in _NATUREZAS_MUNICIPAIS else "outros"
 
 
 def qualificacao_de(p: Proposta) -> str | None:
@@ -350,6 +440,7 @@ async def listar_pagina(
     modalidade: str | None = None,
     orgao: str | None = None,
     natureza_juridica: str | None = None,
+    natureza_grupo: str | None = None,
     qualificacao: str | None = None,
     ano: str | None = None,
     mes: str | None = None,
@@ -380,6 +471,7 @@ async def listar_pagina(
     pos_filtros = (
         tipo in ("cadastrada", "disponivel"),
         natureza_juridica,
+        natureza_grupo,
         qualificacao,
         ano,
         mes,
@@ -406,6 +498,8 @@ async def listar_pagina(
         rows = [p for p in rows if classificar_tipo(p.situacao) == tipo]
     if natureza_juridica:
         rows = [p for p in rows if natureza_juridica_de(p) == natureza_juridica]
+    if natureza_grupo:
+        rows = [p for p in rows if grupo_natureza_de(p) == natureza_grupo]
     if qualificacao:
         rows = [p for p in rows if qualificacao_de(p) == qualificacao]
     if ano:
@@ -474,6 +568,7 @@ _DIMENSOES: dict[str, object] = {
     "orgao": lambda p: p.orgao_superior,
     "situacao": lambda p: p.situacao,
     "natureza_juridica": natureza_juridica_de,
+    "natureza_grupo": grupo_natureza_de,
     "qualificacao": qualificacao_de,
     "categoria": categorias_de,  # multivalorada: uma proposta tem até 3 pílulas
     "ano": ano_de,
@@ -483,6 +578,7 @@ _DIMENSOES: dict[str, object] = {
 
 _ROTULOS: dict[str, dict[str, str]] = {
     "natureza_juridica": dict(NATUREZAS_JURIDICAS),
+    "natureza_grupo": dict(GRUPOS_NATUREZA),
     "tipo": {"cadastrada": "Cadastradas", "disponivel": "Disponíveis"},
     "categoria": categorias_ai.ROTULOS,
     "mes": dict(MESES),

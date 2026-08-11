@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, baixarCsv } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { Hint } from "@/components/Hint";
@@ -80,6 +81,7 @@ type Facetas = {
   orgao?: Opcao[];
   situacao?: Opcao[];
   natureza_juridica?: Opcao[];
+  natureza_grupo?: Opcao[];
   qualificacao?: Opcao[];
   categoria?: Opcao[];
   ano?: Opcao[];
@@ -105,6 +107,7 @@ type Filtros = {
   modalidade: string;
   orgao: string;
   naturezaJuridica: string;
+  naturezaGrupo: string;
   qualificacao: string;
   ordenar: string;
   valorMin: string;
@@ -128,6 +131,7 @@ const FILTROS_VAZIOS: Filtros = {
   modalidade: "",
   orgao: "",
   naturezaJuridica: "",
+  naturezaGrupo: "",
   qualificacao: "",
   ordenar: "recentes",
   valorMin: "",
@@ -156,6 +160,15 @@ const NATUREZAS: [string, string][] = [
   ["consorcio", "Consórcio Público"],
   ["empresa_publica", "Empresa pública / economia mista"],
   ["osc", "Organização da Sociedade Civil"],
+];
+
+// As duas LENTES de natureza jurídica (§ produto): a consulta parte daqui —
+// quem propõe é o município ou é outro. Os slugs detalhados de NATUREZAS
+// continuam no filtro avançado, para quem quiser refinar.
+const LENTES_NATUREZA: [string, string][] = [
+  ["", "Todas"],
+  ["entes_municipais", "Entes municipais"],
+  ["outros", "Outros"],
 ];
 
 // Ordenar por prazo saiu da UI junto com a coluna: ordenava por fim de
@@ -265,7 +278,10 @@ function SelectFaceta({
 export default function CaptacaoPage() {
   return (
     <ModuloGate modulo="captacao" titulo="Captação">
-      <CaptacaoExploracao />
+      {/* useSearchParams (lente vinda do Meu painel) exige boundary de Suspense */}
+      <Suspense fallback={null}>
+        <CaptacaoExploracao />
+      </Suspense>
     </ModuloGate>
   );
 }
@@ -331,6 +347,7 @@ function CaptacaoExploracao() {
       modalidade: filtros.modalidade || undefined,
       orgao: filtros.orgao || undefined,
       natureza_juridica: filtros.naturezaJuridica || undefined,
+      natureza_grupo: filtros.naturezaGrupo || undefined,
       qualificacao: filtros.qualificacao || undefined,
       ano: filtros.ano || undefined,
       mes: filtros.mes || undefined,
@@ -528,6 +545,16 @@ function CaptacaoExploracao() {
     })();
   }, [filtros.pastaId]);
 
+  // Chegando do Meu painel (`/panel/funding?natureza_grupo=…`), a tela abre já
+  // na lente escolhida no card. Só na chegada: depois quem manda são os chips.
+  const paramsUrl = useSearchParams();
+  const lenteUrl = paramsUrl.get("natureza_grupo");
+  const lenteValida = LENTES_NATUREZA.some(([v]) => v && v === lenteUrl) ? lenteUrl : null;
+  useEffect(() => {
+    if (lenteValida) setFiltros({ naturezaGrupo: lenteValida });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lenteValida]);
+
   function setFiltros(patch: Partial<Filtros>) {
     setAbas((prev) =>
       prev.map((a) =>
@@ -682,6 +709,12 @@ function CaptacaoExploracao() {
         chave: "tipo",
         rotulo: filtros.tipo === "disponivel" ? "Disponíveis" : "Cadastradas",
         limpar: { tipo: "" },
+      });
+    if (filtros.naturezaGrupo)
+      lista.push({
+        chave: "natureza-grupo",
+        rotulo: LENTES_NATUREZA.find(([v]) => v === filtros.naturezaGrupo)?.[1] ?? "",
+        limpar: { naturezaGrupo: "" },
       });
     if (filtros.naturezaJuridica)
       lista.push({
@@ -952,6 +985,32 @@ function CaptacaoExploracao() {
             ))}
             {/* o que separa "cadastrada" de "disponível" — hint da Central */}
             <Hint chave="funding.tipo" />
+            {/* lentes de natureza jurídica: quem propõe é o município ou não */}
+            <span className="mx-1 h-4 w-px bg-hairline" aria-hidden />
+            <span className="field-label mr-1" title="Natureza jurídica do proponente">
+              Quem propõe
+            </span>
+            {LENTES_NATUREZA.map(([valor, rotulo]) => (
+              <button
+                key={rotulo}
+                onClick={() => setFiltros({ naturezaGrupo: valor })}
+                title={
+                  valor === "entes_municipais"
+                    ? "Prefeitura, secretaria, câmara, fundo/autarquia municipal e consórcio intermunicipal"
+                    : valor === "outros"
+                      ? "Organizações da sociedade civil, entes estaduais/federais e empresas"
+                      : "Todas as naturezas jurídicas"
+                }
+                className={`rounded-full border px-3 py-1 text-sm ${
+                  filtros.naturezaGrupo === valor
+                    ? "border-ink bg-ink text-surface"
+                    : "border-hairline text-ink-2 hover:text-ink"
+                }`}
+              >
+                {rotulo}
+                {contarFaceta("natureza_grupo", valor)}
+              </button>
+            ))}
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-2 text-sm text-ink-2">

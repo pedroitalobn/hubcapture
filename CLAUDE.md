@@ -1660,3 +1660,35 @@ de coluna única.
   daí o COALESCE das duas caixas). Sem isso, tudo que foi ingerido antes ficaria
   no fim da lista até a próxima recoleta. Usa `to_date` e não `make_date`: um
   registro sujo que passe pelos guardas não pode derrubar a migration.
+
+## 44. Lentes de natureza jurídica — entes municipais × outros
+
+A consulta de propostas por **natureza jurídica** parte de DUAS lentes (decisão de
+produto), não da taxonomia inteira: `entes_municipais` (prefeitura, secretaria
+municipal, câmara de vereadores, fundo/autarquia/fundação municipal e consórcio
+intermunicipal) e `outros` (organizações da sociedade civil, entes estaduais/federais,
+empresas). Os 6 slugs detalhados de §31 continuam valendo — a lente os **agrupa**,
+não os substitui.
+
+- **Backend** (`services/propostas.py`): `GRUPOS_NATUREZA` (slug → rótulo) e
+  `grupo_natureza_de(p)`, que devolve SEMPRE uma das duas lentes — sem natureza
+  conhecida a proposta cai em `outros`, então as duas somadas cobrem o recorte
+  inteiro e nenhuma proposta fica invisível às duas. `_NATUREZAS_MUNICIPAIS`
+  (`municipal` + `consorcio`) é o ponto de calibração do agrupamento.
+- **Sinais de reserva da natureza**: `natureza_juridica_de` deixou de depender só de
+  `execucao.natureza_juridica`. A ordem é execução → texto no registro-fonte
+  (`_CAMPOS_NATUREZA_FONTE` via `_campo_fonte`) → código CONCLA/RFB
+  (`_CODIGOS_MUNICIPAIS`/`_CODIGOS_CONSORCIO`) → nome do proponente
+  (`_CAMPOS_PROPONENTE`, só quando reconhece um marcador) → `_NATUREZA_PADRAO_FONTE`
+  (fundo a fundo repassa ao próprio município). Isso também aumenta a cobertura do
+  filtro detalhado, que antes perdia toda proposta sem o campo na execução.
+- **API**: `natureza_grupo=entes_municipais|outros` em `FiltrosProposta` — vale para
+  `/proposals`, `/proposals/facets`, `/proposals/summary` e o relatório CSV. Entra
+  também como dimensão de faceta (`natureza_grupo`), com contagem.
+- **Meu painel**: `DimensaoResumo.quebras` (`schemas/perfil.py`) leva recortes de uma
+  dimensão para o card; a captação traz a contagem por lente com link já filtrado
+  (`/panel/funding?natureza_grupo=…`). Sem navegação (módulo desligado, §40) a quebra
+  vem vazia. A contagem é em Python — a natureza é derivada de jsonb/registro-fonte.
+- **Web**: `app/panel/funding` mostra as lentes na barra PRINCIPAL ("Quem propõe"),
+  não nos filtros avançados, e lê `?natureza_grupo=` na chegada (o card do painel abre
+  a tela já filtrada). Os 6 slugs seguem no avançado, para refinar.

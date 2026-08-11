@@ -145,6 +145,12 @@ function PanoramaFinanceiro() {
   );
 }
 
+interface Quebra {
+  chave: string;
+  rotulo: string;
+  total: number;
+  href: string;
+}
 interface Dimensao {
   chave: string;
   titulo: string;
@@ -152,6 +158,8 @@ interface Dimensao {
   destaque?: string | null;
   // null = módulo de exploração desligado — o card informa, sem navegar (§40)
   href?: string | null;
+  // recortes dentro da dimensão, já com link filtrado (ex.: natureza jurídica)
+  quebras?: Quebra[];
 }
 interface Municipio {
   ibge: string;
@@ -531,20 +539,37 @@ function MeuPainel() {
                   </div>
                 </>
               );
-              return d.href ? (
-                <Link
-                  key={d.chave}
-                  href={d.href}
-                  className="card card-hover group flex flex-col justify-between p-6 min-h-44"
-                >
-                  {conteudo}
-                </Link>
-              ) : (
-                <div
-                  key={d.chave}
-                  className="card flex flex-col justify-between p-6 min-h-44"
-                >
-                  {conteudo}
+              // recortes da dimensão (ex.: natureza jurídica na captação):
+              // ficam FORA do <Link> do card — âncora dentro de âncora não vale
+              const quebras = (d.quebras ?? []).length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {(d.quebras ?? []).map((q) => (
+                    <Link
+                      key={q.chave}
+                      href={q.href}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-3 py-1 text-xs text-ink-2 transition hover:text-ink"
+                    >
+                      {q.rotulo}
+                      <span className="tabular-nums opacity-60">{q.total}</span>
+                    </Link>
+                  ))}
+                </div>
+              );
+              return (
+                <div key={d.chave} className="flex flex-col gap-2">
+                  {d.href ? (
+                    <Link
+                      href={d.href}
+                      className="card card-hover group flex flex-1 flex-col justify-between p-6 min-h-44"
+                    >
+                      {conteudo}
+                    </Link>
+                  ) : (
+                    <div className="card flex flex-1 flex-col justify-between p-6 min-h-44">
+                      {conteudo}
+                    </div>
+                  )}
+                  {quebras}
                 </div>
               );
             })}

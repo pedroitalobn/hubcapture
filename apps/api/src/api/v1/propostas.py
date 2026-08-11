@@ -63,6 +63,13 @@ class FiltrosProposta(BaseModel):
     natureza_juridica: str | None = Field(
         default=None, description="municipal | estadual_df | consorcio | empresa_publica | osc"
     )
+    # lente de consulta (duas vias) sobre a natureza acima: quem propõe é o
+    # município ou é outro. Cobre a base inteira — ver `grupo_natureza_de`.
+    natureza_grupo: str | None = Field(
+        default=None,
+        pattern="^(entes_municipais|outros)$",
+        description="lente da natureza jurídica: entes_municipais | outros",
+    )
     qualificacao: str | None = Field(default=None, description="tipo de transferência")
     categoria: str | None = Field(
         default=None, description="pílula de categoria (saude, infraestrutura, cultura…)"

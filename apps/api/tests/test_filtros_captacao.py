@@ -113,6 +113,50 @@ def test_classificar_natureza_juridica() -> None:
     assert prop_service.classificar_natureza_juridica(None) is None
 
 
+# ── natureza sem o campo da execução: os sinais de reserva (puro) ───────────
+def test_natureza_cai_para_os_sinais_do_registro_fonte() -> None:
+    from src.models.proposta import Proposta
+
+    # a fonte não preencheu a execução, mas o registro-fonte traz o texto
+    p = Proposta(fonte="transferegov_disc", dados_fonte={"proposta": {"NATUREZA_JURIDICA": "OSC"}})
+    assert prop_service.natureza_juridica_de(p) == "osc"
+
+    # sem texto, o código CONCLA/RFB decide (124-4 = Município)
+    p = Proposta(fonte="transferegov_disc", dados_fonte={"CODIGO_NATUREZA_JURIDICA": "124-4"})
+    assert prop_service.natureza_juridica_de(p) == "municipal"
+
+    # sem texto nem código, o nome do proponente ainda entrega o marcador
+    p = Proposta(fonte="transferegov_disc", dados_fonte={"NM_PROPONENTE": "PREFEITURA DE UBERABA"})
+    assert prop_service.natureza_juridica_de(p) == "municipal"
+
+    # nome sem marcador não vira "outros" por si: sem sinal, vale o padrão da
+    # fonte (fundo a fundo repassa ao próprio município)
+    p = Proposta(fonte="transferegov_ff", dados_fonte={"NM_PROPONENTE": "Instituto Recomeço"})
+    assert prop_service.natureza_juridica_de(p) == "municipal"
+
+    # fonte sem padrão e sem sinal nenhum continua indefinida
+    assert prop_service.natureza_juridica_de(Proposta(fonte="transferegov_disc")) is None
+
+
+# ── as duas lentes: entes municipais × outros (puro) ────────────────────────
+def test_lente_de_natureza_cobre_a_base_inteira() -> None:
+    from src.models.proposta import Proposta
+
+    municipal = Proposta(execucao={"natureza_juridica": "Administração Pública Municipal"})
+    consorcio = Proposta(execucao={"natureza_juridica": "Consórcio Público"})
+    osc = Proposta(execucao={"natureza_juridica": "Organização da Sociedade Civil"})
+    estadual = Proposta(execucao={"natureza_juridica": "Adm. Pública Estadual"})
+    sem_sinal = Proposta(fonte="transferegov_disc")
+
+    assert prop_service.grupo_natureza_de(municipal) == "entes_municipais"
+    # consórcio público é intermunicipal — entra na lente do município
+    assert prop_service.grupo_natureza_de(consorcio) == "entes_municipais"
+    assert prop_service.grupo_natureza_de(osc) == "outros"
+    assert prop_service.grupo_natureza_de(estadual) == "outros"
+    # sem natureza conhecida a proposta ainda cai numa lente (nunca some das duas)
+    assert prop_service.grupo_natureza_de(sem_sinal) == "outros"
+
+
 async def _seed(
     id_externo: str,
     ibge: str,
@@ -226,6 +270,11 @@ async def test_filtros_de_captacao(seed_user, seed_municipio) -> None:
         assert [p.id_externo for p in municipais] == ["A1"]
         assert await prop_service.listar(s, natureza_juridica="osc") == []
 
+        # a LENTE (duas vias) agrupa: municipal e consórcio são entes municipais
+        lente = await prop_service.listar(s, natureza_grupo="entes_municipais")
+        assert {p.id_externo for p in lente} == {"A1", "B2"}
+        assert await prop_service.listar(s, natureza_grupo="outros") == []
+
         # modalidade, órgão, qualificação e ano
         assert [p.id_externo for p in await prop_service.listar(s, modalidade="Convênio")] == ["A1"]
         assert [
@@ -336,6 +385,11 @@ async def test_facetas_ignoram_a_propria_dimensao(seed_user, seed_municipio) -> 
 
         # com um filtro aplicado, a dimensão FILTRADA continua mostrando tudo
         # (senão o dropdown ficaria preso), mas as outras encolhem
+        # a lente agrupa a taxonomia: municipal + consórcio = entes municipais
+        assert {o["valor"]: o["total"] for o in facetas["natureza_grupo"]} == {
+            "entes_municipais": 2
+        }
+
         com_filtro = await prop_service.facetas(s, modalidade="Convênio")
         assert {o["valor"] for o in com_filtro["modalidade"]} == {
             "Convênio",
