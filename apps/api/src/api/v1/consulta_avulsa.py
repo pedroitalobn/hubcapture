@@ -24,9 +24,7 @@ from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
 # Faz parte do eixo de captação — segue o mesmo módulo de `proposals`.
-router = APIRouter(
-    tags=["proposals"], dependencies=[Depends(require_modulo("captacao"))]
-)
+router = APIRouter(tags=["proposals"], dependencies=[Depends(require_modulo("captacao"))])
 
 
 class LiveSearchRequest(BaseModel):
@@ -68,7 +66,9 @@ class LiveSearchRequest(BaseModel):
 class FonteStatus(BaseModel):
     fonte: str
     municipio_ibge: str
-    status: str  # 'ok' | 'erro'
+    # 'degradado' = a fonte respondeu, mas parte do retorno não era proposta e
+    # foi descartada na triagem da ingestão (ver `ingestion/validador.py`)
+    status: str  # 'ok' | 'degradado' | 'erro'
     erro: str | None = None
 
 

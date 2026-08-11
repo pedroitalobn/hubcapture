@@ -1496,3 +1496,44 @@ padrão, o `/panel` ficava vazio. A regra que fica:
   (favoritas = acompanhamento do cache) saiu do módulo captação no menu; a página
   Captação ganhou `ModuloGate`; o detalhe da proposta é panel-core e, sem o
   módulo, esconde apenas a seção de pareceres.
+
+## 41. Gate de qualidade da ingestão — coleta que falha não vira proposta
+
+Propostas com "scrape-2611606" no lugar do nome do programa chegavam ao painel:
+quando o scraping falha ele NÃO levanta exceção — devolve a página de erro do
+portal, o desafio do Cloudflare ou um pacote vazio, e o pipeline gravava tudo
+porque confiava no connector. A regra que fica: **falha de coleta é incidente em
+`sync_runs`, nunca uma linha em `propostas`.** Três camadas, da porta para
+dentro:
+
+1. **Connector não fabrica identificador.** O fallback de scraping das
+   voluntárias empacotava a página inteira num RawRecord `scrape-<ibge>` (o
+   mesmo stub que `transferegov_esp` já tinha removido). Agora extrai por
+   `EXTRACT_SCHEMA` e emite um registro POR CONVÊNIO, com o número dele;
+   página que não rende linha releva o erro da API. Vale para connector novo:
+   sem identificador da fonte, não há registro.
+2. **Triagem determinística** — `ingestion/validador.py::triar`, sem rede, na
+   frente de todo upsert (`consulta_avulsa._ingerir`, o único ponto de
+   ingestão de proposta). Rejeita: `id_externo` fabricado pelo pipeline
+   (`_ID_SINTETICO`), registro sem nada que o identifique (nem título, nem
+   objeto, nem número — valor sozinho é rodapé de tabela) e texto de erro de
+   HTTP/browser nos campos DESCRITIVOS (`_RUIDO`; `situacao` fica de fora —
+   "Erro na prestação de contas" é situação legítima). Calibração: **na dúvida,
+   ACEITA** — esconder proposta real é pior que a linha ruim. Descarte vira
+   `status='degradado'` + motivo em `sync_runs`, `FonteStatus.status` na
+   live-search e chip "retorno parcial" na Captação. Nunca silencioso.
+3. **Auditoria por IA** — `ai/validacao.py::analisar` + `jobs/validacao.py`,
+   para o resíduo que PARECE dado (coluna desalinhada gravando "R$ 10.000,00"
+   como título, "Total geral" como registro). Só audita linha com marca de
+   `scrape` na `proveniencia` (API é estruturada: custo sem hipótese de erro).
+   Cursor em `propostas.validacao_ia` (jsonb, migration `a7b8c9d0e1f2`,
+   derivado como `categorias_ia` → fora do `_UPSERT_FIELDS`); NULL = pendente.
+   Roda no 1º sync ANTES da curadoria (não gastar resumo no que vai sair).
+   **Único ponto do Hub em que a IA apaga dado**, então duas travas: veredito
+   indefinido (IA off, rede fora, JSON torto, resposta fora do contrato) é
+   `None` e o registro FICA; e o prompt manda aprovar na dúvida. Remoção
+   sempre logada em WARNING antes de acontecer.
+
+A migration `a7b8c9d0e1f2` também EXPURGA o que já estava cacheado pelos mesmos
+critérios da camada 2 (FKs em CASCADE levam favoritos/pastas/monitoramentos
+junto). Regressões em `test_validacao_ingestao.py`.

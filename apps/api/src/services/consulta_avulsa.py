@@ -18,6 +18,7 @@ não tem RLS, então pode ser gravado por fora com commit próprio.
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 import uuid
 from datetime import UTC, date, datetime, timedelta
@@ -29,6 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..connectors.base import get_connector
 from ..core.config import settings
 from ..db.session import SessionLocal
+from ..ingestion import validador
 from ..ingestion.merge import merge_record
 from ..jobs import curadoria as curadoria_job
 from ..models.audit_log import AuditLog
@@ -39,6 +41,8 @@ from . import fontes as fontes_service
 from . import plano_gates
 from . import propostas as propostas_service
 from ._territorio import Municipios, ibges
+
+log = logging.getLogger("hubcapture.consulta_avulsa")
 
 
 async def _garantir_municipio_avulso(
@@ -112,15 +116,22 @@ async def _coletar(fonte: str, ibge: str) -> list:
     )
 
 
-async def _ingerir(session: AsyncSession, registros: list) -> int:
-    """Registros coletados → merge → upsert no cache canônico."""
-    n = 0
-    for record in registros:
-        # aglutina API + scraping quando o connector trouxe os dois lados
-        canonica = merge_record(record)
+async def _ingerir(session: AsyncSession, registros: list) -> tuple[int, list[tuple[str, str]]]:
+    """Registros coletados → merge → TRIAGEM → upsert no cache canônico.
+
+    Devolve (quantas entraram, descartes). A triagem
+    (`ingestion/validador.py`) é a porta: o que a coleta produziu sem ser
+    proposta — página de erro do portal, identificador fabricado pelo
+    pipeline, rodapé de tabela — não chega ao painel do gestor. Descarte
+    nunca é silencioso: vira `degradado` em `sync_runs`.
+    """
+    # aglutina API + scraping quando o connector trouxe os dois lados
+    triagem = validador.triar([merge_record(record) for record in registros])
+    for canonica in triagem.aceitas:
         await propostas_service.upsert(session, canonica)
-        n += 1
-    return n
+    if triagem.houve_descarte:
+        log.warning("triagem de ingestão: %s", validador.resumo_descartes(triagem.descartes))
+    return len(triagem.aceitas), triagem.descartes
 
 
 async def consulta_avulsa(
@@ -154,7 +165,7 @@ async def consulta_avulsa(
     iniciado = datetime.now(UTC)
     try:
         registros = await _coletar(fonte, municipio_ibge)
-        n = await _ingerir(session, registros)
+        n, descartes = await _ingerir(session, registros)
         # pílulas de categoria do que acabou de entrar: determinístico, sem rede
         # (o resumo por IA é outro pass, fora do request — jobs/curadoria).
         await curadoria_job.classificar_pendentes(session)
@@ -177,10 +188,11 @@ async def consulta_avulsa(
         usuario_id=usuario_id,
         fonte=fonte,
         tipo="avulso",
-        status="ok",
+        status="degradado" if descartes else "ok",
         registros=n,
         iniciado_em=iniciado,
         finalizado_em=datetime.now(UTC),
+        erro=validador.resumo_descartes(descartes) or None,
     )
 
     # 3) devolve do cache (agora povoado), já sob o filtro de RLS
@@ -298,13 +310,15 @@ async def live_search(
 
     # 3) ingestão sequencial na sessão do request + bookkeeping
     erros: dict[tuple[str, str], str] = {}
+    degradadas: dict[tuple[str, str], str] = {}
     ingeriu = False
     for par, inicio, registros, exc in resultados:
         ibge, f = par
         n = 0
+        descartes: list[tuple[str, str]] = []
         if exc is None:
             try:
-                n = await _ingerir(session, registros or [])
+                n, descartes = await _ingerir(session, registros or [])
                 ingeriu = ingeriu or n > 0
             except Exception as exc_ingestao:  # noqa: BLE001
                 exc = exc_ingestao
@@ -312,11 +326,16 @@ async def live_search(
         erro_txt = None if exc is None else f"{type(exc).__name__}: {exc}"[:2000]
         if exc is not None:
             erros[par] = type(exc).__name__
+        elif descartes:
+            # a fonte respondeu, mas parte do que veio não era proposta — o
+            # gestor precisa ver a diferença entre isso e uma coleta limpa
+            erro_txt = validador.resumo_descartes(descartes)
+            degradadas[par] = erro_txt
         await _registrar_sync(
             usuario_id=usuario_id,
             fonte=f,
             tipo="avulso",
-            status="ok" if exc is None else "erro",
+            status="erro" if exc is not None else ("degradado" if descartes else "ok"),
             registros=n,
             iniciado_em=inicio,
             finalizado_em=datetime.now(UTC),
@@ -331,6 +350,15 @@ async def live_search(
         if (ibge, f) in erros:
             status_fontes.append(
                 {"fonte": f, "municipio_ibge": ibge, "status": "erro", "erro": erros[(ibge, f)]}
+            )
+        elif (ibge, f) in degradadas:
+            status_fontes.append(
+                {
+                    "fonte": f,
+                    "municipio_ibge": ibge,
+                    "status": "degradado",
+                    "erro": degradadas[(ibge, f)],
+                }
             )
         else:
             status_fontes.append({"fonte": f, "municipio_ibge": ibge, "status": "ok"})

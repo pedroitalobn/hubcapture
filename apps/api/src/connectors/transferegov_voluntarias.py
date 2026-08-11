@@ -9,6 +9,16 @@ legais por município — complementa o `transferegov_disc` (CSV diário) com a
 consulta on-line. Coleta combinada: API primária; se a API cair, o scraping
 (facade Crawl4AI/Firecrawl) assume como fallback.
 
+O fallback de scraping só entra quando a página rende REGISTROS: o parser de
+tabela (`scraping/tabelas.py`) devolve uma linha por transferência, e cada
+linha vira um RawRecord com o número dela. Antes, o fallback empacotava o
+retorno cru da página inteira num único RawRecord `scrape-<ibge>` — que virava
+uma "proposta" sem título, sem valor e sem número no painel do gestor, com o
+código de scraping no lugar do nome (o mesmo stub que o `transferegov_esp` já
+tinha removido). Página que não rende linha nenhuma releva o erro da API e
+vira incidente em `sync_runs`: fonte indisponível é fonte indisponível, não
+uma proposta vazia.
+
 NOTA: rota e nomes de campo estão isolados em constantes de propósito — são o
 ponto de calibração contra os docs vivos da API.
 """
@@ -32,6 +42,30 @@ ID_FIELD = "numero_convenio"  # NR_CONVENIO — chave externa canônica
 PAGE_LIMIT = 500
 TABELAS_PREFERIDAS = ("convenio", "proposta", "instrumento")
 
+# schema de extração do fallback de scraping: o parser de tabela devolve uma
+# linha POR CONVÊNIO (não a página inteira num pacote só), e é o `numero` que
+# dá identidade a cada RawRecord.
+EXTRACT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "convenios": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "numero": {"type": "string", "description": "Nº Convênio"},
+                    "objeto": {"type": "string"},
+                    "situacao": {"type": "string"},
+                    "orgao": {"type": "string", "description": "Órgão Concedente"},
+                    "valor_global": {"type": "string"},
+                    "municipio": {"type": "string"},
+                    "uf": {"type": "string"},
+                },
+            },
+        }
+    },
+}
+
 
 class TransferegovVoluntariasConnector:
     source_id = "transferegov_voluntarias"
@@ -50,12 +84,8 @@ class TransferegovVoluntariasConnector:
             return endpoint or descoberto[0], coluna or descoberto[1]
         return endpoint or ENDPOINT, coluna or IBGE_FIELD
 
-    async def _consultar(
-        self, base: str, endpoint: str, coluna: str, ibge: str
-    ) -> list[dict]:
-        data = await get_json(
-            base, endpoint, {coluna: f"eq.{ibge}", "limit": str(PAGE_LIMIT)}
-        )
+    async def _consultar(self, base: str, endpoint: str, coluna: str, ibge: str) -> list[dict]:
+        data = await get_json(base, endpoint, {coluna: f"eq.{ibge}", "limit": str(PAGE_LIMIT)})
         linhas = data if isinstance(data, list) else data.get("items", [])
         if not linhas and len(ibge) == 7:
             data = await get_json(
@@ -76,9 +106,7 @@ class TransferegovVoluntariasConnector:
                     if candidato == coluna:
                         continue
                     try:
-                        linhas = await self._consultar(
-                            base, endpoint, candidato, municipio_ibge
-                        )
+                        linhas = await self._consultar(base, endpoint, candidato, municipio_ibge)
                         break
                     except ConnectorClientError:
                         continue
@@ -99,16 +127,27 @@ class TransferegovVoluntariasConnector:
             scraper = get_scraper()
             if not await scraper.is_enabled():
                 raise
-            dados = await scraper.scrape(f"{base}{ENDPOINT}?{IBGE_FIELD}=eq.{municipio_ibge}")
-            return [
+            dados = await scraper.extract(
+                f"{base}{ENDPOINT}?{IBGE_FIELD}=eq.{municipio_ibge}", EXTRACT_SCHEMA
+            )
+            linhas = dados.get("convenios", []) if isinstance(dados, dict) else []
+            registros = [
                 RawRecord(
                     source_id=self.source_id,
-                    id_externo=f"scrape-{municipio_ibge}",
+                    id_externo=str(linha.get("numero") or "").strip(),
                     municipio_ibge=municipio_ibge,
                     endpoint="scrape",
-                    raw={"scrape": dados, "modalidade": "Convênio"},
+                    raw={"plano_acao": linha, "modalidade": "Convênio"},
                 )
+                for linha in linhas
+                if isinstance(linha, dict) and str(linha.get("numero") or "").strip()
             ]
+            if not registros:
+                # a página não rendeu convênio identificável — isso é a fonte
+                # indisponível, não um município sem convênio. Releva o erro da
+                # API para o serviço registrar o incidente em `sync_runs`.
+                raise
+            return registros
 
     async def health_check(self) -> bool:
         try:

@@ -40,9 +40,7 @@ class Proposta(Base):
     id_externo: Mapped[str] = mapped_column(String(255))
     numero_proposta: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # nº do plano de trabalho — chave pela qual a fonte emite os PARECERES
-    numero_plano_trabalho: Mapped[str | None] = mapped_column(
-        String(64), nullable=True, index=True
-    )
+    numero_plano_trabalho: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     titulo: Mapped[str | None] = mapped_column(Text, nullable=True)
     objeto: Mapped[str | None] = mapped_column(Text, nullable=True)
     orgao_superior: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -73,6 +71,10 @@ class Proposta(Base):
     # Pílulas de categoria (slugs de `ai/categorias.py`): derivadas, não vêm da
     # fonte — por isso ficam FORA do `_UPSERT_FIELDS` (um re-sync não as apaga).
     categorias_ia: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    # Auditoria da IA sobre registros vindos de scraping (`jobs/validacao.py`):
+    # {"veredito": "aprovada", "motivo": …, "em": …}. NULL = ainda não auditada
+    # — é o cursor do job. Derivada como `categorias_ia`, fora do _UPSERT_FIELDS.
+    validacao_ia: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     hash_conteudo: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
