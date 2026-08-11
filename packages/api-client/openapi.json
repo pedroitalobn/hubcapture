@@ -2107,6 +2107,14 @@
             ],
             "title": "Href"
           },
+          "quebras": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/QuebraDimensao"
+            },
+            "title": "Quebras",
+            "type": "array"
+          },
           "titulo": {
             "title": "Titulo",
             "type": "string"
@@ -7202,6 +7210,35 @@
           "disponivel"
         ],
         "title": "ProvedorInfo",
+        "type": "object"
+      },
+      "QuebraDimensao": {
+        "description": "Recorte rápido dentro de uma dimensão (ex.: propostas por natureza).\n\nÉ uma lente sobre o próprio território — não uma aba por fonte de dados.",
+        "properties": {
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "href": {
+            "title": "Href",
+            "type": "string"
+          },
+          "rotulo": {
+            "title": "Rotulo",
+            "type": "string"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chave",
+          "rotulo",
+          "href"
+        ],
+        "title": "QuebraDimensao",
         "type": "object"
       },
       "RankingParlamentar": {
@@ -13845,6 +13882,25 @@
             }
           },
           {
+            "description": "lente da natureza jurídica: entes_municipais | outros",
+            "in": "query",
+            "name": "natureza_grupo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(entes_municipais|outros)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "lente da natureza jurídica: entes_municipais | outros",
+              "title": "Natureza Grupo"
+            }
+          },
+          {
             "description": "tipo de transferência",
             "in": "query",
             "name": "qualificacao",
@@ -14306,6 +14362,25 @@
             }
           },
           {
+            "description": "lente da natureza jurídica: entes_municipais | outros",
+            "in": "query",
+            "name": "natureza_grupo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(entes_municipais|outros)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "lente da natureza jurídica: entes_municipais | outros",
+              "title": "Natureza Grupo"
+            }
+          },
+          {
             "description": "tipo de transferência",
             "in": "query",
             "name": "qualificacao",
@@ -14685,6 +14760,25 @@
             }
           },
           {
+            "description": "lente da natureza jurídica: entes_municipais | outros",
+            "in": "query",
+            "name": "natureza_grupo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(entes_municipais|outros)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "lente da natureza jurídica: entes_municipais | outros",
+              "title": "Natureza Grupo"
+            }
+          },
+          {
             "description": "tipo de transferência",
             "in": "query",
             "name": "qualificacao",
@@ -15032,6 +15126,25 @@
               ],
               "description": "municipal | estadual_df | consorcio | empresa_publica | osc",
               "title": "Natureza Juridica"
+            }
+          },
+          {
+            "description": "lente da natureza jurídica: entes_municipais | outros",
+            "in": "query",
+            "name": "natureza_grupo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(entes_municipais|outros)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "lente da natureza jurídica: entes_municipais | outros",
+              "title": "Natureza Grupo"
             }
           },
           {

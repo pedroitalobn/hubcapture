@@ -2842,6 +2842,11 @@ export interface components {
             destaque?: string | null;
             /** Href */
             href?: string | null;
+            /**
+             * Quebras
+             * @default []
+             */
+            quebras: components["schemas"]["QuebraDimensao"][];
             /** Titulo */
             titulo: string;
             /**
@@ -4646,6 +4651,25 @@ export interface components {
             rotulo: string;
             /** Tipo Auth */
             tipo_auth: string;
+        };
+        /**
+         * QuebraDimensao
+         * @description Recorte rápido dentro de uma dimensão (ex.: propostas por natureza).
+         *
+         *     É uma lente sobre o próprio território — não uma aba por fonte de dados.
+         */
+        QuebraDimensao: {
+            /** Chave */
+            chave: string;
+            /** Href */
+            href: string;
+            /** Rotulo */
+            rotulo: string;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
         };
         /**
          * RankingParlamentar
@@ -8541,6 +8565,8 @@ export interface operations {
                 orgao?: string | null;
                 /** @description municipal | estadual_df | consorcio | empresa_publica | osc */
                 natureza_juridica?: string | null;
+                /** @description lente da natureza jurídica: entes_municipais | outros */
+                natureza_grupo?: string | null;
                 /** @description tipo de transferência */
                 qualificacao?: string | null;
                 /** @description pílula de categoria (saude, infraestrutura, cultura…) */
@@ -8636,6 +8662,8 @@ export interface operations {
                 orgao?: string | null;
                 /** @description municipal | estadual_df | consorcio | empresa_publica | osc */
                 natureza_juridica?: string | null;
+                /** @description lente da natureza jurídica: entes_municipais | outros */
+                natureza_grupo?: string | null;
                 /** @description tipo de transferência */
                 qualificacao?: string | null;
                 /** @description pílula de categoria (saude, infraestrutura, cultura…) */
@@ -8725,6 +8753,8 @@ export interface operations {
                 orgao?: string | null;
                 /** @description municipal | estadual_df | consorcio | empresa_publica | osc */
                 natureza_juridica?: string | null;
+                /** @description lente da natureza jurídica: entes_municipais | outros */
+                natureza_grupo?: string | null;
                 /** @description tipo de transferência */
                 qualificacao?: string | null;
                 /** @description pílula de categoria (saude, infraestrutura, cultura…) */
@@ -8783,6 +8813,8 @@ export interface operations {
                 orgao?: string | null;
                 /** @description municipal | estadual_df | consorcio | empresa_publica | osc */
                 natureza_juridica?: string | null;
+                /** @description lente da natureza jurídica: entes_municipais | outros */
+                natureza_grupo?: string | null;
                 /** @description tipo de transferência */
                 qualificacao?: string | null;
                 /** @description pílula de categoria (saude, infraestrutura, cultura…) */
