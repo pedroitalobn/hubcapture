@@ -1625,8 +1625,9 @@ export interface paths {
          * Novidades Perfil
          * @description Feed 'últimas novidades' do território, recortado pelo perfil do usuário.
          *
-         *     `limite` controla a profundidade da janela: o painel pede mais que o padrão
-         *     para o filtro por ano alcançar itens de anos anteriores ao corrente.
+         *     `limite` controla a profundidade da janela e `ano`, a safra: o filtro entra
+         *     ANTES da janela, então escolher um ano anterior traz os itens daquele ano —
+         *     não só os que sobraram das novidades mais recentes.
          */
         get: operations["novidades_perfil_api_v1_profile_feed_get"];
         put?: never;
@@ -2225,6 +2226,23 @@ export interface components {
             itens: components["schemas"]["EventoAndamento"][];
             /** Numero Plano Trabalho */
             numero_plano_trabalho?: string | null;
+        };
+        /**
+         * AnoDisponivel
+         * @description Uma safra com novidade no território — alimenta o filtro de ano do painel.
+         *
+         *     Vem SEMPRE do território inteiro (ignora o ano já escolhido): senão, ao
+         *     filtrar 2024 o próprio filtro perderia as outras opções e o usuário ficaria
+         *     preso na safra que escolheu.
+         */
+        AnoDisponivel: {
+            /** Ano */
+            ano: string;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
         };
         /** AssessoriaContatosSet */
         AssessoriaContatosSet: {
@@ -2847,6 +2865,11 @@ export interface components {
              * @default []
              */
             quebras: components["schemas"]["QuebraDimensao"][];
+            /**
+             * Recorte Ano
+             * @default true
+             */
+            recorte_ano: boolean;
             /** Titulo */
             titulo: string;
             /**
@@ -3958,6 +3981,8 @@ export interface components {
          * @description Uma novidade do território — proposta/verba recém-atualizada no cache.
          */
         NovidadeItem: {
+            /** Ano */
+            ano?: string | null;
             /** Data */
             data?: string | null;
             /** Descricao */
@@ -3986,6 +4011,11 @@ export interface components {
          * @description Feed 'últimas novidades' do Meu painel, recortado pelo perfil (RLS).
          */
         NovidadesPerfil: {
+            /**
+             * Anos
+             * @default []
+             */
+            anos: components["schemas"]["AnoDisponivel"][];
             /**
              * Itens
              * @default []
@@ -8495,6 +8525,8 @@ export interface operations {
                 municipio?: string[] | null;
                 /** @description tamanho da janela do feed */
                 limite?: number;
+                /** @description safra (ano) do recorte; omitir = todos os anos */
+                ano?: string | null;
             };
             header?: never;
             path?: never;
@@ -8527,6 +8559,8 @@ export interface operations {
             query?: {
                 /** @description códigos IBGE (repita o parâmetro para vários municípios) */
                 municipio?: string[] | null;
+                /** @description safra (ano) do recorte; omitir = todos os anos */
+                ano?: string | null;
             };
             header?: never;
             path?: never;

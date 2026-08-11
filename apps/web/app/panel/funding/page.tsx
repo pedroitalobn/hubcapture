@@ -546,15 +546,22 @@ function CaptacaoExploracao() {
     })();
   }, [filtros.pastaId]);
 
-  // Chegando do Meu painel (`/panel/funding?natureza_grupo=…`), a tela abre já
-  // na lente escolhida no card. Só na chegada: depois quem manda são os chips.
+  // Chegando do Meu painel (`/panel/funding?natureza_grupo=…&ano=…`), a tela
+  // abre já na lente E na safra escolhidas no card — o clique não pode trocar o
+  // recorte por baixo do usuário. Só na chegada: depois quem manda são os chips.
   const paramsUrl = useSearchParams();
   const lenteUrl = paramsUrl.get("natureza_grupo");
   const lenteValida = LENTES_NATUREZA.some(([v]) => v && v === lenteUrl) ? lenteUrl : null;
+  const anoUrl = paramsUrl.get("ano");
+  const anoValido = anoUrl && /^\d{4}$/.test(anoUrl) ? anoUrl : null;
   useEffect(() => {
     if (lenteValida) setFiltros({ naturezaGrupo: lenteValida });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lenteValida]);
+  useEffect(() => {
+    if (anoValido) setFiltros({ ano: anoValido });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anoValido]);
 
   function setFiltros(patch: Partial<Filtros>) {
     setAbas((prev) =>

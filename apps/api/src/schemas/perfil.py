@@ -100,6 +100,10 @@ class DimensaoResumo(BaseModel):
     href: str | None = None
     # recortes dentro da dimensão (vazio quando não há navegação)
     quebras: list[QuebraDimensao] = []
+    # a dimensão responde ao filtro de ano do painel? Captação (safra da
+    # proposta) e recebidos (ano do pagamento) respondem; conformidade e obras
+    # são estado ATUAL do município — o card diz isso em vez de fingir recorte.
+    recorte_ano: bool = True
 
 
 class VisaoGeralPerfil(BaseModel):
@@ -119,6 +123,11 @@ class NovidadeItem(BaseModel):
     descricao: str | None = None
     valor: Decimal | None = None
     data: date | None = None
+    # Safra do item — o MESMO critério do resto do app (`propostas.ano_de` na
+    # captação, ano do repasse nos recebidos). É por ele que o painel filtra e
+    # ordena: a data de COLETA classificaria uma proposta de 2019 como novidade
+    # do ano corrente.
+    ano: str | None = None
     fonte: str
     municipio_ibge: str | None = None
     municipio_nome: str | None = None
@@ -140,8 +149,22 @@ class SyncRunStatus(BaseModel):
     finalizado_em: datetime | None = None
 
 
+class AnoDisponivel(BaseModel):
+    """Uma safra com novidade no território — alimenta o filtro de ano do painel.
+
+    Vem SEMPRE do território inteiro (ignora o ano já escolhido): senão, ao
+    filtrar 2024 o próprio filtro perderia as outras opções e o usuário ficaria
+    preso na safra que escolheu.
+    """
+
+    ano: str
+    total: int = 0
+
+
 class NovidadesPerfil(BaseModel):
     """Feed 'últimas novidades' do Meu painel, recortado pelo perfil (RLS)."""
 
     itens: list[NovidadeItem] = []
     sync_runs: list[SyncRunStatus] = []
+    # anos com novidade, do mais recente para o mais antigo
+    anos: list[AnoDisponivel] = []

@@ -1793,3 +1793,31 @@ oficial do SIconv (`VL_GLOBAL_CONV` é a do convênio já celebrado).
   propostas dava zero e não informava nada. Os agregados de CARTEIRA continuam
   com o card — `/proposals/summary` (`cards.valor_a_utilizar`), a tela de
   captação e o resumo —, onde a conta tem massa e significado.
+
+## 47. Filtro de ano do Meu painel — UMA safra para a página inteira (decisão travada)
+
+O `/panel` tinha **dois** filtros de ano com critérios diferentes: o seletor do
+panorama pedia a safra à API (gráfico + cards financeiros) e o feed classificava
+por conta própria, no cliente, pela data da **coleta**. Filtrar o ano ajustava o
+gráfico e deixava os cards das dimensões e as novidades noutro recorte — com
+proposta de 2019 listada como novidade do ano corrente.
+
+- **Um seletor só, no cabeçalho da página** (`app/panel/page.tsx`), aplicado a
+  `/profile/overview`, `/proposals/summary` e `/profile/feed`. O `PanoramaFinanceiro`
+  recebe a safra por prop; não há mais filtro local. A escolha persiste
+  (`hub_painel_ano`) e some do seletor safra que não existe mais no território.
+- **A safra é sempre a mesma**: `propostas.ano_de` na captação (ANO_PROP >
+  `data_proposta` > nº da proposta > exercício) e o ano do pagamento nos
+  recebidos (sem data, a competência). O feed passa a expor `NovidadeItem.ano` e
+  a `data` da proposta é a **dela** (`data_proposta`), não a da coleta.
+- **Filtro no SERVIDOR, antes da janela** (`services/perfil.novidades`): filtrar
+  só o que coubesse no `limite` deixava anos anteriores permanentemente vazios.
+  A resposta traz `anos: [{ano, total}]` do território INTEIRO (ignora o ano
+  escolhido) — senão o filtro apagaria as próprias opções e prenderia o usuário
+  na safra escolhida. Ordem do feed: safra decrescente e, dentro dela, a data.
+- **Dimensões sem safra**: conformidade e obras são estado ATUAL do município,
+  não fluxo anual — continuam inteiras e se anunciam com `recorte_ano=False`; o
+  painel avisa em vez de fingir um recorte que não existe.
+- O card da captação leva a safra para a exploração
+  (`/panel/funding?ano=…&natureza_grupo=…`), e a tela de captação abre já nesse
+  recorte.
