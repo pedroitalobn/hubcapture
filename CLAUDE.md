@@ -626,6 +626,10 @@ consulta avulsa) e sempre sob RLS: o usuário só filtra o que já enxerga.
 - Migration `b3f1c9a742de`: coluna + índices (trigram em `numero_proposta`/
   `id_externo` para o ILIKE, btree em `valor_total`). Propostas já cacheadas ficam
   com natureza NULL até o próximo sync.
-- Web `app/painel/captacao`: campo de número (debounce 300 ms), chips multi-seleção
-  de município e de natureza jurídica (`components/MultiSelectChips`), valor mín/máx
-  e "Limpar filtros"; respostas fora de ordem são descartadas por sequência.
+- Web: a busca fica em **`app/painel`** (Meu painel), abaixo dos cards de dimensão —
+  é a primeira tela do usuário. Componente `components/BuscaPropostas` (campo de
+  número com debounce 300 ms, chips multi-seleção de município e de natureza
+  jurídica via `components/MultiSelectChips`, valor mín/máx, "Limpar filtros";
+  respostas fora de ordem são descartadas por sequência) + `PropostasTable`
+  compartilhada. `app/painel/captacao` continua como lente de captação — lista do
+  território + consulta avulsa (o único fetch ao vivo), sem os filtros.

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { StatCard } from "@/components/StatCard";
+import { BuscaPropostas } from "@/components/BuscaPropostas";
 import { SkeletonCards } from "@/components/Skeleton";
 import { api } from "@/lib/api/client";
 
@@ -65,21 +65,34 @@ export default function MeuPainelPage() {
           </Link>
         </div>
       ) : (
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {(data?.dimensoes ?? []).map((d) => (
-            <Link
-              key={d.chave}
-              href={d.href}
-              className="group rounded-xl border border-gray-200 p-5 transition hover:border-brand hover:shadow-sm dark:border-gray-800"
-            >
-              <div className="flex items-baseline justify-between">
-                <h2 className="font-semibold group-hover:text-brand">{d.titulo}</h2>
-                <span className="text-2xl font-bold tabular-nums">{d.total}</span>
-              </div>
-              <p className="mt-1 text-sm text-gray-500">{d.destaque ?? "—"}</p>
-            </Link>
-          ))}
-        </section>
+        <>
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {(data?.dimensoes ?? []).map((d) => (
+              <Link
+                key={d.chave}
+                href={d.href}
+                className="group rounded-xl border border-gray-200 p-5 transition hover:border-brand hover:shadow-sm dark:border-gray-800"
+              >
+                <div className="flex items-baseline justify-between">
+                  <h2 className="font-semibold group-hover:text-brand">{d.titulo}</h2>
+                  <span className="text-2xl font-bold tabular-nums">{d.total}</span>
+                </div>
+                <p className="mt-1 text-sm text-gray-500">{d.destaque ?? "—"}</p>
+              </Link>
+            ))}
+          </section>
+
+          {/* Busca de propostas direto no painel — sobre o cache do território */}
+          <section className="flex flex-col gap-4">
+            <div>
+              <h2 className="text-lg font-semibold">Buscar propostas</h2>
+              <p className="text-sm text-gray-500">
+                Por número, município, natureza jurídica e faixa de valor.
+              </p>
+            </div>
+            <BuscaPropostas />
+          </section>
+        </>
       )}
     </>
   );
