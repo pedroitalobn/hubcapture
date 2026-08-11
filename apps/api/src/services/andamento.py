@@ -233,7 +233,11 @@ async def linha_do_tempo(
 ) -> AndamentoPagina | None:
     """Andamento completo da proposta. `None` = proposta fora do território."""
     proposta = (
-        await session.execute(select(Proposta).where(Proposta.id == proposta_id))
+        await session.execute(
+            select(Proposta).where(
+                Proposta.id == proposta_id, Proposta.excluido_em.is_(None)
+            )
+        )
     ).scalar_one_or_none()
     if proposta is None:
         return None
@@ -259,7 +263,11 @@ async def emendas(
 ):
     """Emendas + parlamentares autores da proposta (`None` = fora do território)."""
     proposta = (
-        await session.execute(select(Proposta).where(Proposta.id == proposta_id))
+        await session.execute(
+            select(Proposta).where(
+                Proposta.id == proposta_id, Proposta.excluido_em.is_(None)
+            )
+        )
     ).scalar_one_or_none()
     if proposta is None:
         return None

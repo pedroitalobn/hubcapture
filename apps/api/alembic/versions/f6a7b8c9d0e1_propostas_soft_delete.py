@@ -1,7 +1,7 @@
 """propostas: soft delete (excluido_em) — zerar não apaga linha
 
 Revision ID: f6a7b8c9d0e1
-Revises: e5f6a7b8c9d0
+Revises: f3a4b5c6d7e8
 Create Date: 2026-08-11
 
 `propostas` é CACHE GLOBAL e suas FKs são ON DELETE CASCADE — e cascade IGNORA
@@ -23,7 +23,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "f6a7b8c9d0e1"
-down_revision: str | None = "e5f6a7b8c9d0"
+down_revision: str | None = "f3a4b5c6d7e8"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
