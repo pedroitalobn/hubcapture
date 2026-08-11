@@ -1022,3 +1022,89 @@ p {
     border-radius: 0.5rem;
   }
 }
+
+/* ============================================================
+   Camada UI v1 — "Bancada v1 (flat)" via flag da plataforma
+   Ligada pelo admin em /admin/config (chave `ui_versao` = v1);
+   o web aplica `data-ui="v1"` no <html> (UiVersionSync + boot
+   script do layout raiz). Esta é a SUPERFÍCIE DE PORTE da UI
+   v2 → v1: os mesmos componentes, com os traços estruturais da
+   v1 — acento ÚNICO lime (sem aqua/gradiente), superfícies
+   flat (sem vidro, sombra ou fio de gradiente), zero
+   microanimação decorativa e canvas limpo (sem aurora/grade).
+   Ajustes finos do porte entram aqui, nunca nos componentes.
+   Fica FORA de @layer de propósito: estilo sem camada vence os
+   de @layer components, e o seletor :root[data-ui] empata com
+   os blocos de tema — no empate, vence a ordem (este é o fim
+   do arquivo).
+   ============================================================ */
+
+:root[data-ui="v1"] {
+  /* Acento único: o gradiente da marca colapsa em lime sólido e o
+     segundo lume (aqua) some — vale no light, no dark e nos temas
+     forçados por data-theme (empate de especificidade + ordem). */
+  --grad-brand: linear-gradient(120deg, var(--color-lime), var(--color-lime));
+  --grad-hairline: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-lime) 45%, transparent),
+    transparent
+  );
+  --glow-2: transparent;
+}
+
+/* Canvas limpo: sem auroras derivando nem grade técnica no topo. */
+[data-ui="v1"] body::before,
+[data-ui="v1"] body::after {
+  display: none;
+}
+html[data-ui="v1"]::before {
+  display: none;
+}
+
+/* Superfícies flat: profundidade = contraste + hairline, nunca
+   vidro/sombra. O fio de gradiente do card e o brilho especular
+   do hover são assinaturas da v2 — desligados. */
+[data-ui="v1"] .glass,
+[data-ui="v1"] .card,
+[data-ui="v1"] .rail,
+[data-ui="v1"] .topbar {
+  background: var(--card);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+[data-ui="v1"] .card::before,
+[data-ui="v1"] .card.card-hover::after {
+  display: none;
+}
+[data-ui="v1"] .card-hover:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--ink-2);
+}
+
+/* Sem microanimação decorativa (as funcionais — typing, skeleton —
+   permanecem). */
+[data-ui="v1"] .anim-fade-up,
+[data-ui="v1"] .anim-fade-in,
+[data-ui="v1"] .anim-pop,
+[data-ui="v1"] .stagger > * {
+  animation: none;
+}
+[data-ui="v1"] .btn:hover:not(:disabled),
+[data-ui="v1"] .btn:active:not(:disabled) {
+  transform: none;
+}
+[data-ui="v1"] .btn-primary:hover:not(:disabled) {
+  box-shadow: none;
+}
+
+/* Realces voltam a ser tinta sólida; foco de input é só a borda. */
+[data-ui="v1"] .text-gradient {
+  background: none;
+  color: var(--ink);
+}
+[data-ui="v1"] .input:focus {
+  box-shadow: none;
+}

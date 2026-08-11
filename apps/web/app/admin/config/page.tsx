@@ -37,6 +37,7 @@ const CATEGORIAS: { id: string; label: string; desc: string }[] = [
   },
   { id: "whatsapp", label: "WhatsApp", desc: "Alertas e chat (Uniq)" },
   { id: "email", label: "E-mail", desc: "SMTP transacional" },
+  { id: "plataforma", label: "Plataforma", desc: "Aparência e comportamento do app" },
 ];
 
 const ORIGEM_LABEL: Record<string, string> = {
@@ -155,6 +156,12 @@ const GRUPOS: { id: string; label: string; categoria: string; prefixos: string[]
     label: "LLM genérico (LiteLLM, legado)",
     categoria: "ia",
     prefixos: ["llm_api_key"],
+  },
+  {
+    id: "ui",
+    label: "Interface (UI) — versão do design system",
+    categoria: "plataforma",
+    prefixos: ["ui_"],
   },
 ];
 

@@ -107,6 +107,7 @@ def register_routers() -> None:
         planos,
         propostas,
         repasses,
+        ui,
         webhooks,
     )
 
@@ -139,6 +140,7 @@ def register_routers() -> None:
         admin_helpdesk,
         admin_modulos,
         copiloto,
+        ui,
         webhooks,
     ):
         app.include_router(mod.router, prefix="/api/v1")

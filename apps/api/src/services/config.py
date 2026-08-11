@@ -191,6 +191,9 @@ CATALOGO: list[dict] = [
     _c("email_smtp_password", "SMTP senha", "email", True),
     _c("email_from", "Remetente (From)", "email", False),
     _c("app_base_url", "URL pública do app (links de e-mail)", "email", False),
+    # Plataforma — aparência do app. A flag permite portar a UI v2 → v1 sem
+    # deploy: o web lê a versão ativa em GET /ui (público) e aplica `data-ui`.
+    _c("ui_versao", "Versão da UI do app (v2 atual · v1 clássica)", "plataforma", False),
 ]
 _CATALOGO_POR_CHAVE = {c["chave"]: c for c in CATALOGO}
 
