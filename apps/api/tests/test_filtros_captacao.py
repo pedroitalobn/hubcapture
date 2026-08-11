@@ -131,6 +131,8 @@ async def _seed(
     data_proposta: str | None = None,
     numero: str | None = None,
     categorias: str | None = None,
+    plano_trabalho: str | None = None,
+    emenda: str | None = None,
 ) -> None:
     async with _owner_engine.begin() as conn:
         await conn.execute(
@@ -138,10 +140,11 @@ async def _seed(
                 "INSERT INTO propostas (fonte, id_externo, titulo, orgao_superior, "
                 "modalidade, situacao, municipio_ibge, municipio_nome, uf, valor_total, "
                 "execucao, prazos, data_atualizacao_fonte, data_proposta, "
-                "numero_proposta, categorias_ia, cache_atualizado_em) "
+                "numero_proposta, categorias_ia, numero_plano_trabalho, emenda, "
+                "cache_atualizado_em) "
                 "VALUES (:f,:e,:t,:o,:m,:s,:ibge,:nome,:uf,:v,"
                 "CAST(:ex AS jsonb), CAST(:p AS jsonb), :d, :dp, :num, "
-                "CAST(:cat AS jsonb), now())"
+                "CAST(:cat AS jsonb), :pt, :em, now())"
             ),
             {
                 "f": fonte,
@@ -160,6 +163,8 @@ async def _seed(
                 "dp": date.fromisoformat(data_proposta) if data_proposta else None,
                 "num": numero,
                 "cat": categorias,
+                "pt": plano_trabalho,
+                "em": emenda,
             },
         )
 
@@ -197,6 +202,43 @@ async def test_safra_nao_vem_da_movimentacao(seed_user, seed_municipio) -> None:
     # sem ano a proposta não some da lista — só fica fora das safras
     assert {p.id_externo for p in todas} == {"C1", "C2"}
     assert [o["valor"] for o in facetas["ano"]] == ["2022"]
+
+
+# ── busca por número (o campo do Meu painel) ────────────────────────────────
+async def test_busca_por_numero_plano_de_trabalho_e_emenda(
+    seed_user, seed_municipio
+) -> None:
+    """O gestor identifica a proposta pelo número, pelo plano de trabalho ou
+    pela emenda — os três precisam achar."""
+    u = await seed_user("numero@x.com")
+    await seed_municipio(u, "3550308")
+    await _seed(
+        "1001", "3550308", numero="0012345/2026",
+        plano_trabalho="PT-778899", emenda="4021/2026",
+    )
+    await _seed("1002", "3550308", numero="0067890/2026", titulo="Outra")
+
+    async with rls_session(u) as s:
+        assert [p.id_externo for p in await prop_service.listar(s, q="0012345")] == ["1001"]
+        assert [p.id_externo for p in await prop_service.listar(s, q="778899")] == ["1001"]
+        assert [p.id_externo for p in await prop_service.listar(s, q="4021")] == ["1001"]
+        # o "Nº" que a tela mostra quando não há numero_proposta é o id_externo
+        assert [p.id_externo for p in await prop_service.listar(s, q="1002")] == ["1002"]
+
+
+async def test_busca_escapa_curinga_do_usuario(seed_user, seed_municipio) -> None:
+    """'%' digitado é texto, não wildcard — senão um caractere solto devolveria
+    a base inteira e '100%' nunca acharia o que o gestor procura."""
+    u = await seed_user("curinga@x.com")
+    await seed_municipio(u, "3550308")
+    await _seed("E1", "3550308", titulo="Cobertura 100% da rede")
+    await _seed("E2", "3550308", titulo="Reforma da praça")
+
+    async with rls_session(u) as s:
+        assert [p.id_externo for p in await prop_service.listar(s, q="100%")] == ["E1"]
+        # '%' sozinho procura o CARACTERE: acha só quem tem '%' no texto, não tudo
+        assert [p.id_externo for p in await prop_service.listar(s, q="%")] == ["E1"]
+        assert await prop_service.listar(s, q="_") == []
 
 
 # ── busca textual, dimensões e ordenação ────────────────────────────────────

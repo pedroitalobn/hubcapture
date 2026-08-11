@@ -1706,3 +1706,28 @@ AGREGADO, e no módulo especiais o empenho mora em rota própria —
 - **Calibração**: `python -m src.tools.probe_especiais --rotas` passou a mostrar
   também a rota escolhida para empenho, e `--numero-proposta 14275/2026` bate na
   rota e mostra campos brutos + normalizados.
+
+## 44. Busca de propostas no Meu painel (número, natureza jurídica, valor)
+
+Achar UMA proposta era só possível entrando na Captação. O `/panel` passa a ter a
+busca — atalho de leitura do cache do território, não uma segunda Captação.
+
+- **Web** `components/BuscaPropostas` (montado em `app/panel/page.tsx`, entre o
+  Panorama financeiro e as novidades): campo de número (debounce 300 ms), pílulas
+  de natureza jurídica (mesmos slugs do `classificar_natureza_juridica` e da
+  Captação — um vocabulário só) e faixa de valor mín/máx. Só busca quando há
+  filtro (sem filtro não duplica o feed), lista no máximo 8 e manda o resto para
+  `/panel/funding`. Respostas fora de ordem são descartadas por sequência.
+- **Município**: NÃO é um filtro novo — as pílulas mexem no recorte do trilho
+  lateral (`useTerritorio`), o mesmo que recorta o resto do painel (§33).
+- **Módulo** (§40): a listagem `GET /proposals` é exploração e continua sob o gate
+  de `captacao`; sem o módulo, o componente não se renderiza (lê `perfil.modulos`,
+  sem request extra) — o dashboard segue inteiro.
+- **API**: `_busca_textual` (`services/propostas.py`) passou a ESCAPAR os curingas
+  do usuário (`%`/`_` viram texto — "100%" acha "100%", e um "%" solto não devolve
+  a base) e a cobrir `numero_plano_trabalho` e `emenda`, que identificam a
+  proposta tanto quanto o número. Regressão em `test_filtros_captacao.py`.
+- **Migration `c9d0e1f2a3b4`**: índices trigram (`pg_trgm`) nas colunas de
+  IDENTIFICAÇÃO (`numero_proposta`, `id_externo`, `numero_plano_trabalho`,
+  `emenda`) — o ILIKE '%…%' da busca varria a tabela a cada tecla — e btree em
+  `valor_total` para a faixa. Título/objeto ficam de fora de propósito.

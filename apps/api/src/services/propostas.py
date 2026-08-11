@@ -250,15 +250,28 @@ def _ordenar(rows: list[Proposta], ordenar: str | None) -> list[Proposta]:
 
 
 def _busca_textual(termo: str):
-    """Programa, órgão ou código — o campo de busca livre da tela de captação."""
-    like = f"%{termo.strip()}%"
+    """Programa, órgão ou código — o campo de busca livre da captação e do painel.
+
+    Os curingas do ILIKE são ESCAPADOS: quem digita "100%" procura o texto
+    "100%", e um "%" solto não pode significar "traga a base inteira".
+    """
+    bruto = termo.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    like = f"%{bruto}%"
+
+    def contem(coluna):
+        return coluna.ilike(like, escape="\\")
+
     return or_(
-        Proposta.titulo.ilike(like),
-        Proposta.objeto.ilike(like),
-        Proposta.orgao_superior.ilike(like),
-        Proposta.modalidade.ilike(like),
-        Proposta.id_externo.ilike(like),
-        Proposta.numero_proposta.ilike(like),
+        contem(Proposta.titulo),
+        contem(Proposta.objeto),
+        contem(Proposta.orgao_superior),
+        contem(Proposta.modalidade),
+        contem(Proposta.id_externo),
+        contem(Proposta.numero_proposta),
+        # o gestor identifica a proposta pelo plano de trabalho e pela emenda
+        # tanto quanto pelo número — buscar por eles precisa achar
+        contem(Proposta.numero_plano_trabalho),
+        contem(Proposta.emenda),
     )
 
 

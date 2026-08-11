@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
+import { BuscaPropostas } from "@/components/BuscaPropostas";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
@@ -551,6 +552,9 @@ function MeuPainel() {
           </section>
 
           <PanoramaFinanceiro />
+
+          {/* achar uma proposta sem sair da tela inicial (§23) */}
+          <BuscaPropostas />
 
           <section className="anim-fade-up flex flex-col gap-3">
             <div className="flex items-center justify-between">
