@@ -334,6 +334,16 @@ def test_normalize_execucao_do_painel() -> None:
     assert c.url_origem.startswith("https://")
 
 
+def test_normalize_aceita_vl_global_prop_do_siconv() -> None:
+    """VL_GLOBAL_PROP (valor global da PROPOSTA no SIconv) e VL_GLOBAL_CONV (do
+    convênio celebrado) entram no bloco de execução — antes só casava a coluna
+    sem sufixo, e a variável oficial da proposta não chegava à tela."""
+    from src.ingestion.normalizer import _montar_execucao
+
+    assert _montar_execucao({"VL_GLOBAL_PROP": "1234.56"}) == {"valor_global": "1234.56"}
+    assert _montar_execucao({"vl_global_conv": "10"}) == {"valor_global": "10"}
+
+
 def test_disc_csv_mapeia_colunas_do_relatorio() -> None:
     from src.connectors.transferegov_disc import _plano_do_csv
 

@@ -642,20 +642,20 @@ def _cabecalho(p: Proposta) -> list:
 
 
 def _faixa_destaque(p: Proposta) -> Table:
-    """O topo da hierarquia: valor e ANO da proposta (a safra que a situa).
+    """O topo da hierarquia: valor total, EMPENHO e o ANO da proposta (a safra).
 
     O prazo de vencimento saiu daqui: vinha marcado errado com frequência (a
     retaguarda de vigência não é prazo de proposta) e continua no card "Prazos",
     onde é conferível item a item.
+
+    O espelho é o espelho da TELA: EMPENHO traz o valor global da proposta
+    (VL_GLOBAL_PROP na fonte), e o "Empenhado a utilizar" saiu daqui — era uma
+    conta derivada (empenhado − pago) que nas propostas dava zero e nada dizia.
     """
-    from .propostas import ano_de
+    from .propostas import ano_de, valor_global_de
 
-    execucao = p.execucao or {}
-    empenhado = _dec(execucao.get("valor_empenhado")) or Decimal(0)
-    pago = _dec(execucao.get("valor_pago")) or Decimal(0)
-    a_utilizar = max(Decimal(0), empenhado - pago)
-
-    interno = MEIO - PAD_CARD  # largura útil de cada coluna do topo da faixa
+    # três colunas de peso igual no topo da faixa, com os gaps descontados
+    interno = (UTIL - 2 * PAD_CARD - 2 * GAP) / 3
     valor_col: list = [
         Paragraph("VALOR TOTAL", ROTULO),
         Spacer(1, 3),
@@ -663,6 +663,15 @@ def _faixa_destaque(p: Proposta) -> Table:
     ]
     if (_dec(p.contrapartida) or Decimal(0)) > 0:
         valor_col += [Spacer(1, 2), Paragraph(f"contrapartida {_brl(p.contrapartida)}", PEQUENO)]
+
+    # EMPENHO: o valor global que a fonte publica para a proposta
+    empenho_col: list = [
+        Paragraph("EMPENHO", ROTULO),
+        Spacer(1, 3),
+        Paragraph(_brl(valor_global_de(p)), VALOR_HERO),
+        Spacer(1, 2),
+        Paragraph("valor global da proposta na fonte", PEQUENO),
+    ]
 
     # ANO_PROP na fonte — a mesma safra que o filtro de ano usa
     ano = ano_de(p)
@@ -678,8 +687,8 @@ def _faixa_destaque(p: Proposta) -> Table:
     ]
 
     topo = Table(
-        [[valor_col, ano_col]],
-        colWidths=[interno, interno],
+        [[valor_col, empenho_col, ano_col]],
+        colWidths=[interno, interno, interno],
         style=TableStyle(
             [
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -701,11 +710,6 @@ def _faixa_destaque(p: Proposta) -> Table:
             tom="ok" if pendentes == 0 else "warn",
         ),
     ]
-    if p.execucao:
-        campos.insert(
-            1,
-            _campo("Empenhado a utilizar", _brl(a_utilizar), tom="ok" if a_utilizar > 0 else None),
-        )
 
     conteudo = [
         topo,
@@ -726,9 +730,6 @@ def _bloco_execucao(p: Proposta) -> list:
         "liberado": _dec(e.get("valor_liberado")),
         "pago": _dec(e.get("valor_pago")),
     }
-    a_utilizar = max(
-        Decimal(0), (valores["empenhado"] or Decimal(0)) - (valores["pago"] or Decimal(0))
-    )
     interno = UTIL - 2 * PAD_CARD
     conteudo: list = [
         BarraExecucao(interno, valores),
@@ -751,12 +752,6 @@ def _bloco_execucao(p: Proposta) -> list:
                 _campo("Liberado", _brl(valores["liberado"])),
                 _campo("Pago", _brl(valores["pago"])),
                 _campo("Saldo em conta", _brl(e.get("saldo_conta"))),
-                _campo(
-                    "Empenhado a utilizar",
-                    _brl(a_utilizar),
-                    tom="ok" if a_utilizar > 0 else None,
-                    grande=True,
-                ),
             ],
             interno,
         ),

@@ -101,7 +101,16 @@ def compute_hash(data: dict[str, Any]) -> str:
 # "quanto foi disponibilizado (empenhado) e ainda não utilizado" que o gestor
 # quer ver. Aceita tanto snake_case quanto os cabeçalhos do relatório.
 _EXEC_KEYS = {
-    "valor_global": ("valor_global", "valor global", "vl_global"),
+    # VL_GLOBAL_PROP é a variável do SIconv para o valor global da PROPOSTA
+    # (VL_GLOBAL_CONV é a do convênio já celebrado). Sem estes aliases o campo
+    # só chegava quando o connector já tinha feito o de-para por palavra-chave.
+    "valor_global": (
+        "valor_global",
+        "valor global",
+        "vl_global",
+        "vl_global_prop",
+        "vl_global_conv",
+    ),
     "valor_empenhado": ("valor_empenhado", "valor empenhado", "vl_empenhado"),
     "valor_liberado": ("valor_liberado", "valor liberado", "vl_desembolsado", "vl_liberado"),
     "valor_pago": ("valor_pago", "valor pago", "vl_pago"),

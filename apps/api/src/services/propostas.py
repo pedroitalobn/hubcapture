@@ -263,6 +263,29 @@ def ano_de(p: Proposta) -> str | None:
     return None
 
 
+# Valor global da proposta na fonte, por ordem de precisão: VL_GLOBAL_PROP é a
+# variável oficial do SIconv para a PROPOSTA; VL_GLOBAL_CONV é a do convênio já
+# celebrado; VL_GLOBAL cobre os arquivos que publicam a coluna sem sufixo.
+_CAMPOS_VALOR_GLOBAL = ("vl_global_prop", "vl_global_conv", "vl_global")
+
+
+def valor_global_de(p: Proposta) -> Decimal | None:
+    """Valor global da proposta — o número que o card "Empenho" do detalhe exibe.
+
+    `VL_GLOBAL_PROP` no registro-fonte vence: é o valor que a fonte publica para
+    a proposta, e lê-lo direto de `dados_fonte` corrige o que já está no cache
+    sem esperar re-sync (mesma disciplina de `ano_de`/`mes_de`). Sem ele, cai no
+    agregado de execução e, por fim, no total já normalizado.
+    """
+    from ..ingestion.normalizer import _to_decimal
+
+    for chave in _CAMPOS_VALOR_GLOBAL:
+        valor = _to_decimal(_campo_fonte(p.dados_fonte, chave))
+        if valor is not None:
+            return valor
+    return _to_decimal(_execucao(p).get("valor_global")) or _to_decimal(p.valor_total)
+
+
 def prazo_final_de(p: Proposta) -> date | None:
     """Prazo mais próximo declarado na proposta (jsonb `prazos`)."""
     datas = []

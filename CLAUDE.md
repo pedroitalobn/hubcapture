@@ -1738,6 +1738,7 @@ identificador da INTEGRAÇÃO aparecia rotulado como número da proposta — um
 número que o portal da fonte não reconhece e que o gestor levaria para a
 conversa com o órgão. Sem número, o campo fica vazio ("—") e o id da fonte
 segue no campo próprio ("Identificador na fonte"), logo abaixo.
+
 ## 45. Lentes de natureza jurídica — entes municipais × outros
 
 A consulta de propostas por **natureza jurídica** parte de DUAS lentes (decisão de
@@ -1769,3 +1770,26 @@ não os substitui.
 - **Web**: `app/panel/funding` mostra as lentes na barra PRINCIPAL ("Quem propõe"),
   não nos filtros avançados, e lê `?natureza_grupo=` na chegada (o card do painel abre
   a tela já filtrada). Os 6 slugs seguem no avançado, para refinar.
+
+## 46. Faixa de destaque do detalhe — EMPENHO é `VL_GLOBAL_PROP`
+
+O card **Empenho** da faixa de destaque da página da proposta mostra o **valor
+global que a fonte publica para a proposta** — `VL_GLOBAL_PROP`, a variável
+oficial do SIconv (`VL_GLOBAL_CONV` é a do convênio já celebrado).
+
+- **Resolução do valor** (`services/propostas.valor_global_de`): lê
+  `VL_GLOBAL_PROP` direto de `dados_fonte`, em qualquer nível e caixa e em
+  formato BR — mesma disciplina de `ano_de`/`mes_de`, então **corrige o que já
+  está no cache sem esperar re-sync**. Sem a variável, cai em
+  `execucao.valor_global` e, por fim, em `valor_total`. A API expõe o resultado
+  no campo computado `PropostaRead.valor_global`; o front **não** vasculha
+  `dados_fonte`.
+- **Ingestão**: `_EXEC_KEYS["valor_global"]` do normalizador aceita
+  `vl_global_prop`/`vl_global_conv` além de `vl_global`, para as fontes que
+  publicam a coluna sem passar pelo de-para por palavra-chave do connector.
+- **"Empenhado a utilizar" foi DESCARTADO** da página da proposta e do espelho
+  em PDF (faixa de destaque, seção "Execução financeira" e o card "A utilizar"
+  da seção "Empenhos"). Era conta derivada (`empenhado − pago`) que nas
+  propostas dava zero e não informava nada. Os agregados de CARTEIRA continuam
+  com o card — `/proposals/summary` (`cards.valor_a_utilizar`), a tela de
+  captação e o resumo —, onde a conta tem massa e significado.

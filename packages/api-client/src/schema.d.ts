@@ -4547,6 +4547,12 @@ export interface components {
             uf?: string | null;
             /** Url Origem */
             url_origem?: string | null;
+            /**
+             * Valor Global
+             * @description Valor global da proposta (VL_GLOBAL_PROP na fonte) — o que o card
+             *     "Empenho" do detalhe mostra.
+             */
+            readonly valor_global: string | null;
             /** Valor Total */
             valor_total?: string | null;
         };
