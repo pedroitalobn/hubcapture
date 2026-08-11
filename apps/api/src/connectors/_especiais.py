@@ -60,6 +60,10 @@ class Rota:
     postgrest: bool = False
     param_pagina: str | None = None
     param_tamanho: str | None = None
+    # A rota veio do SPEC (ou do painel admin), então sabemos que ela aceita
+    # este filtro. `False` = palpite — a API pode ignorar o parâmetro e devolver
+    # a tabela inteira, e aí quem chama PRECISA refiltrar no cliente.
+    confirmada: bool = True
 
     def filtro(self, valor: str) -> dict[str, str]:
         """PostgREST exige o operador no valor (`eq.123`); OpenAPI 3 é direto."""

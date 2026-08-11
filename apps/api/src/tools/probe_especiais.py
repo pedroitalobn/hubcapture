@@ -36,10 +36,21 @@ from ..connectors.emendas_especiais import (
     PALAVRAS_ROTA,
     EmendaEspecialConnector,
 )
+from ..connectors.empenhos_especiais import CHAVES as CHAVES_EMPENHO
+from ..connectors.empenhos_especiais import EmpenhoEspecialConnector
 from ..ingestion.normalizer_emenda import normalize_emenda
+from ..ingestion.normalizer_empenho import normalize_empenho
 
 # assuntos que interessam ao enriquecimento da proposta
-PALAVRAS_PADRAO = ("emenda", "parlamentar", "analise", "parecer", "historico", "plano_acao")
+PALAVRAS_PADRAO = (
+    "emenda",
+    "empenho",
+    "parlamentar",
+    "analise",
+    "parecer",
+    "historico",
+    "plano_acao",
+)
 
 
 async def _listar_rotas(base: str, palavras: tuple[str, ...]) -> dict[str, Any]:
@@ -54,6 +65,7 @@ async def _listar_rotas(base: str, palavras: tuple[str, ...]) -> dict[str, Any]:
         if any(p in _especiais._norm(endpoint) for p in palavras)
     }
     escolhida = _especiais.escolher_rota(spec, PALAVRAS_ROTA, CHAVES)
+    escolhida_empenho = _especiais.escolher_rota(spec, ("empenho",), CHAVES_EMPENHO)
     return {
         "base": base,
         "status": "ok",
@@ -69,12 +81,24 @@ async def _listar_rotas(base: str, palavras: tuple[str, ...]) -> dict[str, Any]:
             if escolhida
             else None
         ),
+        "rota_escolhida_para_empenho": (
+            {
+                "endpoint": escolhida_empenho.endpoint,
+                "chave": escolhida_empenho.chave,
+                "paginacao": escolhida_empenho.paginacao(1, 50),
+            }
+            if escolhida_empenho
+            else None
+        ),
     }
 
 
-async def _coletar(chaves: dict[str, str]) -> dict[str, Any]:
-    connector = EmendaEspecialConnector()
-    resultado: dict[str, Any] = {"chaves": chaves}
+async def _coletar(chaves: dict[str, str], assunto: str = "emenda") -> dict[str, Any]:
+    connector = (
+        EmpenhoEspecialConnector() if assunto == "empenho" else EmendaEspecialConnector()
+    )
+    normalizar = normalize_empenho if assunto == "empenho" else normalize_emenda
+    resultado: dict[str, Any] = {"assunto": assunto, "chaves": chaves}
     try:
         rota = await connector.rota()
         resultado["rota"] = (
@@ -90,7 +114,7 @@ async def _coletar(chaves: dict[str, str]) -> dict[str, Any]:
         # os CAMPOS são o que se calibra — mostrar o primeiro registro inteiro
         resultado["campos"] = sorted(brutos[0])
         resultado["amostra"] = brutos[0]
-        canonica = normalize_emenda(brutos[0], fonte="transferegov_emenda")
+        canonica = normalizar(brutos[0], fonte=f"transferegov_{assunto}")
         resultado["normalizado"] = {
             k: str(v)
             for k, v in canonica.model_dump().items()
@@ -149,7 +173,8 @@ async def main() -> int:
         if v
     }
     if chaves:
-        saida["emendas"] = await _coletar(chaves)
+        saida["emendas"] = await _coletar(chaves, "emenda")
+        saida["empenhos"] = await _coletar(chaves, "empenho")
 
     if args.json:
         print(json.dumps(saida, indent=2, ensure_ascii=False, default=str))

@@ -55,6 +55,7 @@ const TOM_DOT: Record<string, string> = {
 const TIPO_ROTULO: Record<string, string> = {
   proposta: "Proposta",
   parecer: "Parecer",
+  empenho: "Empenho",
   vigencia: "Vigência",
   prazo: "Prazo",
   pendencia: "Pendência",

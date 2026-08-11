@@ -19,6 +19,7 @@ from ...core.users import current_active_user
 from ...models.usuario import Usuario
 from ...schemas.andamento import AndamentoPagina
 from ...schemas.emenda import EmendaPagina
+from ...schemas.empenho import EmpenhoPagina
 from ...services import andamento as service
 from ...services import modulos as modulos_service
 from ..deps import get_rls_db
@@ -50,6 +51,26 @@ async def timeline_da_proposta(
     if pagina is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=_NAO_ENCONTRADA)
     return pagina
+
+
+@router.get("/proposals/{proposta_id}/commitments", response_model=EmpenhoPagina)
+async def empenhos_da_proposta(
+    proposta_id: uuid.UUID,
+    atualizar: bool = Query(default=False, description="forçar coleta na fonte"),
+    session: AsyncSession = Depends(get_rls_db),
+    usuario: Usuario = Depends(current_active_user),
+) -> EmpenhoPagina:
+    """Empenhos da proposta e os totais — o recurso saiu do papel ou não."""
+    resultado = await service.empenhos(
+        session,
+        proposta_id,
+        atualizar=await _pode_consultar_fonte(atualizar),
+        usuario_id=usuario.id,
+    )
+    if resultado is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=_NAO_ENCONTRADA)
+    itens, resumo, coleta = resultado
+    return EmpenhoPagina(itens=itens, resumo=resumo, coleta=coleta)
 
 
 @router.get("/proposals/{proposta_id}/amendments", response_model=EmendaPagina)

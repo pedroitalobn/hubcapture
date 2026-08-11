@@ -17,11 +17,14 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
-from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from ..schemas.emenda import EmendaCanonica
+from ._campos import ano_de as _inteiro
+from ._campos import decimal_br as _decimal
+from ._campos import por_termos as _por_termos
+from ._campos import primeiro as _first
+from ._campos import texto as _texto
 from .normalizer import _ci
 
 _HASH_FIELDS = (
@@ -47,61 +50,6 @@ def _hash(data: dict[str, Any]) -> str:
     return hashlib.sha256(
         json.dumps(material, sort_keys=True, default=str, ensure_ascii=False).encode()
     ).hexdigest()
-
-
-def _texto(v: Any) -> str | None:
-    if v in (None, "", [], {}):
-        return None
-    return " ".join(str(v).split()) or None
-
-
-def _decimal(v: Any) -> Decimal | None:
-    if v in (None, "", []):
-        return None
-    bruto = str(v).strip().replace("R$", "").strip()
-    # "1.234.567,89" (fonte em pt-BR) → "1234567.89"
-    if "," in bruto and re.search(r",\d{1,2}$", bruto):
-        bruto = bruto.replace(".", "").replace(",", ".")
-    bruto = bruto.replace(" ", "")
-    try:
-        return Decimal(bruto)
-    except (InvalidOperation, ValueError):
-        return None
-
-
-def _inteiro(v: Any) -> int | None:
-    achado = re.search(r"\d{4}", str(v or ""))
-    return int(achado.group()) if achado else None
-
-
-def _palavras(chave: str) -> set[str]:
-    """Quebra a coluna em PALAVRAS: `valor_emenda_plano_acao` → {valor, emenda,
-    plano, acao}. Casar por substring aqui é armadilha — "ano" está dentro de
-    "plano", e `id_emenda_plano_acao` virava o ano da emenda."""
-    return {p for p in re.split(r"[^a-z0-9]+", chave.lower()) if p}
-
-
-def _por_termos(
-    linha: dict, *termos: str, excluir: tuple[str, ...] = (), primeiro: bool = True
-) -> Any:
-    """Primeiro valor cuja CHAVE tenha todas as palavras (e nenhuma excluída)."""
-    achados = []
-    for chave, valor in linha.items():
-        if not isinstance(chave, str) or valor in (None, "", [], {}):
-            continue
-        palavras = _palavras(chave)
-        if palavras.issuperset(termos) and not palavras.intersection(excluir):
-            achados.append(valor)
-    if not achados:
-        return None
-    return achados[0] if primeiro else achados
-
-
-def _first(*values: Any) -> Any:
-    for v in values:
-        if v not in (None, "", [], {}):
-            return v
-    return None
 
 
 def normalize_emenda(
