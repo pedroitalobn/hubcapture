@@ -28,6 +28,19 @@ FONTES = (
     "serpro",
 )
 
+# Natureza jurídica do proponente/beneficiário, normalizada em slug (o rótulo
+# bruto de cada fonte varia muito). Filtro de busca do painel; o de-para mora em
+# `ingestion/normalizer.NATUREZA_JURIDICA_MAP`.
+NATUREZAS_JURIDICAS: dict[str, str] = {
+    "administracao_publica_municipal": "Administração pública municipal",
+    "administracao_publica_estadual": "Administração pública estadual/distrital",
+    "administracao_publica_federal": "Administração pública federal",
+    "consorcio_publico": "Consórcio público",
+    "organizacao_sociedade_civil": "Organização da sociedade civil",
+    "empresa_publica": "Empresa pública / sociedade de economia mista",
+    "outros": "Outros",
+}
+
 
 class Proposta(Base):
     __tablename__ = "propostas"
@@ -43,6 +56,9 @@ class Proposta(Base):
     objeto: Mapped[str | None] = mapped_column(Text, nullable=True)
     orgao_superior: Mapped[str | None] = mapped_column(String(255), nullable=True)
     modalidade: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    natureza_juridica: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
     municipio_ibge: Mapped[str | None] = mapped_column(String(7), index=True)
     municipio_nome: Mapped[str | None] = mapped_column(String(255), nullable=True)
     uf: Mapped[str | None] = mapped_column(String(2), nullable=True)

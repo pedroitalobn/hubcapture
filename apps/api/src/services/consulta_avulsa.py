@@ -120,4 +120,6 @@ async def consulta_avulsa(
     )
 
     # 3) devolve do cache (agora povoado), já sob o filtro de RLS
-    return await propostas_service.listar(session, municipio=municipio_ibge, fonte=fonte)
+    return await propostas_service.listar(
+        session, municipios=[municipio_ibge], fonte=fonte
+    )

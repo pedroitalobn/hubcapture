@@ -643,6 +643,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/propostas/filtros": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Opcoes De Filtro */
+        get: operations["opcoes_de_filtro_api_v1_propostas_filtros_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/propostas/{proposta_id}": {
         parameters: {
             query?: never;
@@ -1153,6 +1170,41 @@ export interface components {
             proposta_id: string;
         };
         /**
+         * FiltrosPropostas
+         * @description Opções disponíveis para os filtros de busca do painel.
+         *
+         *     Calculadas sobre o que o usuário enxerga (RLS), para nunca oferecer um
+         *     filtro que devolveria zero — e para o valor mín/máx sugerir o range real.
+         */
+        FiltrosPropostas: {
+            /**
+             * Fontes
+             * @default []
+             */
+            fontes: components["schemas"]["OpcaoFiltro"][];
+            /**
+             * Municipios
+             * @default []
+             */
+            municipios: components["schemas"]["OpcaoFiltro"][];
+            /**
+             * Naturezas Juridicas
+             * @default []
+             */
+            naturezas_juridicas: components["schemas"]["OpcaoFiltro"][];
+            /**
+             * Situacoes
+             * @default []
+             */
+            situacoes: components["schemas"]["OpcaoFiltro"][];
+            /** Total */
+            total: number;
+            /** Valor Max */
+            valor_max?: string | null;
+            /** Valor Min */
+            valor_min?: string | null;
+        };
+        /**
          * FonteResumo
          * @description Card por fonte no dashboard (ícone/valor/nº de movimentações).
          */
@@ -1330,6 +1382,18 @@ export interface components {
             /** Sync Disparado */
             sync_disparado: boolean;
         };
+        /**
+         * OpcaoFiltro
+         * @description Uma opção de filtro com quantas propostas ela alcança.
+         */
+        OpcaoFiltro: {
+            /** Label */
+            label: string;
+            /** Total */
+            total: number;
+            /** Valor */
+            valor: string;
+        };
         /** PastaCreate */
         PastaCreate: {
             /** Cor */
@@ -1486,6 +1550,8 @@ export interface components {
             municipio_ibge?: string | null;
             /** Municipio Nome */
             municipio_nome?: string | null;
+            /** Natureza Juridica */
+            natureza_juridica?: string | null;
             /** Numero Proposta */
             numero_proposta?: string | null;
             /** Objeto */
@@ -3127,12 +3193,20 @@ export interface operations {
     listar_propostas_api_v1_propostas_get: {
         parameters: {
             query?: {
-                /** @description código IBGE (7 dígitos) */
-                municipio?: string | null;
+                /** @description busca por número da proposta / id externo / emenda (contém) */
+                numero?: string | null;
+                /** @description código(s) IBGE (7 dígitos) — repetir p/ vários */
+                municipio?: string[] | null;
                 fonte?: string | null;
                 /** @description reservado (áreas) — futuro */
                 area?: string | null;
                 situacao?: string | null;
+                /** @description slug(s) de natureza jurídica do proponente */
+                natureza_juridica?: string[] | null;
+                /** @description valor total ≥ */
+                valor_min?: number | string | null;
+                /** @description valor total ≤ */
+                valor_max?: number | string | null;
             };
             header?: never;
             path?: never;
@@ -3156,6 +3230,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    opcoes_de_filtro_api_v1_propostas_filtros_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiltrosPropostas"];
                 };
             };
         };
