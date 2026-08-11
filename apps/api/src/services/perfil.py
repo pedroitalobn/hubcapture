@@ -14,6 +14,7 @@ from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..ingestion import natureza_juridica as nj
 from ..models.conformidade import Conformidade
 from ..models.municipio_interesse import MunicipioInteresse
 from ..models.obra import Obra
@@ -25,8 +26,10 @@ from ..schemas.perfil import (
     DimensaoResumo,
     MunicipioPerfil,
     PerfilRead,
+    QuebraDimensao,
     VisaoGeralPerfil,
 )
+from . import propostas as propostas_service
 
 
 def _brl(v: Decimal | None) -> str:
@@ -105,6 +108,9 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
         )
     ).scalar_one()
 
+    # Captação por natureza jurídica do proponente — lente de consulta do painel.
+    por_natureza = await propostas_service.contar_por_natureza(session)
+
     dimensoes = [
         DimensaoResumo(
             chave="captacao",
@@ -112,6 +118,15 @@ async def visao_geral(session: AsyncSession, usuario: Usuario) -> VisaoGeralPerf
             total=int(prop_n),
             destaque=f"{_brl(prop_valor)} em propostas" if prop_n else "sem propostas ainda",
             href="/painel/captacao",
+            quebras=[
+                QuebraDimensao(
+                    chave=natureza,
+                    rotulo=nj.rotulo(natureza),
+                    total=por_natureza.get(natureza, 0),
+                    href=f"/painel/captacao?natureza={natureza}",
+                )
+                for natureza in nj.NATUREZAS
+            ],
         ),
         DimensaoResumo(
             chave="recebidos",

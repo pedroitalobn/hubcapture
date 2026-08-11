@@ -6,12 +6,19 @@ import { StatCard } from "@/components/StatCard";
 import { SkeletonCards } from "@/components/Skeleton";
 import { api } from "@/lib/api/client";
 
+interface Quebra {
+  chave: string;
+  rotulo: string;
+  total: number;
+  href: string;
+}
 interface Dimensao {
   chave: string;
   titulo: string;
   total: number;
   destaque?: string | null;
   href: string;
+  quebras?: Quebra[];
 }
 interface Municipio {
   ibge: string;
@@ -67,17 +74,35 @@ export default function MeuPainelPage() {
       ) : (
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {(data?.dimensoes ?? []).map((d) => (
-            <Link
+            <div
               key={d.chave}
-              href={d.href}
               className="group rounded-xl border border-gray-200 p-5 transition hover:border-brand hover:shadow-sm dark:border-gray-800"
             >
-              <div className="flex items-baseline justify-between">
-                <h2 className="font-semibold group-hover:text-brand">{d.titulo}</h2>
-                <span className="text-2xl font-bold tabular-nums">{d.total}</span>
-              </div>
-              <p className="mt-1 text-sm text-gray-500">{d.destaque ?? "—"}</p>
-            </Link>
+              <Link href={d.href} className="block">
+                <div className="flex items-baseline justify-between">
+                  <h2 className="font-semibold group-hover:text-brand">{d.titulo}</h2>
+                  <span className="text-2xl font-bold tabular-nums">{d.total}</span>
+                </div>
+                <p className="mt-1 text-sm text-gray-500">{d.destaque ?? "—"}</p>
+              </Link>
+              {/* recortes da dimensão (ex.: natureza jurídica) — já filtram a lista */}
+              {(d.quebras ?? []).length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(d.quebras ?? []).map((q) => (
+                    <Link
+                      key={q.chave}
+                      href={q.href}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-700 transition hover:border-brand hover:text-brand dark:border-gray-700 dark:text-gray-300"
+                    >
+                      {q.rotulo}
+                      <span className="rounded-full bg-gray-200 px-1.5 tabular-nums dark:bg-gray-800">
+                        {q.total}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
         </section>
       )}

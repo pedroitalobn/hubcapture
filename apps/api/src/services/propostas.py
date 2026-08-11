@@ -9,12 +9,17 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..ingestion import natureza_juridica as nj
 from ..models.proposta import Proposta
 from ..schemas.proposta import PropostaCanonica
+
+# Coluna da natureza com fallback: linhas antigas (sem classificação) contam
+# como 'outros', para que as duas lentes juntas cubram sempre a base inteira.
+NATUREZA_COL = func.coalesce(Proposta.natureza_juridica, nj.OUTROS)
 
 # campos que o upsert atualiza em conflito (fonte,id_externo)
 _UPSERT_FIELDS = (
@@ -23,6 +28,8 @@ _UPSERT_FIELDS = (
     "objeto",
     "orgao_superior",
     "modalidade",
+    "natureza_juridica",
+    "natureza_juridica_descricao",
     "municipio_ibge",
     "municipio_nome",
     "uf",
@@ -46,6 +53,7 @@ async def listar(
     municipio: str | None = None,
     fonte: str | None = None,
     situacao: str | None = None,
+    natureza_juridica: str | None = None,
 ) -> list[Proposta]:
     stmt = select(Proposta)
     if municipio:
@@ -54,9 +62,26 @@ async def listar(
         stmt = stmt.where(Proposta.fonte == fonte)
     if situacao:
         stmt = stmt.where(Proposta.situacao == situacao)
+    if natureza_juridica:
+        stmt = stmt.where(NATUREZA_COL == natureza_juridica)
     stmt = stmt.order_by(Proposta.cache_atualizado_em.desc().nullslast())
     result = await session.execute(stmt)
     return list(result.scalars().all())
+
+
+async def contar_por_natureza(session: AsyncSession) -> dict[str, int]:
+    """Quantas propostas visíveis (RLS) há por natureza jurídica.
+
+    Sempre devolve as duas lentes, mesmo zeradas — o painel mostra o filtro
+    ainda que uma delas esteja vazia no território do usuário.
+    """
+    stmt = select(NATUREZA_COL.label("natureza"), func.count(Proposta.id)).group_by(
+        NATUREZA_COL
+    )
+    contagem = dict.fromkeys(nj.NATUREZAS, 0)
+    for natureza, total in (await session.execute(stmt)).all():
+        contagem[natureza] = contagem.get(natureza, 0) + int(total)
+    return contagem
 
 
 async def obter(session: AsyncSession, proposta_id: uuid.UUID) -> Proposta | None:

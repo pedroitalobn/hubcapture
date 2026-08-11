@@ -14,6 +14,7 @@ from typing import Any
 
 from ..connectors.base import RawRecord
 from ..schemas.proposta import PropostaCanonica
+from . import natureza_juridica as nj
 
 # campos "materiais" que entram no hash (mudança neles = mudança relevante)
 _HASH_FIELDS = (
@@ -31,6 +32,27 @@ _HASH_FIELDS = (
     "movimentacao",
     "data_atualizacao_fonte",
 )
+# `natureza_juridica` fica fora do hash de propósito: é atributo estável do
+# proponente (não gera alerta acionável) e incluí-lo faria toda a base existente
+# virar "mudança" na primeira sync depois do deploy.
+
+# Campos onde as fontes costumam trazer a natureza jurídica do proponente
+# (ponto de calibração ao ligar cada fonte real).
+_NATUREZA_TEXTO = (
+    "nome_natureza_juridica",
+    "natureza_juridica",
+    "descricao_natureza_juridica",
+    "tipo_beneficiario",
+    "tipo_proponente",
+    "esfera",
+    "esfera_administrativa",
+)
+_NATUREZA_CODIGO = (
+    "codigo_natureza_juridica",
+    "id_natureza_juridica",
+    "cod_natureza_juridica",
+)
+_NATUREZA_NOME = ("nome_beneficiario", "nome_proponente", "razao_social", "nome")
 
 
 def _first(*values: Any) -> Any:
@@ -76,6 +98,15 @@ def normalize(record: RawRecord) -> PropostaCanonica:
     programa = raw.get("programa", {}) if isinstance(raw, dict) else {}
     benef = raw.get("beneficiario", {}) if isinstance(raw, dict) else {}
 
+    # Natureza jurídica do proponente: descrição da fonte (quando vem) + a lente
+    # canônica de duas vias (entes municipais x outros).
+    natureza_textos = [
+        _first(benef.get(k), plano.get(k)) for k in _NATUREZA_TEXTO
+    ]
+    # o nome só vale do bloco do beneficiário (no plano, "nome" é o do objeto)
+    natureza_nomes = [benef.get(k) for k in _NATUREZA_NOME]
+    natureza_codigo = _first(*(_first(benef.get(k), plano.get(k)) for k in _NATUREZA_CODIGO))
+
     fields: dict[str, Any] = {
         "fonte": record.source_id,
         "id_externo": record.id_externo,
@@ -89,6 +120,13 @@ def normalize(record: RawRecord) -> PropostaCanonica:
             programa.get("nome_orgao_superior"),
         ),
         "modalidade": _first(programa.get("modalidade"), "Fundo a Fundo"),
+        "natureza_juridica": nj.classificar(
+            *natureza_textos,
+            *natureza_nomes,
+            codigo=natureza_codigo,
+            fonte=record.source_id,
+        ),
+        "natureza_juridica_descricao": nj.descrever(*natureza_textos, *natureza_nomes),
         "municipio_ibge": _first(
             record.municipio_ibge, benef.get("codigo_ibge"), plano.get("codigo_ibge")
         ),
@@ -111,6 +149,9 @@ def normalize(record: RawRecord) -> PropostaCanonica:
 
     # proveniência: no Sprint 1 tudo vem da API
     proveniencia = {k: "api" for k, v in fields.items() if v is not None}
+    # a natureza só é "api" quando a fonte informou algo; senão é inferida aqui
+    if not (natureza_codigo or any(natureza_textos) or any(natureza_nomes)):
+        proveniencia["natureza_juridica"] = "derivado"
     proveniencia["_fonte"] = record.source_id
     fields["proveniencia"] = proveniencia
     fields["hash_conteudo"] = compute_hash(fields)

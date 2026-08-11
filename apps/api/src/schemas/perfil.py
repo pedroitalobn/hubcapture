@@ -31,6 +31,18 @@ class PerfilRead(BaseModel):
     monitorar_ativo: bool = True
 
 
+class QuebraDimensao(BaseModel):
+    """Recorte de uma dimensão (ex.: propostas por natureza jurídica).
+
+    É uma lente sobre o próprio território — não uma aba por fonte de dados.
+    """
+
+    chave: str  # ex.: 'entes_municipais' | 'outros'
+    rotulo: str  # ex.: 'Entes municipais'
+    total: int = 0
+    href: str  # rota web já filtrada
+
+
 class DimensaoResumo(BaseModel):
     """Um eixo do ciclo (captação/recebidos/conformidade/obras) para o perfil."""
 
@@ -39,6 +51,7 @@ class DimensaoResumo(BaseModel):
     total: int = 0  # nº de itens visíveis no território do usuário
     destaque: str | None = None  # métrica-resumo (ex. valor total, pendências)
     href: str  # rota web da dimensão
+    quebras: list[QuebraDimensao] = []  # recortes rápidos dentro da dimensão
 
 
 class VisaoGeralPerfil(BaseModel):

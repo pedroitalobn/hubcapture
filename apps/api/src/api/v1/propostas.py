@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,10 +22,20 @@ async def listar_propostas(
     fonte: str | None = Query(default=None),
     area: str | None = Query(default=None, description="reservado (áreas) — futuro"),
     situacao: str | None = Query(default=None),
+    natureza_juridica: Literal["entes_municipais", "outros"] | None = Query(
+        default=None,
+        description="natureza jurídica do proponente: entes municipais (prefeitura, "
+        "secretaria, câmara, fundo/autarquia municipal) ou outros (OSC, entes "
+        "estaduais/federais, empresas)",
+    ),
     session: AsyncSession = Depends(get_rls_db),
 ) -> list[PropostaRead]:
     rows = await propostas_service.listar(
-        session, municipio=municipio, fonte=fonte, situacao=situacao
+        session,
+        municipio=municipio,
+        fonte=fonte,
+        situacao=situacao,
+        natureza_juridica=natureza_juridica,
     )
     return [PropostaRead.model_validate(r) for r in rows]
 

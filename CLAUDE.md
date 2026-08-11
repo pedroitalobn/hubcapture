@@ -600,3 +600,35 @@ Stack completo sobe com um comando; o superadmin é criado no boot.
   alterna papel/admin/ativo inline. Backend: `GET /admin/usuarios`,
   `POST /admin/usuarios` (agora aceita `is_superuser`), `PATCH /admin/usuarios/{id}`
   (papel/is_superuser/is_active/plano). Env `ADMIN_EMAIL`/`ADMIN_PASSWORD`/`APP_BASE_URL`.
+
+## 23. Natureza jurídica do proponente (lente de consulta da captação)
+
+Consulta de propostas por **natureza jurídica** em duas lentes — decisão de produto
+(não é a taxonomia inteira da Receita): `entes_municipais` (prefeitura, secretaria
+municipal, câmara de vereadores, fundo/autarquia/fundação municipal, consórcio
+intermunicipal) e `outros` (organizações da sociedade civil, associações, entes
+estaduais/federais, empresas). Segue a navegação profile-centric (§19): é uma **lente
+sobre o território**, nunca uma aba por fonte.
+
+- **Modelo/canônico**: `propostas.natureza_juridica` (varchar(32), indexado) +
+  `natureza_juridica_descricao` (texto original da fonte, para exibição/auditoria).
+  Migration `b1c4f7a90d2e` (backfill: fontes fundo a fundo → `entes_municipais`, resto
+  `outros`, até a próxima sync reclassificar).
+- **Classificador** `ingestion/natureza_juridica.py`: (1) código CONCLA/RFB quando a
+  fonte informa (`CODIGOS_MUNICIPAIS`: 1031, 1066, 1120, 1155, 1180, 1244, 1279, 1309,
+  1333); (2) marcadores textuais no nome/natureza do proponente; (3) `PADRAO_POR_FONTE`
+  (fundo a fundo repassa ao próprio ente municipal). Sem sinal → `outros`: só marca ente
+  municipal com evidência. O `normalizer` grava `proveniencia.natureza_juridica` =
+  `api` (fonte informou) ou `derivado` (inferido). **Fora do `_HASH_FIELDS`** de
+  propósito: é atributo estável do proponente e mudaria o hash de toda a base.
+- **API**: `GET /propostas?natureza_juridica=entes_municipais|outros`. O filtro usa
+  `coalesce(natureza_juridica,'outros')` — as duas lentes somadas cobrem sempre a base
+  inteira (inclusive linhas antigas sem classificação).
+- **Painel**: `DimensaoResumo.quebras` (`schemas/perfil.py`) leva os recortes de uma
+  dimensão para o "Meu painel"; a captação traz a contagem por natureza
+  (`services/propostas.contar_por_natureza`, sob RLS) com link já filtrado.
+- **Web**: `/painel/captacao?natureza=…` (chips + coluna Natureza; estado na URL, então
+  o card do painel chega filtrado e o link é compartilhável) e chips de quebra nos cards
+  do `/painel`.
+- Nova fonte com natureza jurídica? Basta mapear o campo em `_NATUREZA_TEXTO`/
+  `_NATUREZA_CODIGO` do normalizer — o classificador e a UI não mudam.

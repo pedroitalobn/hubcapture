@@ -43,6 +43,13 @@ class Proposta(Base):
     objeto: Mapped[str | None] = mapped_column(Text, nullable=True)
     orgao_superior: Mapped[str | None] = mapped_column(String(255), nullable=True)
     modalidade: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # lente de consulta: 'entes_municipais' | 'outros' (ingestion/natureza_juridica.py)
+    natureza_juridica: Mapped[str | None] = mapped_column(
+        String(32), nullable=True, index=True
+    )
+    natureza_juridica_descricao: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )
     municipio_ibge: Mapped[str | None] = mapped_column(String(7), index=True)
     municipio_nome: Mapped[str | None] = mapped_column(String(255), nullable=True)
     uf: Mapped[str | None] = mapped_column(String(2), nullable=True)

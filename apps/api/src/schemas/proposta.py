@@ -19,6 +19,8 @@ class PropostaCanonica(BaseModel):
     objeto: str | None = None
     orgao_superior: str | None = None
     modalidade: str | None = None
+    natureza_juridica: str | None = None  # 'entes_municipais' | 'outros'
+    natureza_juridica_descricao: str | None = None
     municipio_ibge: str | None = None
     municipio_nome: str | None = None
     uf: str | None = None
@@ -48,6 +50,8 @@ class PropostaRead(BaseModel):
     objeto: str | None = None
     orgao_superior: str | None = None
     modalidade: str | None = None
+    natureza_juridica: str | None = None  # 'entes_municipais' | 'outros'
+    natureza_juridica_descricao: str | None = None
     municipio_ibge: str | None = None
     municipio_nome: str | None = None
     uf: str | None = None

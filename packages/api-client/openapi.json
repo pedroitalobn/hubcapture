@@ -877,6 +877,14 @@
             "title": "Href",
             "type": "string"
           },
+          "quebras": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/QuebraDimensao"
+            },
+            "title": "Quebras",
+            "type": "array"
+          },
           "titulo": {
             "title": "Titulo",
             "type": "string"
@@ -1954,6 +1962,28 @@
             ],
             "title": "Municipio Nome"
           },
+          "natureza_juridica": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Natureza Juridica"
+          },
+          "natureza_juridica_descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Natureza Juridica Descricao"
+          },
           "numero_proposta": {
             "anyOf": [
               {
@@ -2097,6 +2127,35 @@
           "id_externo"
         ],
         "title": "PropostaRead",
+        "type": "object"
+      },
+      "QuebraDimensao": {
+        "description": "Recorte de uma dimensão (ex.: propostas por natureza jurídica).\n\nÉ uma lente sobre o próprio território — não uma aba por fonte de dados.",
+        "properties": {
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "href": {
+            "title": "Href",
+            "type": "string"
+          },
+          "rotulo": {
+            "title": "Rotulo",
+            "type": "string"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chave",
+          "rotulo",
+          "href"
+        ],
+        "title": "QuebraDimensao",
         "type": "object"
       },
       "RefreshRequest": {
@@ -4999,6 +5058,28 @@
                 }
               ],
               "title": "Situacao"
+            }
+          },
+          {
+            "description": "natureza jurídica do proponente: entes municipais (prefeitura, secretaria, câmara, fundo/autarquia municipal) ou outros (OSC, entes estaduais/federais, empresas)",
+            "in": "query",
+            "name": "natureza_juridica",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "entes_municipais",
+                    "outros"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "natureza jurídica do proponente: entes municipais (prefeitura, secretaria, câmara, fundo/autarquia municipal) ou outros (OSC, entes estaduais/federais, empresas)",
+              "title": "Natureza Juridica"
             }
           }
         ],

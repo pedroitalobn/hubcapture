@@ -1116,6 +1116,11 @@ export interface components {
             destaque?: string | null;
             /** Href */
             href: string;
+            /**
+             * Quebras
+             * @default []
+             */
+            quebras: components["schemas"]["QuebraDimensao"][];
             /** Titulo */
             titulo: string;
             /**
@@ -1486,6 +1491,10 @@ export interface components {
             municipio_ibge?: string | null;
             /** Municipio Nome */
             municipio_nome?: string | null;
+            /** Natureza Juridica */
+            natureza_juridica?: string | null;
+            /** Natureza Juridica Descricao */
+            natureza_juridica_descricao?: string | null;
             /** Numero Proposta */
             numero_proposta?: string | null;
             /** Objeto */
@@ -1512,6 +1521,25 @@ export interface components {
             url_origem?: string | null;
             /** Valor Total */
             valor_total?: string | null;
+        };
+        /**
+         * QuebraDimensao
+         * @description Recorte de uma dimensão (ex.: propostas por natureza jurídica).
+         *
+         *     É uma lente sobre o próprio território — não uma aba por fonte de dados.
+         */
+        QuebraDimensao: {
+            /** Chave */
+            chave: string;
+            /** Href */
+            href: string;
+            /** Rotulo */
+            rotulo: string;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
         };
         /** RefreshRequest */
         RefreshRequest: {
@@ -3133,6 +3161,8 @@ export interface operations {
                 /** @description reservado (áreas) — futuro */
                 area?: string | null;
                 situacao?: string | null;
+                /** @description natureza jurídica do proponente: entes municipais (prefeitura, secretaria, câmara, fundo/autarquia municipal) ou outros (OSC, entes estaduais/federais, empresas) */
+                natureza_juridica?: ("entes_municipais" | "outros") | null;
             };
             header?: never;
             path?: never;
