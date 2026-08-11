@@ -28,9 +28,7 @@ from .base import RawRecord, register
 
 # Fonte oficial: ZIP nacional (siconv_proposta.csv dentro) no Azure blob do
 # Transferegov. Tem COD_MUNIC_IBGE, então dá pra filtrar por município.
-ZIP_URL = (
-    "https://api-publica.transferegov.gestao.gov.br/downloads/dadosgov/siconv_proposta.zip"
-)
+ZIP_URL = "https://api-publica.transferegov.gestao.gov.br/downloads/dadosgov/siconv_proposta.zip"
 
 # o arquivo é NACIONAL (todos os municípios) e grande (~200MB) — cache dos
 # BYTES em memória por 1h para a live-search de vários municípios reusar sem
@@ -166,9 +164,7 @@ class TransferegovDiscConnector:
         CSV inteiro em memória: o csv.DictReader consome linha a linha)."""
         if url.lower().endswith(".zip"):
             z = zipfile.ZipFile(io.BytesIO(conteudo))
-            nome = next(
-                (n for n in z.namelist() if n.lower().endswith(".csv")), z.namelist()[0]
-            )
+            nome = next((n for n in z.namelist() if n.lower().endswith(".csv")), z.namelist()[0])
             return io.TextIOWrapper(z.open(nome), encoding="utf-8-sig", errors="replace")
         return io.StringIO(conteudo.decode("utf-8-sig", errors="replace"))
 
@@ -187,9 +183,7 @@ class TransferegovDiscConnector:
         _registros_cache[(url, municipio_ibge)] = (time.monotonic(), records)
         return records
 
-    def _filtrar_municipio(
-        self, url: str, conteudo: bytes, municipio_ibge: str
-    ) -> list[RawRecord]:
+    def _filtrar_municipio(self, url: str, conteudo: bytes, municipio_ibge: str) -> list[RawRecord]:
         """Varre o CSV nacional e devolve só as linhas do município (síncrono)."""
         f = self._abrir_csv(url, conteudo)
         header_line = f.readline()

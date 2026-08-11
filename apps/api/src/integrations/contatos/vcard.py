@@ -103,10 +103,7 @@ def serializar(canonico: ContatoCanonico, *, uid: str | None = None) -> str:
         "VERSION:3.0",
         f"UID:{uid or _uuid.uuid4()}",
         f"FN:{_escapar(canonico.nome_completo or canonico.nome)}",
-        "N:"
-        + ";".join(
-            [_escapar(canonico.sobrenome), _escapar(canonico.nome), "", "", ""]
-        ),
+        "N:" + ";".join([_escapar(canonico.sobrenome), _escapar(canonico.nome), "", "", ""]),
     ]
     if canonico.organizacao:
         linhas.append(f"ORG:{_escapar(canonico.organizacao)}")

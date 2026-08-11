@@ -64,8 +64,7 @@ def test_gate_captacao_so_na_exploracao() -> None:
         )
 
     gates = {
-        r.path: _tem_gate(getattr(r, "dependencies", None))
-        for r in propostas_router.router.routes
+        r.path: _tem_gate(getattr(r, "dependencies", None)) for r in propostas_router.router.routes
     }
     assert gates["/proposals"] and gates["/proposals/facets"]
     assert gates["/proposals/report.csv"]

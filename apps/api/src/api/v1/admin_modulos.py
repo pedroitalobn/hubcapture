@@ -33,8 +33,6 @@ async def definir_modulo(
     session: AsyncSession = Depends(get_platform_db),
 ) -> list[ModuloItem]:
     if not service.modulo_valido(body.chave):
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, f"MODULO_DESCONHECIDO: {body.chave}"
-        )
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"MODULO_DESCONHECIDO: {body.chave}")
     await service.definir(session, body.chave, body.ativo)
     return [ModuloItem(**m) for m in await service.listar(session)]

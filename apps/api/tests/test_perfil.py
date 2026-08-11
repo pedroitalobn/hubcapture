@@ -71,9 +71,7 @@ async def test_visao_geral_agrega_por_perfil_e_isola_por_rls(
     assert {m.ibge for m in vg.municipios} == {"3550308"}
 
 
-async def test_visao_geral_inclui_dimensao_de_modulo_reativado(
-    seed_user, seed_municipio
-) -> None:
+async def test_visao_geral_inclui_dimensao_de_modulo_reativado(seed_user, seed_municipio) -> None:
     u = await seed_user("vm@m.com")
     await seed_municipio(u, "3550308")
     async with SessionLocal() as s:

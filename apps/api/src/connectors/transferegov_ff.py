@@ -88,9 +88,7 @@ class TransferegovFFConnector:
     )
     async def _get(self, endpoint: str, params: dict[str, str]) -> list[dict]:
         async with httpx.AsyncClient(base_url=self.base_url, timeout=TIMEOUT) as client:
-            resp = await client.get(
-                endpoint, params=params, headers={"Accept": "application/json"}
-            )
+            resp = await client.get(endpoint, params=params, headers={"Accept": "application/json"})
             if 400 <= resp.status_code < 500:
                 raise ConnectorClientError(f"{endpoint} {resp.status_code}: {resp.text[:200]}")
             resp.raise_for_status()  # 5xx → HTTPStatusError → retry
@@ -147,9 +145,7 @@ class TransferegovFFConnector:
 
     async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
         # base URL e coluna podem vir do painel admin (config runtime); fallback = .env
-        self.base_url = (
-            await config_service.resolver("transferegov_ff_base_url") or self.base_url
-        )
+        self.base_url = await config_service.resolver("transferegov_ff_base_url") or self.base_url
         campo_ibge = await self._campo_ibge(municipio_ibge)
 
         planos = await self._planos_por_ibge(campo_ibge, municipio_ibge)

@@ -100,9 +100,7 @@ def test_enriquecer_deriva_uf_quando_o_territorio_nao_tem() -> None:
 
 
 def test_conformidade_tambem_carrega_municipio() -> None:
-    r = ConformidadeRead(
-        id=uuid.uuid4(), municipio_ibge="2611606", tipo="cauc", numero="1.1"
-    )
+    r = ConformidadeRead(id=uuid.uuid4(), municipio_ibge="2611606", tipo="cauc", numero="1.1")
     item = _aplicar(r, {"2611606": ("Recife", None)})
     assert item.municipio_nome == "Recife"
     assert item.uf == "PE"
@@ -304,7 +302,5 @@ def test_chave_ja_minuscula_continua_vencendo() -> None:
 
 
 def test_pdf_traz_o_orgao_no_cabecalho() -> None:
-    texto = _texto(
-        gerar_pdf_proposta(_proposta(orgao_superior="Ministério da Saúde"))
-    )
+    texto = _texto(gerar_pdf_proposta(_proposta(orgao_superior="Ministério da Saúde")))
     assert "Minist" in texto[: texto.index("VALOR TOTAL")]  # antes da faixa

@@ -86,15 +86,12 @@ def _material_hash(canonico: ContatoCanonico) -> dict[str, Any]:
         "sobrenome": (canonico.sobrenome or "").strip(),
         "organizacao": (canonico.organizacao or "").strip(),
         "cargo": (canonico.cargo or "").strip(),
-        "emails": sorted(
-            e for e in (normalizar_email(x.valor) for x in canonico.emails) if e
-        ),
+        "emails": sorted(e for e in (normalizar_email(x.valor) for x in canonico.emails) if e),
         "telefones": sorted(
             t for t in (normalizar_telefone(x.valor) for x in canonico.telefones) if t
         ),
         "enderecos": sorted(
-            json.dumps(e.model_dump(exclude_none=True), sort_keys=True)
-            for e in canonico.enderecos
+            json.dumps(e.model_dump(exclude_none=True), sort_keys=True) for e in canonico.enderecos
         ),
         "notas": (canonico.notas or "").strip(),
         "tags": sorted({t.strip().lower() for t in canonico.tags if t.strip()}),
@@ -102,9 +99,7 @@ def _material_hash(canonico: ContatoCanonico) -> dict[str, Any]:
 
 
 def calcular_hash(canonico: ContatoCanonico) -> str:
-    payload = json.dumps(
-        _material_hash(canonico), sort_keys=True, ensure_ascii=False, default=str
-    )
+    payload = json.dumps(_material_hash(canonico), sort_keys=True, ensure_ascii=False, default=str)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -185,12 +180,9 @@ def mesclar(base: ContatoCanonico, novo: ContatoCanonico) -> ContatoCanonico:
         if not getattr(juntos, campo) and getattr(novo, campo):
             setattr(juntos, campo, getattr(novo, campo))
     juntos.emails = _dedup_lista([*juntos.emails, *novo.emails], normalizar_email)
-    juntos.telefones = _dedup_lista(
-        [*juntos.telefones, *novo.telefones], normalizar_telefone
-    )
+    juntos.telefones = _dedup_lista([*juntos.telefones, *novo.telefones], normalizar_telefone)
     conhecidos = {
-        json.dumps(e.model_dump(exclude_none=True), sort_keys=True)
-        for e in juntos.enderecos
+        json.dumps(e.model_dump(exclude_none=True), sort_keys=True) for e in juntos.enderecos
     }
     for end in novo.enderecos:
         chave = json.dumps(end.model_dump(exclude_none=True), sort_keys=True)

@@ -74,9 +74,7 @@ async def upsert(session: AsyncSession, canonica: ConformidadeCanonica) -> None:
     await session.execute(stmt)
 
 
-async def resumo(
-    session: AsyncSession, *, municipio: Municipios = None
-) -> ConformidadeResumo:
+async def resumo(session: AsyncSession, *, municipio: Municipios = None) -> ConformidadeResumo:
     """KPIs do CAUC (por status/seção) + rating CAPAG."""
     rows = await listar(session, municipio=municipio)
     cauc = [r for r in rows if r.tipo == "cauc"]
@@ -108,9 +106,11 @@ async def resumo(
         secoes=secoes,
         # o município nomeado encabeça a leitura (seção 23)
         capag=(
-            (await municipios.enriquecer(
-                session, [ConformidadeRead.model_validate(capag)], mapa=mapa
-            ))[0]
+            (
+                await municipios.enriquecer(
+                    session, [ConformidadeRead.model_validate(capag)], mapa=mapa
+                )
+            )[0]
             if capag
             else None
         ),

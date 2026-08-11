@@ -128,9 +128,7 @@ class CardDAVContatos:
             return salva, await self._ctag(cred, salva)
 
         resp = await self._dav(cred, "PROPFIND", base, body=XML_PRINCIPAL, depth="0")
-        principal = _texto(
-            ET.fromstring(resp.text).find(".//d:current-user-principal/d:href", NS)
-        )
+        principal = _texto(ET.fromstring(resp.text).find(".//d:current-user-principal/d:href", NS))
         if not principal:
             raise ProvedorClientError(f"{self.provedor_id}: principal não encontrado", 404)
 
@@ -288,9 +286,5 @@ class CardDAVContatos:
         await self._dav(cred, "DELETE", _absoluta(colecao, id_externo), headers=headers)
 
 
-apple_contatos = register(
-    CardDAVContatos("apple", "Apple / iCloud (CardDAV)", "apple_carddav_url")
-)
-carddav_contatos = register(
-    CardDAVContatos("carddav", "CardDAV (Nextcloud, SOGo, outros)", None)
-)
+apple_contatos = register(CardDAVContatos("apple", "Apple / iCloud (CardDAV)", "apple_carddav_url"))
+carddav_contatos = register(CardDAVContatos("carddav", "CardDAV (Nextcloud, SOGo, outros)", None))

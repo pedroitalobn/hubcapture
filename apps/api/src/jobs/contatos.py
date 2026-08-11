@@ -26,9 +26,11 @@ log = logging.getLogger("hubcapture.jobs.contatos")
 async def _usuarios_com_integracao() -> list[uuid.UUID]:
     # roda sem tenant: precisa enxergar todas as contas conectadas
     async with SessionLocal() as session:
-        stmt = select(IntegracaoContatos.usuario_id).where(
-            IntegracaoContatos.ativo.is_(True)
-        ).distinct()
+        stmt = (
+            select(IntegracaoContatos.usuario_id)
+            .where(IntegracaoContatos.ativo.is_(True))
+            .distinct()
+        )
         return list((await session.execute(stmt)).scalars().all())
 
 

@@ -58,16 +58,17 @@ class PerfilRead(BaseModel):
 
 
 class ResetPerfilResultado(BaseModel):
-    """O que a zeragem do perfil apagou — e o que ela só invalidou.
+    """O que a zeragem do perfil apagou — e o que ela só marcou/invalidou.
 
-    `cache_invalidado` conta as linhas de cache global (propostas, repasses,
-    conformidades, obras) do território que voltaram a ser "velhas": elas não
-    são apagadas porque são compartilhadas entre usuários (ver
-    `services/perfil.zerar`), mas serão recoletadas do zero no próximo
-    onboarding.
+    Nada de cache global sai do banco (ver `services/perfil.zerar`):
+    `propostas` conta as propostas do território marcadas como excluídas (soft
+    delete — somem do painel e a coleta seguinte as ressuscita) e
+    `cache_invalidado`, as linhas de repasses/conformidades/obras que voltaram
+    a ser "velhas" e serão recoletadas.
     """
 
     municipios: int = 0
+    propostas: int = 0
     favoritos: int = 0
     pastas: int = 0
     monitoramentos: int = 0

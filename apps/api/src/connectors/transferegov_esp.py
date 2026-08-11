@@ -43,9 +43,7 @@ class TransferegovEspConnector:
         self.base_url = DEFAULT_BASE
 
     async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
-        base = (
-            await config_service.resolver("transferegov_esp_base_url") or self.base_url
-        )
+        base = await config_service.resolver("transferegov_esp_base_url") or self.base_url
         # a base antiga (api-publica/especiais) não tem plano_acao_especial;
         # se a config ainda apontar pra lá, usa o host que tem a tabela.
         if "api-publica" in base or "/especiais" in base:

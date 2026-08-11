@@ -50,12 +50,8 @@ class TransferegovVoluntariasConnector:
             return endpoint or descoberto[0], coluna or descoberto[1]
         return endpoint or ENDPOINT, coluna or IBGE_FIELD
 
-    async def _consultar(
-        self, base: str, endpoint: str, coluna: str, ibge: str
-    ) -> list[dict]:
-        data = await get_json(
-            base, endpoint, {coluna: f"eq.{ibge}", "limit": str(PAGE_LIMIT)}
-        )
+    async def _consultar(self, base: str, endpoint: str, coluna: str, ibge: str) -> list[dict]:
+        data = await get_json(base, endpoint, {coluna: f"eq.{ibge}", "limit": str(PAGE_LIMIT)})
         linhas = data if isinstance(data, list) else data.get("items", [])
         if not linhas and len(ibge) == 7:
             data = await get_json(
@@ -76,9 +72,7 @@ class TransferegovVoluntariasConnector:
                     if candidato == coluna:
                         continue
                     try:
-                        linhas = await self._consultar(
-                            base, endpoint, candidato, municipio_ibge
-                        )
+                        linhas = await self._consultar(base, endpoint, candidato, municipio_ibge)
                         break
                     except ConnectorClientError:
                         continue

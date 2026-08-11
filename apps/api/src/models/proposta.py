@@ -40,9 +40,7 @@ class Proposta(Base):
     id_externo: Mapped[str] = mapped_column(String(255))
     numero_proposta: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # nº do plano de trabalho — chave pela qual a fonte emite os PARECERES
-    numero_plano_trabalho: Mapped[str | None] = mapped_column(
-        String(64), nullable=True, index=True
-    )
+    numero_plano_trabalho: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     titulo: Mapped[str | None] = mapped_column(Text, nullable=True)
     objeto: Mapped[str | None] = mapped_column(Text, nullable=True)
     orgao_superior: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -82,3 +80,11 @@ class Proposta(Base):
     cache_atualizado_em: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, index=True
     )
+    # SOFT DELETE: zerar propostas marca aqui em vez de apagar a linha (o
+    # cascade das FKs ignoraria o RLS e levaria junto a curadoria de outros
+    # usuários). Quem esconde a linha é a CONSULTA (`excluido_em IS NULL` nos
+    # serviços de leitura) e não a policy de RLS: o `ON CONFLICT DO UPDATE` do
+    # upsert valida a linha EXISTENTE contra o RLS, então escondê-la ali faria a
+    # coleta quebrar em vez de RESSUSCITAR (o upsert zera este campo) o registro
+    # que a fonte ainda publica.
+    excluido_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

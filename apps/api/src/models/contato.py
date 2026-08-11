@@ -53,9 +53,7 @@ class Contato(Base):
     hash_conteudo: Mapped[str | None] = mapped_column(String(64), nullable=True)
     arquivado: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), onupdate=func.now(), nullable=True
     )

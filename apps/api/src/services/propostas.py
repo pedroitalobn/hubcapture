@@ -271,10 +271,19 @@ def _busca_textual(termo: str):
 # `ano`/`mes`/`categoria`; nos demais casos, filtra tudo e fatia em Python.
 _ORDENACOES_SQL = (None, "recentes")  # `_ordenar` devolve a ordem do SQL nessas
 
-# `cache_atualizado_em` empata em massa (uma coleta grava milhares de linhas no
-# mesmo instante); sem desempate estável o LIMIT/OFFSET repete e pula linhas
-# entre páginas — daí o `id` no fim da ordenação.
-_ORDEM_SQL = (Proposta.cache_atualizado_em.desc().nullslast(), Proposta.id)
+# "Recentes" é a data da PROPOSTA, não a da nossa coleta: `data_proposta` vem
+# de DIA_PROP+MES_PROP+ANO_PROP (as variáveis oficiais do SIconv, remontadas no
+# normalizador). Ordenar por `cache_atualizado_em` embaralhava safras — uma
+# proposta de 2019 recoletada hoje aparecia na frente de uma criada este mês.
+#
+# `cache_atualizado_em` entra só como desempate (proposta sem data de criação na
+# fonte vai para o fim, nullslast) e `id` fecha: sem desempate estável o
+# LIMIT/OFFSET repete e pula linhas entre páginas.
+_ORDEM_SQL = (
+    Proposta.data_proposta.desc().nullslast(),
+    Proposta.cache_atualizado_em.desc().nullslast(),
+    Proposta.id,
+)
 
 
 def _condicoes(
@@ -291,7 +300,11 @@ def _condicoes(
     orgao: str | None,
 ) -> list:
     """Recorte que o SQL sabe fazer (o resto é pós-filtro em Python)."""
-    condicoes = []
+    # proposta zerada (soft delete) não aparece em lugar nenhum do painel. O
+    # filtro mora na consulta, e não na policy de RLS, porque o upsert da coleta
+    # precisa ENXERGAR a linha marcada para ressuscitá-la (ver a migration
+    # f6a7b8c9d0e1).
+    condicoes = [Proposta.excluido_em.is_(None)]
     # território: um município, vários (o painel recorta um subconjunto do
     # perfil) ou nenhum — aí o RLS já limita ao território do usuário.
     recorte = condicao_municipio(Proposta.municipio_ibge, municipio)
@@ -377,9 +390,7 @@ async def listar_pagina(
         # caminho rápido: o banco pagina e conta
         total = int(
             (
-                await session.execute(
-                    select(func.count()).select_from(Proposta).where(*condicoes)
-                )
+                await session.execute(select(func.count()).select_from(Proposta).where(*condicoes))
             ).scalar_one()
         )
         if offset:
@@ -438,7 +449,7 @@ async def listar_por_prazo(
     estruturada (não-RAG) que alimenta o painel e a resposta do chat."""
     hoje = date.today()
     fim = hoje + timedelta(days=dias)
-    stmt = select(Proposta).where(Proposta.prazos.isnot(None))
+    stmt = select(Proposta).where(Proposta.prazos.isnot(None), Proposta.excluido_em.is_(None))
     stmt = filtrar_municipio(stmt, Proposta.municipio_ibge, municipio)
     rows = (await session.execute(stmt)).scalars().all()
     com_prazo = []
@@ -550,9 +561,7 @@ async def facetas(
             itens = sorted(contagem.items(), reverse=_ORDEM_CRONOLOGICA[dim])
         else:
             itens = sorted(contagem.items(), key=lambda kv: (-kv[1], kv[0]))
-        resultado[dim] = [
-            {"valor": v, "rotulo": rotulos.get(v, v), "total": n} for v, n in itens
-        ]
+        resultado[dim] = [{"valor": v, "rotulo": rotulos.get(v, v), "total": n} for v, n in itens]
     return resultado
 
 
@@ -716,9 +725,7 @@ def gerar_csv(rows: list[Proposta]) -> str:
                 "modalidade": p.modalidade or "",
                 "natureza_juridica": natureza_juridica_de(p) or "",
                 "qualificacao": qualificacao_de(p) or "",
-                "categorias": ", ".join(
-                    categorias_ai.ROTULOS.get(c, c) for c in categorias_de(p)
-                ),
+                "categorias": ", ".join(categorias_ai.ROTULOS.get(c, c) for c in categorias_de(p)),
                 "municipio": p.municipio_nome or p.municipio_ibge or "",
                 "uf": p.uf or "",
                 "situacao": p.situacao or "",
@@ -739,7 +746,9 @@ def gerar_csv(rows: list[Proposta]) -> str:
 
 
 async def obter(session: AsyncSession, proposta_id: uuid.UUID) -> Proposta | None:
-    result = await session.execute(select(Proposta).where(Proposta.id == proposta_id))
+    result = await session.execute(
+        select(Proposta).where(Proposta.id == proposta_id, Proposta.excluido_em.is_(None))
+    )
     return result.scalar_one_or_none()
 
 
@@ -753,6 +762,9 @@ async def upsert(session: AsyncSession, canonica: PropostaCanonica) -> None:
     update_set = {k: getattr(stmt.excluded, k) for k in _UPSERT_FIELDS}
     update_set["cache_atualizado_em"] = now
     update_set["updated_at"] = now
+    # RESSUSCITA o que foi zerado: a fonte ainda publica esta proposta, então
+    # ela volta ao painel em vez de ficar escondida para sempre pela policy.
+    update_set["excluido_em"] = None
     stmt = stmt.on_conflict_do_update(
         constraint="uq_propostas_fonte_id_externo",
         set_=update_set,

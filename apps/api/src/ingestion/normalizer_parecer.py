@@ -131,9 +131,7 @@ def normalize_parecer(
                 r.get("status"),
             )
         ),
-        "situacao_analise": _texto(
-            _first(r.get("situacao_analise_pt"), r.get("situacao_analise"))
-        ),
+        "situacao_analise": _texto(_first(r.get("situacao_analise_pt"), r.get("situacao_analise"))),
         "situacao_planejamento": _texto(
             _first(r.get("situacao_planejamento_pt"), r.get("situacao_planejamento"))
         ),
@@ -154,9 +152,7 @@ def normalize_parecer(
                 r.get("descricao"),
             )
         ),
-        "url_parecer": _first(
-            r.get("url_parecer"), r.get("link"), r.get("url"), r.get("href")
-        ),
+        "url_parecer": _first(r.get("url_parecer"), r.get("link"), r.get("url"), r.get("href")),
         "detalhe": bruto,
     }
 

@@ -1,9 +1,10 @@
 """Zeragem do PRÓPRIO perfil (DELETE /profile) — a zona de perigo da conta.
 
 Volta o usuário ao estado pré-onboarding: sem território, sem preferências e
-sem curadoria. O cache do território (propostas & cia) é INVALIDADO em vez de
-apagado — ele é global e apagá-lo cascatearia nos favoritos/monitoramentos de
-OUTRO usuário que acompanhe o mesmo município (a FK ignora RLS).
+sem curadoria. As propostas do território são zeradas por SOFT DELETE e os
+demais caches perdem o frescor — nada é apagado, porque o cache é global e um
+DELETE cascatearia nos favoritos/monitoramentos de OUTRO usuário que acompanhe
+o mesmo município (a FK ignora RLS).
 """
 
 from __future__ import annotations
@@ -136,7 +137,9 @@ async def test_zerar_perfil_apaga_territorio_preferencias_e_curadoria(
     assert perfil.municipios == [] and perfil.areas == [] and perfil.fontes == []
 
 
-async def test_cache_do_territorio_e_invalidado_nao_apagado(seed_user, seed_municipio) -> None:
+async def test_propostas_do_territorio_sao_zeradas_por_soft_delete(
+    seed_user, seed_municipio
+) -> None:
     u = await seed_user("cache@x.com")
     await seed_municipio(u, "2611606")
     await _seed_proposta("A2", "2611606")
@@ -145,17 +148,20 @@ async def test_cache_do_territorio_e_invalidado_nao_apagado(seed_user, seed_muni
     async with rls_session(u) as s:
         resultado = await service.zerar(s, usuario)
 
-    assert resultado.cache_invalidado == 1
-    # a linha continua no cache global…
+    assert resultado.propostas == 1
+    # a linha continua no banco…
     assert await _contar("propostas") == 1
-    # …mas velha: a próxima consulta vai à fonte em vez de servir o cache
+    # …marcada como excluída e sem frescor: a próxima consulta vai à fonte
     async with _owner_engine.begin() as conn:
-        frescas = (
+        ativas = (
             await conn.execute(
-                text("SELECT count(*) FROM propostas WHERE cache_atualizado_em IS NOT NULL")
+                text(
+                    "SELECT count(*) FROM propostas "
+                    "WHERE excluido_em IS NULL AND cache_atualizado_em IS NOT NULL"
+                )
             )
         ).scalar_one()
-    assert frescas == 0
+    assert ativas == 0
 
 
 async def test_zerar_nao_toca_no_perfil_de_outro_usuario(seed_user, seed_municipio) -> None:
@@ -176,7 +182,8 @@ async def test_zerar_nao_toca_no_perfil_de_outro_usuario(seed_user, seed_municip
     async with rls_session(eu) as s:
         await service.zerar(s, usuario)
 
-    # o outro usuário continua com território, curadoria e a proposta no painel
+    # o outro usuário continua com território e com a curadoria intacta —
+    # é isso que o soft delete protege (um DELETE cascatearia nela)
     assert await _contar("municipios_interesse", outro) == 1
     assert await _contar("favoritos", outro) == 1
     assert await _contar("monitoramentos", outro) == 1
@@ -210,12 +217,10 @@ async def test_zerar_perfil_vazio_nao_estoura(seed_user) -> None:
     async with rls_session(u) as s:
         resultado = await service.zerar(s, usuario)
 
-    assert resultado.municipios == 0 and resultado.cache_invalidado == 0
-    # sem território, um IN vazio não pode virar "invalida tudo"
+    assert resultado.municipios == 0 and resultado.propostas == 0
+    # sem território, um IN vazio não pode virar "zera tudo"
     async with _owner_engine.begin() as conn:
-        frescas = (
-            await conn.execute(
-                text("SELECT count(*) FROM propostas WHERE cache_atualizado_em IS NOT NULL")
-            )
+        intactas = (
+            await conn.execute(text("SELECT count(*) FROM propostas WHERE excluido_em IS NULL"))
         ).scalar_one()
-    assert frescas == 1
+    assert intactas == 1

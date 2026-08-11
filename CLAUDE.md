@@ -1536,28 +1536,38 @@ padrão, o `/panel` ficava vazio. A regra que fica:
 Duas zeragens com ALCANCES diferentes, porque `propostas` (e `repasses`,
 `conformidades`, `obras`) é **cache global** (§4) e não pertence a um usuário.
 
+- **SOFT DELETE (`propostas.excluido_em`, migration `f6a7b8c9d0e1`)**: zerar
+  MARCA, não apaga. As FKs são `ON DELETE CASCADE` e **cascade ignora RLS**, então
+  um DELETE levava junto favoritos, pastas, monitoramentos e alertas de QUALQUER
+  usuário do município. Marcada, a linha some do painel, a curadoria de todos
+  sobrevive e dá para desfazer (`POST /admin/proposals/restore`).
+- **O filtro mora na CONSULTA, não na policy de RLS** (`excluido_em IS NULL` em
+  `propostas._condicoes`/`obter`/`listar_por_prazo`, `consulta_avulsa._cache_fresco`,
+  `favoritos`, `oportunidades`, `perfil`, `rag`, jobs de curadoria/embed).
+  Tentador era pôr na policy de SELECT — mas `INSERT ... ON CONFLICT DO UPDATE`
+  valida a linha EXISTENTE contra o RLS: escondida ali, a coleta quebraria com
+  violação de RLS em vez de RESSUSCITAR a proposta (o upsert zera `excluido_em`,
+  porque a fonte ainda a publica).
 - **Admin — `DELETE /admin/proposals`** (`api/v1/admin_fontes.py`, superuser):
-  apaga TODAS as propostas do sistema. A contagem sai do **`rowcount` do
-  DELETE**, nunca de um `SELECT count(*)`: a sessão é a de plataforma (sem
-  tenant) e, sob o `FORCE RLS` de `propostas`, um SELECT enxerga 0 linhas — o
-  painel respondia "0 removidas" com a tabela apagada. Um DELETE **sem WHERE**
-  não lê linha, então só a policy `FOR DELETE USING (true)` se aplica.
+  marca TODAS as propostas. O UPDATE vai **sem WHERE** de propósito: a sessão é a
+  de plataforma (sem tenant) e, sob o `FORCE RLS` de `propostas`, qualquer
+  LEITURA enxerga 0 linhas — com WHERE o comando lê linha, cai na policy de
+  SELECT e marcaria zero. Pelo mesmo motivo a contagem sai do **`rowcount`**,
+  nunca de um `SELECT count(*)` (o painel respondia "0 removidas" com a tabela
+  inteira zerada).
 - **Usuário — `DELETE /profile`** (`services/perfil.py::zerar`, zona de perigo
   em `app/panel/account`): devolve a conta ao estado **pré-onboarding**. Apaga
   o que é do tenant — território (todos os municípios), preferências
   (áreas/fontes) e curadoria (favoritos, pastas, monitoramentos, buscas
   monitoradas, alertas). **Não** apaga conta, login nem agenda de contatos, e
   registra `audit_log('zerar_perfil')`.
-- **Por que o usuário INVALIDA o cache em vez de apagar**: outro tenant pode
-  acompanhar o mesmo município, e as FKs `ON DELETE CASCADE` **ignoram RLS** —
-  apagar a proposta levaria junto o favorito/pasta/monitoramento DELE. Então a
-  zeragem por usuário zera `cache_atualizado_em` do território (as 4 tabelas de
-  cache): some do painel de quem zerou (sem território o RLS não devolve nada) e
-  a próxima coleta refaz do zero. Nuke global continua sendo prerrogativa do
-  admin. O app-role NÃO consegue detectar "esse município é só meu": `FORCE RLS`
-  em `municipios_interesse` bloqueia leitura cross-tenant até para a sessão de
-  plataforma — por isso a regra é invalidar, não apagar.
-- **ORDEM IMPORTA**: o cache é invalidado ENQUANTO o território ainda existe. O
+- **Zeragem por usuário**: as propostas do território levam soft delete e os
+  demais caches (repasses/conformidades/obras) perdem o `cache_atualizado_em`.
+  Nada é apagado — outro tenant pode acompanhar o mesmo município e o cascade
+  destruiria a curadoria dele. O app-role NÃO consegue detectar "esse município é
+  só meu": `FORCE RLS` em `municipios_interesse` bloqueia leitura cross-tenant
+  até para a sessão de plataforma; por isso a regra é marcar, nunca apagar.
+- **ORDEM IMPORTA**: o cache é zerado ENQUANTO o território ainda existe. O
   UPDATE tem WHERE, logo LÊ linha — e leitura em `propostas` passa pela policy
   de SELECT (município ∈ `municipios_interesse`). Apagando o território antes, o
   UPDATE não acha nada e o cache fica fresco para sempre.
@@ -1630,3 +1640,23 @@ está** (linha do tempo da tramitação). Os dois vêm de rotas IRMÃS do módul
   overrides); `--id-plano-acao <id>` bate na rota e mostra campos brutos +
   normalizados. Precisa de saída para gov.br (o sandbox de CI/agente bloqueia).
 
+## 43. Ordem do painel — "recentes" é a data da PROPOSTA
+
+A lista da Captação ordenava por `cache_atualizado_em`, que é quando NÓS
+coletamos: uma proposta de 2019 recoletada hoje aparecia na frente de uma criada
+este mês. A referência agora é `data_proposta` — a data de CRIAÇÃO na fonte,
+remontada de **DIA_PROP + MES_PROP + ANO_PROP** (as variáveis oficiais do SIconv,
+em `ingestion/normalizer._data_de_componentes`), que já vencem qualquer candidato
+de coluna única.
+
+- `services/propostas._ORDEM_SQL` = `data_proposta DESC NULLS LAST`,
+  `cache_atualizado_em DESC` (desempate) e `id` (desempate ESTÁVEL — sem ele o
+  LIMIT/OFFSET repete e pula linhas entre páginas). Ordenar por coluna mantém o
+  caminho rápido de paginação no SQL.
+- Proposta sem data de criação na fonte não some da lista: vai para o fim
+  (`nullslast`) e se ordena pela coleta entre as iguais.
+- Migration `a7b8c9d0e1f2` faz o **backfill** de `data_proposta` a partir dos três
+  componentes já guardados em `dados_fonte` (o CSV do SIconv manda em CAIXA ALTA;
+  daí o COALESCE das duas caixas). Sem isso, tudo que foi ingerido antes ficaria
+  no fim da lista até a próxima recoleta. Usa `to_date` e não `make_date`: um
+  registro sujo que passe pelos guardas não pode derrubar a migration.

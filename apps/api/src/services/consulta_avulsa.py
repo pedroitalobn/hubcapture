@@ -59,6 +59,7 @@ async def _cache_fresco(session: AsyncSession, ibge: str, fonte: str) -> list[Pr
         Proposta.municipio_ibge == ibge,
         Proposta.fonte == fonte,
         Proposta.cache_atualizado_em >= limite,
+        Proposta.excluido_em.is_(None),  # zerada: recoleta em vez de servir
     )
     result = await session.execute(stmt)
     return list(result.scalars().all())

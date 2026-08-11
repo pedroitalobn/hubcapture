@@ -185,7 +185,7 @@ export default function ContaPage() {
             Apaga <strong>todos os municípios</strong> que você acompanha (inclusive
             se for mais de um), suas áreas e fontes, e a curadoria: favoritos,
             pastas, monitoramentos e alertas. As propostas do seu território saem
-            do painel e serão recoletadas na próxima busca.
+            do painel e voltam a ser coletadas do zero.
           </p>
           <p>
             Continuam intactos: seu login e dados de conta, e a agenda de contatos.

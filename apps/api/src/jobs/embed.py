@@ -24,7 +24,11 @@ def _texto(p: Proposta) -> str:
 async def embed_pendentes(session: AsyncSession, limite: int = 100) -> int:
     """Embeda as propostas sem embedding. Retorna quantas foram vetorizadas."""
     subq = select(PropostaEmbedding.proposta_id)
-    stmt = select(Proposta).where(Proposta.id.notin_(subq)).limit(limite)
+    stmt = (
+        select(Proposta)
+        .where(Proposta.id.notin_(subq), Proposta.excluido_em.is_(None))
+        .limit(limite)
+    )
     propostas = list((await session.execute(stmt)).scalars().all())
     if not propostas:
         return 0
