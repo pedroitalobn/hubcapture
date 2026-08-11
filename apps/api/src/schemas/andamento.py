@@ -8,10 +8,19 @@ from decimal import Decimal
 from pydantic import BaseModel
 
 from .emenda import EmendaColeta
+from .empenho import EmpenhoColeta
 from .parecer import ParecerColeta
 
 # tipos de evento — o front rotula e escolhe o ícone por aqui
-TIPOS = ("proposta", "parecer", "prazo", "pendencia", "vigencia", "atualizacao")
+TIPOS = (
+    "proposta",
+    "parecer",
+    "empenho",
+    "prazo",
+    "pendencia",
+    "vigencia",
+    "atualizacao",
+)
 
 
 class EventoAndamento(BaseModel):
@@ -38,6 +47,7 @@ class AndamentoColeta(BaseModel):
 
     pareceres: ParecerColeta | None = None
     emendas: EmendaColeta | None = None
+    empenhos: EmpenhoColeta | None = None
 
 
 class AndamentoPagina(BaseModel):

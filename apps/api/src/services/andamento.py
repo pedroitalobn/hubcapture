@@ -30,6 +30,7 @@ from ..models.proposta import Proposta
 from ..schemas.andamento import AndamentoColeta, AndamentoPagina, EventoAndamento
 from ..schemas.parecer import ParecerRead
 from . import emendas_proposta as emendas_service
+from . import empenhos_proposta as empenhos_service
 from . import pareceres as pareceres_service
 
 # escada de urgência do prazo — mesma de `lib/format.ts::tomPrazo` no web
@@ -113,6 +114,35 @@ def evento_de_parecer(p: ParecerRead) -> EventoAndamento:
         valor=p.valor_reprovado if (p.valor_reprovado or 0) > 0 else None,
         texto=p.texto,
         url=p.url_parecer,
+    )
+
+
+def evento_de_empenho(e: Any) -> EventoAndamento:
+    """O empenho como passo: é o fato que diz que o recurso saiu do papel.
+
+    Anulação não é celebração — empenho anulado por inteiro entra como perda, e
+    a anulação parcial, como atenção. Pintar os três de verde diria ao gestor
+    que tem recurso reservado onde ele foi devolvido.
+    """
+    empenhado = _decimal(e.valor_empenhado) or Decimal(0)
+    anulado = _decimal(e.valor_anulado) or Decimal(0)
+    if anulado and anulado >= empenhado > 0:
+        titulo, tom = "Empenho anulado", "danger"
+    elif anulado > 0:
+        titulo, tom = "Empenho anulado em parte", "warn"
+    else:
+        titulo, tom = "Empenho emitido", "ok"
+    if e.numero_empenho:
+        titulo = f"{titulo} · {e.numero_empenho}"
+
+    return EventoAndamento(
+        data=e.data_empenho,
+        tipo="empenho",
+        titulo=titulo,
+        tom=tom,
+        ator=e.ug_emitente,
+        detalhe=_juntar(e.tipo_empenho, e.natureza_despesa, e.situacao),
+        valor=max(empenhado - anulado, Decimal(0)) or None,
     )
 
 
@@ -245,12 +275,49 @@ async def linha_do_tempo(
     pareceres, coleta_pareceres = await pareceres_service.por_proposta(
         session, proposta_id, atualizar=atualizar, usuario_id=usuario_id
     )
-    eventos = marcos_da_proposta(proposta) + [evento_de_parecer(p) for p in pareceres]
+
+    # Empenhos entram da LEITURA do cache: quem coleta é `/commitments`, que a
+    # mesma tela chama. Sincronizar aqui também faria a página disparar duas
+    # coletas concorrentes da mesma coisa a cada abertura.
+    coleta_empenhos = None
+    if atualizar:
+        coleta_empenhos = await empenhos_service.sync_proposta(
+            session, proposta, usuario_id=usuario_id
+        )
+    empenhos = await empenhos_service.listar(session, proposta)
+
+    eventos = (
+        marcos_da_proposta(proposta)
+        + [evento_de_parecer(p) for p in pareceres]
+        + [evento_de_empenho(e) for e in empenhos if e.data_empenho]
+    )
 
     return AndamentoPagina(
         itens=ordenar(eventos),
         numero_plano_trabalho=proposta.numero_plano_trabalho,
-        coleta=AndamentoColeta(pareceres=coleta_pareceres),
+        coleta=AndamentoColeta(pareceres=coleta_pareceres, empenhos=coleta_empenhos),
+    )
+
+
+async def empenhos(
+    session: AsyncSession,
+    proposta_id: uuid.UUID,
+    *,
+    atualizar: bool = False,
+    usuario_id: uuid.UUID | None = None,
+):
+    """Empenhos da proposta + totais (`None` = proposta fora do território)."""
+    proposta = (
+        await session.execute(
+            select(Proposta).where(
+                Proposta.id == proposta_id, Proposta.excluido_em.is_(None)
+            )
+        )
+    ).scalar_one_or_none()
+    if proposta is None:
+        return None
+    return await empenhos_service.por_proposta(
+        session, proposta, atualizar=atualizar, usuario_id=usuario_id
     )
 
 

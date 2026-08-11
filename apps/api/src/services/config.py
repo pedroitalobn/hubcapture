@@ -113,6 +113,18 @@ CATALOGO: list[dict] = [
         False,
     ),
     _c(
+        "empenhos_esp_endpoint",
+        "Empenhos da proposta — rota no módulo especiais (padrão: empenhos_especiais)",
+        "fonte",
+        False,
+    ),
+    _c(
+        "empenhos_esp_chave",
+        "Empenhos da proposta — parâmetro de filtro (padrão: numero_proposta)",
+        "fonte",
+        False,
+    ),
+    _c(
         "emendas_esp_chave",
         "Emenda da proposta — parâmetro de filtro da rota (ex.: id_plano_acao)",
         "fonte",
