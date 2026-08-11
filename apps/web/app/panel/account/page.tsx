@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { api, atualizarPerfil, meProfile } from "@/lib/api/client";
+import { api, atualizarPerfil, meProfile, zerarPerfil } from "@/lib/api/client";
+import { limparTerritorioSalvo } from "@/lib/territorio";
 
 interface Membro {
   convite_id: string;
@@ -17,6 +18,9 @@ interface PlanoDoPerfil {
   membros_max?: number | null;
 }
 
+/** Palavra que o usuário digita para liberar a zeragem — clique só não basta. */
+const CONFIRMACAO = "ZERAR";
+
 export default function ContaPage() {
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -25,6 +29,9 @@ export default function ContaPage() {
   const [senha, setSenha] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [confirmacao, setConfirmacao] = useState("");
+  const [zerando, setZerando] = useState(false);
+  const [erroZerar, setErroZerar] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -79,6 +86,21 @@ export default function ContaPage() {
       setMsg(err instanceof Error ? err.message : "Erro ao alterar senha");
     } finally {
       setSalvando(false);
+    }
+  }
+
+  async function zerar() {
+    setErroZerar(null);
+    setZerando(true);
+    try {
+      await zerarPerfil();
+      // o recorte salvo aponta para um território que não existe mais
+      limparTerritorioSalvo();
+      // recarga dura: perfil, menu e caches de tela nascem de novo no onboarding
+      window.location.href = "/onboarding";
+    } catch (err) {
+      setErroZerar(err instanceof Error ? err.message : "Erro ao zerar o perfil");
+      setZerando(false);
     }
   }
 
@@ -150,6 +172,47 @@ export default function ContaPage() {
       </form>
 
       <MembrosDaConta />
+
+      <section className="card flex max-w-md flex-col gap-4 border-danger/40 p-6">
+        <h2 className="label-mono text-danger">Zona de perigo</h2>
+        <div className="flex flex-col gap-2 text-sm text-ink-2">
+          <p>
+            <strong className="text-ink">Zerar perfil</strong> devolve a conta ao
+            estado anterior ao onboarding: você escolhe município, áreas e fontes
+            de novo, e os dados do território voltam a ser coletados do zero.
+          </p>
+          <p>
+            Apaga <strong>todos os municípios</strong> que você acompanha (inclusive
+            se for mais de um), suas áreas e fontes, e a curadoria: favoritos,
+            pastas, monitoramentos e alertas. As propostas do seu território saem
+            do painel e serão recoletadas na próxima busca.
+          </p>
+          <p>
+            Continuam intactos: seu login e dados de conta, e a agenda de contatos.
+            Zerar o perfil não exclui a conta. <strong>Não dá para desfazer.</strong>
+          </p>
+        </div>
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">
+            Digite {CONFIRMACAO} para liberar o botão
+          </span>
+          <input
+            value={confirmacao}
+            onChange={(e) => setConfirmacao(e.target.value)}
+            placeholder={CONFIRMACAO}
+            className="input"
+          />
+        </label>
+        {erroZerar && <p className="text-sm text-danger">{erroZerar}</p>}
+        <button
+          type="button"
+          onClick={zerar}
+          disabled={zerando || confirmacao.trim().toUpperCase() !== CONFIRMACAO}
+          className="btn self-start border border-danger/50 text-danger hover:bg-danger/10"
+        >
+          {zerando ? "Zerando…" : "Zerar perfil"}
+        </button>
+      </section>
     </>
   );
 }

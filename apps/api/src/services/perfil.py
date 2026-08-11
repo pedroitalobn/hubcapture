@@ -13,12 +13,17 @@ from datetime import date
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import ColumnElement, Select, func, select
+from sqlalchemy import ColumnElement, Select, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..models.alerta import Alerta
+from ..models.audit_log import AuditLog
 from ..models.conformidade import Conformidade
+from ..models.favorito import Favorito
+from ..models.monitoramento import Monitoramento, MonitoramentoBusca
 from ..models.municipio_interesse import MunicipioInteresse
 from ..models.obra import Obra
+from ..models.pasta import Pasta
 from ..models.preferencias import PreferenciasUsuario
 from ..models.proposta import Proposta
 from ..models.repasse import Repasse
@@ -31,6 +36,7 @@ from ..schemas.perfil import (
     NovidadesPerfil,
     PerfilRead,
     PlanoPerfil,
+    ResetPerfilResultado,
     SyncRunStatus,
     VisaoGeralPerfil,
 )
@@ -139,6 +145,83 @@ async def get_perfil(session: AsyncSession, usuario: Usuario) -> PerfilRead:
             chave for chave, on in ativos.items() if on and plano_gates.modulo_liberado(cfg, chave)
         ],
         plano=plano,
+    )
+
+
+# Caches GLOBAIS recortados por município (§4): não pertencem ao usuário, são
+# só a cópia local do que a fonte publicou sobre o território dele.
+_CACHES_DO_TERRITORIO = (Proposta, Repasse, Conformidade, Obra)
+
+
+async def zerar(session: AsyncSession, usuario: Usuario) -> ResetPerfilResultado:
+    """Zona de perigo: devolve a conta ao estado PRÉ-ONBOARDING.
+
+    Apaga o que é do usuário — território, preferências e toda a curadoria
+    (favoritos, pastas, monitoramentos, buscas monitoradas e alertas). Login,
+    dados da conta e agenda de contatos ficam: zerar o perfil não é excluir a
+    conta.
+
+    O cache do território (propostas, repasses, conformidades, obras) é
+    INVALIDADO, não apagado. Ele é global (§4) — outro usuário pode acompanhar
+    o mesmo município, e as FKs `ON DELETE CASCADE` ignoram RLS: apagar a
+    proposta levaria junto o favorito, a pasta e o monitoramento DELE. Zerando
+    o `cache_atualizado_em`, some do painel deste usuário (sem território o RLS
+    não devolve nada) e a próxima coleta refaz tudo do zero.
+    """
+    ibges = list(
+        (
+            await session.execute(
+                select(MunicipioInteresse.ibge).where(MunicipioInteresse.usuario_id == usuario.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    # ORDEM IMPORTA: o cache é invalidado ENQUANTO o território ainda existe.
+    # O UPDATE tem WHERE, então lê linha — e leitura em `propostas` passa pela
+    # policy de SELECT, que só enxerga município em `municipios_interesse`.
+    # Apagando o território antes, o UPDATE não acharia nada e o cache ficaria
+    # fresco para sempre (a próxima coleta serviria dados velhos).
+    invalidado = 0
+    if ibges:  # sem território não há o que invalidar (e um IN vazio é perigoso)
+        for model in _CACHES_DO_TERRITORIO:
+            result = await session.execute(
+                update(model)
+                .where(model.municipio_ibge.in_(ibges))
+                .values(cache_atualizado_em=None)
+            )
+            invalidado += int(result.rowcount or 0)
+        # a memória de coleta em processo acompanha: senão a busca ao vivo
+        # pularia essas fontes por até 6h e o onboarding novo abriria vazio
+        from . import consulta_avulsa  # import tardio: consulta_avulsa usa AREA_FONTES
+
+        for ibge in ibges:
+            consulta_avulsa.esquecer_municipio(ibge)
+
+    async def _apagar(model: Any, coluna: ColumnElement[Any]) -> int:
+        # o RLS FOR ALL já escopa ao tenant da sessão; o filtro explícito é
+        # cinto-e-suspensório — numa operação destrutiva o alcance fica no SQL
+        result = await session.execute(delete(model).where(coluna == usuario.id))
+        return int(result.rowcount or 0)
+
+    alertas_n = await _apagar(Alerta, Alerta.usuario_id)
+    monitoramentos_n = await _apagar(Monitoramento, Monitoramento.usuario_id)
+    monitoramentos_n += await _apagar(MonitoramentoBusca, MonitoramentoBusca.usuario_id)
+    favoritos_n = await _apagar(Favorito, Favorito.usuario_id)
+    pastas_n = await _apagar(Pasta, Pasta.usuario_id)  # pasta_propostas cascateia
+    await _apagar(PreferenciasUsuario, PreferenciasUsuario.usuario_id)
+    municipios_n = await _apagar(MunicipioInteresse, MunicipioInteresse.usuario_id)
+
+    session.add(AuditLog(usuario_id=usuario.id, acao="zerar_perfil", entidade="perfil"))
+
+    return ResetPerfilResultado(
+        municipios=municipios_n,
+        favoritos=favoritos_n,
+        pastas=pastas_n,
+        monitoramentos=monitoramentos_n,
+        alertas=alertas_n,
+        cache_invalidado=invalidado,
     )
 
 

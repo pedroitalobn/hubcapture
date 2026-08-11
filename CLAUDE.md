@@ -1496,3 +1496,39 @@ padrão, o `/panel` ficava vazio. A regra que fica:
   (favoritas = acompanhamento do cache) saiu do módulo captação no menu; a página
   Captação ganhou `ModuloGate`; o detalhe da proposta é panel-core e, sem o
   módulo, esconde apenas a seção de pareceres.
+
+## 41. Zeragem — admin (global) e usuário (zona de perigo da conta)
+
+Duas zeragens com ALCANCES diferentes, porque `propostas` (e `repasses`,
+`conformidades`, `obras`) é **cache global** (§4) e não pertence a um usuário.
+
+- **Admin — `DELETE /admin/proposals`** (`api/v1/admin_fontes.py`, superuser):
+  apaga TODAS as propostas do sistema. A contagem sai do **`rowcount` do
+  DELETE**, nunca de um `SELECT count(*)`: a sessão é a de plataforma (sem
+  tenant) e, sob o `FORCE RLS` de `propostas`, um SELECT enxerga 0 linhas — o
+  painel respondia "0 removidas" com a tabela apagada. Um DELETE **sem WHERE**
+  não lê linha, então só a policy `FOR DELETE USING (true)` se aplica.
+- **Usuário — `DELETE /profile`** (`services/perfil.py::zerar`, zona de perigo
+  em `app/panel/account`): devolve a conta ao estado **pré-onboarding**. Apaga
+  o que é do tenant — território (todos os municípios), preferências
+  (áreas/fontes) e curadoria (favoritos, pastas, monitoramentos, buscas
+  monitoradas, alertas). **Não** apaga conta, login nem agenda de contatos, e
+  registra `audit_log('zerar_perfil')`.
+- **Por que o usuário INVALIDA o cache em vez de apagar**: outro tenant pode
+  acompanhar o mesmo município, e as FKs `ON DELETE CASCADE` **ignoram RLS** —
+  apagar a proposta levaria junto o favorito/pasta/monitoramento DELE. Então a
+  zeragem por usuário zera `cache_atualizado_em` do território (as 4 tabelas de
+  cache): some do painel de quem zerou (sem território o RLS não devolve nada) e
+  a próxima coleta refaz do zero. Nuke global continua sendo prerrogativa do
+  admin. O app-role NÃO consegue detectar "esse município é só meu": `FORCE RLS`
+  em `municipios_interesse` bloqueia leitura cross-tenant até para a sessão de
+  plataforma — por isso a regra é invalidar, não apagar.
+- **ORDEM IMPORTA**: o cache é invalidado ENQUANTO o território ainda existe. O
+  UPDATE tem WHERE, logo LÊ linha — e leitura em `propostas` passa pela policy
+  de SELECT (município ∈ `municipios_interesse`). Apagando o território antes, o
+  UPDATE não acha nada e o cache fica fresco para sempre.
+- **Memória de coleta**: as duas zeragens limpam o cache de TENTATIVA de
+  `consulta_avulsa` (`limpar_cache_coleta()` no admin, `esquecer_municipio(ibge)`
+  por município no usuário) e o admin limpa também o CSV do `transferegov_disc`.
+  Sem isso, "recomeçar do zero" não recoletaria nada por até 6h (§38) e o painel
+  novo abriria vazio como se as fontes não tivessem dados.
