@@ -150,10 +150,35 @@ def _ci(d: Any) -> dict:
     return saida
 
 
+def _com_linha_bruta(plano: dict) -> dict:
+    """Expõe a LINHA BRUTA do CSV como camada de baixo do plano de ação.
+
+    Os connectors de CSV fazem o de-para coluna→campo e guardam a linha
+    original em `csv` (`transferegov_disc._plano_do_csv`). Quando o de-para não
+    casa uma coluna — cabeçalho novo, nome que mudou, coluna que só existe em
+    parte das linhas — o campo chega vazio ao painel MESMO com o valor visível
+    no registro-fonte: foi o que aconteceu com `NR_PROPOSTA` ("34530/2009"
+    presente no `csv`, proposta exibida como "sem número na fonte").
+
+    Aqui o de-para do connector continua mandando (valor preenchido vence), e a
+    linha bruta entra por baixo como retaguarda — com alias de caixa, porque o
+    SIconv manda cabeçalho em CAIXA ALTA. Vale para qualquer connector que
+    embuta a linha em `csv`, não só o disc.
+    """
+    bruto = _ci(plano.get("csv"))
+    if not bruto:
+        return plano
+    # só os campos que o connector REALMENTE preencheu ficam por cima: o
+    # de-para grava None nas colunas que não achou, e um None por cima da
+    # retaguarda anularia justamente o valor que viemos buscar.
+    preenchidos = {k: v for k, v in plano.items() if v not in (None, "", [])}
+    return {**bruto, **preenchidos}
+
+
 def normalize(record: RawRecord) -> PropostaCanonica:
     """Mapeia um RawRecord (plano de ação, convênio ou painel) p/ o schema canônico."""
     raw = record.raw
-    plano = _ci(raw.get("plano_acao", raw) if isinstance(raw, dict) else {})
+    plano = _com_linha_bruta(_ci(raw.get("plano_acao", raw) if isinstance(raw, dict) else {}))
     programa = _ci(raw.get("programa", {}) if isinstance(raw, dict) else {})
     benef = _ci(raw.get("beneficiario", {}) if isinstance(raw, dict) else {})
 
