@@ -33,8 +33,39 @@ _HASH_FIELDS = (
 )
 
 
+# Nomes que as fontes usam para o número da proposta — o identificador que o
+# gestor lê/procura (NR_PROPOSTA no CSV do SICONV/detru, numero_plano_acao no
+# fundo a fundo). Busca case-insensitive, na ordem abaixo.
+_NUMERO_KEYS = (
+    "nr_proposta",
+    "numero_proposta",
+    "numero_plano_acao",
+    "nr_convenio",
+    "numero_convenio",
+)
+
+
 def _first(*values: Any) -> Any:
     for v in values:
+        if v not in (None, "", []):
+            return v
+    return None
+
+
+def _to_str(v: Any) -> str | None:
+    if v in (None, ""):
+        return None
+    texto = str(v).strip()
+    return texto or None
+
+
+def _lookup(source: Any, keys: tuple[str, ...]) -> Any:
+    """Primeira chave presente (case-insensitive) num dict cru da fonte."""
+    if not isinstance(source, dict):
+        return None
+    lowered = {str(k).lower(): v for k, v in source.items()}
+    for k in keys:
+        v = lowered.get(k)
         if v not in (None, "", []):
             return v
     return None
@@ -75,12 +106,18 @@ def normalize(record: RawRecord) -> PropostaCanonica:
     plano = raw.get("plano_acao", raw) if isinstance(raw, dict) else {}
     programa = raw.get("programa", {}) if isinstance(raw, dict) else {}
     benef = raw.get("beneficiario", {}) if isinstance(raw, dict) else {}
+    # fontes sem API (transferegov_disc) entregam a linha do CSV em raw['csv']
+    csv_row = raw.get("csv") if isinstance(raw, dict) else None
 
     fields: dict[str, Any] = {
         "fonte": record.source_id,
         "id_externo": record.id_externo,
-        "numero_proposta": _first(
-            plano.get("numero_plano_acao"), plano.get("numero_proposta")
+        "numero_proposta": _to_str(
+            _first(
+                _lookup(plano, _NUMERO_KEYS),
+                _lookup(csv_row, _NUMERO_KEYS),
+                _lookup(raw, _NUMERO_KEYS),
+            )
         ),
         "titulo": _first(programa.get("nome_programa"), plano.get("nome")),
         "objeto": _first(programa.get("objeto"), plano.get("objeto")),

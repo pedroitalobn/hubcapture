@@ -600,3 +600,21 @@ Stack completo sobe com um comando; o superadmin é criado no boot.
   alterna papel/admin/ativo inline. Backend: `GET /admin/usuarios`,
   `POST /admin/usuarios` (agora aceita `is_superuser`), `PATCH /admin/usuarios/{id}`
   (papel/is_superuser/is_active/plano). Env `ADMIN_EMAIL`/`ADMIN_PASSWORD`/`APP_BASE_URL`.
+
+## 23. Número da proposta (NR_PROPOSTA) — destaque e busca
+
+O número da proposta é o identificador que o gestor tem em mãos e usa para falar com
+o órgão — logo é o dado mais procurado do card, não um detalhe.
+
+- **Ingestão**: `ingestion/normalizer.py` resolve `numero_proposta` por uma lista de
+  chaves case-insensitive (`NR_PROPOSTA`, `numero_proposta`, `numero_plano_acao`,
+  `nr_convenio`…) olhando o `plano_acao`, a linha de CSV (`raw['csv']`, usada pelo
+  `transferegov_disc`) e a raiz do raw. Sempre normalizado para texto.
+- **Busca**: `GET /propostas?numero=` (parcial, ILIKE) casa `numero_proposta` **ou**
+  `id_externo` — há fonte que só publica um dos dois. Continua sob RLS: número certo em
+  território alheio não retorna nada. Índice GIN/pg_trgm
+  (`ix_propostas_numero_proposta_trgm`, migration `b1f3c2a7d9e4`) porque a busca tem
+  curinga à esquerda.
+- **Web**: `components/NumeroProposta.tsx` (badge âmbar, mono, clique copia, realça o
+  trecho buscado) usado nos cards de `app/painel/captacao` e no **header fixo** da
+  página, junto do campo de busca por número (debounce → servidor).

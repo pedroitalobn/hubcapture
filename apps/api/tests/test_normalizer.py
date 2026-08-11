@@ -53,6 +53,35 @@ def test_normalize_mapeia_campos_canonicos() -> None:
     assert p.proveniencia["_fonte"] == "transferegov_ff"
 
 
+def test_normalize_mapeia_nr_proposta_do_csv() -> None:
+    """transferegov_disc não tem API: o número vem do NR_PROPOSTA do CSV."""
+    p = normalize(
+        RawRecord(
+            source_id="transferegov_disc",
+            id_externo="1234567",
+            municipio_ibge="2304400",
+            raw={
+                "csv": {"NR_PROPOSTA": "043210/2025", "COD_IBGE": "2304400"},
+                "modalidade": "Discricionária",
+            },
+        )
+    )
+    assert p.numero_proposta == "043210/2025"
+
+
+def test_normalize_numero_sempre_string() -> None:
+    """Fonte JSON pode devolver o número como inteiro — o canônico é texto."""
+    p = normalize(
+        RawRecord(
+            source_id="fnde",
+            id_externo="X",
+            municipio_ibge="3550308",
+            raw={"nr_proposta": 987654},
+        )
+    )
+    assert p.numero_proposta == "987654"
+
+
 def test_hash_deterministico_e_sensivel_a_mudanca() -> None:
     p1 = normalize(_record(situacao="Em análise"))
     p2 = normalize(_record(situacao="Em análise"))

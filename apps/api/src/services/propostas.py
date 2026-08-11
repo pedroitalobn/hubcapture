@@ -9,7 +9,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -46,6 +46,7 @@ async def listar(
     municipio: str | None = None,
     fonte: str | None = None,
     situacao: str | None = None,
+    numero: str | None = None,
 ) -> list[Proposta]:
     stmt = select(Proposta)
     if municipio:
@@ -54,6 +55,13 @@ async def listar(
         stmt = stmt.where(Proposta.fonte == fonte)
     if situacao:
         stmt = stmt.where(Proposta.situacao == situacao)
+    if numero and numero.strip():
+        # busca pelo número da proposta (NR_PROPOSTA). Casa também com o
+        # id_externo porque nem toda fonte publica os dois separadamente.
+        alvo = f"%{numero.strip()}%"
+        stmt = stmt.where(
+            or_(Proposta.numero_proposta.ilike(alvo), Proposta.id_externo.ilike(alvo))
+        )
     stmt = stmt.order_by(Proposta.cache_atualizado_em.desc().nullslast())
     result = await session.execute(stmt)
     return list(result.scalars().all())

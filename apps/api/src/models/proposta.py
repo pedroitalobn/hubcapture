@@ -11,7 +11,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import Date, Index, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import DateTime
@@ -33,11 +33,20 @@ class Proposta(Base):
     __tablename__ = "propostas"
     __table_args__ = (
         UniqueConstraint("fonte", "id_externo", name="uq_propostas_fonte_id_externo"),
+        # busca do painel pelo número da proposta é ILIKE '%…%' (curinga à
+        # esquerda) — só um índice trigram atende; btree ficaria inútil.
+        Index(
+            "ix_propostas_numero_proposta_trgm",
+            "numero_proposta",
+            postgresql_using="gin",
+            postgresql_ops={"numero_proposta": "gin_trgm_ops"},
+        ),
     )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     fonte: Mapped[str] = mapped_column(String(32), index=True)
     id_externo: Mapped[str] = mapped_column(String(255))
+    # NR_PROPOSTA — identificador que o gestor lê e procura no painel.
     numero_proposta: Mapped[str | None] = mapped_column(String(64), nullable=True)
     titulo: Mapped[str | None] = mapped_column(Text, nullable=True)
     objeto: Mapped[str | None] = mapped_column(Text, nullable=True)

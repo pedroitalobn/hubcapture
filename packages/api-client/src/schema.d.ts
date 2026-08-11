@@ -3133,6 +3133,8 @@ export interface operations {
                 /** @description reservado (áreas) — futuro */
                 area?: string | null;
                 situacao?: string | null;
+                /** @description número da proposta (NR_PROPOSTA) — busca parcial, casa também id_externo */
+                numero?: string | null;
             };
             header?: never;
             path?: never;

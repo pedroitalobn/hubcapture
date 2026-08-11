@@ -5000,6 +5000,24 @@
               ],
               "title": "Situacao"
             }
+          },
+          {
+            "description": "número da proposta (NR_PROPOSTA) — busca parcial, casa também id_externo",
+            "in": "query",
+            "name": "numero",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "número da proposta (NR_PROPOSTA) — busca parcial, casa também id_externo",
+              "title": "Numero"
+            }
           }
         ],
         "responses": {

@@ -21,10 +21,14 @@ async def listar_propostas(
     fonte: str | None = Query(default=None),
     area: str | None = Query(default=None, description="reservado (áreas) — futuro"),
     situacao: str | None = Query(default=None),
+    numero: str | None = Query(
+        default=None,
+        description="número da proposta (NR_PROPOSTA) — busca parcial, casa também id_externo",
+    ),
     session: AsyncSession = Depends(get_rls_db),
 ) -> list[PropostaRead]:
     rows = await propostas_service.listar(
-        session, municipio=municipio, fonte=fonte, situacao=situacao
+        session, municipio=municipio, fonte=fonte, situacao=situacao, numero=numero
     )
     return [PropostaRead.model_validate(r) for r in rows]
 
