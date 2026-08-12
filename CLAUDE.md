@@ -1883,5 +1883,17 @@ disciplina dos módulos da §29 e dos gates da §39.
   duas versões compartilham o mesmo markup.
 - **Admin** — `/admin/config` ganhou a categoria **Plataforma** com o grupo
   "Interface (UI)"; trocar o valor propaga na próxima carga de página.
+- **Switch, não campo de texto** — `components/UiVersaoSwitch.tsx` substitui o
+  campo genérico do catálogo na categoria Plataforma (o grupo `ui` é filtrado de
+  `gruposDaCategoria`): dois cartões-rádio, um clique, e o `data-ui` é aplicado
+  NA HORA no `<html>` do admin — sem isso a troca só apareceria na carga
+  seguinte e se lê como "não aconteceu nada".
+- **Peso único 400 na v1** — a camada v1 zera os 500/600 que a v2 introduziu em
+  título/destaque/botão. É o traço que torna o porte PERCEPTÍVEL: sem ele a v1
+  muda só efeito decorativo (vidro, sombra, aurora) e a diferença passa
+  despercebida numa tela comum.
+- **`Cache-Control: no-store`** na rota e `cache: "no-store"` no fetch: sem isso
+  o cache heurístico do navegador serve a versão anterior e a troca no painel
+  parece não ter surtido efeito.
 - **Testes** — `test_ui_versao.py` (catálogo, sanitização e resolução da flag).
 
