@@ -9,6 +9,7 @@ import { Hint } from "@/components/Hint";
 import { ModuloGate } from "@/components/ModuloGate";
 import { NumeroProposta } from "@/components/NumeroProposta";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
+import { TextoLimitado } from "@/components/TextoLimitado";
 import {
   formatBRL,
   formatDate,
@@ -1395,13 +1396,33 @@ function CaptacaoExploracao() {
                         tamanho="sm"
                         className="mb-1"
                       />
-                      <Link
-                        href={`/panel/funding/${p.id}`}
-                        className="block font-medium hover:underline"
-                      >
-                        {humanizarCaixa(p.titulo ?? p.objeto) ||
-                          "Proposta sem título na fonte"}
-                      </Link>
+                      {/* Título com TETO: sem ele, uma proposta cujo objeto é o
+                          projeto inteiro esticava a linha por meia tela e
+                          desalinhava a leitura da lista. O gatilho fica FORA do
+                          <Link> — botão dentro de âncora é HTML inválido. */}
+                      <TextoLimitado
+                        texto={humanizarCaixa(p.titulo ?? p.objeto)}
+                        limite={110}
+                        titulo={municipioPrincipal(p)}
+                        rotulo="Objeto da proposta"
+                        className="block"
+                        vazio={
+                          <Link
+                            href={`/panel/funding/${p.id}`}
+                            className="block font-medium hover:underline"
+                          >
+                            Proposta sem título na fonte
+                          </Link>
+                        }
+                        envolver={(trecho) => (
+                          <Link
+                            href={`/panel/funding/${p.id}`}
+                            className="font-medium hover:underline"
+                          >
+                            {trecho}
+                          </Link>
+                        )}
+                      />
                       <p className="mt-0.5 max-w-md text-xs text-ink-3">
                         {[
                           p.data_proposta ? formatDate(p.data_proposta) : null,

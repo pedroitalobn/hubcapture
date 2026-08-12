@@ -72,6 +72,34 @@ export function humanizarCaixa(texto?: string | null): string {
     .join("");
 }
 
+/* ──────────────────────────────────────────── Recorte de texto longo ─────
+   As fontes não separam "título" de "descrição": o `objeto` que vira título da
+   proposta chega com o projeto inteiro dentro (o de um edital de cultura passa
+   de 2 mil caracteres). Sem teto, o título come a tela e empurra valor, empenho
+   e prazo — os dados que decidem a ação — para baixo da dobra. */
+
+/**
+ * Recorta em `limite` caracteres, sempre numa palavra inteira. Devolve também
+ * se houve corte, para quem chama decidir se oferece o texto completo (é o que
+ * `TextoLimitado` faz, com o modal de "ver completo").
+ */
+export function recortarTexto(
+  texto: string | null | undefined,
+  limite: number,
+): { trecho: string; cortado: boolean } {
+  const t = String(texto ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (t.length <= limite) return { trecho: t, cortado: false };
+  const bruto = t.slice(0, limite);
+  const espaco = bruto.lastIndexOf(" ");
+  // recua até a última palavra inteira — mas não a ponto de jogar fora o
+  // recorte (uma "palavra" de 200 caracteres, comum em URL colada na descrição)
+  const corte = espaco > limite * 0.6 ? espaco : bruto.length;
+  const trecho = t.slice(0, corte).replace(/[\s.,;:!?/\-–—]+$/u, "");
+  return { trecho: `${trecho}…`, cortado: true };
+}
+
 /**
  * Território de um registro. Regra de exibição (seção 23 do CLAUDE.md): o NOME
  * do município lidera; o código IBGE é dado secundário. Nenhuma tela deve usar

@@ -8,7 +8,7 @@ import { NumeroProposta } from "@/components/NumeroProposta";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
-import { formatBRL, humanizarCaixa } from "@/lib/format";
+import { formatBRL, humanizarCaixa, recortarTexto } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 // ── Panorama financeiro do território (números + gráfico) ───────────────────
@@ -654,8 +654,15 @@ function MeuPainel() {
                             tamanho="sm"
                             copiavel={false}
                           />
+                          {/* Teto de 80 caracteres: o título do item é o
+                              `objeto` da fonte e vem com o projeto inteiro
+                              dentro. O `truncate` recortava só no fim da
+                              linha, então numa tela larga a novidade ocupava
+                              a faixa toda e o valor e a data eram empurrados
+                              para longe do olho. O `truncate` fica como
+                              segunda rede, para a tela estreita. */}
                           <span className="truncate text-sm text-ink">
-                            {humanizarCaixa(n.titulo)}
+                            {recortarTexto(humanizarCaixa(n.titulo), 80).trecho}
                           </span>
                         </p>
                         <p className="mt-0.5 flex flex-wrap gap-x-2 text-[12px] text-ink-3">
@@ -668,7 +675,7 @@ function MeuPainel() {
                           )}
                           {n.descricao && (
                             <span className="truncate">
-                              {humanizarCaixa(n.descricao)}
+                              {recortarTexto(humanizarCaixa(n.descricao), 80).trecho}
                             </span>
                           )}
                         </p>

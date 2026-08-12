@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { ModuloGate } from "@/components/ModuloGate";
-import { municipioPrincipal } from "@/lib/format";
+import { municipioPrincipal, recortarTexto } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 type Alerta = {
@@ -56,7 +56,9 @@ function descricao(a: Alerta): string {
       })
     : (p.municipio_nome ?? "");
   if (a.tipo === "nova_proposta")
-    return `${p.titulo ?? "Nova proposta"} (${p.fonte ?? ""}) em ${municipio}`;
+    // mesmo teto de 80 do feed: o título do alerta é o `objeto` da fonte e,
+    // inteiro, empurrava a fonte e o município para o fim de um parágrafo
+    return `${recortarTexto(p.titulo, 80).trecho || "Nova proposta"} (${p.fonte ?? ""}) em ${municipio}`;
   if (a.tipo === "oportunidade")
     return `Recursos da fonte ${p.fonte ?? "?"} recebidos em ${municipio} sem proposta de captação cadastrada`;
   return `Proposta atualizada${municipio ? ` em ${municipio}` : ""}`;

@@ -13,6 +13,7 @@ import { NumeroProposta } from "@/components/NumeroProposta";
 import { Skeleton } from "@/components/Skeleton";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { TextoExpansivel } from "@/components/TextoExpansivel";
+import { TextoLimitado } from "@/components/TextoLimitado";
 import { Aviso, Dado, cx } from "@/components/ui";
 import {
   diasAte,
@@ -375,9 +376,18 @@ export default function PropostaDetalhePage() {
             </p>
           )}
           {/* O objeto da proposta vem logo abaixo — nunca um identificador:
-              antes o h1 caía para `id_externo` quando faltava título. */}
+              antes o h1 caía para `id_externo` quando faltava título.
+              Com TETO de caracteres: a fonte não separa título de descrição, e
+              um objeto de 2 mil caracteres impresso aqui empurrava valor,
+              empenho e prazo para fora da dobra. O inteiro abre em janela. */}
           <p className="mt-2 text-lg font-semibold leading-snug text-ink">
-            {humanizarCaixa(p.titulo ?? p.objeto) || "Proposta sem título na fonte"}
+            <TextoLimitado
+              texto={humanizarCaixa(p.titulo ?? p.objeto)}
+              limite={180}
+              titulo={municipioPrincipal(p)}
+              rotulo="Objeto da proposta"
+              vazio="Proposta sem título na fonte"
+            />
           </p>
           {/* Nº da proposta e data de criação: é assim que o gestor se refere a
               ela ("14275/2026, de 26/03") e é o que ele digita para conferir no
