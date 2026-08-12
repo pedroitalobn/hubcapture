@@ -8,7 +8,7 @@ cai na v2 (a UI atual), para a plataforma nunca quebrar por config inválida.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,5 +32,8 @@ class UiRead(BaseModel):
 
 
 @router.get("/ui", response_model=UiRead)
-async def get_ui(session: AsyncSession = Depends(get_platform_db)) -> UiRead:
+async def get_ui(response: Response, session: AsyncSession = Depends(get_platform_db)) -> UiRead:
+    # sem no-store o navegador serve a versão anterior do cache heurístico e a
+    # troca no painel parece não ter surtido efeito por horas
+    response.headers["Cache-Control"] = "no-store"
     return UiRead(versao=versao_ui_efetiva(await config_service.get_valor(session, "ui_versao")))

@@ -16,7 +16,9 @@ export function UiVersionSync() {
   useEffect(() => {
     void (async () => {
       try {
-        const resp = await fetch(`${API_ORIGIN}/api/v1/ui`);
+        // cache: no-store — a troca no painel precisa valer na carga seguinte,
+        // não quando o cache heurístico do navegador resolver expirar
+        const resp = await fetch(`${API_ORIGIN}/api/v1/ui`, { cache: "no-store" });
         if (!resp.ok) return;
         const { versao } = (await resp.json()) as { versao?: string };
         const v1 = versao === "v1";

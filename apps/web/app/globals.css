@@ -1108,3 +1108,25 @@ html[data-ui="v1"]::before {
 [data-ui="v1"] .input:focus {
   box-shadow: none;
 }
+
+/* PESO ÚNICO 400 — a assinatura mais visível da v1: hierarquia por tamanho e
+   tracking, nunca por bold (a v2 introduziu 500/600 em título e destaque).
+   É o traço que faz a troca de versão ser perceptível à vista; sem ele, o
+   porte muda só efeitos decorativos e o usuário lê como "não aconteceu nada". */
+[data-ui="v1"] h1,
+[data-ui="v1"] h2,
+[data-ui="v1"] h3,
+[data-ui="v1"] b,
+[data-ui="v1"] strong,
+[data-ui="v1"] .page-title,
+[data-ui="v1"] .text-display,
+[data-ui="v1"] .btn,
+[data-ui="v1"] .rich-text strong {
+  font-weight: 400;
+}
+
+/* Métrica de corpo da v1: sem font-size/line-height cravados no body — a v2
+   apertou o texto (16px/1.55); aqui volta o ritmo mais solto do original. */
+[data-ui="v1"] body {
+  line-height: 1.5;
+}

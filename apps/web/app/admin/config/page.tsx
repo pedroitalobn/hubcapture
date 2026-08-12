@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { UiVersaoSwitch } from "@/components/UiVersaoSwitch";
 import { api, getToken, testarEmail } from "@/lib/api/client";
 
 interface ConfigItem {
@@ -276,10 +277,12 @@ export default function AdminConfigPage() {
   const modeloChat = porChave["llm_model_chat"]?.valor ?? null;
   const modeloResumo = porChave["llm_model_resumo"]?.valor ?? null;
 
-  /** Grupos (não-LLM) da categoria ativa, com suas chaves e status. */
+  /** Grupos (não-LLM) da categoria ativa, com suas chaves e status.
+   * O grupo "ui" fica de fora: tem controle próprio (UiVersaoSwitch) — escolher
+   * entre duas versões digitando "v1" num campo de texto não é interface. */
   const gruposDaCategoria = useMemo(
     () =>
-      GRUPOS.filter((g) => g.categoria === cat)
+      GRUPOS.filter((g) => g.categoria === cat && g.id !== "ui")
         .map((g) => {
           const chaves = itens.filter((i) => grupoDaChave(i.chave) === g.id);
           return { ...g, chaves, ativo: chaves.some((i) => i.configurado) };
@@ -536,6 +539,12 @@ export default function AdminConfigPage() {
             </>
           ) : (
             <>
+              {cat === "plataforma" && (
+                <UiVersaoSwitch
+                  valorAtual={porChave["ui_versao"]?.valor}
+                  onSalvo={carregar}
+                />
+              )}
               {cat === "email" && (
                 <div className="card border border-lime/30 p-4">
                   <h3 className="text-sm tracking-tight">Testar envio de e-mail</h3>
@@ -593,7 +602,13 @@ export default function AdminConfigPage() {
                 </div>
               )}
 
-              <div className="flex flex-col gap-3">
+              {/* categoria sem provedores de credencial (ex.: plataforma, que
+                  só tem controles próprios) não mostra o fluxo de adicionar */}
+              <div
+                className={`flex-col gap-3 ${
+                  gruposDaCategoria.length > 0 ? "flex" : "hidden"
+                }`}
+              >
                 <h3 className="label-mono">Adicionar provedor</h3>
                 <div className="flex flex-wrap gap-2">
                   {gruposInativos.map((g) => (
