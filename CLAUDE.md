@@ -1854,3 +1854,34 @@ proposta de 2019 listada como novidade do ano corrente.
 - O card da captação leva a safra para a exploração
   (`/panel/funding?ano=…&natureza_grupo=…`), e a tela de captação abre já nesse
   recorte.
+
+## 48. Flag de versão da UI — portar a Bancada v2 → v1 pelo painel admin
+
+A modernização visual (Bancada v2: acento duplo lime+aqua, vidro/elevação,
+microanimações, aurora/grade no canvas) é a UI atual. A flag permite **voltar
+para a v1 clássica em runtime**, sem redeploy e sem remover código — mesma
+disciplina dos módulos da §29 e dos gates da §39.
+
+- **Chave** — `ui_versao` no `services/config.py::CATALOGO`, categoria nova
+  `plataforma` (aparência/comportamento do app, não credencial). Valores: `v2`
+  (padrão, a UI atual) e `v1`. Sem linha no banco vale o padrão.
+- **Contrato** — `GET /api/v1/ui` (`api/v1/ui.py`) é **público**: a flag não é
+  segredo e precisa valer já no `/login`, antes de existir sessão.
+  `versao_ui_efetiva()` sanitiza — valor fora de `{v1, v2}` cai na v2, para
+  config inválida nunca quebrar a plataforma.
+- **Web** — `components/UiVersionSync.tsx` (montado no layout raiz) consulta a
+  rota a cada carga, guarda em `localStorage` (`hub_ui`) e põe `data-ui="v1"` no
+  `<html>`; o boot script do `app/layout.tsx` aplica **pré-paint**, como o tema
+  claro/escuro (§ toggle) — sem flash. API fora do ar mantém a última versão
+  conhecida.
+- **CSS** — a camada v1 fica no FIM de `globals.css`, **fora de `@layer`**: estilo
+  sem camada vence os de `@layer components`, e `:root[data-ui]` empata em
+  especificidade com os blocos de tema (no empate vence a ordem). É a **superfície
+  de porte**: acento único lime (gradiente colapsa, aqua some), superfícies flat
+  (sem vidro/sombra/fio de gradiente), sem microanimação decorativa e canvas limpo
+  (sem aurora/grade). Ajuste fino do porte entra AQUI, nunca nos componentes — as
+  duas versões compartilham o mesmo markup.
+- **Admin** — `/admin/config` ganhou a categoria **Plataforma** com o grupo
+  "Interface (UI)"; trocar o valor propaga na próxima carga de página.
+- **Testes** — `test_ui_versao.py` (catálogo, sanitização e resolução da flag).
+
