@@ -56,9 +56,7 @@ async def _enviar_maileroo(
     if corpo_html:
         payload["html"] = corpo_html
     async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.post(
-            url, json=payload, headers={"X-API-Key": api_key}
-        )
+        resp = await client.post(url, json=payload, headers={"X-API-Key": api_key})
         resp.raise_for_status()
 
 
@@ -126,9 +124,7 @@ async def enviar(
     # 1) Maileroo (API HTTP) — caminho preferido
     maileroo = await _resolver("maileroo_api_key", settings.maileroo_api_key)
     if maileroo:
-        await _enviar_maileroo(
-            maileroo, remetente, destinatario, assunto, corpo_txt, corpo_html
-        )
+        await _enviar_maileroo(maileroo, remetente, destinatario, assunto, corpo_txt, corpo_html)
         return True
 
     # 2) SMTP (config do painel admin)

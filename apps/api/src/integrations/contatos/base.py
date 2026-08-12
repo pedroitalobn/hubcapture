@@ -64,13 +64,9 @@ class ProvedorContatos(Protocol):
         """True se a credencial de APLICAÇÃO está configurada no painel admin."""
         ...
 
-    async def listar(
-        self, cred: Credencial, sync_token: str | None
-    ) -> PaginaRemota: ...
+    async def listar(self, cred: Credencial, sync_token: str | None) -> PaginaRemota: ...
 
-    async def criar(
-        self, cred: Credencial, canonico: ContatoCanonico
-    ) -> ContatoExterno: ...
+    async def criar(self, cred: Credencial, canonico: ContatoCanonico) -> ContatoExterno: ...
 
     async def atualizar(
         self,
@@ -80,9 +76,7 @@ class ProvedorContatos(Protocol):
         canonico: ContatoCanonico,
     ) -> ContatoExterno: ...
 
-    async def remover(
-        self, cred: Credencial, id_externo: str, etag: str | None
-    ) -> None: ...
+    async def remover(self, cred: Credencial, id_externo: str, etag: str | None) -> None: ...
 
 
 class ProvedorIndisponivel(Exception):

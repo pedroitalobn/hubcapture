@@ -112,8 +112,98 @@ def _execucao(p: Proposta) -> dict:
     return p.execucao if isinstance(p.execucao, dict) else {}
 
 
+# Sinais alternativos da natureza: quando a execução não traz o campo, o
+# registro-fonte completo (`dados_fonte`) costuma trazer — texto, código
+# CONCLA/RFB ou o nome do proponente. Ponto de calibração por fonte.
+_CAMPOS_NATUREZA_FONTE = (
+    "natureza_juridica",
+    "natureza_juridica_proponente",
+    "nome_natureza_juridica",
+    "nat_jur",
+)
+_CAMPOS_CODIGO_NATUREZA = ("codigo_natureza_juridica", "cod_nat_jur", "id_natureza_juridica")
+_CAMPOS_PROPONENTE = (
+    "nm_proponente",
+    "nome_proponente",
+    "proponente",
+    "nome_beneficiario",
+    "razao_social",
+)
+
+# Códigos de esfera municipal da tabela de Natureza Jurídica (CONCLA/RFB):
+# 103-1 Executivo · 106-6 Legislativo · 112-0 Autarquia · 115-5 e 127-9 Fundação
+# · 118-0 Órgão Autônomo · 124-4 Município · 130-9 e 133-3 Fundo Público.
+_CODIGOS_MUNICIPAIS = frozenset(
+    {"1031", "1066", "1120", "1155", "1180", "1244", "1279", "1309", "1333"}
+)
+# 121-0 (associação pública) e 122-8 (direito privado) — consórcio público.
+_CODIGOS_CONSORCIO = frozenset({"1210", "1228"})
+
+# Fontes cujo beneficiário é, por desenho do programa, o próprio ente municipal
+# (repasse fundo a fundo ao município). Último recurso, sem nenhum outro sinal.
+_NATUREZA_PADRAO_FONTE = {"transferegov_ff": "municipal", "fns": "municipal"}
+
+
+def _natureza_por_codigo(valor: str | None) -> str | None:
+    """Slug a partir do código CONCLA/RFB (só o que ele decide com certeza)."""
+    digitos = re.sub(r"\D", "", str(valor or ""))
+    if len(digitos) != 4:
+        return None
+    if digitos in _CODIGOS_MUNICIPAIS:
+        return "municipal"
+    return "consorcio" if digitos in _CODIGOS_CONSORCIO else None
+
+
 def natureza_juridica_de(p: Proposta) -> str | None:
-    return classificar_natureza_juridica(_execucao(p).get("natureza_juridica"))
+    """Natureza jurídica do proponente, do sinal mais forte ao mais fraco.
+
+    Execução > texto no registro-fonte > código CONCLA/RFB > nome do proponente
+    > padrão da fonte. Sem nenhum sinal continua None (a proposta fica fora dos
+    filtros detalhados) — as duas LENTES (`grupo_natureza_de`) é que sempre
+    classificam, para que a consulta cubra a base inteira.
+    """
+    slug = classificar_natureza_juridica(_execucao(p).get("natureza_juridica"))
+    if slug:
+        return slug
+    for campo in _CAMPOS_NATUREZA_FONTE:
+        slug = classificar_natureza_juridica(_campo_fonte(p.dados_fonte, campo))
+        if slug:
+            return slug
+    for campo in _CAMPOS_CODIGO_NATUREZA:
+        slug = _natureza_por_codigo(_campo_fonte(p.dados_fonte, campo))
+        if slug:
+            return slug
+    for campo in _CAMPOS_PROPONENTE:
+        # o NOME só vale quando reconhece um marcador ("Prefeitura de…"); texto
+        # não reconhecido não vira "outros" aqui, senão o nome de qualquer
+        # proponente encerraria a busca por sinal.
+        slug = classificar_natureza_juridica(_campo_fonte(p.dados_fonte, campo))
+        if slug and slug != "outros":
+            return slug
+    return _NATUREZA_PADRAO_FONTE.get(p.fonte)
+
+
+# ── Lentes de natureza jurídica (o recorte de consulta do painel) ───────────
+# A consulta parte de DUAS lentes, não da taxonomia inteira (decisão de
+# produto): quem propõe é o MUNICÍPIO (prefeitura, secretaria, câmara,
+# fundo/autarquia municipal) ou é OUTRO (OSC, entes estaduais/federais,
+# empresas). Os slugs detalhados acima seguem valendo no filtro avançado.
+GRUPOS_NATUREZA: tuple[tuple[str, str], ...] = (
+    ("entes_municipais", "Entes municipais"),
+    ("outros", "Outros"),
+)
+# Consórcio público entra como ente municipal: na prática é intermunicipal —
+# formado pelos próprios municípios (calibrável).
+_NATUREZAS_MUNICIPAIS = frozenset({"municipal", "consorcio"})
+
+
+def grupo_natureza_de(p: Proposta) -> str:
+    """A lente da proposta — SEMPRE uma das duas (sem sinal ⇒ 'outros').
+
+    Por isso as duas lentes somadas cobrem sempre o recorte inteiro: nenhuma
+    proposta fica invisível às duas.
+    """
+    return "entes_municipais" if natureza_juridica_de(p) in _NATUREZAS_MUNICIPAIS else "outros"
 
 
 def qualificacao_de(p: Proposta) -> str | None:
@@ -130,15 +220,38 @@ def _ano_plausivel(ano: int) -> bool:
     return 1990 <= ano <= date.today().year + 1
 
 
+def _campo_fonte(dados: object, chave: str, profundidade: int = 3) -> str | None:
+    """Busca um campo no registro-fonte completo (`dados_fonte`), em qualquer
+    nível e caixa — o ANO_PROP do CSV do SIconv vive em `plano_acao.csv`.
+
+    Ler direto da fonte corrige o dado JÁ ingerido no cache (que pode ter a
+    `data_proposta` montada por retaguarda errada) sem esperar re-sync.
+    """
+    if not isinstance(dados, dict) or profundidade < 0:
+        return None
+    for k, v in dados.items():
+        if isinstance(k, str) and k.strip().lower() == chave and v not in (None, ""):
+            return str(v).strip()
+    for v in dados.values():
+        achado = _campo_fonte(v, chave, profundidade - 1)
+        if achado:
+            return achado
+    return None
+
+
 def ano_de(p: Proposta) -> str | None:
     """Ano de referência: o de CRIAÇÃO na fonte, nunca o da última movimentação.
 
-    `data_proposta` > sufixo do nº da proposta > exercício da execução. Sem
-    nenhum desses sinais o ano fica INDEFINIDO (None): cair na data de
-    atualização classificaria uma proposta criada em 2022 e movimentada em 2026
-    como safra 2026 — exatamente o que este critério existe para evitar. Sem
-    ano, a proposta continua na lista, só não entra em nenhuma safra.
+    `ANO_PROP` do registro-fonte (a variável oficial do SIconv) > `data_proposta`
+    > sufixo do nº da proposta > exercício da execução. Sem nenhum desses sinais
+    o ano fica INDEFINIDO (None): cair na data de atualização classificaria uma
+    proposta criada em 2022 e movimentada em 2026 como safra 2026 — exatamente o
+    que este critério existe para evitar. Sem ano, a proposta continua na lista,
+    só não entra em nenhuma safra.
     """
+    ano_fonte = _campo_fonte(p.dados_fonte, "ano_prop")
+    if ano_fonte and ano_fonte[:4].isdigit() and _ano_plausivel(int(ano_fonte[:4])):
+        return ano_fonte[:4]
     if p.data_proposta and _ano_plausivel(p.data_proposta.year):
         return str(p.data_proposta.year)
     m = _ANO_NO_NUMERO.search(str(p.numero_proposta or ""))
@@ -148,6 +261,29 @@ def ano_de(p: Proposta) -> str | None:
     if exercicio.isdigit() and _ano_plausivel(int(exercicio)):
         return exercicio
     return None
+
+
+# Valor global da proposta na fonte, por ordem de precisão: VL_GLOBAL_PROP é a
+# variável oficial do SIconv para a PROPOSTA; VL_GLOBAL_CONV é a do convênio já
+# celebrado; VL_GLOBAL cobre os arquivos que publicam a coluna sem sufixo.
+_CAMPOS_VALOR_GLOBAL = ("vl_global_prop", "vl_global_conv", "vl_global")
+
+
+def valor_global_de(p: Proposta) -> Decimal | None:
+    """Valor global da proposta — o número que o card "Empenho" do detalhe exibe.
+
+    `VL_GLOBAL_PROP` no registro-fonte vence: é o valor que a fonte publica para
+    a proposta, e lê-lo direto de `dados_fonte` corrige o que já está no cache
+    sem esperar re-sync (mesma disciplina de `ano_de`/`mes_de`). Sem ele, cai no
+    agregado de execução e, por fim, no total já normalizado.
+    """
+    from ..ingestion.normalizer import _to_decimal
+
+    for chave in _CAMPOS_VALOR_GLOBAL:
+        valor = _to_decimal(_campo_fonte(p.dados_fonte, chave))
+        if valor is not None:
+            return valor
+    return _to_decimal(_execucao(p).get("valor_global")) or _to_decimal(p.valor_total)
 
 
 def prazo_final_de(p: Proposta) -> date | None:
@@ -162,9 +298,10 @@ def prazo_final_de(p: Proposta) -> date | None:
 
 
 # ── Mês de referência ───────────────────────────────────────────────────────
-# Companheiro do filtro de ano. Para captação o mês que importa é o do PRAZO
-# (é ele que decide a ação); sem prazo declarado, cai no mês de atualização na
-# fonte — que é o que a lista mostra como "movimentação".
+# Companheiro do filtro de ano e no MESMO referencial dele: o mês de CRIAÇÃO da
+# proposta (MES_PROP do SIconv > data_proposta). Sem sinal de criação, cai no
+# mês do prazo final e, por fim, no da atualização na fonte — proposta antiga
+# sem data própria continua filtrável.
 MESES: tuple[tuple[str, str], ...] = (
     ("01", "Janeiro"),
     ("02", "Fevereiro"),
@@ -182,7 +319,12 @@ MESES: tuple[tuple[str, str], ...] = (
 
 
 def mes_de(p: Proposta) -> str | None:
-    """Mês de referência ('01'…'12'): o do prazo final; senão o da atualização."""
+    """Mês de referência ('01'…'12'): MES_PROP > data_proposta > prazo > atualização."""
+    mes_fonte = _campo_fonte(p.dados_fonte, "mes_prop")
+    if mes_fonte and mes_fonte.isdigit() and 1 <= int(mes_fonte) <= 12:
+        return f"{int(mes_fonte):02d}"
+    if p.data_proposta:
+        return f"{p.data_proposta.month:02d}"
     referencia = prazo_final_de(p) or p.data_atualizacao_fonte
     return f"{referencia.month:02d}" if referencia else None
 
@@ -242,10 +384,19 @@ def _busca_textual(termo: str):
 # `ano`/`mes`/`categoria`; nos demais casos, filtra tudo e fatia em Python.
 _ORDENACOES_SQL = (None, "recentes")  # `_ordenar` devolve a ordem do SQL nessas
 
-# `cache_atualizado_em` empata em massa (uma coleta grava milhares de linhas no
-# mesmo instante); sem desempate estável o LIMIT/OFFSET repete e pula linhas
-# entre páginas — daí o `id` no fim da ordenação.
-_ORDEM_SQL = (Proposta.cache_atualizado_em.desc().nullslast(), Proposta.id)
+# "Recentes" é a data da PROPOSTA, não a da nossa coleta: `data_proposta` vem
+# de DIA_PROP+MES_PROP+ANO_PROP (as variáveis oficiais do SIconv, remontadas no
+# normalizador). Ordenar por `cache_atualizado_em` embaralhava safras — uma
+# proposta de 2019 recoletada hoje aparecia na frente de uma criada este mês.
+#
+# `cache_atualizado_em` entra só como desempate (proposta sem data de criação na
+# fonte vai para o fim, nullslast) e `id` fecha: sem desempate estável o
+# LIMIT/OFFSET repete e pula linhas entre páginas.
+_ORDEM_SQL = (
+    Proposta.data_proposta.desc().nullslast(),
+    Proposta.cache_atualizado_em.desc().nullslast(),
+    Proposta.id,
+)
 
 
 def _condicoes(
@@ -262,7 +413,11 @@ def _condicoes(
     orgao: str | None,
 ) -> list:
     """Recorte que o SQL sabe fazer (o resto é pós-filtro em Python)."""
-    condicoes = []
+    # proposta zerada (soft delete) não aparece em lugar nenhum do painel. O
+    # filtro mora na consulta, e não na policy de RLS, porque o upsert da coleta
+    # precisa ENXERGAR a linha marcada para ressuscitá-la (ver a migration
+    # f6a7b8c9d0e1).
+    condicoes = [Proposta.excluido_em.is_(None)]
     # território: um município, vários (o painel recorta um subconjunto do
     # perfil) ou nenhum — aí o RLS já limita ao território do usuário.
     recorte = condicao_municipio(Proposta.municipio_ibge, municipio)
@@ -308,6 +463,7 @@ async def listar_pagina(
     modalidade: str | None = None,
     orgao: str | None = None,
     natureza_juridica: str | None = None,
+    natureza_grupo: str | None = None,
     qualificacao: str | None = None,
     ano: str | None = None,
     mes: str | None = None,
@@ -338,6 +494,7 @@ async def listar_pagina(
     pos_filtros = (
         tipo in ("cadastrada", "disponivel"),
         natureza_juridica,
+        natureza_grupo,
         qualificacao,
         ano,
         mes,
@@ -348,9 +505,7 @@ async def listar_pagina(
         # caminho rápido: o banco pagina e conta
         total = int(
             (
-                await session.execute(
-                    select(func.count()).select_from(Proposta).where(*condicoes)
-                )
+                await session.execute(select(func.count()).select_from(Proposta).where(*condicoes))
             ).scalar_one()
         )
         if offset:
@@ -366,6 +521,8 @@ async def listar_pagina(
         rows = [p for p in rows if classificar_tipo(p.situacao) == tipo]
     if natureza_juridica:
         rows = [p for p in rows if natureza_juridica_de(p) == natureza_juridica]
+    if natureza_grupo:
+        rows = [p for p in rows if grupo_natureza_de(p) == natureza_grupo]
     if qualificacao:
         rows = [p for p in rows if qualificacao_de(p) == qualificacao]
     if ano:
@@ -409,7 +566,7 @@ async def listar_por_prazo(
     estruturada (não-RAG) que alimenta o painel e a resposta do chat."""
     hoje = date.today()
     fim = hoje + timedelta(days=dias)
-    stmt = select(Proposta).where(Proposta.prazos.isnot(None))
+    stmt = select(Proposta).where(Proposta.prazos.isnot(None), Proposta.excluido_em.is_(None))
     stmt = filtrar_municipio(stmt, Proposta.municipio_ibge, municipio)
     rows = (await session.execute(stmt)).scalars().all()
     com_prazo = []
@@ -434,6 +591,7 @@ _DIMENSOES: dict[str, object] = {
     "orgao": lambda p: p.orgao_superior,
     "situacao": lambda p: p.situacao,
     "natureza_juridica": natureza_juridica_de,
+    "natureza_grupo": grupo_natureza_de,
     "qualificacao": qualificacao_de,
     "categoria": categorias_de,  # multivalorada: uma proposta tem até 3 pílulas
     "ano": ano_de,
@@ -443,6 +601,7 @@ _DIMENSOES: dict[str, object] = {
 
 _ROTULOS: dict[str, dict[str, str]] = {
     "natureza_juridica": dict(NATUREZAS_JURIDICAS),
+    "natureza_grupo": dict(GRUPOS_NATUREZA),
     "tipo": {"cadastrada": "Cadastradas", "disponivel": "Disponíveis"},
     "categoria": categorias_ai.ROTULOS,
     "mes": dict(MESES),
@@ -521,9 +680,7 @@ async def facetas(
             itens = sorted(contagem.items(), reverse=_ORDEM_CRONOLOGICA[dim])
         else:
             itens = sorted(contagem.items(), key=lambda kv: (-kv[1], kv[0]))
-        resultado[dim] = [
-            {"valor": v, "rotulo": rotulos.get(v, v), "total": n} for v, n in itens
-        ]
+        resultado[dim] = [{"valor": v, "rotulo": rotulos.get(v, v), "total": n} for v, n in itens]
     return resultado
 
 
@@ -687,9 +844,7 @@ def gerar_csv(rows: list[Proposta]) -> str:
                 "modalidade": p.modalidade or "",
                 "natureza_juridica": natureza_juridica_de(p) or "",
                 "qualificacao": qualificacao_de(p) or "",
-                "categorias": ", ".join(
-                    categorias_ai.ROTULOS.get(c, c) for c in categorias_de(p)
-                ),
+                "categorias": ", ".join(categorias_ai.ROTULOS.get(c, c) for c in categorias_de(p)),
                 "municipio": p.municipio_nome or p.municipio_ibge or "",
                 "uf": p.uf or "",
                 "situacao": p.situacao or "",
@@ -710,7 +865,9 @@ def gerar_csv(rows: list[Proposta]) -> str:
 
 
 async def obter(session: AsyncSession, proposta_id: uuid.UUID) -> Proposta | None:
-    result = await session.execute(select(Proposta).where(Proposta.id == proposta_id))
+    result = await session.execute(
+        select(Proposta).where(Proposta.id == proposta_id, Proposta.excluido_em.is_(None))
+    )
     return result.scalar_one_or_none()
 
 
@@ -724,6 +881,9 @@ async def upsert(session: AsyncSession, canonica: PropostaCanonica) -> None:
     update_set = {k: getattr(stmt.excluded, k) for k in _UPSERT_FIELDS}
     update_set["cache_atualizado_em"] = now
     update_set["updated_at"] = now
+    # RESSUSCITA o que foi zerado: a fonte ainda publica esta proposta, então
+    # ela volta ao painel em vez de ficar escondida para sempre pela policy.
+    update_set["excluido_em"] = None
     stmt = stmt.on_conflict_do_update(
         constraint="uq_propostas_fonte_id_externo",
         set_=update_set,

@@ -26,6 +26,8 @@ from .plano import Plano
 from .preferencias import PreferenciasUsuario
 from .proposta import Proposta
 from .proposta_embedding import PropostaEmbedding
+from .proposta_emenda import PropostaEmenda
+from .proposta_empenho import PropostaEmpenho
 from .repasse import Repasse
 from .sync_run import SyncRun
 from .usuario import Usuario
@@ -37,6 +39,8 @@ __all__ = [
     "PreferenciasUsuario",
     "Proposta",
     "PropostaEmbedding",
+    "PropostaEmenda",
+    "PropostaEmpenho",
     "Repasse",
     "Favorito",
     "Pasta",

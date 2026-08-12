@@ -114,9 +114,7 @@ async def resumo(session: AsyncSession, *, municipio: Municipios = None) -> Obra
         valor_repassado_total=_soma("valor_repassado"),
         por_situacao=situacoes,
         # nome do município antes de qualquer identificador (seção 23)
-        obras=await municipios.enriquecer(
-            session, [ObraRead.model_validate(o) for o in obras]
-        ),
+        obras=await municipios.enriquecer(session, [ObraRead.model_validate(o) for o in obras]),
     )
 
 

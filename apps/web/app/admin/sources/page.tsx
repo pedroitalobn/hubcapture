@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Skeleton } from "@/components/Skeleton";
-import { api, zerarPropostas } from "@/lib/api/client";
+import { api, restaurarPropostas, zerarPropostas } from "@/lib/api/client";
 
 interface UltimaColeta {
   status?: string | null;
@@ -58,12 +58,25 @@ export default function AdminFontesPage() {
     setCarregando(false);
   }, []);
 
+  const restaurar = useCallback(async () => {
+    setZerando(true);
+    setMsgLimpeza(null);
+    try {
+      const { removidas } = await restaurarPropostas();
+      setMsgLimpeza(`✓ ${removidas} proposta(s) restaurada(s) — voltaram ao painel.`);
+    } catch (e) {
+      setMsgLimpeza(`Falha: ${e instanceof Error ? e.message : "erro desconhecido"}`);
+    } finally {
+      setZerando(false);
+    }
+  }, []);
+
   const zerar = useCallback(async () => {
     if (
       !window.confirm(
-        "Zerar TODAS as propostas do sistema?\n\nIsso apaga também favoritos, " +
-          "pastas, monitoramentos e alertas ligados a elas. Use só para " +
-          "recomeçar a coleta do zero durante a validação. Não dá para desfazer.",
+        "Zerar TODAS as propostas do sistema?\n\nElas somem do painel de todos " +
+          "os usuários e a coleta recomeça do zero. É soft delete: favoritos, " +
+          "pastas e monitoramentos ficam intactos e dá para restaurar.",
       )
     )
       return;
@@ -71,7 +84,10 @@ export default function AdminFontesPage() {
     setMsgLimpeza(null);
     try {
       const { removidas } = await zerarPropostas();
-      setMsgLimpeza(`✓ ${removidas} proposta(s) removida(s). Recarregue a Captação para coletar de novo.`);
+      setMsgLimpeza(
+        `✓ ${removidas} proposta(s) zerada(s). Recarregue a Captação para coletar de novo — ` +
+          "ou restaure, se foi engano.",
+      );
     } catch (e) {
       setMsgLimpeza(`Falha: ${e instanceof Error ? e.message : "erro desconhecido"}`);
     } finally {
@@ -131,16 +147,22 @@ export default function AdminFontesPage() {
             <h2 className="text-sm font-medium text-danger">Zona de manutenção</h2>
             <p className="mt-0.5 text-xs text-ink-2">
               Zerar todas as propostas para recomeçar a coleta do zero durante a
-              validação. Apaga também favoritos, pastas e monitoramentos ligados.
+              validação. É soft delete: elas somem do painel, mas favoritos,
+              pastas e monitoramentos ficam — e dá para restaurar.
             </p>
           </div>
-          <button
-            onClick={zerar}
-            disabled={zerando}
-            className="btn border border-danger/50 text-danger hover:bg-danger/10"
-          >
-            {zerando ? "Zerando…" : "Zerar todas as propostas"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={zerar}
+              disabled={zerando}
+              className="btn border border-danger/50 text-danger hover:bg-danger/10"
+            >
+              {zerando ? "Zerando…" : "Zerar todas as propostas"}
+            </button>
+            <button onClick={restaurar} disabled={zerando} className="btn btn-ghost">
+              Restaurar
+            </button>
+          </div>
         </div>
         {msgLimpeza && (
           <p className="mt-3 text-xs text-ink-2">{msgLimpeza}</p>

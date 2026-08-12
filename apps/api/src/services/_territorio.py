@@ -40,9 +40,7 @@ def condicao(coluna: ColumnElement[Any], valor: Municipios) -> ColumnElement[boo
     return coluna.in_(escolhidos) if escolhidos else None
 
 
-def filtrar(
-    stmt: Select[Any], coluna: ColumnElement[Any], valor: Municipios
-) -> Select[Any]:
+def filtrar(stmt: Select[Any], coluna: ColumnElement[Any], valor: Municipios) -> Select[Any]:
     """Aplica o recorte de município na query (nenhum, um ou vários)."""
     recorte = condicao(coluna, valor)
     return stmt.where(recorte) if recorte is not None else stmt

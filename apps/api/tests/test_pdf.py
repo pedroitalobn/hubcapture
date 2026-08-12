@@ -97,6 +97,44 @@ def test_espelho_completo_tem_as_secoes() -> None:
         assert secao in texto, secao
 
 
+def test_faixa_de_destaque_traz_o_ano_no_lugar_do_prazo() -> None:
+    """A faixa do espelho mostra a SAFRA (ANO_PROP), não o prazo de vencimento —
+    que vinha marcado errado e segue conferível no card 'Prazos'."""
+    texto = _texto_do_pdf(
+        pdf.gerar_pdf_proposta(
+            _proposta(
+                numero_proposta="091234/2024",
+                dados_fonte={"plano_acao": {"csv": {"ANO_PROP": "2024"}}},
+                prazos=[{"tipo": "envio", "data_limite": "2030-01-10"}],
+            )
+        )
+    )
+    assert "ANO DA PROPOSTA" in texto
+    assert "2024" in texto
+    # o rótulo do prazo saiu da faixa (trecho sem acento: o extrator é latin-1)
+    assert "XIMO PRAZO" not in texto
+    assert "PRAZO VENCIDO" not in texto
+    assert "PRAZOS" in texto  # ...mas o card de prazos continua no documento
+
+
+def test_faixa_de_destaque_traz_o_empenho_com_o_valor_global_da_fonte() -> None:
+    """O espelho espelha a tela: EMPENHO carrega VL_GLOBAL_PROP, e o
+    "Empenhado a utilizar" (empenhado − pago) saiu do documento — era conta
+    derivada que nas propostas dava zero e não dizia nada."""
+    texto = _texto_do_pdf(
+        pdf.gerar_pdf_proposta(
+            _proposta(
+                numero_proposta="014275/2026",
+                dados_fonte={"plano_acao": {"csv": {"VL_GLOBAL_PROP": "1.234.567,89"}}},
+                execucao={"valor_global": "1000", "valor_empenhado": "800", "valor_pago": "300"},
+            )
+        )
+    )
+    assert "EMPENHO" in texto
+    assert "1.234.567,89" in texto
+    assert "A UTILIZAR" not in texto.upper()
+
+
 def test_espelho_de_proposta_vazia_nao_quebra() -> None:
     """Sem nenhum campo preenchido o documento ainda sai (uma página, íntegro)."""
     conteudo = pdf.gerar_pdf_proposta(_proposta(fonte="fns", id_externo="P"))

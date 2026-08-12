@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from decimal import Decimal
 
 from src.connectors.base import RawRecord
@@ -95,3 +96,44 @@ def test_valor_total_soma_custeio_e_investimento_das_especiais() -> None:
     )
     p = normalize(rec)
     assert p.valor_total == Decimal("1000501.00")
+
+
+def _record_csv(**plano) -> RawRecord:
+    """Linha do CSV do SIconv como o connector do disc entrega (de-para + bruta)."""
+    return RawRecord(
+        source_id="transferegov_disc",
+        id_externo="34530",
+        municipio_ibge="2304400",
+        raw={"plano_acao": plano, "modalidade": "Discricionária"},
+    )
+
+
+def test_nr_proposta_vem_da_linha_bruta_quando_o_de_para_nao_casa() -> None:
+    """Bug real: NR_PROPOSTA visível no registro-fonte e proposta 'sem número'.
+
+    O connector guarda a linha original em `csv` ao lado do de-para. Quando o
+    de-para não casa a coluna, o valor segue lá — e é de lá que ele tem de sair,
+    senão o painel exibe "sem número na fonte" com o número na própria tela.
+    """
+    p = normalize(
+        _record_csv(
+            nr_proposta=None,  # de-para não achou a coluna
+            numero="700123/2009",  # nº do CONVÊNIO — não é a referência da proposta
+            csv={"NR_PROPOSTA": "34530/2009", "DESC_ORGAO": "MINISTERIO DO TURISMO"},
+        )
+    )
+    assert p.numero_proposta == "34530/2009"
+    assert p.orgao_superior == "MINISTERIO DO TURISMO"  # mesma retaguarda
+
+
+def test_de_para_do_connector_vence_a_linha_bruta() -> None:
+    p = normalize(_record_csv(nr_proposta="999/2020", csv={"NR_PROPOSTA": "111/1999"}))
+    assert p.numero_proposta == "999/2020"
+
+
+def test_data_proposta_remontada_da_linha_bruta() -> None:
+    p = normalize(
+        _record_csv(csv={"NR_PROPOSTA": "34530/2009", "DIA_PROP": "3", "MES_PROP": "7",
+                         "ANO_PROP": "2009"})
+    )
+    assert p.data_proposta == date(2009, 7, 3)

@@ -9,34 +9,44 @@ Nenhuma consulta é feita "por fonte": o recorte é sempre o perfil.
 
 from __future__ import annotations
 
-from datetime import date
+from collections import Counter
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import ColumnElement, Select, func, select
+from sqlalchemy import ColumnElement, Select, and_, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..models.alerta import Alerta
+from ..models.audit_log import AuditLog
 from ..models.conformidade import Conformidade
+from ..models.favorito import Favorito
+from ..models.monitoramento import Monitoramento, MonitoramentoBusca
 from ..models.municipio_interesse import MunicipioInteresse
 from ..models.obra import Obra
+from ..models.pasta import Pasta
 from ..models.preferencias import PreferenciasUsuario
 from ..models.proposta import Proposta
 from ..models.repasse import Repasse
 from ..models.sync_run import SyncRun
 from ..models.usuario import Usuario
 from ..schemas.perfil import (
+    AnoDisponivel,
     DimensaoResumo,
     MunicipioPerfil,
     NovidadeItem,
     NovidadesPerfil,
     PerfilRead,
     PlanoPerfil,
+    QuebraDimensao,
+    ResetPerfilResultado,
     SyncRunStatus,
     VisaoGeralPerfil,
 )
 from . import fontes as fontes_service
 from . import modulos as modulos_service
 from . import plano_gates
+from . import propostas as propostas_service
 from ._territorio import Municipios
 from ._territorio import filtrar as filtrar_municipio
 
@@ -142,11 +152,108 @@ async def get_perfil(session: AsyncSession, usuario: Usuario) -> PerfilRead:
     )
 
 
+# Caches GLOBAIS recortados por município (§4): não pertencem ao usuário, são
+# só a cópia local do que a fonte publicou sobre o território dele. `propostas`
+# tem soft delete próprio; os demais só perdem o frescor.
+_CACHES_DO_TERRITORIO = (Repasse, Conformidade, Obra)
+
+
+async def zerar(session: AsyncSession, usuario: Usuario) -> ResetPerfilResultado:
+    """Zona de perigo: devolve a conta ao estado PRÉ-ONBOARDING.
+
+    Apaga o que é do usuário — território, preferências e toda a curadoria
+    (favoritos, pastas, monitoramentos, buscas monitoradas e alertas). Login,
+    dados da conta e agenda de contatos ficam: zerar o perfil não é excluir a
+    conta.
+
+    As propostas do território são zeradas por SOFT DELETE (`excluido_em`), e
+    os demais caches (repasses, conformidades, obras) perdem o frescor. Nada é
+    apagado do banco: o cache é global (§4) — outro usuário pode acompanhar o
+    mesmo município — e as FKs `ON DELETE CASCADE` ignoram RLS, então um DELETE
+    levaria junto o favorito, a pasta e o monitoramento DELE. Marcada, a linha
+    some do painel (os serviços de leitura filtram `excluido_em IS NULL`) e a
+    coleta seguinte a RESSUSCITA quando a fonte ainda a publica.
+    """
+    ibges = list(
+        (
+            await session.execute(
+                select(MunicipioInteresse.ibge).where(MunicipioInteresse.usuario_id == usuario.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    # ORDEM IMPORTA: o cache é zerado ENQUANTO o território ainda existe. Os
+    # UPDATEs têm WHERE, então leem linha — e leitura passa pela policy de
+    # SELECT, que só enxerga município em `municipios_interesse`. Apagando o
+    # território antes, nada seria encontrado e o cache ficaria fresco para
+    # sempre (a próxima coleta serviria dados velhos).
+    propostas_n = 0
+    invalidado = 0
+    if ibges:  # sem território não há o que zerar (e um IN vazio é perigoso)
+        result = await session.execute(
+            update(Proposta)
+            .where(Proposta.municipio_ibge.in_(ibges))
+            .values(excluido_em=datetime.now(UTC), cache_atualizado_em=None)
+        )
+        propostas_n = int(result.rowcount or 0)
+        for model in _CACHES_DO_TERRITORIO:
+            result = await session.execute(
+                update(model)
+                .where(model.municipio_ibge.in_(ibges))
+                .values(cache_atualizado_em=None)
+            )
+            invalidado += int(result.rowcount or 0)
+        # a memória de coleta em processo acompanha: senão a busca ao vivo
+        # pularia essas fontes por até 6h e o onboarding novo abriria vazio
+        from . import consulta_avulsa  # import tardio: consulta_avulsa usa AREA_FONTES
+
+        for ibge in ibges:
+            consulta_avulsa.esquecer_municipio(ibge)
+
+    async def _apagar(model: Any, coluna: ColumnElement[Any]) -> int:
+        # o RLS FOR ALL já escopa ao tenant da sessão; o filtro explícito é
+        # cinto-e-suspensório — numa operação destrutiva o alcance fica no SQL
+        result = await session.execute(delete(model).where(coluna == usuario.id))
+        return int(result.rowcount or 0)
+
+    alertas_n = await _apagar(Alerta, Alerta.usuario_id)
+    monitoramentos_n = await _apagar(Monitoramento, Monitoramento.usuario_id)
+    monitoramentos_n += await _apagar(MonitoramentoBusca, MonitoramentoBusca.usuario_id)
+    favoritos_n = await _apagar(Favorito, Favorito.usuario_id)
+    pastas_n = await _apagar(Pasta, Pasta.usuario_id)  # pasta_propostas cascateia
+    await _apagar(PreferenciasUsuario, PreferenciasUsuario.usuario_id)
+    municipios_n = await _apagar(MunicipioInteresse, MunicipioInteresse.usuario_id)
+
+    session.add(AuditLog(usuario_id=usuario.id, acao="zerar_perfil", entidade="perfil"))
+
+    return ResetPerfilResultado(
+        municipios=municipios_n,
+        propostas=propostas_n,
+        favoritos=favoritos_n,
+        pastas=pastas_n,
+        monitoramentos=monitoramentos_n,
+        alertas=alertas_n,
+        cache_invalidado=invalidado,
+    )
+
+
 async def visao_geral(
-    session: AsyncSession, usuario: Usuario, *, municipios_filtro: Municipios = None
+    session: AsyncSession,
+    usuario: Usuario,
+    *,
+    municipios_filtro: Municipios = None,
+    ano: str | None = None,
 ) -> VisaoGeralPerfil:
     """'Meu painel' por dimensão. `municipios_filtro` recorta o território para
-    os municípios que o usuário escolheu ver AGORA (subconjunto do onboarding)."""
+    os municípios que o usuário escolheu ver AGORA (subconjunto do onboarding).
+
+    `ano` recorta a safra nas dimensões que TÊM safra — captação (ano da
+    proposta) e recebidos (ano do repasse). Conformidade e obras são estado
+    ATUAL do município, não fluxo anual: continuam inteiras e se anunciam assim
+    (`recorte_ano=False`), em vez de fingir um recorte que não existe.
+    """
     pref = await _preferencias(session, usuario.id)
     municipios = await _municipios(session, municipios_filtro)
     # O Meu painel é INDEPENDENTE dos módulos (§40): os módulos ligam/desligam
@@ -165,48 +272,108 @@ async def visao_geral(
 
     dimensoes: list[DimensaoResumo] = []
 
-    def _dimensao(chave: str, titulo: str, total: int, destaque: str, href: str) -> None:
+    def _dimensao(
+        chave: str,
+        titulo: str,
+        total: int,
+        destaque: str,
+        href: str,
+        quebras: list[QuebraDimensao] | None = None,
+        recorte_ano: bool = True,
+    ) -> None:
         if not ativos.get(chave) and not total:
             return
+        ativo = bool(ativos.get(chave))
         dimensoes.append(
             DimensaoResumo(
                 chave=chave,
                 titulo=titulo,
                 total=total,
                 destaque=destaque,
-                href=href if ativos.get(chave) else None,
+                href=href if ativo else None,
+                # sem navegação (módulo desligado) a quebra não tem para onde ir
+                quebras=(quebras or []) if ativo else [],
+                recorte_ano=recorte_ano,
             )
         )
 
     # Captação (propostas) — RLS já restringe ao território do usuário.
-    prop_n, prop_valor = (
-        await session.execute(
-            _no_territorio(
-                select(
-                    func.count(Proposta.id),
-                    func.coalesce(func.sum(Proposta.valor_total), 0),
-                ),
-                Proposta.municipio_ibge,
+    # Com safra escolhida o recorte sai do SQL: `ano_de` é derivado (ANO_PROP no
+    # jsonb, data da proposta, nº da proposta), então quem sabe filtrar é o
+    # serviço de propostas — o MESMO critério da lista e do resumo da captação.
+    propostas: list[Proposta] = []
+    if ano:
+        propostas = await propostas_service.listar(session, municipio=municipios_filtro, ano=ano)
+        prop_n = len(propostas)
+        prop_valor = sum((p.valor_total or Decimal(0) for p in propostas), Decimal(0))
+    else:
+        prop_n, prop_valor = (
+            await session.execute(
+                _no_territorio(
+                    select(
+                        func.count(Proposta.id),
+                        func.coalesce(func.sum(Proposta.valor_total), 0),
+                    ).where(Proposta.excluido_em.is_(None)),  # zerada não conta
+                    Proposta.municipio_ibge,
+                )
             )
-        )
-    ).one()
+        ).one()
+    # Quebra por natureza jurídica do proponente — as duas lentes da captação.
+    # Derivada de jsonb/registro-fonte, então conta em Python (o recorte já é o
+    # território); só vale a pena quando há propostas.
+    quebras_captacao: list[QuebraDimensao] = []
+    if prop_n:
+        if not propostas:
+            propostas = list(
+                (
+                    await session.execute(
+                        _no_territorio(
+                            select(Proposta).where(Proposta.excluido_em.is_(None)),
+                            Proposta.municipio_ibge,
+                        )
+                    )
+                )
+                .scalars()
+                .all()
+            )
+        contagem = Counter(propostas_service.grupo_natureza_de(p) for p in propostas)
+        quebras_captacao = [
+            QuebraDimensao(
+                chave=slug,
+                rotulo=rotulo,
+                total=contagem.get(slug, 0),
+                # a safra viaja junto: o card e a lista da captação mostram o
+                # mesmo recorte quando o usuário clica na quebra
+                href=f"/panel/funding?natureza_grupo={slug}" + (f"&ano={ano}" if ano else ""),
+            )
+            for slug, rotulo in propostas_service.GRUPOS_NATUREZA
+        ]
+
     _dimensao(
         "captacao",
         "Captação",
         int(prop_n),
         f"{_brl(prop_valor)} em propostas" if prop_n else "sem propostas ainda",
-        "/panel/funding",
+        "/panel/funding" + (f"?ano={ano}" if ano else ""),
+        quebras_captacao,
     )
 
-    # Recebidos (repasses).
-    rep_n, rep_valor = (
-        await session.execute(
-            _no_territorio(
-                select(func.count(Repasse.id), func.coalesce(func.sum(Repasse.valor), 0)),
-                Repasse.municipio_ibge,
+    # Recebidos (repasses) — safra é o ano do pagamento (sem data, a competência).
+    stmt_rep = _no_territorio(
+        select(func.count(Repasse.id), func.coalesce(func.sum(Repasse.valor), 0)),
+        Repasse.municipio_ibge,
+    )
+    if ano:
+        stmt_rep = stmt_rep.where(
+            or_(
+                func.extract("year", Repasse.data_repasse) == int(ano),
+                and_(
+                    Repasse.data_repasse.is_(None),
+                    Repasse.competencia.like(f"{ano}%"),
+                ),
             )
         )
-    ).one()
+    rep_n, rep_valor = (await session.execute(stmt_rep)).one()
     _dimensao(
         "recebidos",
         "Recursos recebidos",
@@ -236,6 +403,9 @@ async def visao_geral(
             int(conf_n),
             f"{conf_pendentes} a comprovar" if conf_n else "sem dados fiscais ainda",
             "/panel/compliance",
+            # CAUC/CAPAG é a foto de HOJE do município, não um fluxo anual — a
+            # dimensão avisa que ignora a safra em vez de fingir o recorte
+            recorte_ano=False,
         )
 
     # Obras (execução) — destaque é o que está em andamento.
@@ -257,6 +427,9 @@ async def visao_geral(
             int(obras_n),
             f"{obras_exec} em execução" if obras_n else "sem obras ainda",
             "/panel/works",
+            # obra atravessa exercícios (começa num ano, executa noutro): o card
+            # mostra o estado atual da carteira, sem recorte por safra
+            recorte_ano=False,
         )
 
     return VisaoGeralPerfil(
@@ -277,25 +450,58 @@ def _fontes_do_perfil(pref: PreferenciasUsuario | None) -> set[str]:
     return fontes
 
 
+def _ano_do_repasse(r: Repasse) -> str | None:
+    """Safra do repasse: o ano do pagamento; sem data, o da competência."""
+    if r.data_repasse:
+        return str(r.data_repasse.year)
+    competencia = (r.competencia or "").strip()
+    if len(competencia) >= 4 and competencia[:4].isdigit():
+        return competencia[:4]
+    return None
+
+
+def _ordem_novidade(item: NovidadeItem) -> tuple[str, date]:
+    """Chave de ordenação do feed: safra decrescente e, dentro dela, a data.
+
+    Item sem safra definida (proposta sem nenhum sinal de criação na fonte) não
+    é jogado para o fim: entra pelo ano da data que temos dele — some da safra
+    dos filtros, não da ordem cronológica da lista.
+    """
+    ano = item.ano or (str(item.data.year) if item.data else "0000")
+    return (ano, item.data or date.min)
+
+
 async def novidades(
     session: AsyncSession,
     usuario: Usuario,
     *,
     limite: int = 20,
     municipios_filtro: Municipios = None,
+    ano: str | None = None,
 ) -> NovidadesPerfil:
     """Últimas novidades do território: propostas (captação) e verbas (recebidos).
 
     O RLS já recorta pelo(s) município(s) do usuário; aqui aplicamos o recorte
     do painel (`municipios_filtro` — quais dos municípios do perfil o usuário
     quer ver agora) e o recorte fino do perfil (fontes escolhidas + fontes das
-    áreas de interesse), intercalando os dois eixos por data, mais recente
+    áreas de interesse), intercalando os dois eixos por SAFRA, mais recente
     primeiro.
+
+    `ano` filtra pela safra do item — a mesma do resto do app (`ano_de` na
+    captação, ano do pagamento nos recebidos). O filtro é aplicado ANTES da
+    janela (`limite`): filtrar só o que coube na janela deixava anos anteriores
+    permanentemente vazios, porque a janela nunca alcançava esses itens. `anos`
+    volta sempre com o território inteiro, para o filtro não perder as opções
+    que ele mesmo escondeu.
     """
     pref = await _preferencias(session, usuario.id)
     fontes = _fontes_do_perfil(pref)
 
-    stmt_p = select(Proposta).order_by(Proposta.cache_atualizado_em.desc().nullslast())
+    stmt_p = (
+        select(Proposta)
+        .where(Proposta.excluido_em.is_(None))
+        .order_by(Proposta.data_proposta.desc().nullslast())
+    )
     stmt_r = select(Repasse).order_by(Repasse.data_repasse.desc().nullslast())
     stmt_p = filtrar_municipio(stmt_p, Proposta.municipio_ibge, municipios_filtro)
     stmt_r = filtrar_municipio(stmt_r, Repasse.municipio_ibge, municipios_filtro)
@@ -303,8 +509,26 @@ async def novidades(
         stmt_p = stmt_p.where(Proposta.fonte.in_(fontes))
         stmt_r = stmt_r.where(Repasse.fonte.in_(fontes))
 
-    propostas = (await session.execute(stmt_p.limit(limite))).scalars().all()
-    repasses = (await session.execute(stmt_r.limit(limite))).scalars().all()
+    # A safra da proposta é derivada (ANO_PROP no jsonb, data da proposta, nº)
+    # — o SQL não sabe fazer esse recorte, então o território vem inteiro e o
+    # filtro/contagem acontecem em Python (mesma disciplina de `propostas.
+    # listar`; o recorte já está limitado pelo RLS).
+    propostas = list((await session.execute(stmt_p)).scalars().all())
+    repasses = list((await session.execute(stmt_r)).scalars().all())
+
+    anos_conta: Counter[str] = Counter()
+    for p in propostas:
+        safra = propostas_service.ano_de(p)
+        if safra:
+            anos_conta[safra] += 1
+    for r in repasses:
+        safra = _ano_do_repasse(r)
+        if safra:
+            anos_conta[safra] += 1
+
+    if ano:
+        propostas = [p for p in propostas if propostas_service.ano_de(p) == ano]
+        repasses = [r for r in repasses if _ano_do_repasse(r) == ano]
 
     itens = [
         NovidadeItem(
@@ -312,16 +536,21 @@ async def novidades(
             titulo=p.titulo or p.objeto or f"Proposta {p.numero_proposta or p.id_externo}",
             descricao=p.situacao or p.movimentacao,
             valor=p.valor_total,
-            data=p.data_atualizacao_fonte
+            # a data da PROPOSTA (a mesma safra que a lista da captação mostra);
+            # sem ela, a última notícia que temos do item
+            data=p.data_proposta
+            or p.data_atualizacao_fonte
             or (p.cache_atualizado_em.date() if p.cache_atualizado_em else None),
+            ano=propostas_service.ano_de(p),
             fonte=p.fonte,
             municipio_ibge=p.municipio_ibge,
             municipio_nome=p.municipio_nome,
             # detalhe da proposta (antes ia pra lista da Captação e "sumia")
             href=f"/panel/funding/{p.id}",
             proposta_id=str(p.id),
+            numero_proposta=p.numero_proposta,
         )
-        for p in propostas
+        for p in propostas[:limite]
     ] + [
         NovidadeItem(
             tipo="recebido",
@@ -329,14 +558,15 @@ async def novidades(
             descricao=r.orgao_superior,
             valor=r.valor,
             data=r.data_repasse,
+            ano=_ano_do_repasse(r),
             fonte=r.fonte,
             municipio_ibge=r.municipio_ibge,
             municipio_nome=r.municipio_nome,
             href="/panel/transfers",
         )
-        for r in repasses
+        for r in repasses[:limite]
     ]
-    itens = sorted(itens, key=lambda i: i.data or date.min, reverse=True)[:limite]
+    itens = sorted(itens, key=_ordem_novidade, reverse=True)[:limite]
 
     # Estado honesto da coleta: últimas execuções por fonte deste usuário.
     runs = (
@@ -359,4 +589,11 @@ async def novidades(
         vistos.add(run.fonte or "")
         sync_runs.append(SyncRunStatus.model_validate(run))
 
-    return NovidadesPerfil(itens=itens, sync_runs=sync_runs)
+    return NovidadesPerfil(
+        itens=itens,
+        sync_runs=sync_runs,
+        anos=[
+            AnoDisponivel(ano=a, total=n)
+            for a, n in sorted(anos_conta.items(), key=lambda kv: kv[0], reverse=True)
+        ],
+    )

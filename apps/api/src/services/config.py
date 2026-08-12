@@ -97,6 +97,39 @@ CATALOGO: list[dict] = [
         "fonte",
         False,
     ),
+    # Enriquecimento da proposta pelo módulo `especiais` (emenda + parlamentar
+    # autor). A rota é DESCOBERTA no spec do módulo; estas chaves são o override
+    # manual para quando a descoberta não bastar (§27).
+    _c(
+        "especiais_base_url",
+        "TransfereGov Especiais — base da API pública (enriquecimento)",
+        "fonte",
+        False,
+    ),
+    _c(
+        "emendas_esp_endpoint",
+        "Emenda da proposta — rota no módulo especiais (autodescoberta se vazio)",
+        "fonte",
+        False,
+    ),
+    _c(
+        "empenhos_esp_endpoint",
+        "Empenhos da proposta — rota no módulo especiais (padrão: empenhos_especiais)",
+        "fonte",
+        False,
+    ),
+    _c(
+        "empenhos_esp_chave",
+        "Empenhos da proposta — parâmetro de filtro (padrão: numero_proposta)",
+        "fonte",
+        False,
+    ),
+    _c(
+        "emendas_esp_chave",
+        "Emenda da proposta — parâmetro de filtro da rota (ex.: id_plano_acao)",
+        "fonte",
+        False,
+    ),
     _c("transferegov_esp_base_url", "TransfereGov Especiais base URL", "fonte", False),
     _c(
         "transferegov_esp_endpoint",

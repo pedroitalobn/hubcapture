@@ -569,11 +569,6 @@ def _pendencias(p: Proposta) -> list[tuple[str, Any]]:
     return saida
 
 
-def _prazo_foco(p: Proposta) -> date | None:
-    datas = [d for d in (_data_iso(q) for _, q in _prazos(p)) if d]
-    return min(datas) if datas else None
-
-
 def _categorias(p: Proposta) -> list[str]:
     """Pílulas da curadoria; sem curadoria gravada, classifica na hora (como a API)."""
     from ..ai import categorias as categorias_ai
@@ -617,8 +612,9 @@ def _cabecalho(p: Proposta) -> list:
     territorio = rotulo_municipio(p.municipio_nome, p.uf, p.municipio_ibge)
     # Nº da proposta e data de criação são dado de cabeçalho: é por eles que o
     # gestor referencia a proposta e confere no portal da fonte.
-    numero = p.numero_proposta or p.id_externo
-    referencia = f"Proposta {numero}" if numero else ""
+    # sem NR_PROPOSTA não há referência: escrever "Proposta <id_externo>" daria
+    # ao gestor um número para citar no órgão que a fonte não reconhece.
+    referencia = f"Proposta {p.numero_proposta}" if p.numero_proposta else ""
     if p.data_proposta:
         referencia = f"{referencia} · de {_data(p.data_proposta)}".lstrip(" ·")
     meta = " · ".join(
@@ -646,16 +642,20 @@ def _cabecalho(p: Proposta) -> list:
 
 
 def _faixa_destaque(p: Proposta) -> Table:
-    """O topo da hierarquia: valor e prazo — o que decide se o gestor age hoje."""
-    prazo = _prazo_foco(p)
-    dias = _dias_ate(prazo)
-    tom = _tom_prazo(dias)
-    execucao = p.execucao or {}
-    empenhado = _dec(execucao.get("valor_empenhado")) or Decimal(0)
-    pago = _dec(execucao.get("valor_pago")) or Decimal(0)
-    a_utilizar = max(Decimal(0), empenhado - pago)
+    """O topo da hierarquia: valor total, EMPENHO e o ANO da proposta (a safra).
 
-    interno = MEIO - PAD_CARD  # largura útil de cada coluna do topo da faixa
+    O prazo de vencimento saiu daqui: vinha marcado errado com frequência (a
+    retaguarda de vigência não é prazo de proposta) e continua no card "Prazos",
+    onde é conferível item a item.
+
+    O espelho é o espelho da TELA: EMPENHO traz o valor global da proposta
+    (VL_GLOBAL_PROP na fonte), e o "Empenhado a utilizar" saiu daqui — era uma
+    conta derivada (empenhado − pago) que nas propostas dava zero e nada dizia.
+    """
+    from .propostas import ano_de, valor_global_de
+
+    # três colunas de peso igual no topo da faixa, com os gaps descontados
+    interno = (UTIL - 2 * PAD_CARD - 2 * GAP) / 3
     valor_col: list = [
         Paragraph("VALOR TOTAL", ROTULO),
         Spacer(1, 3),
@@ -664,26 +664,31 @@ def _faixa_destaque(p: Proposta) -> Table:
     if (_dec(p.contrapartida) or Decimal(0)) > 0:
         valor_col += [Spacer(1, 2), Paragraph(f"contrapartida {_brl(p.contrapartida)}", PEQUENO)]
 
-    prazo_col: list = [
-        Paragraph("PRAZO VENCIDO" if (dias or 0) < 0 else "PRÓXIMO PRAZO", ROTULO),
+    # EMPENHO: o valor global que a fonte publica para a proposta
+    empenho_col: list = [
+        Paragraph("EMPENHO", ROTULO),
         Spacer(1, 3),
+        Paragraph(_brl(valor_global_de(p)), VALOR_HERO),
+        Spacer(1, 2),
+        Paragraph("valor global da proposta na fonte", PEQUENO),
+    ]
+
+    # ANO_PROP na fonte — a mesma safra que o filtro de ano usa
+    ano = ano_de(p)
+    ano_col: list = [
+        Paragraph("ANO DA PROPOSTA", ROTULO),
+        Spacer(1, 3),
+        Paragraph(ano or "—", _estilo("hero_ano", parent=VALOR_HERO, textColor=INK)),
+        Spacer(1, 2),
         Paragraph(
-            _data(prazo),
-            _estilo("hero_prazo", parent=VALOR_HERO, textColor=TONS[tom][0] if tom else INK),
+            f"criada em {_data(p.data_proposta)}" if p.data_proposta else "ano de criação na fonte",
+            PEQUENO,
         ),
     ]
-    if prazo:
-        prazo_col += [
-            Spacer(1, 2),
-            Paragraph(
-                _prazo_label(dias),
-                _estilo("prazo_nota", parent=PEQUENO, textColor=TONS[tom][0] if tom else INK_3),
-            ),
-        ]
 
     topo = Table(
-        [[valor_col, prazo_col]],
-        colWidths=[interno, interno],
+        [[valor_col, empenho_col, ano_col]],
+        colWidths=[interno, interno, interno],
         style=TableStyle(
             [
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -705,11 +710,6 @@ def _faixa_destaque(p: Proposta) -> Table:
             tom="ok" if pendentes == 0 else "warn",
         ),
     ]
-    if p.execucao:
-        campos.insert(
-            1,
-            _campo("Empenhado a utilizar", _brl(a_utilizar), tom="ok" if a_utilizar > 0 else None),
-        )
 
     conteudo = [
         topo,
@@ -730,9 +730,6 @@ def _bloco_execucao(p: Proposta) -> list:
         "liberado": _dec(e.get("valor_liberado")),
         "pago": _dec(e.get("valor_pago")),
     }
-    a_utilizar = max(
-        Decimal(0), (valores["empenhado"] or Decimal(0)) - (valores["pago"] or Decimal(0))
-    )
     interno = UTIL - 2 * PAD_CARD
     conteudo: list = [
         BarraExecucao(interno, valores),
@@ -755,12 +752,6 @@ def _bloco_execucao(p: Proposta) -> list:
                 _campo("Liberado", _brl(valores["liberado"])),
                 _campo("Pago", _brl(valores["pago"])),
                 _campo("Saldo em conta", _brl(e.get("saldo_conta"))),
-                _campo(
-                    "Empenhado a utilizar",
-                    _brl(a_utilizar),
-                    tom="ok" if a_utilizar > 0 else None,
-                    grande=True,
-                ),
             ],
             interno,
         ),
@@ -798,7 +789,11 @@ def _bloco_dados_gerais(p: Proposta) -> Table:
         _campo("Órgão superior", _t(p.orgao_superior)),
         _campo("Modalidade", _t(p.modalidade)),
         _campo("Emenda", _t(p.emenda)),
-        _campo("Nº da proposta", _t(p.numero_proposta or p.id_externo)),
+        # SÓ o NR_PROPOSTA: cair para `id_externo` rotulava o identificador da
+        # integração como "nº da proposta" — número que não existe no portal da
+        # fonte, num documento feito para ser levado ao órgão. O id da fonte já
+        # tem o campo próprio na linha seguinte.
+        _campo("Nº da proposta", _t(p.numero_proposta)),
         _campo("Identificador na fonte", escape(str(p.id_externo or "—"))),
         _campo("Fonte", escape(_fonte_rotulo(p))),
         _campo("Criada na fonte", _data(p.data_proposta)),

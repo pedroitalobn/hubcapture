@@ -57,6 +57,37 @@ class PerfilRead(BaseModel):
     plano: PlanoPerfil | None = None  # None = sem plano atribuído (sem restrição)
 
 
+class ResetPerfilResultado(BaseModel):
+    """O que a zeragem do perfil apagou — e o que ela só marcou/invalidou.
+
+    Nada de cache global sai do banco (ver `services/perfil.zerar`):
+    `propostas` conta as propostas do território marcadas como excluídas (soft
+    delete — somem do painel e a coleta seguinte as ressuscita) e
+    `cache_invalidado`, as linhas de repasses/conformidades/obras que voltaram
+    a ser "velhas" e serão recoletadas.
+    """
+
+    municipios: int = 0
+    propostas: int = 0
+    favoritos: int = 0
+    pastas: int = 0
+    monitoramentos: int = 0
+    alertas: int = 0
+    cache_invalidado: int = 0
+
+
+class QuebraDimensao(BaseModel):
+    """Recorte rápido dentro de uma dimensão (ex.: propostas por natureza).
+
+    É uma lente sobre o próprio território — não uma aba por fonte de dados.
+    """
+
+    chave: str  # ex.: 'entes_municipais' | 'outros'
+    rotulo: str  # ex.: 'Entes municipais'
+    total: int = 0
+    href: str  # rota web já filtrada
+
+
 class DimensaoResumo(BaseModel):
     """Um eixo do ciclo (captação/recebidos/conformidade/obras) para o perfil."""
 
@@ -67,6 +98,12 @@ class DimensaoResumo(BaseModel):
     # rota web da dimensão; None = módulo de exploração desligado — o card
     # informa o número do território sem navegar (§40)
     href: str | None = None
+    # recortes dentro da dimensão (vazio quando não há navegação)
+    quebras: list[QuebraDimensao] = []
+    # a dimensão responde ao filtro de ano do painel? Captação (safra da
+    # proposta) e recebidos (ano do pagamento) respondem; conformidade e obras
+    # são estado ATUAL do município — o card diz isso em vez de fingir recorte.
+    recorte_ano: bool = True
 
 
 class VisaoGeralPerfil(BaseModel):
@@ -86,12 +123,20 @@ class NovidadeItem(BaseModel):
     descricao: str | None = None
     valor: Decimal | None = None
     data: date | None = None
+    # Safra do item — o MESMO critério do resto do app (`propostas.ano_de` na
+    # captação, ano do repasse nos recebidos). É por ele que o painel filtra e
+    # ordena: a data de COLETA classificaria uma proposta de 2019 como novidade
+    # do ano corrente.
+    ano: str | None = None
     fonte: str
     municipio_ibge: str | None = None
     municipio_nome: str | None = None
     href: str
     # id da proposta (só p/ tipo 'captacao') — permite favoritar direto do painel
     proposta_id: str | None = None
+    # NR_PROPOSTA: a referência que o gestor procura no feed (§35). Não
+    # confundir com `proposta_id` (UUID interno, que nunca aparece na tela).
+    numero_proposta: str | None = None
 
 
 class SyncRunStatus(BaseModel):
@@ -104,8 +149,22 @@ class SyncRunStatus(BaseModel):
     finalizado_em: datetime | None = None
 
 
+class AnoDisponivel(BaseModel):
+    """Uma safra com novidade no território — alimenta o filtro de ano do painel.
+
+    Vem SEMPRE do território inteiro (ignora o ano já escolhido): senão, ao
+    filtrar 2024 o próprio filtro perderia as outras opções e o usuário ficaria
+    preso na safra que escolheu.
+    """
+
+    ano: str
+    total: int = 0
+
+
 class NovidadesPerfil(BaseModel):
     """Feed 'últimas novidades' do Meu painel, recortado pelo perfil (RLS)."""
 
     itens: list[NovidadeItem] = []
     sync_runs: list[SyncRunStatus] = []
+    # anos com novidade, do mais recente para o mais antigo
+    anos: list[AnoDisponivel] = []

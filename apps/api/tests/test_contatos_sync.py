@@ -87,9 +87,7 @@ def _canon(nome: str = "Ana", **kwargs) -> ContatoCanonico:
     return ContatoCanonico(nome=nome, **kwargs)
 
 
-async def _seed_integracao(
-    usuario_id: uuid.UUID, direcao: str = "bidirecional"
-) -> uuid.UUID:
+async def _seed_integracao(usuario_id: uuid.UUID, direcao: str = "bidirecional") -> uuid.UUID:
     ident = uuid.uuid4()
     async with _owner_engine.begin() as conn:
         # FORCE RLS: até o owner precisa do tenant setado para o WITH CHECK
@@ -381,9 +379,7 @@ async def test_falha_do_provedor_marca_status_e_registra_sync_run(seed_user) -> 
         assert integracao.ultimo_erro
 
     async with _owner_engine.begin() as conn:
-        linhas = (
-            await conn.execute(text("SELECT fonte, status FROM sync_runs"))
-        ).fetchall()
+        linhas = (await conn.execute(text("SELECT fonte, status FROM sync_runs"))).fetchall()
     assert ("contatos_fake", "erro") in [(f, s) for f, s in linhas]
 
 

@@ -282,6 +282,91 @@
         "title": "AlertaRead",
         "type": "object"
       },
+      "AndamentoColeta": {
+        "description": "Estado honesto de cada fonte que alimenta a linha do tempo.",
+        "properties": {
+          "emendas": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EmendaColeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "empenhos": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EmpenhoColeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pareceres": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ParecerColeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "AndamentoColeta",
+        "type": "object"
+      },
+      "AndamentoPagina": {
+        "properties": {
+          "coleta": {
+            "$ref": "#/components/schemas/AndamentoColeta",
+            "default": {}
+          },
+          "itens": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EventoAndamento"
+            },
+            "title": "Itens",
+            "type": "array"
+          },
+          "numero_plano_trabalho": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Plano Trabalho"
+          }
+        },
+        "title": "AndamentoPagina",
+        "type": "object"
+      },
+      "AnoDisponivel": {
+        "description": "Uma safra com novidade no território — alimenta o filtro de ano do painel.\n\nVem SEMPRE do território inteiro (ignora o ano já escolhido): senão, ao\nfiltrar 2024 o próprio filtro perderia as outras opções e o usuário ficaria\npreso na safra que escolheu.",
+        "properties": {
+          "ano": {
+            "title": "Ano",
+            "type": "string"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ano"
+        ],
+        "title": "AnoDisponivel",
+        "type": "object"
+      },
       "AssessoriaContatosSet": {
         "properties": {
           "contatos": {
@@ -2031,8 +2116,28 @@
             "title": "Destaque"
           },
           "href": {
-            "title": "Href",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Href"
+          },
+          "quebras": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/QuebraDimensao"
+            },
+            "title": "Quebras",
+            "type": "array"
+          },
+          "recorte_ano": {
+            "default": true,
+            "title": "Recorte Ano",
+            "type": "boolean"
           },
           "titulo": {
             "title": "Titulo",
@@ -2046,8 +2151,7 @@
         },
         "required": [
           "chave",
-          "titulo",
-          "href"
+          "titulo"
         ],
         "title": "DimensaoResumo",
         "type": "object"
@@ -2110,6 +2214,47 @@
           "detalhe"
         ],
         "title": "EmailTesteOut",
+        "type": "object"
+      },
+      "EmendaColeta": {
+        "description": "Estado honesto da coleta — \"não tem emenda\" ≠ \"não consegui consultar\".\n\n`origem` distingue de onde veio o que está na tela: `fonte` (rota do módulo\nconsultada agora), `registro_fonte` (o que o próprio plano de ação já\ntrazia) ou `cache`.",
+        "properties": {
+          "erro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erro"
+          },
+          "origem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origem"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "EmendaColeta",
         "type": "object"
       },
       "EmendaItem": {
@@ -2271,6 +2416,673 @@
         "title": "EmendaItem",
         "type": "object"
       },
+      "EmendaPagina": {
+        "properties": {
+          "coleta": {
+            "$ref": "#/components/schemas/EmendaColeta"
+          },
+          "itens": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EmendaRead"
+            },
+            "title": "Itens",
+            "type": "array"
+          }
+        },
+        "required": [
+          "coleta"
+        ],
+        "title": "EmendaPagina",
+        "type": "object"
+      },
+      "EmendaRead": {
+        "properties": {
+          "ano": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ano"
+          },
+          "cache_atualizado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Atualizado Em"
+          },
+          "cargo_parlamentar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cargo Parlamentar"
+          },
+          "codigo_emenda": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Codigo Emenda"
+          },
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          },
+          "funcao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Funcao"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "id_externo": {
+            "title": "Id Externo",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Ibge"
+          },
+          "municipio_nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Nome"
+          },
+          "numero_emenda": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Emenda"
+          },
+          "numero_plano_acao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Plano Acao"
+          },
+          "numero_proposta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Proposta"
+          },
+          "parlamentar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parlamentar"
+          },
+          "partido": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partido"
+          },
+          "situacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Situacao"
+          },
+          "tipo_emenda": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo Emenda"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          },
+          "uf_parlamentar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf Parlamentar"
+          },
+          "url_origem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url Origem"
+          },
+          "valor": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor"
+          },
+          "valor_empenhado": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Empenhado"
+          },
+          "valor_pago": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Pago"
+          }
+        },
+        "required": [
+          "id",
+          "fonte",
+          "id_externo"
+        ],
+        "title": "EmendaRead",
+        "type": "object"
+      },
+      "EmpenhoColeta": {
+        "description": "Estado honesto da coleta — \"sem empenho\" ≠ \"não consegui consultar\".",
+        "properties": {
+          "erro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erro"
+          },
+          "origem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origem"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "EmpenhoColeta",
+        "type": "object"
+      },
+      "EmpenhoPagina": {
+        "properties": {
+          "coleta": {
+            "$ref": "#/components/schemas/EmpenhoColeta"
+          },
+          "itens": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EmpenhoRead"
+            },
+            "title": "Itens",
+            "type": "array"
+          },
+          "resumo": {
+            "$ref": "#/components/schemas/EmpenhoResumo",
+            "default": {
+              "total": 0,
+              "valor_a_utilizar": "0",
+              "valor_anulado": "0",
+              "valor_empenhado": "0",
+              "valor_liquidado": "0",
+              "valor_pago": "0"
+            }
+          }
+        },
+        "required": [
+          "coleta"
+        ],
+        "title": "EmpenhoPagina",
+        "type": "object"
+      },
+      "EmpenhoRead": {
+        "properties": {
+          "ano": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ano"
+          },
+          "cache_atualizado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Atualizado Em"
+          },
+          "data_empenho": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Empenho"
+          },
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          },
+          "fonte_recurso": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fonte Recurso"
+          },
+          "gestao_emitente": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gestao Emitente"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "id_externo": {
+            "title": "Id Externo",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Ibge"
+          },
+          "municipio_nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Nome"
+          },
+          "natureza_despesa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Natureza Despesa"
+          },
+          "numero_empenho": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Empenho"
+          },
+          "numero_plano_acao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Plano Acao"
+          },
+          "numero_proposta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Proposta"
+          },
+          "observacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observacao"
+          },
+          "programa_trabalho": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Programa Trabalho"
+          },
+          "situacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Situacao"
+          },
+          "tipo_empenho": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo Empenho"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          },
+          "ug_emitente": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ug Emitente"
+          },
+          "valor_anulado": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Anulado"
+          },
+          "valor_empenhado": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Empenhado"
+          },
+          "valor_liquidado": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Liquidado"
+          },
+          "valor_pago": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Pago"
+          }
+        },
+        "required": [
+          "id",
+          "fonte",
+          "id_externo"
+        ],
+        "title": "EmpenhoRead",
+        "type": "object"
+      },
+      "EmpenhoResumo": {
+        "description": "Os totais — é o que a faixa de destaque da proposta mostra.\n\n`valor_empenhado` já vem LÍQUIDO das anulações: um empenho anulado que\ncontinuasse somando diria ao gestor que há recurso onde não há.",
+        "properties": {
+          "primeiro_empenho": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primeiro Empenho"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "ultimo_empenho": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ultimo Empenho"
+          },
+          "valor_a_utilizar": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor A Utilizar",
+            "type": "string"
+          },
+          "valor_anulado": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Anulado",
+            "type": "string"
+          },
+          "valor_empenhado": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Empenhado",
+            "type": "string"
+          },
+          "valor_liquidado": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Liquidado",
+            "type": "string"
+          },
+          "valor_pago": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Pago",
+            "type": "string"
+          }
+        },
+        "title": "EmpenhoResumo",
+        "type": "object"
+      },
       "ErrorModel": {
         "properties": {
           "detail": {
@@ -2292,6 +3104,103 @@
           "detail"
         ],
         "title": "ErrorModel",
+        "type": "object"
+      },
+      "EventoAndamento": {
+        "description": "Um fato datado da tramitação.\n\n`futuro` separa o que JÁ aconteceu do que ainda vai vencer: os dois entram\nna mesma linha do tempo, mas um prazo à frente é compromisso, não histórico.",
+        "properties": {
+          "ator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ator"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "detalhe": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detalhe"
+          },
+          "futuro": {
+            "default": false,
+            "title": "Futuro",
+            "type": "boolean"
+          },
+          "texto": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Texto"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          },
+          "tom": {
+            "default": "neutral",
+            "title": "Tom",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "valor": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor"
+          }
+        },
+        "required": [
+          "tipo",
+          "titulo"
+        ],
+        "title": "EventoAndamento",
         "type": "object"
       },
       "FacetaOpcao": {
@@ -4286,6 +5195,17 @@
       "NovidadeItem": {
         "description": "Uma novidade do território — proposta/verba recém-atualizada no cache.",
         "properties": {
+          "ano": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ano"
+          },
           "data": {
             "anyOf": [
               {
@@ -4339,6 +5259,17 @@
             ],
             "title": "Municipio Nome"
           },
+          "numero_proposta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Proposta"
+          },
           "proposta_id": {
             "anyOf": [
               {
@@ -4383,6 +5314,14 @@
       "NovidadesPerfil": {
         "description": "Feed 'últimas novidades' do Meu painel, recortado pelo perfil (RLS).",
         "properties": {
+          "anos": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AnoDisponivel"
+            },
+            "title": "Anos",
+            "type": "array"
+          },
           "itens": {
             "default": [],
             "items": {
@@ -5751,6 +6690,19 @@
       "PropostaRead": {
         "description": "Representação da proposta devolvida pela API.",
         "properties": {
+          "ano": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ano de CRIAÇÃO da proposta (ANO_PROP na fonte) — o que o cabeçalho\nmostra e o filtro de ano usa como safra.",
+            "readOnly": true,
+            "title": "Ano"
+          },
           "cache_atualizado_em": {
             "anyOf": [
               {
@@ -6095,6 +7047,20 @@
             ],
             "title": "Url Origem"
           },
+          "valor_global": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Valor global da proposta (VL_GLOBAL_PROP na fonte) — o que o card\n\"Empenho\" do detalhe mostra.",
+            "readOnly": true,
+            "title": "Valor Global"
+          },
           "valor_total": {
             "anyOf": [
               {
@@ -6115,6 +7081,8 @@
           "categorias",
           "tipo",
           "natureza_juridica",
+          "ano",
+          "valor_global",
           "prazo_final",
           "dias_restantes"
         ],
@@ -6300,6 +7268,35 @@
           "disponivel"
         ],
         "title": "ProvedorInfo",
+        "type": "object"
+      },
+      "QuebraDimensao": {
+        "description": "Recorte rápido dentro de uma dimensão (ex.: propostas por natureza).\n\nÉ uma lente sobre o próprio território — não uma aba por fonte de dados.",
+        "properties": {
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "href": {
+            "title": "Href",
+            "type": "string"
+          },
+          "rotulo": {
+            "title": "Rotulo",
+            "type": "string"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chave",
+          "rotulo",
+          "href"
+        ],
+        "title": "QuebraDimensao",
         "type": "object"
       },
       "RankingParlamentar": {
@@ -6554,6 +7551,48 @@
           "itens"
         ],
         "title": "RepassesPorDia",
+        "type": "object"
+      },
+      "ResetPerfilResultado": {
+        "description": "O que a zeragem do perfil apagou — e o que ela só marcou/invalidou.\n\nNada de cache global sai do banco (ver `services/perfil.zerar`):\n`propostas` conta as propostas do território marcadas como excluídas (soft\ndelete — somem do painel e a coleta seguinte as ressuscita) e\n`cache_invalidado`, as linhas de repasses/conformidades/obras que voltaram\na ser \"velhas\" e serão recoletadas.",
+        "properties": {
+          "alertas": {
+            "default": 0,
+            "title": "Alertas",
+            "type": "integer"
+          },
+          "cache_invalidado": {
+            "default": 0,
+            "title": "Cache Invalidado",
+            "type": "integer"
+          },
+          "favoritos": {
+            "default": 0,
+            "title": "Favoritos",
+            "type": "integer"
+          },
+          "monitoramentos": {
+            "default": 0,
+            "title": "Monitoramentos",
+            "type": "integer"
+          },
+          "municipios": {
+            "default": 0,
+            "title": "Municipios",
+            "type": "integer"
+          },
+          "pastas": {
+            "default": 0,
+            "title": "Pastas",
+            "type": "integer"
+          },
+          "propostas": {
+            "default": 0,
+            "title": "Propostas",
+            "type": "integer"
+          }
+        },
+        "title": "ResetPerfilResultado",
         "type": "object"
       },
       "ResultadoLimpeza": {
@@ -9300,7 +10339,7 @@
     },
     "/api/v1/admin/proposals": {
       "delete": {
-        "description": "Zera TODAS as propostas do sistema (uso: validação — recomeçar a coleta do\nzero). As FKs são ON DELETE CASCADE, então favoritos, pastas, monitoramentos,\nalertas e embeddings ligados às propostas somem junto. Só superuser.",
+        "description": "Zera TODAS as propostas do sistema (uso: validação — recomeçar a coleta\ndo zero). É SOFT DELETE: marca `excluido_em`, não apaga a linha. Assim o\ncascade das FKs não dispara e favoritos, pastas, monitoramentos e alertas\ndos usuários sobrevivem — e dá para desfazer. Só superuser.",
         "operationId": "zerar_propostas_api_v1_admin_proposals_delete",
         "responses": {
           "200": {
@@ -9320,6 +10359,33 @@
           }
         ],
         "summary": "Zerar Propostas",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/proposals/restore": {
+      "post": {
+        "description": "Desfaz a zeragem: as propostas marcadas voltam ao painel.\n\nÉ o que o soft delete compra — o dado nunca saiu do banco. Alcança TODAS as\nmarcadas (inclusive as de uma zeragem de perfil), porque a sessão de\nplataforma não consegue distinguir território de ninguém sob RLS.",
+        "operationId": "restaurar_propostas_api_v1_admin_proposals_restore_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoLimpeza"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Restaurar Propostas",
         "tags": [
           "admin"
         ]
@@ -12540,6 +13606,31 @@
       }
     },
     "/api/v1/profile": {
+      "delete": {
+        "description": "Zona de perigo da conta: volta ao estado pré-onboarding.\n\nApaga território, preferências e curadoria do PRÓPRIO usuário (o RLS não\ndeixa alcançar outro tenant) e invalida o cache do território para a\npróxima coleta recomeçar do zero. A conta continua existindo — o usuário\ncai no onboarding de novo.",
+        "operationId": "zerar_perfil_api_v1_profile_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetPerfilResultado"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Zerar Perfil",
+        "tags": [
+          "perfil"
+        ]
+      },
       "get": {
         "operationId": "get_perfil_api_v1_profile_get",
         "responses": {
@@ -12567,7 +13658,7 @@
     },
     "/api/v1/profile/feed": {
       "get": {
-        "description": "Feed 'últimas novidades' do território, recortado pelo perfil do usuário.\n\n`limite` controla a profundidade da janela: o painel pede mais que o padrão\npara o filtro por ano alcançar itens de anos anteriores ao corrente.",
+        "description": "Feed 'últimas novidades' do território, recortado pelo perfil do usuário.\n\n`limite` controla a profundidade da janela e `ano`, a safra: o filtro entra\nANTES da janela, então escolher um ano anterior traz os itens daquele ano —\nnão só os que sobraram das novidades mais recentes.",
         "operationId": "novidades_perfil_api_v1_profile_feed_get",
         "parameters": [
           {
@@ -12603,6 +13694,25 @@
               "minimum": 1,
               "title": "Limite",
               "type": "integer"
+            }
+          },
+          {
+            "description": "safra (ano) do recorte; omitir = todos os anos",
+            "in": "query",
+            "name": "ano",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "safra (ano) do recorte; omitir = todos os anos",
+              "title": "Ano"
             }
           }
         ],
@@ -12662,6 +13772,25 @@
               ],
               "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
+            }
+          },
+          {
+            "description": "safra (ano) do recorte; omitir = todos os anos",
+            "in": "query",
+            "name": "ano",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "safra (ano) do recorte; omitir = todos os anos",
+              "title": "Ano"
             }
           }
         ],
@@ -12846,6 +13975,25 @@
               ],
               "description": "municipal | estadual_df | consorcio | empresa_publica | osc",
               "title": "Natureza Juridica"
+            }
+          },
+          {
+            "description": "lente da natureza jurídica: entes_municipais | outros",
+            "in": "query",
+            "name": "natureza_grupo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(entes_municipais|outros)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "lente da natureza jurídica: entes_municipais | outros",
+              "title": "Natureza Grupo"
             }
           },
           {
@@ -13310,6 +14458,25 @@
             }
           },
           {
+            "description": "lente da natureza jurídica: entes_municipais | outros",
+            "in": "query",
+            "name": "natureza_grupo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(entes_municipais|outros)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "lente da natureza jurídica: entes_municipais | outros",
+              "title": "Natureza Grupo"
+            }
+          },
+          {
             "description": "tipo de transferência",
             "in": "query",
             "name": "qualificacao",
@@ -13689,6 +14856,25 @@
             }
           },
           {
+            "description": "lente da natureza jurídica: entes_municipais | outros",
+            "in": "query",
+            "name": "natureza_grupo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(entes_municipais|outros)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "lente da natureza jurídica: entes_municipais | outros",
+              "title": "Natureza Grupo"
+            }
+          },
+          {
             "description": "tipo de transferência",
             "in": "query",
             "name": "qualificacao",
@@ -14039,6 +15225,25 @@
             }
           },
           {
+            "description": "lente da natureza jurídica: entes_municipais | outros",
+            "in": "query",
+            "name": "natureza_grupo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(entes_municipais|outros)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "lente da natureza jurídica: entes_municipais | outros",
+              "title": "Natureza Grupo"
+            }
+          },
+          {
             "description": "tipo de transferência",
             "in": "query",
             "name": "qualificacao",
@@ -14269,6 +15474,128 @@
         ]
       }
     },
+    "/api/v1/proposals/{proposta_id}/amendments": {
+      "get": {
+        "description": "Qual emenda banca esta proposta e quem é o parlamentar autor.",
+        "operationId": "emendas_da_proposta_api_v1_proposals__proposta_id__amendments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposta Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "forçar coleta na fonte",
+            "in": "query",
+            "name": "atualizar",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "forçar coleta na fonte",
+              "title": "Atualizar",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmendaPagina"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Emendas Da Proposta",
+        "tags": [
+          "andamento"
+        ]
+      }
+    },
+    "/api/v1/proposals/{proposta_id}/commitments": {
+      "get": {
+        "description": "Empenhos da proposta e os totais — o recurso saiu do papel ou não.",
+        "operationId": "empenhos_da_proposta_api_v1_proposals__proposta_id__commitments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposta Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "forçar coleta na fonte",
+            "in": "query",
+            "name": "atualizar",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "forçar coleta na fonte",
+              "title": "Atualizar",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmpenhoPagina"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Empenhos Da Proposta",
+        "tags": [
+          "andamento"
+        ]
+      }
+    },
     "/api/v1/proposals/{proposta_id}/opinions": {
       "get": {
         "description": "Pareceres do plano de trabalho vinculado à proposta.",
@@ -14386,6 +15713,67 @@
         "summary": "Exportar Pdf",
         "tags": [
           "propostas"
+        ]
+      }
+    },
+    "/api/v1/proposals/{proposta_id}/timeline": {
+      "get": {
+        "description": "Tramitação em ordem cronológica: pareceres, vigência, prazos e pendências.",
+        "operationId": "timeline_da_proposta_api_v1_proposals__proposta_id__timeline_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposta Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "forçar coleta na fonte",
+            "in": "query",
+            "name": "atualizar",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "forçar coleta na fonte",
+              "title": "Atualizar",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AndamentoPagina"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Timeline Da Proposta",
+        "tags": [
+          "andamento"
         ]
       }
     },

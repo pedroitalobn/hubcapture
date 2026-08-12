@@ -15,9 +15,7 @@ from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
 # Módulo desligável pelo painel admin: desativado → todo o eixo responde 404.
-router = APIRouter(
-    tags=["conformidade"], dependencies=[Depends(require_modulo("conformidade"))]
-)
+router = APIRouter(tags=["conformidade"], dependencies=[Depends(require_modulo("conformidade"))])
 
 
 class SyncConformidadeRequest(BaseModel):

@@ -76,9 +76,7 @@ async def sincronizar(
         resultado.status = "erro"
         resultado.erro = f"{type(exc).__name__}: {exc}"[:MAX_ERRO]
         integracao.status = (
-            "expirada"
-            if isinstance(exc, ProvedorClientError) and exc.auth_expirada
-            else "erro"
+            "expirada" if isinstance(exc, ProvedorClientError) and exc.auth_expirada else "erro"
         )
         integracao.ultimo_erro = resultado.erro
     finally:
@@ -112,13 +110,9 @@ async def sincronizar_todas(
         if not integracao.ativo:
             continue
         saida.append(
-            await sincronizar(
-                session, usuario_id=usuario_id, integracao=integracao, tipo=tipo
-            )
+            await sincronizar(session, usuario_id=usuario_id, integracao=integracao, tipo=tipo)
         )
-    session.add(
-        AuditLog(usuario_id=usuario_id, acao="sync_contatos", entidade=str(len(saida)))
-    )
+    session.add(AuditLog(usuario_id=usuario_id, acao="sync_contatos", entidade=str(len(saida))))
     return saida
 
 
@@ -232,9 +226,7 @@ async def _exportar(
 ) -> None:
     vinculos = await _vinculos_por_contato(session, integracao.id)
     contatos = list(
-        (await session.execute(select(Contato).order_by(Contato.created_at)))
-        .scalars()
-        .all()
+        (await session.execute(select(Contato).order_by(Contato.created_at))).scalars().all()
     )
 
     for contato in contatos:
@@ -261,9 +253,7 @@ async def _exportar(
             )
             resultado.exportados += 1
         elif contato.hash_conteudo != vinculo.hash_sincronizado:
-            externo = await provedor.atualizar(
-                cred, vinculo.id_externo, vinculo.etag, canonico
-            )
+            externo = await provedor.atualizar(cred, vinculo.id_externo, vinculo.etag, canonico)
             if externo.id_externo:
                 vinculo.id_externo = externo.id_externo
             vinculo.etag = externo.etag or vinculo.etag
@@ -276,9 +266,7 @@ async def _exportar(
 # ── consultas auxiliares ─────────────────────────────────────────────────────
 
 
-async def _vinculos(
-    session: AsyncSession, integracao_id: uuid.UUID
-) -> list[ContatoVinculo]:
+async def _vinculos(session: AsyncSession, integracao_id: uuid.UUID) -> list[ContatoVinculo]:
     stmt = select(ContatoVinculo).where(ContatoVinculo.integracao_id == integracao_id)
     return list((await session.execute(stmt)).scalars().all())
 

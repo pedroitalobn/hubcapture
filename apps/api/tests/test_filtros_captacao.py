@@ -45,6 +45,96 @@ def test_ano_de_prefere_criacao_a_atualizacao() -> None:
     assert prop_service.ano_de(p) is None
 
 
+def test_ano_de_prefere_ano_prop_do_registro_fonte() -> None:
+    """ANO_PROP (SIconv) é a variável oficial da safra — vence até a
+    `data_proposta` ingerida (que pode ter vindo de retaguarda errada), e é
+    achada no registro-fonte em qualquer nível/caixa (plano_acao.csv)."""
+    from src.models.proposta import Proposta
+
+    p = Proposta(
+        data_proposta=date(2026, 1, 5),
+        dados_fonte={"plano_acao": {"csv": {"ANO_PROP": "2024"}}},
+    )
+    assert prop_service.ano_de(p) == "2024"
+
+    # ANO_PROP lixo não vira safra — cai para a data de criação
+    p = Proposta(data_proposta=date(2022, 3, 1), dados_fonte={"ANO_PROP": "lixo"})
+    assert prop_service.ano_de(p) == "2022"
+
+
+def test_proposta_read_expoe_o_ano_para_o_cabecalho() -> None:
+    """O cabeçalho do painel lê `ano` da API — não recalcula a safra no front."""
+    import uuid
+
+    from src.models.proposta import Proposta
+    from src.schemas.proposta import PropostaRead
+
+    p = Proposta(
+        id=uuid.uuid4(),
+        fonte="transferegov_disc",
+        id_externo="X1",
+        dados_fonte={"plano_acao": {"csv": {"ANO_PROP": "2024"}}},
+    )
+    assert PropostaRead.model_validate(p).ano == "2024"
+
+
+# ── valor global (o card "Empenho" do detalhe) ──────────────────────────────
+def test_valor_global_vem_do_vl_global_prop_da_fonte() -> None:
+    """VL_GLOBAL_PROP é a variável do SIconv para o valor global da proposta —
+    é ele que o card "Empenho" mostra. Lido direto do registro-fonte (qualquer
+    nível/caixa, formato BR), vence o agregado de execução e o total ingerido."""
+    from decimal import Decimal
+
+    from src.models.proposta import Proposta
+
+    p = Proposta(
+        valor_total=Decimal("999"),
+        execucao={"valor_global": "500"},
+        dados_fonte={"plano_acao": {"csv": {"VL_GLOBAL_PROP": "1.234.567,89"}}},
+    )
+    assert prop_service.valor_global_de(p) == Decimal("1234567.89")
+
+    # sem a variável na fonte, cai no agregado de execução e depois no total
+    p = Proposta(valor_total=Decimal("999"), execucao={"valor_global": "500"})
+    assert prop_service.valor_global_de(p) == Decimal("500")
+    assert prop_service.valor_global_de(Proposta(valor_total=Decimal("999"))) == Decimal("999")
+
+
+def test_proposta_read_expoe_o_valor_global_para_o_card_empenho() -> None:
+    """O detalhe lê `valor_global` da API — o front não vasculha `dados_fonte`."""
+    import uuid
+    from decimal import Decimal
+
+    from src.models.proposta import Proposta
+    from src.schemas.proposta import PropostaRead
+
+    p = Proposta(
+        id=uuid.uuid4(),
+        fonte="transferegov_disc",
+        id_externo="X1",
+        dados_fonte={"plano_acao": {"csv": {"VL_GLOBAL_PROP": "1.234.567,89"}}},
+    )
+    assert PropostaRead.model_validate(p).valor_global == Decimal("1234567.89")
+
+
+def test_mes_de_usa_mes_prop_e_data_da_proposta() -> None:
+    """MES_PROP > mês da criação > prazo final > atualização na fonte."""
+    from src.models.proposta import Proposta
+
+    p = Proposta(dados_fonte={"plano_acao": {"csv": {"MES_PROP": "3"}}})
+    assert prop_service.mes_de(p) == "03"
+
+    # com data de criação, o mês é o DELA — não o do prazo
+    p = Proposta(data_proposta=date(2024, 7, 1), prazos=[{"data_limite": "2026-01-10"}])
+    assert prop_service.mes_de(p) == "07"
+
+    # sem sinal de criação: prazo final e, por fim, atualização
+    p = Proposta(prazos=[{"data_limite": "2026-01-10"}])
+    assert prop_service.mes_de(p) == "01"
+    p = Proposta(data_atualizacao_fonte=date(2026, 5, 2))
+    assert prop_service.mes_de(p) == "05"
+
+
 # ── classificador de natureza jurídica (puro) ───────────────────────────────
 def test_classificar_natureza_juridica() -> None:
     assert prop_service.classificar_natureza_juridica("Administração Pública Municipal") == (
@@ -60,6 +150,50 @@ def test_classificar_natureza_juridica() -> None:
     assert prop_service.classificar_natureza_juridica("Organização da Sociedade Civil") == "osc"
     assert prop_service.classificar_natureza_juridica("Autarquia federal") == "outros"
     assert prop_service.classificar_natureza_juridica(None) is None
+
+
+# ── natureza sem o campo da execução: os sinais de reserva (puro) ───────────
+def test_natureza_cai_para_os_sinais_do_registro_fonte() -> None:
+    from src.models.proposta import Proposta
+
+    # a fonte não preencheu a execução, mas o registro-fonte traz o texto
+    p = Proposta(fonte="transferegov_disc", dados_fonte={"proposta": {"NATUREZA_JURIDICA": "OSC"}})
+    assert prop_service.natureza_juridica_de(p) == "osc"
+
+    # sem texto, o código CONCLA/RFB decide (124-4 = Município)
+    p = Proposta(fonte="transferegov_disc", dados_fonte={"CODIGO_NATUREZA_JURIDICA": "124-4"})
+    assert prop_service.natureza_juridica_de(p) == "municipal"
+
+    # sem texto nem código, o nome do proponente ainda entrega o marcador
+    p = Proposta(fonte="transferegov_disc", dados_fonte={"NM_PROPONENTE": "PREFEITURA DE UBERABA"})
+    assert prop_service.natureza_juridica_de(p) == "municipal"
+
+    # nome sem marcador não vira "outros" por si: sem sinal, vale o padrão da
+    # fonte (fundo a fundo repassa ao próprio município)
+    p = Proposta(fonte="transferegov_ff", dados_fonte={"NM_PROPONENTE": "Instituto Recomeço"})
+    assert prop_service.natureza_juridica_de(p) == "municipal"
+
+    # fonte sem padrão e sem sinal nenhum continua indefinida
+    assert prop_service.natureza_juridica_de(Proposta(fonte="transferegov_disc")) is None
+
+
+# ── as duas lentes: entes municipais × outros (puro) ────────────────────────
+def test_lente_de_natureza_cobre_a_base_inteira() -> None:
+    from src.models.proposta import Proposta
+
+    municipal = Proposta(execucao={"natureza_juridica": "Administração Pública Municipal"})
+    consorcio = Proposta(execucao={"natureza_juridica": "Consórcio Público"})
+    osc = Proposta(execucao={"natureza_juridica": "Organização da Sociedade Civil"})
+    estadual = Proposta(execucao={"natureza_juridica": "Adm. Pública Estadual"})
+    sem_sinal = Proposta(fonte="transferegov_disc")
+
+    assert prop_service.grupo_natureza_de(municipal) == "entes_municipais"
+    # consórcio público é intermunicipal — entra na lente do município
+    assert prop_service.grupo_natureza_de(consorcio) == "entes_municipais"
+    assert prop_service.grupo_natureza_de(osc) == "outros"
+    assert prop_service.grupo_natureza_de(estadual) == "outros"
+    # sem natureza conhecida a proposta ainda cai numa lente (nunca some das duas)
+    assert prop_service.grupo_natureza_de(sem_sinal) == "outros"
 
 
 async def _seed(
@@ -175,6 +309,11 @@ async def test_filtros_de_captacao(seed_user, seed_municipio) -> None:
         assert [p.id_externo for p in municipais] == ["A1"]
         assert await prop_service.listar(s, natureza_juridica="osc") == []
 
+        # a LENTE (duas vias) agrupa: municipal e consórcio são entes municipais
+        lente = await prop_service.listar(s, natureza_grupo="entes_municipais")
+        assert {p.id_externo for p in lente} == {"A1", "B2"}
+        assert await prop_service.listar(s, natureza_grupo="outros") == []
+
         # modalidade, órgão, qualificação e ano
         assert [p.id_externo for p in await prop_service.listar(s, modalidade="Convênio")] == ["A1"]
         assert [
@@ -255,9 +394,7 @@ async def test_paginacao_depois_do_pos_filtro(seed_user, seed_municipio) -> None
 
     async with rls_session(u) as s:
         # ano=2025 é pós-filtro em Python; ordenar=nome também reordena depois
-        pagina, total = await prop_service.listar_pagina(
-            s, ano="2025", ordenar="nome", limite=2
-        )
+        pagina, total = await prop_service.listar_pagina(s, ano="2025", ordenar="nome", limite=2)
         assert total == 3  # só as de 2025 — não as 5 do SQL
         assert [p.titulo for p in pagina] == ["Ambulância", "Creche"]
 
@@ -287,6 +424,11 @@ async def test_facetas_ignoram_a_propria_dimensao(seed_user, seed_municipio) -> 
 
         # com um filtro aplicado, a dimensão FILTRADA continua mostrando tudo
         # (senão o dropdown ficaria preso), mas as outras encolhem
+        # a lente agrupa a taxonomia: municipal + consórcio = entes municipais
+        assert {o["valor"]: o["total"] for o in facetas["natureza_grupo"]} == {
+            "entes_municipais": 2
+        }
+
         com_filtro = await prop_service.facetas(s, modalidade="Convênio")
         assert {o["valor"] for o in com_filtro["modalidade"]} == {
             "Convênio",

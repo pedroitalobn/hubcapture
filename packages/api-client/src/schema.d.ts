@@ -498,11 +498,36 @@ export interface paths {
         post?: never;
         /**
          * Zerar Propostas
-         * @description Zera TODAS as propostas do sistema (uso: validação — recomeçar a coleta do
-         *     zero). As FKs são ON DELETE CASCADE, então favoritos, pastas, monitoramentos,
-         *     alertas e embeddings ligados às propostas somem junto. Só superuser.
+         * @description Zera TODAS as propostas do sistema (uso: validação — recomeçar a coleta
+         *     do zero). É SOFT DELETE: marca `excluido_em`, não apaga a linha. Assim o
+         *     cascade das FKs não dispara e favoritos, pastas, monitoramentos e alertas
+         *     dos usuários sobrevivem — e dá para desfazer. Só superuser.
          */
         delete: operations["zerar_propostas_api_v1_admin_proposals_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/proposals/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restaurar Propostas
+         * @description Desfaz a zeragem: as propostas marcadas voltam ao painel.
+         *
+         *     É o que o soft delete compra — o dado nunca saiu do banco. Alcança TODAS as
+         *     marcadas (inclusive as de uma zeragem de perfil), porque a sessão de
+         *     plataforma não consegue distinguir território de ninguém sob RLS.
+         */
+        post: operations["restaurar_propostas_api_v1_admin_proposals_restore_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1574,7 +1599,16 @@ export interface paths {
         get: operations["get_perfil_api_v1_profile_get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Zerar Perfil
+         * @description Zona de perigo da conta: volta ao estado pré-onboarding.
+         *
+         *     Apaga território, preferências e curadoria do PRÓPRIO usuário (o RLS não
+         *     deixa alcançar outro tenant) e invalida o cache do território para a
+         *     próxima coleta recomeçar do zero. A conta continua existindo — o usuário
+         *     cai no onboarding de novo.
+         */
+        delete: operations["zerar_perfil_api_v1_profile_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1591,8 +1625,9 @@ export interface paths {
          * Novidades Perfil
          * @description Feed 'últimas novidades' do território, recortado pelo perfil do usuário.
          *
-         *     `limite` controla a profundidade da janela: o painel pede mais que o padrão
-         *     para o filtro por ano alcançar itens de anos anteriores ao corrente.
+         *     `limite` controla a profundidade da janela e `ano`, a safra: o filtro entra
+         *     ANTES da janela, então escolher um ano anterior traz os itens daquele ano —
+         *     não só os que sobraram das novidades mais recentes.
          */
         get: operations["novidades_perfil_api_v1_profile_feed_get"];
         put?: never;
@@ -1754,6 +1789,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/proposals/{proposta_id}/amendments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Emendas Da Proposta
+         * @description Qual emenda banca esta proposta e quem é o parlamentar autor.
+         */
+        get: operations["emendas_da_proposta_api_v1_proposals__proposta_id__amendments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/{proposta_id}/commitments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Empenhos Da Proposta
+         * @description Empenhos da proposta e os totais — o recurso saiu do papel ou não.
+         */
+        get: operations["empenhos_da_proposta_api_v1_proposals__proposta_id__commitments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/proposals/{proposta_id}/opinions": {
         parameters: {
             query?: never;
@@ -1786,6 +1861,26 @@ export interface paths {
          * @description Espelho da proposta em PDF — a peça que o gestor encaminha a quem decide.
          */
         get: operations["exportar_pdf_api_v1_proposals__proposta_id__pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/{proposta_id}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Timeline Da Proposta
+         * @description Tramitação em ordem cronológica: pareceres, vigência, prazos e pendências.
+         */
+        get: operations["timeline_da_proposta_api_v1_proposals__proposta_id__timeline_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2110,6 +2205,44 @@ export interface components {
             proposta_id?: string | null;
             /** Tipo */
             tipo?: string | null;
+        };
+        /**
+         * AndamentoColeta
+         * @description Estado honesto de cada fonte que alimenta a linha do tempo.
+         */
+        AndamentoColeta: {
+            emendas?: components["schemas"]["EmendaColeta"] | null;
+            empenhos?: components["schemas"]["EmpenhoColeta"] | null;
+            pareceres?: components["schemas"]["ParecerColeta"] | null;
+        };
+        /** AndamentoPagina */
+        AndamentoPagina: {
+            /** @default {} */
+            coleta: components["schemas"]["AndamentoColeta"];
+            /**
+             * Itens
+             * @default []
+             */
+            itens: components["schemas"]["EventoAndamento"][];
+            /** Numero Plano Trabalho */
+            numero_plano_trabalho?: string | null;
+        };
+        /**
+         * AnoDisponivel
+         * @description Uma safra com novidade no território — alimenta o filtro de ano do painel.
+         *
+         *     Vem SEMPRE do território inteiro (ignora o ano já escolhido): senão, ao
+         *     filtrar 2024 o próprio filtro perderia as outras opções e o usuário ficaria
+         *     preso na safra que escolheu.
+         */
+        AnoDisponivel: {
+            /** Ano */
+            ano: string;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
         };
         /** AssessoriaContatosSet */
         AssessoriaContatosSet: {
@@ -2726,7 +2859,17 @@ export interface components {
             /** Destaque */
             destaque?: string | null;
             /** Href */
-            href: string;
+            href?: string | null;
+            /**
+             * Quebras
+             * @default []
+             */
+            quebras: components["schemas"]["QuebraDimensao"][];
+            /**
+             * Recorte Ano
+             * @default true
+             */
+            recorte_ano: boolean;
             /** Titulo */
             titulo: string;
             /**
@@ -2758,6 +2901,27 @@ export interface components {
             detalhe: string;
             /** Enviado */
             enviado: boolean;
+        };
+        /**
+         * EmendaColeta
+         * @description Estado honesto da coleta — "não tem emenda" ≠ "não consegui consultar".
+         *
+         *     `origem` distingue de onde veio o que está na tela: `fonte` (rota do módulo
+         *     consultada agora), `registro_fonte` (o que o próprio plano de ação já
+         *     trazia) ou `cache`.
+         */
+        EmendaColeta: {
+            /** Erro */
+            erro?: string | null;
+            /** Origem */
+            origem?: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
         };
         /**
          * EmendaItem
@@ -2800,12 +2964,242 @@ export interface components {
             /** Uf */
             uf?: string | null;
         };
+        /** EmendaPagina */
+        EmendaPagina: {
+            coleta: components["schemas"]["EmendaColeta"];
+            /**
+             * Itens
+             * @default []
+             */
+            itens: components["schemas"]["EmendaRead"][];
+        };
+        /** EmendaRead */
+        EmendaRead: {
+            /** Ano */
+            ano?: number | null;
+            /** Cache Atualizado Em */
+            cache_atualizado_em?: string | null;
+            /** Cargo Parlamentar */
+            cargo_parlamentar?: string | null;
+            /** Codigo Emenda */
+            codigo_emenda?: string | null;
+            /** Fonte */
+            fonte: string;
+            /** Funcao */
+            funcao?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Id Externo */
+            id_externo: string;
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Municipio Nome */
+            municipio_nome?: string | null;
+            /** Numero Emenda */
+            numero_emenda?: string | null;
+            /** Numero Plano Acao */
+            numero_plano_acao?: string | null;
+            /** Numero Proposta */
+            numero_proposta?: string | null;
+            /** Parlamentar */
+            parlamentar?: string | null;
+            /** Partido */
+            partido?: string | null;
+            /** Situacao */
+            situacao?: string | null;
+            /** Tipo Emenda */
+            tipo_emenda?: string | null;
+            /** Uf */
+            uf?: string | null;
+            /** Uf Parlamentar */
+            uf_parlamentar?: string | null;
+            /** Url Origem */
+            url_origem?: string | null;
+            /** Valor */
+            valor?: string | null;
+            /** Valor Empenhado */
+            valor_empenhado?: string | null;
+            /** Valor Pago */
+            valor_pago?: string | null;
+        };
+        /**
+         * EmpenhoColeta
+         * @description Estado honesto da coleta — "sem empenho" ≠ "não consegui consultar".
+         */
+        EmpenhoColeta: {
+            /** Erro */
+            erro?: string | null;
+            /** Origem */
+            origem?: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+        };
+        /** EmpenhoPagina */
+        EmpenhoPagina: {
+            coleta: components["schemas"]["EmpenhoColeta"];
+            /**
+             * Itens
+             * @default []
+             */
+            itens: components["schemas"]["EmpenhoRead"][];
+            /**
+             * @default {
+             *       "total": 0,
+             *       "valor_a_utilizar": "0",
+             *       "valor_anulado": "0",
+             *       "valor_empenhado": "0",
+             *       "valor_liquidado": "0",
+             *       "valor_pago": "0"
+             *     }
+             */
+            resumo: components["schemas"]["EmpenhoResumo"];
+        };
+        /** EmpenhoRead */
+        EmpenhoRead: {
+            /** Ano */
+            ano?: string | null;
+            /** Cache Atualizado Em */
+            cache_atualizado_em?: string | null;
+            /** Data Empenho */
+            data_empenho?: string | null;
+            /** Fonte */
+            fonte: string;
+            /** Fonte Recurso */
+            fonte_recurso?: string | null;
+            /** Gestao Emitente */
+            gestao_emitente?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Id Externo */
+            id_externo: string;
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Municipio Nome */
+            municipio_nome?: string | null;
+            /** Natureza Despesa */
+            natureza_despesa?: string | null;
+            /** Numero Empenho */
+            numero_empenho?: string | null;
+            /** Numero Plano Acao */
+            numero_plano_acao?: string | null;
+            /** Numero Proposta */
+            numero_proposta?: string | null;
+            /** Observacao */
+            observacao?: string | null;
+            /** Programa Trabalho */
+            programa_trabalho?: string | null;
+            /** Situacao */
+            situacao?: string | null;
+            /** Tipo Empenho */
+            tipo_empenho?: string | null;
+            /** Uf */
+            uf?: string | null;
+            /** Ug Emitente */
+            ug_emitente?: string | null;
+            /** Valor Anulado */
+            valor_anulado?: string | null;
+            /** Valor Empenhado */
+            valor_empenhado?: string | null;
+            /** Valor Liquidado */
+            valor_liquidado?: string | null;
+            /** Valor Pago */
+            valor_pago?: string | null;
+        };
+        /**
+         * EmpenhoResumo
+         * @description Os totais — é o que a faixa de destaque da proposta mostra.
+         *
+         *     `valor_empenhado` já vem LÍQUIDO das anulações: um empenho anulado que
+         *     continuasse somando diria ao gestor que há recurso onde não há.
+         */
+        EmpenhoResumo: {
+            /** Primeiro Empenho */
+            primeiro_empenho?: string | null;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+            /** Ultimo Empenho */
+            ultimo_empenho?: string | null;
+            /**
+             * Valor A Utilizar
+             * @default 0
+             */
+            valor_a_utilizar: string;
+            /**
+             * Valor Anulado
+             * @default 0
+             */
+            valor_anulado: string;
+            /**
+             * Valor Empenhado
+             * @default 0
+             */
+            valor_empenhado: string;
+            /**
+             * Valor Liquidado
+             * @default 0
+             */
+            valor_liquidado: string;
+            /**
+             * Valor Pago
+             * @default 0
+             */
+            valor_pago: string;
+        };
         /** ErrorModel */
         ErrorModel: {
             /** Detail */
             detail: string | {
                 [key: string]: string;
             };
+        };
+        /**
+         * EventoAndamento
+         * @description Um fato datado da tramitação.
+         *
+         *     `futuro` separa o que JÁ aconteceu do que ainda vai vencer: os dois entram
+         *     na mesma linha do tempo, mas um prazo à frente é compromisso, não histórico.
+         */
+        EventoAndamento: {
+            /** Ator */
+            ator?: string | null;
+            /** Data */
+            data?: string | null;
+            /** Detalhe */
+            detalhe?: string | null;
+            /**
+             * Futuro
+             * @default false
+             */
+            futuro: boolean;
+            /** Texto */
+            texto?: string | null;
+            /** Tipo */
+            tipo: string;
+            /** Titulo */
+            titulo: string;
+            /**
+             * Tom
+             * @default neutral
+             */
+            tom: string;
+            /** Url */
+            url?: string | null;
+            /** Valor */
+            valor?: string | null;
         };
         /**
          * FacetaOpcao
@@ -3587,6 +3981,8 @@ export interface components {
          * @description Uma novidade do território — proposta/verba recém-atualizada no cache.
          */
         NovidadeItem: {
+            /** Ano */
+            ano?: string | null;
             /** Data */
             data?: string | null;
             /** Descricao */
@@ -3599,6 +3995,8 @@ export interface components {
             municipio_ibge?: string | null;
             /** Municipio Nome */
             municipio_nome?: string | null;
+            /** Numero Proposta */
+            numero_proposta?: string | null;
             /** Proposta Id */
             proposta_id?: string | null;
             /** Tipo */
@@ -3613,6 +4011,11 @@ export interface components {
          * @description Feed 'últimas novidades' do Meu painel, recortado pelo perfil (RLS).
          */
         NovidadesPerfil: {
+            /**
+             * Anos
+             * @default []
+             */
+            anos: components["schemas"]["AnoDisponivel"][];
             /**
              * Itens
              * @default []
@@ -4077,6 +4480,12 @@ export interface components {
          * @description Representação da proposta devolvida pela API.
          */
         PropostaRead: {
+            /**
+             * Ano
+             * @description Ano de CRIAÇÃO da proposta (ANO_PROP na fonte) — o que o cabeçalho
+             *     mostra e o filtro de ano usa como safra.
+             */
+            readonly ano: string | null;
             /** Cache Atualizado Em */
             cache_atualizado_em?: string | null;
             /**
@@ -4168,6 +4577,12 @@ export interface components {
             uf?: string | null;
             /** Url Origem */
             url_origem?: string | null;
+            /**
+             * Valor Global
+             * @description Valor global da proposta (VL_GLOBAL_PROP na fonte) — o que o card
+             *     "Empenho" do detalhe mostra.
+             */
+            readonly valor_global: string | null;
             /** Valor Total */
             valor_total?: string | null;
         };
@@ -4274,6 +4689,25 @@ export interface components {
             tipo_auth: string;
         };
         /**
+         * QuebraDimensao
+         * @description Recorte rápido dentro de uma dimensão (ex.: propostas por natureza).
+         *
+         *     É uma lente sobre o próprio território — não uma aba por fonte de dados.
+         */
+        QuebraDimensao: {
+            /** Chave */
+            chave: string;
+            /** Href */
+            href: string;
+            /** Rotulo */
+            rotulo: string;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+        };
+        /**
          * RankingParlamentar
          * @description Linha do ranking de parlamentares que destinaram recursos ao município.
          */
@@ -4350,6 +4784,53 @@ export interface components {
             itens: components["schemas"]["RepasseRead"][];
             /** Subtotal */
             subtotal: string;
+        };
+        /**
+         * ResetPerfilResultado
+         * @description O que a zeragem do perfil apagou — e o que ela só marcou/invalidou.
+         *
+         *     Nada de cache global sai do banco (ver `services/perfil.zerar`):
+         *     `propostas` conta as propostas do território marcadas como excluídas (soft
+         *     delete — somem do painel e a coleta seguinte as ressuscita) e
+         *     `cache_invalidado`, as linhas de repasses/conformidades/obras que voltaram
+         *     a ser "velhas" e serão recoletadas.
+         */
+        ResetPerfilResultado: {
+            /**
+             * Alertas
+             * @default 0
+             */
+            alertas: number;
+            /**
+             * Cache Invalidado
+             * @default 0
+             */
+            cache_invalidado: number;
+            /**
+             * Favoritos
+             * @default 0
+             */
+            favoritos: number;
+            /**
+             * Monitoramentos
+             * @default 0
+             */
+            monitoramentos: number;
+            /**
+             * Municipios
+             * @default 0
+             */
+            municipios: number;
+            /**
+             * Pastas
+             * @default 0
+             */
+            pastas: number;
+            /**
+             * Propostas
+             * @default 0
+             */
+            propostas: number;
         };
         /** ResultadoLimpeza */
         ResultadoLimpeza: {
@@ -5875,6 +6356,26 @@ export interface operations {
         };
     };
     zerar_propostas_api_v1_admin_proposals_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoLimpeza"];
+                };
+            };
+        };
+    };
+    restaurar_propostas_api_v1_admin_proposals_restore_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -7997,6 +8498,26 @@ export interface operations {
             };
         };
     };
+    zerar_perfil_api_v1_profile_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResetPerfilResultado"];
+                };
+            };
+        };
+    };
     novidades_perfil_api_v1_profile_feed_get: {
         parameters: {
             query?: {
@@ -8004,6 +8525,8 @@ export interface operations {
                 municipio?: string[] | null;
                 /** @description tamanho da janela do feed */
                 limite?: number;
+                /** @description safra (ano) do recorte; omitir = todos os anos */
+                ano?: string | null;
             };
             header?: never;
             path?: never;
@@ -8036,6 +8559,8 @@ export interface operations {
             query?: {
                 /** @description códigos IBGE (repita o parâmetro para vários municípios) */
                 municipio?: string[] | null;
+                /** @description safra (ano) do recorte; omitir = todos os anos */
+                ano?: string | null;
             };
             header?: never;
             path?: never;
@@ -8080,6 +8605,8 @@ export interface operations {
                 orgao?: string | null;
                 /** @description municipal | estadual_df | consorcio | empresa_publica | osc */
                 natureza_juridica?: string | null;
+                /** @description lente da natureza jurídica: entes_municipais | outros */
+                natureza_grupo?: string | null;
                 /** @description tipo de transferência */
                 qualificacao?: string | null;
                 /** @description pílula de categoria (saude, infraestrutura, cultura…) */
@@ -8175,6 +8702,8 @@ export interface operations {
                 orgao?: string | null;
                 /** @description municipal | estadual_df | consorcio | empresa_publica | osc */
                 natureza_juridica?: string | null;
+                /** @description lente da natureza jurídica: entes_municipais | outros */
+                natureza_grupo?: string | null;
                 /** @description tipo de transferência */
                 qualificacao?: string | null;
                 /** @description pílula de categoria (saude, infraestrutura, cultura…) */
@@ -8264,6 +8793,8 @@ export interface operations {
                 orgao?: string | null;
                 /** @description municipal | estadual_df | consorcio | empresa_publica | osc */
                 natureza_juridica?: string | null;
+                /** @description lente da natureza jurídica: entes_municipais | outros */
+                natureza_grupo?: string | null;
                 /** @description tipo de transferência */
                 qualificacao?: string | null;
                 /** @description pílula de categoria (saude, infraestrutura, cultura…) */
@@ -8322,6 +8853,8 @@ export interface operations {
                 orgao?: string | null;
                 /** @description municipal | estadual_df | consorcio | empresa_publica | osc */
                 natureza_juridica?: string | null;
+                /** @description lente da natureza jurídica: entes_municipais | outros */
+                natureza_grupo?: string | null;
                 /** @description tipo de transferência */
                 qualificacao?: string | null;
                 /** @description pílula de categoria (saude, infraestrutura, cultura…) */
@@ -8392,6 +8925,74 @@ export interface operations {
             };
         };
     };
+    emendas_da_proposta_api_v1_proposals__proposta_id__amendments_get: {
+        parameters: {
+            query?: {
+                /** @description forçar coleta na fonte */
+                atualizar?: boolean;
+            };
+            header?: never;
+            path: {
+                proposta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmendaPagina"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    empenhos_da_proposta_api_v1_proposals__proposta_id__commitments_get: {
+        parameters: {
+            query?: {
+                /** @description forçar coleta na fonte */
+                atualizar?: boolean;
+            };
+            header?: never;
+            path: {
+                proposta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmpenhoPagina"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     pareceres_da_proposta_api_v1_proposals__proposta_id__opinions_get: {
         parameters: {
             query?: {
@@ -8447,6 +9048,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    timeline_da_proposta_api_v1_proposals__proposta_id__timeline_get: {
+        parameters: {
+            query?: {
+                /** @description forçar coleta na fonte */
+                atualizar?: boolean;
+            };
+            header?: never;
+            path: {
+                proposta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AndamentoPagina"];
                 };
             };
             /** @description Validation Error */

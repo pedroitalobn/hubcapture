@@ -86,9 +86,7 @@ async def criar(
     return contato
 
 
-async def atualizar(
-    session: AsyncSession, contato: Contato, dados: ContatoUpdate
-) -> Contato:
+async def atualizar(session: AsyncSession, contato: Contato, dados: ContatoUpdate) -> Contato:
     atual = do_modelo(contato)
     patch = dados.model_dump(exclude_unset=True, exclude_none=True)
     # revalida pelo construtor (não `model_copy`): o patch traz e-mails/telefones
@@ -106,9 +104,7 @@ async def arquivar(session: AsyncSession, contato: Contato) -> None:
     await session.flush()
 
 
-async def buscar_por_dedup(
-    session: AsyncSession, chave: str | None
-) -> Contato | None:
+async def buscar_por_dedup(session: AsyncSession, chave: str | None) -> Contato | None:
     if not chave:
         return None
     stmt = (
@@ -168,6 +164,4 @@ async def importar_vcf(
             importados += 1
         else:
             atualizados += 1
-    return ImportacaoResultado(
-        importados=importados, atualizados=atualizados, ignorados=ignorados
-    )
+    return ImportacaoResultado(importados=importados, atualizados=atualizados, ignorados=ignorados)

@@ -100,9 +100,7 @@ def test_enriquecer_deriva_uf_quando_o_territorio_nao_tem() -> None:
 
 
 def test_conformidade_tambem_carrega_municipio() -> None:
-    r = ConformidadeRead(
-        id=uuid.uuid4(), municipio_ibge="2611606", tipo="cauc", numero="1.1"
-    )
+    r = ConformidadeRead(id=uuid.uuid4(), municipio_ibge="2611606", tipo="cauc", numero="1.1")
     item = _aplicar(r, {"2611606": ("Recife", None)})
     assert item.municipio_nome == "Recife"
     assert item.uf == "PE"
@@ -233,6 +231,31 @@ def test_normalizer_le_nr_proposta_e_dia_proposta() -> None:
     assert p.data_proposta == date(2026, 3, 26)
 
 
+def test_normalizer_remonta_data_de_dia_mes_ano_prop() -> None:
+    """DIA_PROP/MES_PROP/ANO_PROP (SIconv) são a data oficial de criação —
+    quando os três existem, vencem qualquer coluna única de data (que vinha
+    marcando a proposta com data errada)."""
+    from src.connectors.base import RawRecord
+    from src.ingestion.normalizer import normalize
+
+    p = normalize(
+        RawRecord(
+            source_id="transferegov_disc",
+            id_externo="ABC-3",
+            municipio_ibge="3550308",
+            raw={
+                "NR_PROPOSTA": "14275/2026",
+                "DIA_PROP": "26",
+                "MES_PROP": "3",
+                "ANO_PROP": "2026",
+                "DIA_PROPOSTA": "01/01/1900",  # coluna única errada não vence
+            },
+        )
+    )
+    assert p.numero_proposta == "14275/2026"
+    assert p.data_proposta == date(2026, 3, 26)
+
+
 def test_numero_e_data_entram_no_hash_de_mudanca() -> None:
     from src.ingestion.normalizer import compute_hash
 
@@ -279,7 +302,5 @@ def test_chave_ja_minuscula_continua_vencendo() -> None:
 
 
 def test_pdf_traz_o_orgao_no_cabecalho() -> None:
-    texto = _texto(
-        gerar_pdf_proposta(_proposta(orgao_superior="Ministério da Saúde"))
-    )
+    texto = _texto(gerar_pdf_proposta(_proposta(orgao_superior="Ministério da Saúde")))
     assert "Minist" in texto[: texto.index("VALOR TOTAL")]  # antes da faixa

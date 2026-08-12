@@ -1242,6 +1242,40 @@ utilizar" (empenhado − pago) como linha de apoio.
 Fonte de dados **nunca** vira identidade de registro na UI (seção 19) — e código
 de município **nunca** vira nome.
 
+### 35b. As variáveis-fonte da referência da proposta (decisão travada)
+
+O SIconv publica a referência da proposta em colunas PRÓPRIAS, e são elas — não
+retaguardas inferidas — que mandam. Quando o dado sai errado na tela, é aqui que
+se confere antes de suspeitar de qualquer outra coisa:
+
+| Variável da fonte | Para onde vai | Quem usa |
+|---|---|---|
+| `NR_PROPOSTA` | `propostas.numero_proposta` | nº no cabeçalho do detalhe, da lista e do PDF |
+| `DIA_PROP` + `MES_PROP` + `ANO_PROP` | `propostas.data_proposta` (remontada) | "criada em" no cabeçalho |
+| `ANO_PROP` | `services/propostas.ano_de` | **filtro/faceta de ano** e o card "Ano da proposta" |
+| `MES_PROP` | `services/propostas.mes_de` | filtro/faceta de mês |
+
+- **`NR_PROPOSTA` vence** os demais candidatos de `numero_proposta` no
+  normalizador (é o nº que o gestor digita no portal para conferir).
+- **A data de criação é remontada dos TRÊS componentes** (`_data_de_componentes`)
+  e vence qualquer coluna única de data: as retaguardas (`data_inicio_vigencia`,
+  `data_cadastro`) marcavam a proposta com data que não é a dela.
+- **`ano_de`/`mes_de` leem `ANO_PROP`/`MES_PROP` direto do registro-fonte**
+  (`dados_fonte`, em qualquer nível/caixa — no CSV eles vivem em
+  `plano_acao.csv`). Isso corrige o dado JÁ ingerido no cache sem esperar
+  re-sync. Só depois vêm `data_proposta` → sufixo do nº → exercício da execução.
+- `mes_de` passou a acompanhar o ano no MESMO referencial (mês de criação);
+  prazo final e atualização na fonte viraram retaguarda.
+- No connector do CSV o casamento dessas colunas é **exato** (`_col_exata`), não
+  por substring: `dia_prop` pescaria também `DIA_PROPOSTA`, e a palavra-chave
+  "orgao" pescava `COD_ORGAO_SUP` (código) no lugar do ministério por extenso.
+
+**O prazo de vencimento saiu do cabeçalho** (detalhe e PDF): vinha marcado
+errado com frequência — o fim de vigência não é prazo de proposta — e o lugar
+dele é o card "Prazos", conferível item a item. No lugar entrou o **ano da
+proposta**, exposto pela API como o computado `PropostaRead.ano` (o front não
+recalcula safra). A coluna "Prazo" da LISTA de captação segue como está.
+
 ## 36. Pareceres do plano de trabalho (consulta pelo nº do plano)
 
 Na fonte, o parecer **não é emitido sobre a proposta**: é emitido sobre o
@@ -1497,7 +1531,312 @@ padrão, o `/panel` ficava vazio. A regra que fica:
   Captação ganhou `ModuloGate`; o detalhe da proposta é panel-core e, sem o
   módulo, esconde apenas a seção de pareceres.
 
-## 41. Flag de versão da UI — portar a Bancada v2 → v1 pelo painel admin
+## 41. Zeragem — admin (global) e usuário (zona de perigo da conta)
+
+Duas zeragens com ALCANCES diferentes, porque `propostas` (e `repasses`,
+`conformidades`, `obras`) é **cache global** (§4) e não pertence a um usuário.
+
+- **SOFT DELETE (`propostas.excluido_em`, migration `f6a7b8c9d0e1`)**: zerar
+  MARCA, não apaga. As FKs são `ON DELETE CASCADE` e **cascade ignora RLS**, então
+  um DELETE levava junto favoritos, pastas, monitoramentos e alertas de QUALQUER
+  usuário do município. Marcada, a linha some do painel, a curadoria de todos
+  sobrevive e dá para desfazer (`POST /admin/proposals/restore`).
+- **O filtro mora na CONSULTA, não na policy de RLS** (`excluido_em IS NULL` em
+  `propostas._condicoes`/`obter`/`listar_por_prazo`, `consulta_avulsa._cache_fresco`,
+  `favoritos`, `oportunidades`, `perfil`, `rag`, jobs de curadoria/embed).
+  Tentador era pôr na policy de SELECT — mas `INSERT ... ON CONFLICT DO UPDATE`
+  valida a linha EXISTENTE contra o RLS: escondida ali, a coleta quebraria com
+  violação de RLS em vez de RESSUSCITAR a proposta (o upsert zera `excluido_em`,
+  porque a fonte ainda a publica).
+- **Admin — `DELETE /admin/proposals`** (`api/v1/admin_fontes.py`, superuser):
+  marca TODAS as propostas. O UPDATE vai **sem WHERE** de propósito: a sessão é a
+  de plataforma (sem tenant) e, sob o `FORCE RLS` de `propostas`, qualquer
+  LEITURA enxerga 0 linhas — com WHERE o comando lê linha, cai na policy de
+  SELECT e marcaria zero. Pelo mesmo motivo a contagem sai do **`rowcount`**,
+  nunca de um `SELECT count(*)` (o painel respondia "0 removidas" com a tabela
+  inteira zerada).
+- **Usuário — `DELETE /profile`** (`services/perfil.py::zerar`, zona de perigo
+  em `app/panel/account`): devolve a conta ao estado **pré-onboarding**. Apaga
+  o que é do tenant — território (todos os municípios), preferências
+  (áreas/fontes) e curadoria (favoritos, pastas, monitoramentos, buscas
+  monitoradas, alertas). **Não** apaga conta, login nem agenda de contatos, e
+  registra `audit_log('zerar_perfil')`.
+- **Zeragem por usuário**: as propostas do território levam soft delete e os
+  demais caches (repasses/conformidades/obras) perdem o `cache_atualizado_em`.
+  Nada é apagado — outro tenant pode acompanhar o mesmo município e o cascade
+  destruiria a curadoria dele. O app-role NÃO consegue detectar "esse município é
+  só meu": `FORCE RLS` em `municipios_interesse` bloqueia leitura cross-tenant
+  até para a sessão de plataforma; por isso a regra é marcar, nunca apagar.
+- **ORDEM IMPORTA**: o cache é zerado ENQUANTO o território ainda existe. O
+  UPDATE tem WHERE, logo LÊ linha — e leitura em `propostas` passa pela policy
+  de SELECT (município ∈ `municipios_interesse`). Apagando o território antes, o
+  UPDATE não acha nada e o cache fica fresco para sempre.
+- **Memória de coleta**: as duas zeragens limpam o cache de TENTATIVA de
+  `consulta_avulsa` (`limpar_cache_coleta()` no admin, `esquecer_municipio(ibge)`
+  por município no usuário) e o admin limpa também o CSV do `transferegov_disc`.
+  Sem isso, "recomeçar do zero" não recoletaria nada por até 6h (§38) e o painel
+  novo abriria vazio como se as fontes não tivessem dados.
+
+## 42. Enriquecimento da proposta — emenda, parlamentar autor e TIMELINE de andamento
+
+A proposta deixou de ser uma ficha estática: além dos pareceres (§36), o detalhe
+agora responde **de quem é o dinheiro** (emenda + parlamentar autor) e **em que pé
+está** (linha do tempo da tramitação). Os dois vêm de rotas IRMÃS do módulo
+`especiais`, consultadas pelas chaves da PROPOSTA — não por município.
+
+- **Rota descoberta, não chutada** (`connectors/_especiais.py`): o spec do módulo
+  (`<base>/openapi.json` — o que a página `/docs` consome) é lido em runtime e a
+  rota só é aceita com DUAS evidências: o nome casa o assunto ("emenda") **e** ela
+  aceita uma das nossas chaves (`id_plano_acao` > `numero_plano_acao` >
+  `id_plano_trabalho` > `numero_proposta`). A segunda evidência é a que protege o
+  gestor: rota do assunto sem filtro devolveria o Brasil inteiro paginado como se
+  fosse a emenda dele. Cobre os dois dialetos do TransfereGov — OpenAPI 3
+  (`?id_plano_acao=123`, `pagina`/`tamanho_da_pagina`) e PostgREST/Swagger 2
+  (`?id_plano_acao=eq.123`, `limit`/`offset`). Overrides no painel:
+  `especiais_base_url`, `emendas_esp_endpoint`, `emendas_esp_chave`.
+- **Entidade `proposta_emendas`** (migration `f3a4b5c6d7e8`): 1-N com a proposta
+  (um plano de ação pode somar emendas de autores diferentes), com `codigo/numero`,
+  `ano`, `tipo_emenda`, **autor** (`parlamentar`, `partido`, `uf_parlamentar`,
+  `cargo`, `codigo`) e valores (`valor`, `valor_empenhado`, `valor_pago`).
+  `unique(fonte, id_externo)`; cache global com RLS só-SELECT por município (nulo
+  visível, como `pareceres`). NÃO confundir com a lente de emendas dos repasses
+  (§26b): lá é dinheiro que já caiu; aqui é a origem da captação.
+- **De-para por PALAVRA, não por substring** (`ingestion/normalizer_emenda.py`): as
+  colunas vêm com o sufixo da entidade (`nome_parlamentar_emenda_plano_acao`), então
+  o casamento é por conjunto de palavras da coluna. Casar por substring é armadilha
+  — "ano" está dentro de "pl**ano**", e `id_emenda_plano_acao=90871` virava o ano
+  9087 da emenda (regressão em `test_andamento.py`). `codigo_parlamentar` é excluído
+  do candidato a NOME do autor. Hash local sobre os campos materiais (empenho novo →
+  mudança detectada).
+- **Degradação com conteúdo** (`services/emendas_proposta.py`): sem rota calibrada
+  ou com a fonte fora do ar, a emenda ainda sai do **registro-fonte** que o plano de
+  ação já traz (`emendas_do_registro_fonte` — parlamentar + valor do repasse, sem
+  rede). `coleta.origem` (`fonte` | `registro_fonte` | `cache`) e `coleta.erro` vão
+  na resposta: "não consegui consultar" nunca vira "não tem emenda".
+- **Timeline** (`services/andamento.py` + `schemas/andamento.py`): pareceres +
+  marcos da proposta (cadastro na fonte, assinatura, início/fim de vigência, prazos,
+  pendências, movimentação datada) viram `EventoAndamento`
+  (`data/tipo/titulo/detalhe/ator/tom/valor/texto/url/futuro`), ordenados do mais
+  recente para o mais antigo, sem data por último. `futuro` separa histórico de
+  compromisso a vencer; o tom do prazo usa a mesma escada de `lib/format.ts::tomPrazo`.
+  **Fato sem data não entra**: datar por chute (o ano da emenda virando 1º de
+  janeiro) produziria cronologia verossímil e errada — por isso a emenda tem seção
+  própria em vez de virar evento. Parecer "Aprovar" ainda **em elaboração** não é
+  decisão: sai com tom neutro.
+- **Endpoints** (`api/v1/andamento.py`): `GET /proposals/{id}/timeline` e
+  `GET /proposals/{id}/amendments`, ambos com `?atualizar=true`. Gate por ENDPOINT
+  e não por router (§40): ler do cache é panel-core — desligar `captacao` não pode
+  apagar o andamento do detalhe; o que o módulo governa é a consulta ATIVA, então
+  `atualizar=true` é ignorado com o módulo desligado.
+- **Web**: `components/AndamentoProposta.tsx` (linha do tempo com trilho, dot por
+  tom, veredito em badge e texto do parecer expansível) e
+  `components/EmendasProposta.tsx` (autor lidera — é com o gabinete dele que o
+  gestor fala; a seção some quando a proposta simplesmente não é de emenda).
+  Ambos no detalhe (`app/panel/funding/[id]`), substituindo `PareceresSecao.tsx`
+  (removido — o conteúdo foi absorvido pela timeline). Incidente de fonte virou
+  AVISO no topo, não substituto da lista: o que está no cache continua na tela.
+- **Calibração** — `python -m src.tools.probe_especiais --rotas` lista as rotas do
+  módulo que falam do assunto e os parâmetros de cada uma (é daí que sai o valor dos
+  overrides); `--id-plano-acao <id>` bate na rota e mostra campos brutos +
+  normalizados. Precisa de saída para gov.br (o sandbox de CI/agente bloqueia).
+
+## 43. Ordem do painel — "recentes" é a data da PROPOSTA
+
+A lista da Captação ordenava por `cache_atualizado_em`, que é quando NÓS
+coletamos: uma proposta de 2019 recoletada hoje aparecia na frente de uma criada
+este mês. A referência agora é `data_proposta` — a data de CRIAÇÃO na fonte,
+remontada de **DIA_PROP + MES_PROP + ANO_PROP** (as variáveis oficiais do SIconv,
+em `ingestion/normalizer._data_de_componentes`), que já vencem qualquer candidato
+de coluna única.
+
+- `services/propostas._ORDEM_SQL` = `data_proposta DESC NULLS LAST`,
+  `cache_atualizado_em DESC` (desempate) e `id` (desempate ESTÁVEL — sem ele o
+  LIMIT/OFFSET repete e pula linhas entre páginas). Ordenar por coluna mantém o
+  caminho rápido de paginação no SQL.
+- Proposta sem data de criação na fonte não some da lista: vai para o fim
+  (`nullslast`) e se ordena pela coleta entre as iguais.
+- Migration `a7b8c9d0e1f2` faz o **backfill** de `data_proposta` a partir dos três
+  componentes já guardados em `dados_fonte` (o CSV do SIconv manda em CAIXA ALTA;
+  daí o COALESCE das duas caixas). Sem isso, tudo que foi ingerido antes ficaria
+  no fim da lista até a próxima recoleta. Usa `to_date` e não `make_date`: um
+  registro sujo que passe pelos guardas não pode derrubar a migration.
+
+## 43. Empenho da proposta — `/empenhos_especiais` (o recurso saiu do papel?)
+
+O empenho não aparecia no painel, e a causa não era a tela: `execucao.
+valor_empenhado` (§28) só existe quando o painel da Visão Geral publica o
+AGREGADO, e no módulo especiais o empenho mora em rota própria —
+`/empenhos_especiais`, consultada pelo **número da proposta**. Faltava coletar.
+
+- **Entidade `proposta_empenhos`** (migration `b8c9d0e1f2a3`): 1-N (a proposta
+  acumula ordinário, reforço, anulação), com `numero_empenho`, `data_empenho`,
+  `tipo`, `situacao`, os valores (`empenhado`/`anulado`/`liquidado`/`pago`) e a
+  origem do recurso (UG emitente, gestão, natureza de despesa, fonte, programa
+  de trabalho). Cache global com RLS só-SELECT por município, como `pareceres`.
+- **Refiltro no cliente, SEMPRE** (`connectors/empenhos_especiais.py`): a rota é
+  conhecida, mas o nome do parâmetro de filtro não — e **FastAPI ignora query
+  param desconhecido** em vez de recusar. Mandar `numero_proposta` numa rota que
+  espera outro nome devolveria a tabela NACIONAL paginada, e o gestor veria
+  empenho alheio como se fosse dele. Então toda linha é conferida contra o
+  número da proposta (comparação só-dígitos: "14275/2026" casa "142752026").
+  Linha que não casa é descartada; resposta que não ecoa NENHUMA coluna de
+  identificação só é aceita quando o spec confirmou o filtro (`Rota.confirmada`).
+- **Anulação não é recurso disponível** (`ingestion/normalizer_empenho.py`):
+  `valor_anulado_*` casa "valor" e seria lido como empenhado — `_NAO_EMPENHADO`
+  exclui anulado/cancelado/estorno do candidato. No total
+  (`services/empenhos_proposta.resumir`) o empenhado sai **líquido** das
+  anulações, e nunca negativo.
+- **Totais na faixa de destaque**: `EmpenhoResumo` (empenhado, anulado,
+  liquidado, pago, **a utilizar** = empenhado − pago, primeiro/último empenho). O
+  detalhe usa o agregado da `execucao` quando existe e **cai para a soma dos
+  documentos** quando não — que era o caso em que a faixa aparecia vazia.
+- **Timeline**: cada empenho datado vira evento (§42). Empenho anulado por
+  inteiro sai `danger`, anulado em parte `warn`, emitido `ok` — pintar os três de
+  verde diria que há recurso reservado onde ele foi devolvido. A timeline LÊ o
+  cache (quem coleta é `/commitments`), senão a mesma tela dispararia duas
+  coletas concorrentes da mesma coisa.
+- **Endpoint**: `GET /proposals/{id}/commitments?atualizar=` (§25: empenhos →
+  commitments), com o mesmo gate por endpoint da §40.
+- **De-para compartilhado** (`ingestion/_campos.py`): `palavras`/`por_termos`/
+  `decimal_br`/`data_de`/`so_digitos` saíram do normalizador de emenda e agora
+  servem os dois — a regra de casar por PALAVRA da coluna (nunca substring) mora
+  em um lugar só.
+- **Config** (categoria fonte): `empenhos_esp_endpoint` (padrão
+  `empenhos_especiais`) e `empenhos_esp_chave` (padrão `numero_proposta`).
+- **Calibração**: `python -m src.tools.probe_especiais --rotas` passou a mostrar
+  também a rota escolhida para empenho, e `--numero-proposta 14275/2026` bate na
+  rota e mostra campos brutos + normalizados.
+## 44. O nº da proposta é uma PÍLULA (destaque), não linha de apoio
+
+Complemento operacional da §35: a hierarquia já dizia que a referência da
+proposta é dado de CABEÇALHO, mas na prática o número seguia diluído — mesmo
+tamanho e mesma cor do órgão e da modalidade, numa linha `text-xs text-ink-3`.
+Quem varre a lista atrás de um número tinha que ler todas as linhas de apoio.
+
+- **`components/NumeroProposta.tsx`** é a forma única do número em toda
+  superfície de lista: pílula mono com o acento da marca (lime), `Nº` em
+  rótulo, `select-all`, e **clique copia** (o passo seguinte do gestor é colar
+  no portal da fonte ou no WhatsApp). `termo` realça o trecho pesquisado.
+  `copiavel={false}` quando a pílula fica DENTRO de um `<Link>` — botão
+  aninhado em âncora é HTML inválido e o clique disputaria com a navegação.
+  Sem número, o componente **não renderiza** (nunca cai para `id_externo`: §35).
+- **Onde está**: feed do Meu painel (`app/panel/page.tsx`), lista da Captação
+  (encabeçando a célula, acima do título), Minhas Propostas e o cabeçalho do
+  detalhe. Em Minhas Propostas o `id_externo` SAIU da linha de apoio — era
+  plumbing ocupando o lugar da referência.
+- **Feed**: `NovidadeItem.numero_proposta` (schemas/perfil) é preenchido em
+  `services/perfil.novidades`. Não confundir com `proposta_id` (UUID interno,
+  que nunca aparece na tela).
+- **Busca pelo número** já existia no backend (`_busca_textual` casa
+  `numero_proposta` e `id_externo`); o que faltava era a tela dizer isso — o
+  placeholder do campo de busca da Captação abre com "nº da proposta".
+
+**Nº da proposta NUNCA cai para `id_externo`.** O campo "Nº da proposta" de
+"Dados gerais" (detalhe e espelho PDF) e a referência do cabeçalho do PDF
+tinham retaguarda `p.numero_proposta or p.id_externo`: sem NR_PROPOSTA, o
+identificador da INTEGRAÇÃO aparecia rotulado como número da proposta — um
+número que o portal da fonte não reconhece e que o gestor levaria para a
+conversa com o órgão. Sem número, o campo fica vazio ("—") e o id da fonte
+segue no campo próprio ("Identificador na fonte"), logo abaixo.
+
+## 45. Lentes de natureza jurídica — entes municipais × outros
+
+A consulta de propostas por **natureza jurídica** parte de DUAS lentes (decisão de
+produto), não da taxonomia inteira: `entes_municipais` (prefeitura, secretaria
+municipal, câmara de vereadores, fundo/autarquia/fundação municipal e consórcio
+intermunicipal) e `outros` (organizações da sociedade civil, entes estaduais/federais,
+empresas). Os 6 slugs detalhados de §31 continuam valendo — a lente os **agrupa**,
+não os substitui.
+
+- **Backend** (`services/propostas.py`): `GRUPOS_NATUREZA` (slug → rótulo) e
+  `grupo_natureza_de(p)`, que devolve SEMPRE uma das duas lentes — sem natureza
+  conhecida a proposta cai em `outros`, então as duas somadas cobrem o recorte
+  inteiro e nenhuma proposta fica invisível às duas. `_NATUREZAS_MUNICIPAIS`
+  (`municipal` + `consorcio`) é o ponto de calibração do agrupamento.
+- **Sinais de reserva da natureza**: `natureza_juridica_de` deixou de depender só de
+  `execucao.natureza_juridica`. A ordem é execução → texto no registro-fonte
+  (`_CAMPOS_NATUREZA_FONTE` via `_campo_fonte`) → código CONCLA/RFB
+  (`_CODIGOS_MUNICIPAIS`/`_CODIGOS_CONSORCIO`) → nome do proponente
+  (`_CAMPOS_PROPONENTE`, só quando reconhece um marcador) → `_NATUREZA_PADRAO_FONTE`
+  (fundo a fundo repassa ao próprio município). Isso também aumenta a cobertura do
+  filtro detalhado, que antes perdia toda proposta sem o campo na execução.
+- **API**: `natureza_grupo=entes_municipais|outros` em `FiltrosProposta` — vale para
+  `/proposals`, `/proposals/facets`, `/proposals/summary` e o relatório CSV. Entra
+  também como dimensão de faceta (`natureza_grupo`), com contagem.
+- **Meu painel**: `DimensaoResumo.quebras` (`schemas/perfil.py`) leva recortes de uma
+  dimensão para o card; a captação traz a contagem por lente com link já filtrado
+  (`/panel/funding?natureza_grupo=…`). Sem navegação (módulo desligado, §40) a quebra
+  vem vazia. A contagem é em Python — a natureza é derivada de jsonb/registro-fonte.
+- **Web**: `app/panel/funding` mostra as lentes na barra PRINCIPAL ("Quem propõe"),
+  não nos filtros avançados, e lê `?natureza_grupo=` na chegada (o card do painel abre
+  a tela já filtrada). Os 6 slugs seguem no avançado, para refinar.
+
+## 46. Faixa de destaque do detalhe — EMPENHO é `VL_GLOBAL_PROP`
+
+O card **Empenho** da faixa de destaque da página da proposta mostra o **valor
+global que a fonte publica para a proposta** — `VL_GLOBAL_PROP`, a variável
+oficial do SIconv (`VL_GLOBAL_CONV` é a do convênio já celebrado).
+
+- **Resolução do valor** (`services/propostas.valor_global_de`): lê
+  `VL_GLOBAL_PROP` direto de `dados_fonte`, em qualquer nível e caixa e em
+  formato BR — mesma disciplina de `ano_de`/`mes_de`, então **corrige o que já
+  está no cache sem esperar re-sync**. Sem a variável, cai em
+  `execucao.valor_global` e, por fim, em `valor_total`. A API expõe o resultado
+  no campo computado `PropostaRead.valor_global`; o front **não** vasculha
+  `dados_fonte`.
+- **Ingestão**: `_EXEC_KEYS["valor_global"]` do normalizador aceita
+  `vl_global_prop`/`vl_global_conv` além de `vl_global`, para as fontes que
+  publicam a coluna sem passar pelo de-para por palavra-chave do connector.
+- **"Empenhado a utilizar" foi DESCARTADO** da página da proposta e do espelho
+  em PDF (faixa de destaque, seção "Execução financeira" e o card "A utilizar"
+  da seção "Empenhos"). Era conta derivada (`empenhado − pago`) que nas
+  propostas dava zero e não informava nada. Os agregados de CARTEIRA continuam
+  com o card — `/proposals/summary` (`cards.valor_a_utilizar`), a tela de
+  captação e o resumo —, onde a conta tem massa e significado.
+
+**A LINHA BRUTA do CSV é retaguarda de todo campo.** Os connectors de CSV fazem
+o de-para coluna→campo e guardam a linha original em `plano_acao.csv`
+(`transferegov_disc._plano_do_csv`). Quando o de-para não casa uma coluna, o
+campo chegava vazio ao painel MESMO com o valor à vista no registro-fonte — foi
+o caso do `NR_PROPOSTA` ("34530/2009" no `csv`, proposta exibida como "sem
+número na fonte"). `normalizer._com_linha_bruta` põe a linha bruta como camada
+de BAIXO do plano (com alias de caixa): o de-para do connector continua vencendo
+onde preencheu, e o que ele não achou vem da fonte. Vale para qualquer connector
+que embuta a linha em `csv`. A migration `c9d0e1f2a3b4` faz o mesmo com o que já
+está no banco — promove `NR_PROPOSTA` (sobrescrevendo candidato errado, §35b),
+preenche os demais candidatos só onde está NULL e remonta `data_proposta` nos
+níveis que o backfill anterior (`a7b8c9d0e1f2`) não alcançava, porque só olhava a
+raiz de `dados_fonte`.
+
+## 47. Filtro de ano do Meu painel — UMA safra para a página inteira (decisão travada)
+
+O `/panel` tinha **dois** filtros de ano com critérios diferentes: o seletor do
+panorama pedia a safra à API (gráfico + cards financeiros) e o feed classificava
+por conta própria, no cliente, pela data da **coleta**. Filtrar o ano ajustava o
+gráfico e deixava os cards das dimensões e as novidades noutro recorte — com
+proposta de 2019 listada como novidade do ano corrente.
+
+- **Um seletor só, no cabeçalho da página** (`app/panel/page.tsx`), aplicado a
+  `/profile/overview`, `/proposals/summary` e `/profile/feed`. O `PanoramaFinanceiro`
+  recebe a safra por prop; não há mais filtro local. A escolha persiste
+  (`hub_painel_ano`) e some do seletor safra que não existe mais no território.
+- **A safra é sempre a mesma**: `propostas.ano_de` na captação (ANO_PROP >
+  `data_proposta` > nº da proposta > exercício) e o ano do pagamento nos
+  recebidos (sem data, a competência). O feed passa a expor `NovidadeItem.ano` e
+  a `data` da proposta é a **dela** (`data_proposta`), não a da coleta.
+- **Filtro no SERVIDOR, antes da janela** (`services/perfil.novidades`): filtrar
+  só o que coubesse no `limite` deixava anos anteriores permanentemente vazios.
+  A resposta traz `anos: [{ano, total}]` do território INTEIRO (ignora o ano
+  escolhido) — senão o filtro apagaria as próprias opções e prenderia o usuário
+  na safra escolhida. Ordem do feed: safra decrescente e, dentro dela, a data.
+- **Dimensões sem safra**: conformidade e obras são estado ATUAL do município,
+  não fluxo anual — continuam inteiras e se anunciam com `recorte_ano=False`; o
+  painel avisa em vez de fingir um recorte que não existe.
+- O card da captação leva a safra para a exploração
+  (`/panel/funding?ano=…&natureza_grupo=…`), e a tela de captação abre já nesse
+  recorte.
+
+## 48. Flag de versão da UI — portar a Bancada v2 → v1 pelo painel admin
 
 A modernização visual (Bancada v2: acento duplo lime+aqua, vidro/elevação,
 microanimações, aurora/grade no canvas) é a UI atual. A flag permite **voltar
@@ -1526,3 +1865,4 @@ disciplina dos módulos da §29 e dos gates da §39.
 - **Admin** — `/admin/config` ganhou a categoria **Plataforma** com o grupo
   "Interface (UI)"; trocar o valor propaga na próxima carga de página.
 - **Testes** — `test_ui_versao.py` (catálogo, sanitização e resolução da flag).
+

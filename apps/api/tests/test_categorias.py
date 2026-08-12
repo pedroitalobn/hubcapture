@@ -10,12 +10,8 @@ from src.ai import categorias as cat
 
 
 def test_classifica_pelos_textos_da_proposta() -> None:
-    assert cat.classificar("Pavimentação em Paralelepípedo da Rua Prefeito") == [
-        "infraestrutura"
-    ]
-    assert cat.classificar("Aquisição de ambulância para a UBS", "Ministério da Saúde") == [
-        "saude"
-    ]
+    assert cat.classificar("Pavimentação em Paralelepípedo da Rua Prefeito") == ["infraestrutura"]
+    assert cat.classificar("Aquisição de ambulância para a UBS", "Ministério da Saúde") == ["saude"]
     assert "esporte" in cat.classificar("Construção de Quadra Coberta Poliesportiva")
     assert "cultura" in cat.classificar("MTUR/SECULT - ALDIR BLANC - MUNICÍPIOS")
 

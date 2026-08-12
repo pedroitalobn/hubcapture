@@ -21,6 +21,7 @@ async def buscar_propostas(session: AsyncSession, query: str, k: int = 5) -> lis
     if vec is not None:
         stmt = (
             select(Proposta)
+            .where(Proposta.excluido_em.is_(None))
             .join(PropostaEmbedding, PropostaEmbedding.proposta_id == Proposta.id)
             .order_by(PropostaEmbedding.embedding.cosine_distance(vec))
             .limit(k)
@@ -29,6 +30,7 @@ async def buscar_propostas(session: AsyncSession, query: str, k: int = 5) -> lis
         like = f"%{query}%"
         stmt = (
             select(Proposta)
+            .where(Proposta.excluido_em.is_(None))
             .where(or_(Proposta.titulo.ilike(like), Proposta.objeto.ilike(like)))
             .limit(k)
         )

@@ -99,8 +99,9 @@ export const api = createHubClient({ baseUrl: API_ORIGIN, getToken: garantirSess
 
 /**
  * Zera TODAS as propostas do sistema (admin/superuser) — uso: validação da
- * coleta. Fetch cru autenticado (a rota é temporária e não está no client
- * tipado). As FKs são CASCADE: favoritos/pastas/monitoramentos somem junto.
+ * coleta. É soft delete: as propostas somem do painel, mas nada é apagado do
+ * banco, então favoritos/pastas/monitoramentos dos usuários sobrevivem e a
+ * zeragem pode ser desfeita. Fetch cru autenticado (rota fora do client tipado).
  */
 export async function zerarPropostas(): Promise<{ removidas: number }> {
   const resp = await fetch(`${API_ORIGIN}/api/v1/admin/proposals`, {
@@ -108,6 +109,41 @@ export async function zerarPropostas(): Promise<{ removidas: number }> {
     headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
   });
   if (!resp.ok) throw new Error(`Falha ao zerar propostas (HTTP ${resp.status})`);
+  return resp.json();
+}
+
+/** Desfaz a zeragem: as propostas marcadas voltam ao painel (admin). */
+export async function restaurarPropostas(): Promise<{ removidas: number }> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/admin/proposals/restore`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+  });
+  if (!resp.ok) throw new Error(`Falha ao restaurar propostas (HTTP ${resp.status})`);
+  return resp.json();
+}
+
+export interface ResetPerfil {
+  municipios: number;
+  propostas: number;
+  favoritos: number;
+  pastas: number;
+  monitoramentos: number;
+  alertas: number;
+  cache_invalidado: number;
+}
+
+/**
+ * Zera o PRÓPRIO perfil (zona de perigo da conta): apaga território,
+ * preferências e curadoria do usuário e manda o cache do território ser
+ * recoletado. A conta continua existindo — o usuário volta ao onboarding.
+ * Fetch cru autenticado (o client tipado só conhece o GET /profile).
+ */
+export async function zerarPerfil(): Promise<ResetPerfil> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/profile`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+  });
+  if (!resp.ok) throw new Error(`Falha ao zerar o perfil (HTTP ${resp.status})`);
   return resp.json();
 }
 

@@ -55,7 +55,11 @@ def categorias_de(p: Proposta) -> list[str]:
 
 async def classificar_pendentes(session: AsyncSession, limite: int = 500) -> int:
     """Preenche `categorias_ia` de quem ainda não tem. Sem rede — cabe no request."""
-    stmt = select(Proposta).where(Proposta.categorias_ia.is_(None)).limit(limite)
+    stmt = (
+        select(Proposta)
+        .where(Proposta.categorias_ia.is_(None), Proposta.excluido_em.is_(None))
+        .limit(limite)
+    )
     pendentes = list((await session.execute(stmt)).scalars().all())
     tocadas = 0
     for p in pendentes:
@@ -76,7 +80,11 @@ async def curar_com_ia(
     Best-effort: uma proposta que falhar não derruba o lote — `gerar_curadoria`
     já absorve a falha e devolve o determinístico.
     """
-    stmt = select(Proposta).where(Proposta.resumo_ia.is_(None)).limit(limite)
+    stmt = (
+        select(Proposta)
+        .where(Proposta.resumo_ia.is_(None), Proposta.excluido_em.is_(None))
+        .limit(limite)
+    )
     pendentes = list((await session.execute(stmt)).scalars().all())
     if not pendentes:
         return 0

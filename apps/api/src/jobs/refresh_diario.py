@@ -58,19 +58,13 @@ async def _usuarios_para_sincronizar() -> list[tuple]:
     # dentro de rls_session (no primeiro_sync.executar), então o RLS segue
     # valendo para tudo que grava dado de território.
     async with SessionLocal() as s:
-        ids = (
-            (await s.execute(select(distinct(MunicipioInteresse.usuario_id))))
-            .scalars()
-            .all()
-        )
+        ids = (await s.execute(select(distinct(MunicipioInteresse.usuario_id)))).scalars().all()
         saida = []
         for uid in ids:
             municipios = (
                 (
                     await s.execute(
-                        select(MunicipioInteresse.ibge).where(
-                            MunicipioInteresse.usuario_id == uid
-                        )
+                        select(MunicipioInteresse.ibge).where(MunicipioInteresse.usuario_id == uid)
                     )
                 )
                 .scalars()
@@ -78,9 +72,7 @@ async def _usuarios_para_sincronizar() -> list[tuple]:
             )
             pref = (
                 await s.execute(
-                    select(PreferenciasUsuario).where(
-                        PreferenciasUsuario.usuario_id == uid
-                    )
+                    select(PreferenciasUsuario).where(PreferenciasUsuario.usuario_id == uid)
                 )
             ).scalar_one_or_none()
             if not municipios:
@@ -121,15 +113,11 @@ async def sweep() -> dict:
                     ok += 1
                 except Exception:
                     falhas += 1
-                    log.warning(
-                        "refresh diário: usuário %s falhou", usuario_id, exc_info=True
-                    )
+                    log.warning("refresh diário: usuário %s falhou", usuario_id, exc_info=True)
                 await asyncio.sleep(PAUSA_ENTRE_USUARIOS_S)
 
             dur = (datetime.now(UTC) - inicio).total_seconds()
-            log.info(
-                "refresh diário: concluído — %d ok, %d falha(s), %.0fs", ok, falhas, dur
-            )
+            log.info("refresh diário: concluído — %d ok, %d falha(s), %.0fs", ok, falhas, dur)
             return {"status": "ok", "usuarios": len(alvos), "ok": ok, "falhas": falhas}
         finally:
             await conn.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": LOCK_ID})

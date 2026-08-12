@@ -148,6 +148,4 @@ async def sincronizar(
     session: AsyncSession = Depends(get_rls_db),
 ) -> SyncResultado:
     integracao = await _get_ou_404(session, integracao_id)
-    return await sync_service.sincronizar(
-        session, usuario_id=user.id, integracao=integracao
-    )
+    return await sync_service.sincronizar(session, usuario_id=user.id, integracao=integracao)

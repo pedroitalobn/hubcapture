@@ -21,9 +21,7 @@ CONEXOES = f"{API}/people/me/connections"
 CRIAR = f"{API}/people:createContact"
 EU = f"{API}/people/me"
 
-CAMPOS = (
-    "names,emailAddresses,phoneNumbers,organizations,addresses,biographies,metadata"
-)
+CAMPOS = "names,emailAddresses,phoneNumbers,organizations,addresses,biographies,metadata"
 CAMPOS_ESCRITA = "names,emailAddresses,phoneNumbers,organizations,addresses,biographies"
 PAGINA = 200
 

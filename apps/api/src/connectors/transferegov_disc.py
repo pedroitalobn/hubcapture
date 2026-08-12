@@ -28,9 +28,7 @@ from .base import RawRecord, register
 
 # Fonte oficial: ZIP nacional (siconv_proposta.csv dentro) no Azure blob do
 # Transferegov. Tem COD_MUNIC_IBGE, então dá pra filtrar por município.
-ZIP_URL = (
-    "https://api-publica.transferegov.gestao.gov.br/downloads/dadosgov/siconv_proposta.zip"
-)
+ZIP_URL = "https://api-publica.transferegov.gestao.gov.br/downloads/dadosgov/siconv_proposta.zip"
 
 # o arquivo é NACIONAL (todos os municípios) e grande (~200MB) — cache dos
 # BYTES em memória por 1h para a live-search de vários municípios reusar sem
@@ -69,11 +67,38 @@ def _col(row: dict, *keywords: str) -> Any:
     return None
 
 
+def _col_exata(row: dict, *nomes: str) -> Any:
+    """Valor da coluna cujo nome normalizado é EXATAMENTE um dos pedidos.
+
+    Necessário para as colunas do SIconv que são prefixo umas das outras:
+    por substring, 'dia_prop' casaria também com DIA_PROPOSTA.
+    """
+    chaves = {_norm(k).strip(): v for k, v in row.items() if isinstance(k, str)}
+    for nome in nomes:
+        if chaves.get(nome) not in (None, ""):
+            return chaves[nome]
+    return None
+
+
 def _plano_do_csv(row: dict) -> dict:
     """Linha do CSV → dict no vocabulário do normalizador (com execução)."""
     return {
         "numero": _col(row, "nr_convenio", "transferencia", "numero"),
-        "situacao": _col(row, "situa"),
+        # SIconv/detru (siconv_proposta.csv): a REFERÊNCIA da proposta vem em
+        # colunas próprias — NR_PROPOSTA (o nº que o gestor digita no portal) e
+        # a data de criação decomposta em DIA_PROP/MES_PROP/ANO_PROP. Sem este
+        # de-para o normalizador caía em retaguardas erradas (vigência,
+        # exercício) e o painel mostrava ano/data que não são os da proposta.
+        "nr_proposta": _col_exata(row, "nr_proposta"),
+        "dia_prop": _col_exata(row, "dia_prop"),
+        "mes_prop": _col_exata(row, "mes_prop"),
+        "ano_prop": _col_exata(row, "ano_prop"),
+        "dia_proposta": _col_exata(row, "dia_proposta"),
+        # órgão por extenso — a palavra-chave "orgao" pescava COD_ORGAO_SUP
+        # (código numérico) e a tela mostrava número onde vai o ministério
+        "desc_orgao": _col_exata(row, "desc_orgao"),
+        "desc_orgao_superior": _col_exata(row, "desc_orgao_sup", "desc_orgao_superior"),
+        "situacao": _col(row, "situa", "sit_proposta"),
         "modalidade": _col(row, "modalidade"),
         "tipo_transferencia": _col(row, "tipo"),
         "objeto": _col(row, "objeto"),
@@ -139,9 +164,7 @@ class TransferegovDiscConnector:
         CSV inteiro em memória: o csv.DictReader consome linha a linha)."""
         if url.lower().endswith(".zip"):
             z = zipfile.ZipFile(io.BytesIO(conteudo))
-            nome = next(
-                (n for n in z.namelist() if n.lower().endswith(".csv")), z.namelist()[0]
-            )
+            nome = next((n for n in z.namelist() if n.lower().endswith(".csv")), z.namelist()[0])
             return io.TextIOWrapper(z.open(nome), encoding="utf-8-sig", errors="replace")
         return io.StringIO(conteudo.decode("utf-8-sig", errors="replace"))
 
@@ -160,9 +183,7 @@ class TransferegovDiscConnector:
         _registros_cache[(url, municipio_ibge)] = (time.monotonic(), records)
         return records
 
-    def _filtrar_municipio(
-        self, url: str, conteudo: bytes, municipio_ibge: str
-    ) -> list[RawRecord]:
+    def _filtrar_municipio(self, url: str, conteudo: bytes, municipio_ibge: str) -> list[RawRecord]:
         """Varre o CSV nacional e devolve só as linhas do município (síncrono)."""
         f = self._abrir_csv(url, conteudo)
         header_line = f.readline()

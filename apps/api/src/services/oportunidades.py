@@ -67,6 +67,7 @@ async def _novas_propostas(
     for busca in buscas:
         corte = busca.ultimo_alerta_em or busca.created_at
         stmt = select(Proposta).where(
+            Proposta.excluido_em.is_(None),
             Proposta.municipio_ibge == busca.municipio_ibge,
             Proposta.created_at > corte,
         )

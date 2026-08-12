@@ -131,9 +131,7 @@ async def sync_plano(
         finalizado_em=datetime.now(UTC),
         erro=None,
     )
-    return ParecerColeta(
-        numero_plano_trabalho=numero_plano, status="ok", total=len(canonicos)
-    )
+    return ParecerColeta(numero_plano_trabalho=numero_plano, status="ok", total=len(canonicos))
 
 
 async def por_plano(
@@ -151,9 +149,7 @@ async def por_plano(
         return [], ParecerColeta(status="sem_plano_trabalho", total=0)
 
     itens = await listar(session, numero_plano)
-    coleta = ParecerColeta(
-        numero_plano_trabalho=numero_plano, status="ok", total=len(itens)
-    )
+    coleta = ParecerColeta(numero_plano_trabalho=numero_plano, status="ok", total=len(itens))
 
     if atualizar or not _esta_fresco(itens):
         coleta = await sync_plano(

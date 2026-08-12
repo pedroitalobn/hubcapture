@@ -31,7 +31,8 @@ _owner_engine = create_async_engine(settings.database_migrator_url, poolclass=Nu
 
 _TABLES = (
     "alertas, monitoramentos, monitoramentos_busca, favoritos, pasta_propostas, pastas, audit_log, "
-    "sync_runs, proposta_embeddings, propostas, repasses, conformidades, obras, "
+    "sync_runs, proposta_embeddings, proposta_emendas, proposta_empenhos, pareceres, propostas, "
+    "repasses, conformidades, obras, "
     "contato_vinculos, integracoes_contatos, contatos, "
     "municipios_interesse, preferencias_usuario, convites, usuarios, planos, "
     "configuracoes, base_conhecimento, "
@@ -136,15 +137,36 @@ async def seed_repasse() -> Callable[..., Awaitable[None]]:
 
 
 @pytest_asyncio.fixture
-async def seed_proposta() -> Callable[..., Awaitable[None]]:
-    async def _seed(fonte: str, id_externo: str, ibge: str, titulo: str = "P") -> None:
+async def seed_proposta() -> Callable[..., Awaitable[uuid.UUID]]:
+    """Insere uma proposta e devolve o id.
+
+    Roda como OWNER porque a policy de INSERT de `propostas` não aceita a role
+    de app sem tenant setado. `extras` cobre as colunas que cada teste precisa
+    (data_proposta, dados_fonte, execucao…) sem uma fixture nova por caso.
+    """
+
+    async def _seed(
+        fonte: str, id_externo: str, ibge: str, titulo: str = "P", **extras
+    ) -> uuid.UUID:
+        pid = extras.pop("id", None) or uuid.uuid4()
+        colunas = {
+            "id": pid,
+            "fonte": fonte,
+            "id_externo": id_externo,
+            "titulo": titulo,
+            "municipio_ibge": ibge,
+            **extras,
+        }
+        campos = ", ".join(colunas)
+        valores = ", ".join(f":{c}" for c in colunas)
         async with _owner_engine.begin() as conn:
             await conn.execute(
                 text(
-                    "INSERT INTO propostas (fonte, id_externo, titulo, municipio_ibge, "
-                    "cache_atualizado_em) VALUES (:f,:e,:t,:ibge, now())"
+                    f"INSERT INTO propostas ({campos}, cache_atualizado_em) "
+                    f"VALUES ({valores}, now())"
                 ),
-                {"f": fonte, "e": id_externo, "t": titulo, "ibge": ibge},
+                colunas,
             )
+        return pid
 
     return _seed

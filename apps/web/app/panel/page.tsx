@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
+import { NumeroProposta } from "@/components/NumeroProposta";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
@@ -12,7 +13,10 @@ import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 // ── Panorama financeiro do território (números + gráfico) ───────────────────
 // Reusa /proposals/summary (mesma fonte da página de resumo da Captação) para
-// dar cards e um gráfico por ano direto no Meu painel, com filtro de período.
+// dar cards e um gráfico por ano direto no Meu painel. A safra vem do filtro da
+// PÁGINA (prop `ano`), não de um seletor próprio: dois filtros de ano na mesma
+// tela mostravam recortes diferentes lado a lado — o gráfico obedecia a um, os
+// cards e o feed continuavam no outro.
 interface ResumoPainelData {
   cards: {
     valor_conveniado: string;
@@ -30,10 +34,9 @@ function numBR(v?: string | number | null): number {
   return Number.isNaN(n) ? 0 : n;
 }
 
-function PanoramaFinanceiro() {
+function PanoramaFinanceiro({ ano }: { ano: string }) {
   const { selecionados } = useTerritorio();
   const [resumo, setResumo] = useState<ResumoPainelData | null>(null);
-  const [ano, setAno] = useState("");
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
@@ -65,7 +68,6 @@ function PanoramaFinanceiro() {
   if (!resumo) return null;
 
   const porAno = resumo.por_ano ?? [];
-  const anos = porAno.map((a) => a.ano);
   const maxAno = Math.max(
     1,
     ...porAno.flatMap((a) => [numBR(a.aprovado), numBR(a.desembolsado)]),
@@ -75,19 +77,9 @@ function PanoramaFinanceiro() {
     <section className="anim-fade-up flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="tracking-tight">Panorama financeiro</h2>
-        <select
-          value={ano}
-          onChange={(e) => setAno(e.target.value)}
-          className="input w-36"
-          title="Filtrar por período (ano)"
-        >
-          <option value="">Todos os anos</option>
-          {anos.map((a) => (
-            <option key={a} value={a}>
-              {a}
-            </option>
-          ))}
-        </select>
+        <span className="label-mono">
+          {ano ? `safra ${ano}` : "todas as safras"}
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -145,6 +137,12 @@ function PanoramaFinanceiro() {
   );
 }
 
+interface Quebra {
+  chave: string;
+  rotulo: string;
+  total: number;
+  href: string;
+}
 interface Dimensao {
   chave: string;
   titulo: string;
@@ -152,6 +150,10 @@ interface Dimensao {
   destaque?: string | null;
   // null = módulo de exploração desligado — o card informa, sem navegar (§40)
   href?: string | null;
+  // recortes dentro da dimensão, já com link filtrado (ex.: natureza jurídica)
+  quebras?: Quebra[];
+  // false = dimensão sem safra anual (conformidade/obras são estado atual)
+  recorte_ano?: boolean;
 }
 interface Municipio {
   ibge: string;
@@ -170,10 +172,13 @@ interface Novidade {
   descricao?: string | null;
   valor?: number | string | null;
   data?: string | null;
+  // safra do item (ano da proposta / do repasse) — o mesmo critério do filtro
+  ano?: string | null;
   fonte: string;
   municipio_nome?: string | null;
   href: string;
   proposta_id?: string | null;
+  numero_proposta?: string | null;
 }
 interface SyncRunStatus {
   fonte?: string | null;
@@ -181,9 +186,17 @@ interface SyncRunStatus {
   registros?: number | null;
   finalizado_em?: string | null;
 }
+interface AnoDisponivel {
+  ano: string;
+  total: number;
+}
 interface Novidades {
   itens: Novidade[];
   sync_runs: SyncRunStatus[];
+  // safras COM novidade no território, do mais recente ao mais antigo. Vem
+  // sempre do território inteiro — escolher um ano não pode apagar as outras
+  // opções do próprio filtro.
+  anos?: AnoDisponivel[];
 }
 interface Noticia {
   titulo: string;
@@ -222,44 +235,29 @@ function dataBr(iso: string | null | undefined): string | null {
   return y && m && d ? `${d}/${m}/${y}` : iso;
 }
 
-// ── Filtro de ano das novidades ─────────────────────────────────────────────
-// Pills derivadas dos anos que EXISTEM no feed carregado (mais recentes
-// primeiro) + "Outros" para o excedente e itens sem data. Pill de ano sem
-// nenhum item não é renderizada — filtro que nunca muda a lista parece
-// quebrado. A escolha do usuário PERSISTE entre visitas; sem preferência
-// salva, abre no ano mais recente com dados.
-const ANOS_KEY = "hub_painel_anos";
-const OUTROS = "outros";
-const MAX_PILLS_ANO = 4;
-// Janela pedida à API: o padrão de 20 itens só alcança o ano corrente, o que
-// deixava as pills dos anos anteriores permanentemente vazias.
-const FEED_LIMITE = 120;
+// ── Filtro de ano do painel ─────────────────────────────────────────────────
+// UM filtro para a página inteira: cards das dimensões, panorama financeiro
+// (números + gráfico) e feed de novidades pedem a MESMA safra à API. Antes o
+// gráfico tinha um seletor próprio e o feed, pills separadas — filtrar o ano
+// ajustava o gráfico e deixava os cards em outro recorte.
+//
+// As opções vêm do território inteiro (`anos` do feed), então escolher 2024
+// não apaga as outras safras do seletor; o recorte é do SERVIDOR, então uma
+// safra antiga traz os itens daquele ano em vez de garimpar o que sobrou na
+// janela. A escolha persiste entre visitas.
+const ANO_KEY = "hub_painel_ano";
+// Janela do feed: quantos itens da safra escolhida (ou das mais recentes,
+// quando "todos os anos") cabem na lista.
+const FEED_LIMITE = 60;
 
-/** Ano do item pelo prefixo do ISO (YYYY-MM-DD); null se ausente/inválido. */
-function anoDoItem(iso: string | null | undefined): number | null {
-  if (!iso) return null;
-  const ano = Number(iso.slice(0, 4));
-  return Number.isInteger(ano) && ano > 1900 ? ano : null;
-}
-
-/**
- * Lê a preferência salva. A validação fina (a pill ainda existe no feed de
- * hoje?) acontece na seleção efetiva, porque o conjunto de pills agora depende
- * dos DADOS carregados — aqui só se descarta lixo estrutural.
- */
-function lerAnosSalvos(): string[] | null {
-  if (typeof window === "undefined") return null;
+/** Preferência salva do filtro de ano ("" = todos os anos). */
+function lerAnoSalvo(): string {
+  if (typeof window === "undefined") return "";
   try {
-    const salvo = window.localStorage.getItem(ANOS_KEY);
-    if (!salvo) return null;
-    const bruto = JSON.parse(salvo) as unknown;
-    if (!Array.isArray(bruto)) return null;
-    const limpo = bruto.filter(
-      (c): c is string => typeof c === "string" && (c === OUTROS || /^\d{4}$/.test(c)),
-    );
-    return limpo.length > 0 ? limpo : null;
+    const salvo = window.localStorage.getItem(ANO_KEY);
+    return salvo && /^\d{4}$/.test(salvo) ? salvo : "";
   } catch {
-    return null; // preferência corrompida → volta ao padrão
+    return ""; // preferência corrompida/indisponível → todos os anos
   }
 }
 
@@ -277,21 +275,22 @@ function MeuPainel() {
   const [favErro, setFavErro] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const tentativas = useRef(0);
-  // null = usuário ainda não escolheu nada (nem nesta sessão nem salvo) — a
-  // seleção efetiva cai no padrão. Ler o localStorage já no initializer
-  // divergiria do HTML do servidor, que não tem acesso a ele — erro de
-  // hidratação; a restauração acontece no efeito abaixo.
-  const [anosSel, setAnosSel] = useState<string[] | null>(null);
+  // "" = todos os anos. Ler o localStorage já no initializer divergiria do HTML
+  // do servidor, que não tem acesso a ele — erro de hidratação; a restauração
+  // acontece no efeito abaixo.
+  const [ano, setAno] = useState("");
   const prefCarregada = useRef(false);
 
-  // O recorte de município entra em TODA consulta do painel: trocar o
-  // território no trilho lateral refaz visão geral, feed e oportunidades.
+  // O recorte de município E a safra entram em TODA consulta do painel: trocar
+  // o território no trilho lateral ou o ano no filtro refaz visão geral,
+  // panorama e feed — todos no mesmo recorte.
   const carregar = useCallback(async () => {
     const municipio = paramMunicipio(selecionados);
+    const query = { municipio, ano: ano || undefined };
     const [{ data: vg }, { data: nov }] = await Promise.all([
-      api.GET("/api/v1/profile/overview", { params: { query: { municipio } } }),
+      api.GET("/api/v1/profile/overview", { params: { query } }),
       api.GET("/api/v1/profile/feed", {
-        params: { query: { municipio, limite: FEED_LIMITE } },
+        params: { query: { ...query, limite: FEED_LIMITE } },
       }),
     ]);
     if (vg) setData(vg as VisaoGeral);
@@ -301,7 +300,7 @@ function MeuPainel() {
     // ausente — um nível a menos de defesa do que o próprio `?.` pretendia.
     // Sem o segundo `?.`, um feed sem `itens` derruba a tela inicial inteira.
     return (nov as Novidades | undefined)?.itens?.length ?? 0;
-  }, [selecionados]);
+  }, [selecionados, ano]);
 
   useEffect(() => {
     void carregar();
@@ -339,32 +338,21 @@ function MeuPainel() {
 
   // Restaura a preferência salva uma única vez, no cliente.
   useEffect(() => {
-    const salvo = lerAnosSalvos();
-    if (salvo) setAnosSel(salvo);
+    const salvo = lerAnoSalvo();
+    if (salvo) setAno(salvo);
     prefCarregada.current = true;
   }, []);
 
   // Persiste a escolha. O guard evita o efeito rodar ANTES da restauração e
-  // gravar o padrão por cima do que o usuário já tinha escolhido; null é
-  // "nenhuma escolha ainda" e não merece linha no storage.
+  // gravar o padrão por cima do que o usuário já tinha escolhido.
   useEffect(() => {
-    if (!prefCarregada.current || anosSel == null) return;
+    if (!prefCarregada.current) return;
     try {
-      window.localStorage.setItem(ANOS_KEY, JSON.stringify(anosSel));
+      window.localStorage.setItem(ANO_KEY, ano);
     } catch {
       /* storage cheio/bloqueado: o filtro segue valendo nesta sessão */
     }
-  }, [anosSel]);
-
-  function alternarAno(chave: string) {
-    const marcado = anosAtivos.includes(chave);
-    // Nunca deixa a seleção vazia: sem nenhuma pill ativa a lista ficaria
-    // vazia sem o usuário ter pedido isso, parecendo perda de dados.
-    if (marcado && anosAtivos.length === 1) return;
-    setAnosSel(
-      marcado ? anosAtivos.filter((c) => c !== chave) : [...anosAtivos, chave],
-    );
-  }
+  }, [ano]);
 
   // A estrela só muda depois que a API confirmou — marcar antes e ignorar o
   // erro criava a "favorita fantasma" que sumia no próximo carregamento.
@@ -406,72 +394,59 @@ function MeuPainel() {
 
   const semTerritorio = !loading && (data?.municipios.length ?? 0) === 0;
   const itens = novidades?.itens ?? [];
-  // Pills a partir do que EXISTE no feed: os anos com item, do mais recente ao
-  // mais antigo (janela de MAX_PILLS_ANO), + "Outros" quando sobra ano fora da
-  // janela ou item sem data. Toda pill renderizada tem ≥1 item por construção.
-  const { janelaAnos, pillsAno } = useMemo(() => {
-    const anos = new Set<number>();
-    let semData = false;
-    for (const n of itens) {
-      const ano = anoDoItem(n.data);
-      if (ano == null) semData = true;
-      else anos.add(ano);
-    }
-    const ordenados = [...anos].sort((a, b) => b - a).map(String);
-    const janela = ordenados.slice(0, MAX_PILLS_ANO);
-    const temOutros = semData || ordenados.length > janela.length;
-    return {
-      janelaAnos: janela,
-      pillsAno: temOutros ? [...janela, OUTROS] : janela,
-    };
-  }, [itens]);
-  // Chave de filtro do item: o próprio ano quando está na janela, senão OUTROS
-  // — item sem data cai em OUTROS de propósito, para continuar alcançável.
-  const chaveDoItem = useCallback(
-    (iso: string | null | undefined): string => {
-      const ano = anoDoItem(iso);
-      return ano != null && janelaAnos.includes(String(ano)) ? String(ano) : OUTROS;
-    },
-    [janelaAnos],
-  );
-  // Seleção EFETIVA: interseção da escolha do usuário com as pills que o feed
-  // de hoje sustenta. Escolha vazia/obsoleta → padrão = ano mais recente com
-  // dados (nunca um filtro que esconderia tudo sem motivo aparente).
-  const anosAtivos = useMemo(() => {
-    const [maisRecente] = pillsAno;
-    if (maisRecente == null) return [];
-    const escolhidos = (anosSel ?? []).filter((c) => pillsAno.includes(c));
-    return escolhidos.length > 0 ? escolhidos : [maisRecente];
-  }, [anosSel, pillsAno]);
-  // Quantos itens cada pill representa — mostra de cara em que ano há novidade,
-  // e deixa explícito o que está sendo escondido pelo filtro.
-  const contagemPorAno = useMemo(() => {
-    const mapa = new Map<string, number>();
-    for (const n of itens) {
-      const k = chaveDoItem(n.data);
-      mapa.set(k, (mapa.get(k) ?? 0) + 1);
-    }
-    return mapa;
-  }, [itens, chaveDoItem]);
-  // Com uma pill só o filtro não filtra nada — a linha some e a lista é tudo.
-  const itensFiltrados = useMemo(
+  // Safras oferecidas pelo filtro: o que EXISTE no território (vem da API, já
+  // do mais recente ao mais antigo e independente do ano escolhido).
+  const anosDisponiveis = useMemo(
     () =>
-      pillsAno.length < 2
-        ? itens
-        : itens.filter((n) => anosAtivos.includes(chaveDoItem(n.data))),
-    [itens, pillsAno, anosAtivos, chaveDoItem],
+      [...(novidades?.anos ?? [])].sort((a, b) => b.ano.localeCompare(a.ano)),
+    [novidades],
   );
+  // Safra salva que não existe mais no território (município trocado, cache
+  // zerado) prenderia o painel num recorte vazio — volta para "todos os anos".
+  useEffect(() => {
+    if (!ano || !novidades) return;
+    if (!(novidades.anos ?? []).some((a) => a.ano === ano)) setAno("");
+  }, [ano, novidades]);
+  const dimensoes = data?.dimensoes ?? [];
+  // Dimensões que não têm safra (conformidade/obras): o painel avisa em vez de
+  // deixar o usuário achar que o filtro falhou nesses cards.
+  const semSafra = ano
+    ? dimensoes.filter((d) => d.recorte_ano === false).map((d) => d.titulo)
+    : [];
   const falhas = (novidades?.sync_runs ?? []).filter((r) => r.status === "erro");
   const aguardandoDados =
     sincronizando && itens.length === 0 && tentativas.current < 15;
 
   return (
     <>
-      <header>
-        <h1 className="page-title">Meu painel</h1>
-        <p className="mt-1 text-sm text-ink-2">
-          Tudo do seu território, por etapa do ciclo do recurso público.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="page-title">Meu painel</h1>
+          <p className="mt-1 text-sm text-ink-2">
+            Tudo do seu território, por etapa do ciclo do recurso público.
+          </p>
+        </div>
+        {/* Filtro de ano da PÁGINA: cards, panorama e novidades no mesmo
+            recorte. Só aparece quando o território tem mais de uma safra —
+            filtro que não muda nada parece quebrado. */}
+        {!semTerritorio && anosDisponiveis.length > 1 && (
+          <label className="flex items-center gap-2 text-sm text-ink-2">
+            <span className="label-mono">Ano</span>
+            <select
+              value={ano}
+              onChange={(e) => setAno(e.target.value)}
+              className="input w-44"
+              title="Recorta o painel inteiro por safra (ano)"
+            >
+              <option value="">Todos os anos</option>
+              {anosDisponiveis.map((a) => (
+                <option key={a.ano} value={a.ano}>
+                  {a.ano} ({a.total})
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </header>
 
       {naoLidos > 0 && (
@@ -506,7 +481,7 @@ function MeuPainel() {
       ) : (
         <>
           <section className="stagger grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {(data?.dimensoes ?? []).map((d) => {
+            {dimensoes.map((d) => {
               // sem href = módulo de exploração desligado: o número do
               // território continua no painel, só não há para onde navegar
               const conteudo = (
@@ -531,78 +506,66 @@ function MeuPainel() {
                   </div>
                 </>
               );
-              return d.href ? (
-                <Link
-                  key={d.chave}
-                  href={d.href}
-                  className="card card-hover group flex flex-col justify-between p-6 min-h-44"
-                >
-                  {conteudo}
-                </Link>
-              ) : (
-                <div
-                  key={d.chave}
-                  className="card flex flex-col justify-between p-6 min-h-44"
-                >
-                  {conteudo}
+              // recortes da dimensão (ex.: natureza jurídica na captação):
+              // ficam FORA do <Link> do card — âncora dentro de âncora não vale
+              const quebras = (d.quebras ?? []).length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {(d.quebras ?? []).map((q) => (
+                    <Link
+                      key={q.chave}
+                      href={q.href}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-3 py-1 text-xs text-ink-2 transition hover:text-ink"
+                    >
+                      {q.rotulo}
+                      <span className="tabular-nums opacity-60">{q.total}</span>
+                    </Link>
+                  ))}
+                </div>
+              );
+              return (
+                <div key={d.chave} className="flex flex-col gap-2">
+                  {d.href ? (
+                    <Link
+                      href={d.href}
+                      className="card card-hover group flex flex-1 flex-col justify-between p-6 min-h-44"
+                    >
+                      {conteudo}
+                    </Link>
+                  ) : (
+                    <div className="card flex flex-1 flex-col justify-between p-6 min-h-44">
+                      {conteudo}
+                    </div>
+                  )}
+                  {quebras}
                 </div>
               );
             })}
           </section>
 
-          <PanoramaFinanceiro />
+          {semSafra.length > 0 && (
+            <p className="text-[12px] text-ink-3">
+              {semSafra.join(" e ")}{" "}
+              {semSafra.length === 1 ? "mostra" : "mostram"} o estado atual do
+              município — {semSafra.length === 1 ? "não tem" : "não têm"} recorte
+              por ano.
+            </p>
+          )}
+
+          <PanoramaFinanceiro ano={ano} />
 
           <section className="anim-fade-up flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h2 className="tracking-tight">Últimas novidades no seu território</h2>
+              <h2 className="tracking-tight">
+                {ano
+                  ? `Novidades de ${ano} no seu território`
+                  : "Últimas novidades no seu território"}
+              </h2>
               {aguardandoDados && (
                 <span className="label-mono animate-pulse">
                   Sincronizando fontes…
                 </span>
               )}
             </div>
-
-            {/* Filtro por ano — multisseleção sobre os anos COM novidade no
-                feed (+ "Outros"). Com menos de duas pills não há o que
-                filtrar, então a linha nem aparece. */}
-            {pillsAno.length >= 2 && (
-              <div
-                role="group"
-                aria-label="Filtrar novidades por ano"
-                className="flex flex-wrap items-center gap-2"
-              >
-                {pillsAno.map((chave) => {
-                  const ativo = anosAtivos.includes(chave);
-                  const total = contagemPorAno.get(chave) ?? 0;
-                  const rotulo = chave === OUTROS ? "Outros" : chave;
-                  return (
-                    <button
-                      key={chave}
-                      type="button"
-                      onClick={() => alternarAno(chave)}
-                      aria-pressed={ativo}
-                      title={
-                        chave === OUTROS
-                          ? "Demais anos e itens sem data"
-                          : `Novidades de ${chave} (${total})`
-                      }
-                      className={`chip ${ativo ? "chip-active" : ""}`}
-                    >
-                      {rotulo}
-                      {/* Contagem como BADGE, não texto solto — colada no
-                          rótulo, "2026 20" lia como um ano quebrado. */}
-                      <span
-                        className={`rounded-full px-1.5 py-px text-[10px] leading-4 tabular-nums ${
-                          ativo ? "bg-abyss/10" : "bg-surface-2 text-ink-3"
-                        }`}
-                      >
-                        {total}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
 
             {favErro && (
               <p role="status" className="text-sm tone-danger">
@@ -628,6 +591,18 @@ function MeuPainel() {
                     ). Novas tentativas rodam no próximo ciclo; você também pode
                     disparar uma busca nas páginas de cada dimensão.
                   </p>
+                ) : ano ? (
+                  <p>
+                    Nenhuma novidade de {ano} no território —{" "}
+                    <button
+                      type="button"
+                      onClick={() => setAno("")}
+                      className="underline underline-offset-2"
+                    >
+                      ver todos os anos
+                    </button>
+                    .
+                  </p>
                 ) : (
                   <p>
                     Nenhuma novidade ainda — os dados chegam após a primeira
@@ -637,7 +612,7 @@ function MeuPainel() {
               </div>
             ) : (
               <ol className="card stagger divide-y divide-hairline p-0">
-                {itensFiltrados.map((n, i) => (
+                {itens.map((n, i) => (
                   <li
                     key={i}
                     className="flex items-center gap-2 pr-3 transition-colors hover:bg-surface-2"
@@ -670,8 +645,18 @@ function MeuPainel() {
                       className="flex flex-1 flex-col gap-1 px-2 py-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm text-ink">
-                          {humanizarCaixa(n.titulo)}
+                        {/* O nº abre o item: é por ele que o gestor localiza a
+                            proposta no meio do feed (§35). Sem número — caso
+                            dos repasses — a linha começa direto no título. */}
+                        <p className="flex min-w-0 items-center gap-2">
+                          <NumeroProposta
+                            numero={n.numero_proposta}
+                            tamanho="sm"
+                            copiavel={false}
+                          />
+                          <span className="truncate text-sm text-ink">
+                            {humanizarCaixa(n.titulo)}
+                          </span>
                         </p>
                         <p className="mt-0.5 flex flex-wrap gap-x-2 text-[12px] text-ink-3">
                           <span className="font-mono uppercase tracking-[0.04em]">
@@ -692,9 +677,12 @@ function MeuPainel() {
                         {brl(n.valor) && (
                           <span className="tabular-nums">{brl(n.valor)}</span>
                         )}
-                        {dataBr(n.data) && (
+                        {/* data do item na sua própria safra (data da proposta,
+                            data do repasse). Sem data, ao menos o ano — é por
+                            ele que o item entrou no recorte. */}
+                        {(dataBr(n.data) || n.ano) && (
                           <span className="font-mono text-[12px] text-ink-3">
-                            {dataBr(n.data)}
+                            {dataBr(n.data) ?? n.ano}
                           </span>
                         )}
                       </div>

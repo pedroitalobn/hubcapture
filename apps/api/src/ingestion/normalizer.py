@@ -74,6 +74,22 @@ def _to_date(v: Any) -> date | None:
     return None
 
 
+def _data_de_componentes(plano: dict) -> date | None:
+    """Data remontada das colunas decompostas do SIconv: DIA_PROP/MES_PROP/ANO_PROP.
+
+    É a data OFICIAL de criação da proposta na fonte — quando os três componentes
+    existem, vencem qualquer candidato de coluna única (que ora é vigência, ora
+    é cadastro de outra coisa e vinha marcando a proposta com data errada).
+    """
+    try:
+        dia = int(str(plano.get("dia_prop")).strip())
+        mes = int(str(plano.get("mes_prop")).strip())
+        ano = int(str(plano.get("ano_prop")).strip())
+        return date(ano, mes, dia)
+    except (TypeError, ValueError):
+        return None
+
+
 def compute_hash(data: dict[str, Any]) -> str:
     """Hash determinístico dos campos materiais (sha256 de JSON sort_keys)."""
     material = {k: data.get(k) for k in _HASH_FIELDS}
@@ -85,7 +101,16 @@ def compute_hash(data: dict[str, Any]) -> str:
 # "quanto foi disponibilizado (empenhado) e ainda não utilizado" que o gestor
 # quer ver. Aceita tanto snake_case quanto os cabeçalhos do relatório.
 _EXEC_KEYS = {
-    "valor_global": ("valor_global", "valor global", "vl_global"),
+    # VL_GLOBAL_PROP é a variável do SIconv para o valor global da PROPOSTA
+    # (VL_GLOBAL_CONV é a do convênio já celebrado). Sem estes aliases o campo
+    # só chegava quando o connector já tinha feito o de-para por palavra-chave.
+    "valor_global": (
+        "valor_global",
+        "valor global",
+        "vl_global",
+        "vl_global_prop",
+        "vl_global_conv",
+    ),
     "valor_empenhado": ("valor_empenhado", "valor empenhado", "vl_empenhado"),
     "valor_liberado": ("valor_liberado", "valor liberado", "vl_desembolsado", "vl_liberado"),
     "valor_pago": ("valor_pago", "valor pago", "vl_pago"),
@@ -134,10 +159,35 @@ def _ci(d: Any) -> dict:
     return saida
 
 
+def _com_linha_bruta(plano: dict) -> dict:
+    """Expõe a LINHA BRUTA do CSV como camada de baixo do plano de ação.
+
+    Os connectors de CSV fazem o de-para coluna→campo e guardam a linha
+    original em `csv` (`transferegov_disc._plano_do_csv`). Quando o de-para não
+    casa uma coluna — cabeçalho novo, nome que mudou, coluna que só existe em
+    parte das linhas — o campo chega vazio ao painel MESMO com o valor visível
+    no registro-fonte: foi o que aconteceu com `NR_PROPOSTA` ("34530/2009"
+    presente no `csv`, proposta exibida como "sem número na fonte").
+
+    Aqui o de-para do connector continua mandando (valor preenchido vence), e a
+    linha bruta entra por baixo como retaguarda — com alias de caixa, porque o
+    SIconv manda cabeçalho em CAIXA ALTA. Vale para qualquer connector que
+    embuta a linha em `csv`, não só o disc.
+    """
+    bruto = _ci(plano.get("csv"))
+    if not bruto:
+        return plano
+    # só os campos que o connector REALMENTE preencheu ficam por cima: o
+    # de-para grava None nas colunas que não achou, e um None por cima da
+    # retaguarda anularia justamente o valor que viemos buscar.
+    preenchidos = {k: v for k, v in plano.items() if v not in (None, "", [])}
+    return {**bruto, **preenchidos}
+
+
 def normalize(record: RawRecord) -> PropostaCanonica:
     """Mapeia um RawRecord (plano de ação, convênio ou painel) p/ o schema canônico."""
     raw = record.raw
-    plano = _ci(raw.get("plano_acao", raw) if isinstance(raw, dict) else {})
+    plano = _com_linha_bruta(_ci(raw.get("plano_acao", raw) if isinstance(raw, dict) else {}))
     programa = _ci(raw.get("programa", {}) if isinstance(raw, dict) else {})
     benef = _ci(raw.get("beneficiario", {}) if isinstance(raw, dict) else {})
 
@@ -145,9 +195,11 @@ def normalize(record: RawRecord) -> PropostaCanonica:
         "fonte": record.source_id,
         "id_externo": record.id_externo,
         "numero_proposta": _first(
+            # NR_PROPOSTA (SIconv/detru, "14275/2026") é a referência oficial —
+            # é o nº que o gestor digita no portal, então vence os demais
+            plano.get("nr_proposta"),
             plano.get("numero_plano_acao"),
             plano.get("numero_proposta"),
-            plano.get("nr_proposta"),  # SIconv/detru ("14275/2026")
             plano.get("numero_convenio"),
             plano.get("nr_convenio"),  # voluntárias (convênio)
             plano.get("codigo_plano_acao"),  # fundo a fundo
@@ -247,15 +299,18 @@ def normalize(record: RawRecord) -> PropostaCanonica:
         # Quando a proposta foi CRIADA na fonte. O gestor cita a proposta por
         # número e data ("14275/2026, de 26/03") — é dado de cabeçalho, não o
         # mesmo que `data_atualizacao_fonte` (quando a fonte mexeu no registro).
-        "data_proposta": _to_date(
-            _first(
-                plano.get("dia_proposta"),  # SIconv/detru
-                plano.get("data_proposta"),
-                plano.get("data_cadastro"),
-                plano.get("data_criacao"),
-                plano.get("dia_cadastro"),
-                plano.get("data_inicio_vigencia"),  # sem data própria: a vigência abre
-            )
+        "data_proposta": _first(
+            _data_de_componentes(plano),  # SIconv: DIA_PROP/MES_PROP/ANO_PROP
+            _to_date(
+                _first(
+                    plano.get("dia_proposta"),  # SIconv/detru (data em coluna única)
+                    plano.get("data_proposta"),
+                    plano.get("data_cadastro"),
+                    plano.get("data_criacao"),
+                    plano.get("dia_cadastro"),
+                    plano.get("data_inicio_vigencia"),  # sem data própria: a vigência abre
+                )
+            ),
         ),
         "data_atualizacao_fonte": _to_date(
             _first(

@@ -7,6 +7,8 @@ usuário não vaza para o outro.
 
 from __future__ import annotations
 
+import json
+
 from sqlalchemy import text
 
 from src.db.session import SessionLocal, rls_session
@@ -71,9 +73,7 @@ async def test_visao_geral_agrega_por_perfil_e_isola_por_rls(
     assert {m.ibge for m in vg.municipios} == {"3550308"}
 
 
-async def test_visao_geral_inclui_dimensao_de_modulo_reativado(
-    seed_user, seed_municipio
-) -> None:
+async def test_visao_geral_inclui_dimensao_de_modulo_reativado(seed_user, seed_municipio) -> None:
     u = await seed_user("vm@m.com")
     await seed_municipio(u, "3550308")
     async with SessionLocal() as s:
@@ -114,8 +114,45 @@ async def test_visao_geral_independe_do_modulo_captacao(
     assert "captacao" in dims
     assert dims["captacao"].total == 1
     assert dims["captacao"].href is None
+    # sem navegação, a quebra por natureza também não tem para onde levar
+    assert dims["captacao"].quebras == []
     # módulo desligado E sem dado no cache → aí sim fora da visão
     assert "obras" not in dims and "conformidade" not in dims
+
+
+async def test_visao_geral_quebra_captacao_por_natureza(
+    seed_user, seed_municipio, seed_proposta
+) -> None:
+    """O card da captação leva as duas lentes (entes municipais × outros) já
+    com link filtrado — a consulta por natureza começa no Meu painel."""
+    u = await seed_user("quebra@a.com")
+    await seed_municipio(u, "3550308")
+    # fundo a fundo repassa ao ente municipal (padrão da fonte)
+    await seed_proposta("transferegov_ff", "p1", "3550308")
+    await seed_proposta(
+        "transferegov_disc",
+        "p2",
+        "3550308",
+        execucao=json.dumps({"natureza_juridica": "Organização da Sociedade Civil"}),
+    )
+    await seed_proposta(
+        "transferegov_disc",
+        "p3",
+        "3550308",
+        execucao=json.dumps({"natureza_juridica": "Prefeitura Municipal"}),
+    )
+
+    async with rls_session(u) as s:
+        vg = await service.visao_geral(s, _FakeUser(u, "executivo"))
+
+    captacao = {d.chave: d for d in vg.dimensoes}["captacao"]
+    quebras = {q.chave: q for q in captacao.quebras}
+    assert quebras["entes_municipais"].total == 2
+    assert quebras["outros"].total == 1
+    # as duas lentes somam o total da dimensão — nenhuma proposta fica de fora
+    assert sum(q.total for q in captacao.quebras) == captacao.total
+    assert quebras["outros"].href == "/panel/funding?natureza_grupo=outros"
+    assert quebras["entes_municipais"].rotulo == "Entes municipais"
 
 
 class _FakeUser:

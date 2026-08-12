@@ -6,7 +6,10 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { Hint } from "@/components/Hint";
-import { PareceresSecao } from "@/components/PareceresSecao";
+import { AndamentoProposta } from "@/components/AndamentoProposta";
+import { EmendasProposta } from "@/components/EmendasProposta";
+import { EmpenhosProposta } from "@/components/EmpenhosProposta";
+import { NumeroProposta } from "@/components/NumeroProposta";
 import { Skeleton } from "@/components/Skeleton";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { TextoExpansivel } from "@/components/TextoExpansivel";
@@ -41,6 +44,8 @@ type Proposta = {
   municipio_nome?: string | null;
   uf?: string | null;
   valor_total?: string | null;
+  /** Valor global publicado pela fonte (VL_GLOBAL_PROP) — o card "Empenho". */
+  valor_global?: string | null;
   contrapartida?: string | null;
   situacao?: string | null;
   emenda?: string | null;
@@ -55,6 +60,8 @@ type Proposta = {
   /** Pílulas de categoria (curadoria) — slug filtrável + rótulo exibível. */
   categorias?: { slug: string; rotulo: string }[] | null;
   tipo?: string;
+  /** Ano de CRIAÇÃO da proposta (ANO_PROP na fonte) — a safra do cabeçalho. */
+  ano?: string | null;
   // computados pela API — a tela antes descartava os três
   prazo_final?: string | null;
   dias_restantes?: number | null;
@@ -333,15 +340,19 @@ export default function PropostaDetalhePage() {
   }
   if (!p) return <Carregando />;
 
-  // Prazo em foco: o computado pela API, com retaguarda no primeiro prazo bruto.
-  const prazoFoco =
-    p.prazo_final ?? (p.prazos ?? []).map((x) => x.data_limite).filter(Boolean)[0] ?? null;
-  const dias = p.dias_restantes ?? diasAte(prazoFoco);
-  const tomDoPrazo = tomPrazo(dias);
+  // Ano da proposta (safra): o computado pela API (ANO_PROP na fonte), com
+  // retaguarda no ano da data de criação já ingerida.
+  const anoProposta = p.ano ?? (p.data_proposta ? p.data_proposta.slice(0, 4) : null);
   const disponivel = p.tipo === "disponivel";
-  const empenhadoAUtilizar = p.execucao
-    ? Math.max(0, num(p.execucao.valor_empenhado) - num(p.execucao.valor_pago))
-    : 0;
+  // §40: o detalhe é panel-core; o módulo captação governa só a consulta ATIVA
+  // às fontes (o botão "Consultar fonte" das seções de andamento e emenda).
+  const podeExplorar = (perfil?.modulos ?? []).includes("captacao");
+  // EMPENHO na faixa de destaque = VL_GLOBAL_PROP, o valor global que a fonte
+  // publica para a proposta (a API resolve o campo cru e devolve em
+  // `valor_global`). A conta derivada "empenhado − pago" saiu da tela: nas
+  // propostas ela dava zero e não dizia nada ao gestor.
+  const valorGlobal = p.valor_global ?? p.execucao?.valor_global ?? null;
+  const temValorGlobal = num(valorGlobal) > 0;
 
   return (
     <div className="flex flex-col gap-5">
@@ -372,14 +383,17 @@ export default function PropostaDetalhePage() {
               ela ("14275/2026, de 26/03") e é o que ele digita para conferir no
               portal da fonte. Dado de cabeçalho — diferente de `id_externo`/UUID,
               que são plumbing e ficam em "Dados gerais". */}
-          <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-ink-2">
-            <span>
-              Proposta{" "}
-              <span className="num select-all font-semibold text-ink">
-                {p.numero_proposta ?? "—"}
-              </span>{" "}
-              <Hint chave="proposta.numero_proposta" className="align-middle" />
-            </span>
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-2">
+            {p.numero_proposta ? (
+              // mesma pílula da lista e do feed: o gestor reconhece o número
+              // pelo formato e daqui copia para colar no portal da fonte
+              <NumeroProposta numero={p.numero_proposta} />
+            ) : (
+              <span>
+                Proposta <span className="num text-ink-3">sem nº na fonte</span>
+              </span>
+            )}
+            <Hint chave="proposta.numero_proposta" className="align-middle" />
             {p.data_proposta && (
               <>
                 <span className="text-ink-3">·</span>
@@ -452,11 +466,11 @@ export default function PropostaDetalhePage() {
       {msg && <Aviso tom={msg.tom}>{msg.texto}</Aviso>}
 
       {/* ── FAIXA DE DESTAQUE ────────────────────────────────────────
-          O topo da hierarquia: valor e vencimento, os dois dados que
-          decidem se o gestor age hoje. Tudo o mais é subordinado. */}
-      {/* Dois degraus DENTRO da faixa: valor e prazo ocupam a linha de cima
-          inteira (é o que decide a ação de hoje); o resto desce um nível.
-          Quatro colunas de peso igual não cabiam — os números colidiam. */}
+          O topo da hierarquia: valor, empenho e a SAFRA da proposta
+          (ano de criação na fonte). Tudo o mais é subordinado. */}
+      {/* Dois degraus DENTRO da faixa: valor/empenho/ano ocupam a linha de
+          cima inteira; o resto desce um nível. Quatro colunas de peso igual
+          não cabiam — os números colidiam. */}
       <section className="hero-band anim-page-delayed">
         <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
           <div className="field">
@@ -472,58 +486,55 @@ export default function PropostaDetalhePage() {
             )}
           </div>
 
-          {/* EMPENHO no primeiro degrau: é o que diz se o recurso saiu do
-              papel. Antes vivia lá embaixo, na grade secundária. */}
-          {/* O hint contextual em ação: o ⓘ ao lado de "Empenhado" abre o
+          {/* EMPENHO no primeiro degrau: é o valor global que a fonte publica
+              para a proposta (VL_GLOBAL_PROP). Antes vivia lá embaixo, na
+              grade secundária. */}
+          {/* O hint contextual em ação: o ⓘ ao lado de "Empenho" abre o
               artigo que o admin plantou na chave proposta.empenhado. */}
           <div className="field">
             <span className="field-label">
-              Empenhado <Hint chave="proposta.empenhado" />
+              Empenho <Hint chave="proposta.empenhado" />
             </span>
-            {p.execucao ? (
+            {temValorGlobal ? (
               <>
-                <span className="value-hero">
-                  {formatBRL(p.execucao.valor_empenhado)}
-                </span>
+                <span className="value-hero">{formatBRL(valorGlobal)}</span>
                 <span className="num mt-1 text-xs text-ink-3">
-                  {empenhadoAUtilizar > 0
-                    ? `${formatBRL(String(empenhadoAUtilizar))} a utilizar`
-                    : "nada a utilizar"}
+                  valor global da proposta na fonte
                 </span>
               </>
             ) : (
               <>
                 <span className="value-hero text-ink-3">—</span>
                 <span className="num mt-1 text-xs text-ink-3">
-                  sem execução informada
+                  sem valor global informado na fonte
                 </span>
               </>
             )}
           </div>
 
+          {/* ANO da proposta no lugar do prazo de vencimento: a safra (ANO_PROP)
+              é o que situa a proposta — o prazo vinha marcado errado com
+              frequência e segue disponível na seção "Prazos", abaixo. */}
           <div className="field">
             <span className="field-label">
-              {dias !== null && dias !== undefined && dias < 0
-                ? "Prazo vencido"
-                : "Próximo prazo"}{" "}
-              <Hint chave="proposta.prazo" />
+              Ano da proposta <Hint chave="proposta.ano" />
             </span>
-            {prazoFoco ? (
+            {anoProposta ? (
               <>
-                <span className={cx("value-hero", tomDoPrazo && `tone-${tomDoPrazo}`)}>
-                  {formatDate(prazoFoco)}
-                </span>
-                <span
-                  className={cx(
-                    "mt-1 font-mono text-xs uppercase tracking-[0.04em]",
-                    tomDoPrazo ? `tone-${tomDoPrazo}` : "text-ink-3",
-                  )}
-                >
-                  {prazoLabel(prazoFoco)}
+                <span className="value-hero num">{anoProposta}</span>
+                <span className="mt-1 font-mono text-xs uppercase tracking-[0.04em] text-ink-3">
+                  {p.data_proposta
+                    ? `criada em ${formatDate(p.data_proposta)}`
+                    : "ano de criação na fonte"}
                 </span>
               </>
             ) : (
-              <span className="value-hero text-ink-3">—</span>
+              <>
+                <span className="value-hero text-ink-3">—</span>
+                <span className="num mt-1 text-xs text-ink-3">
+                  sem ano informado na fonte
+                </span>
+              </>
             )}
           </div>
         </div>
@@ -542,8 +553,6 @@ export default function PropostaDetalhePage() {
             </span>
           </div>
 
-          {/* "Empenhado a utilizar" subiu para a faixa de destaque, junto do
-              valor empenhado — não se repete aqui. */}
           <Dado
             rotulo={
               <>
@@ -579,7 +588,8 @@ export default function PropostaDetalhePage() {
 
       {/* ── Prazos e pendências: segundo degrau, largura inteira ────── */}
       <div className="stagger grid gap-5 md:grid-cols-2">
-        <Secao titulo="Prazos">
+        {/* o ⓘ do prazo mora aqui agora — o cabeçalho mostra a safra */}
+        <Secao titulo="Prazos" acao={<Hint chave="proposta.prazo" />}>
           {(p.prazos ?? []).length === 0 ? (
             <p className="text-sm text-ink-3">Sem prazos registrados.</p>
           ) : (
@@ -685,12 +695,6 @@ export default function PropostaDetalhePage() {
                     rotulo="Saldo em conta"
                     valor={formatBRL(p.execucao!.saldo_conta)}
                   />
-                  <Dado
-                    rotulo="Empenhado a utilizar"
-                    valor={formatBRL(String(empenhadoAUtilizar))}
-                    tom={empenhadoAUtilizar > 0 ? "ok" : undefined}
-                    destaque
-                  />
                 </div>
                 <hr className="hairline-rule" />
                 <div className="data-grid">
@@ -739,10 +743,12 @@ export default function PropostaDetalhePage() {
             <Dado rotulo="Modalidade" valor={humanizarCaixa(p.modalidade)} />
             <Dado rotulo="Emenda" valor={p.emenda} />
             <Dado rotulo="Natureza jurídica" valor={p.natureza_juridica} />
-            <Dado
-              rotulo="Nº da proposta"
-              valor={p.numero_proposta ?? p.id_externo}
-            />
+            {/* SÓ o NR_PROPOSTA. A retaguarda para `id_externo` fazia o campo
+                exibir o identificador da integração ROTULADO como "nº da
+                proposta" — um número que não existe no portal da fonte e que o
+                gestor levaria para a conversa com o órgão. Sem número o campo
+                fica vazio ("—"), honesto; o id da fonte tem a linha logo abaixo. */}
+            <Dado rotulo="Nº da proposta" valor={p.numero_proposta} />
             <Dado rotulo="Identificador na fonte" valor={p.id_externo} />
             <Dado
               rotulo="Criada na fonte"
@@ -789,11 +795,14 @@ export default function PropostaDetalhePage() {
         </Secao>
       </div>
 
-      {/* Pareceres consultam a fonte ao vivo — exploração do módulo captação
-          (§40); sem o módulo, a seção some e o detalhe (cache) segue inteiro. */}
-      {(perfil?.modulos ?? []).includes("captacao") && (
-        <PareceresSecao proposta={p} />
-      )}
+      {/* Andamento e emenda são leitura de CACHE (panel-core, §40) — ficam na
+          tela mesmo com a captação desligada. O que o módulo governa é a
+          consulta AO VIVO, então só o botão "Consultar fonte" depende dele. */}
+      <AndamentoProposta proposta={p} podeConsultarFonte={podeExplorar} />
+
+      <EmpenhosProposta proposta={p} podeConsultarFonte={podeExplorar} />
+
+      <EmendasProposta proposta={p} podeConsultarFonte={podeExplorar} />
 
       <Secao titulo="Acompanhar e ser avisado">
         {monitorando ? (

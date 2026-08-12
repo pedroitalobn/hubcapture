@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, baixarCsv } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { Hint } from "@/components/Hint";
 import { ModuloGate } from "@/components/ModuloGate";
+import { NumeroProposta } from "@/components/NumeroProposta";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import {
   formatBRL,
@@ -13,8 +15,6 @@ import {
   humanizarCaixa,
   municipioPrincipal,
   municipioSecundario,
-  prazoLabel,
-  tomPrazo,
 } from "@/lib/format";
 import { paramMunicipio, rotuloMunicipio, useTerritorio } from "@/lib/territorio";
 import { cx } from "@/components/ui";
@@ -49,6 +49,9 @@ type Proposta = {
   fonte: string;
   tipo?: string;
   natureza_juridica?: string | null;
+  /** Ano de CRIAÇÃO da proposta (ANO_PROP na fonte) — a safra da coluna "Ano". */
+  ano?: string | null;
+  // o prazo continua vindo da API (e no banco); só não é mais exibido na lista
   prazo_final?: string | null;
   dias_restantes?: number | null;
   resumo_ia?: string | null;
@@ -79,6 +82,7 @@ type Facetas = {
   orgao?: Opcao[];
   situacao?: Opcao[];
   natureza_juridica?: Opcao[];
+  natureza_grupo?: Opcao[];
   qualificacao?: Opcao[];
   categoria?: Opcao[];
   ano?: Opcao[];
@@ -104,6 +108,7 @@ type Filtros = {
   modalidade: string;
   orgao: string;
   naturezaJuridica: string;
+  naturezaGrupo: string;
   qualificacao: string;
   ordenar: string;
   valorMin: string;
@@ -127,6 +132,7 @@ const FILTROS_VAZIOS: Filtros = {
   modalidade: "",
   orgao: "",
   naturezaJuridica: "",
+  naturezaGrupo: "",
   qualificacao: "",
   ordenar: "recentes",
   valorMin: "",
@@ -157,10 +163,20 @@ const NATUREZAS: [string, string][] = [
   ["osc", "Organização da Sociedade Civil"],
 ];
 
+// As duas LENTES de natureza jurídica (§ produto): a consulta parte daqui —
+// quem propõe é o município ou é outro. Os slugs detalhados de NATUREZAS
+// continuam no filtro avançado, para quem quiser refinar.
+const LENTES_NATUREZA: [string, string][] = [
+  ["", "Todas"],
+  ["entes_municipais", "Entes municipais"],
+  ["outros", "Outros"],
+];
+
+// Ordenar por prazo saiu da UI junto com a coluna: ordenava por fim de
+// vigência, que não é prazo de proposta. A API mantém `ordenar=prazo`
+// (e `prazo_distante`) para quem consome o contrato direto.
 const ORDENACOES: [string, string][] = [
   ["recentes", "Mais recentes"],
-  ["prazo", "Prazo (mais próximo)"],
-  ["prazo_distante", "Prazo (mais distante)"],
   ["nome", "Nome A-Z"],
   ["orgao", "Órgão A-Z"],
   ["valor", "Maior valor"],
@@ -263,7 +279,10 @@ function SelectFaceta({
 export default function CaptacaoPage() {
   return (
     <ModuloGate modulo="captacao" titulo="Captação">
-      <CaptacaoExploracao />
+      {/* useSearchParams (lente vinda do Meu painel) exige boundary de Suspense */}
+      <Suspense fallback={null}>
+        <CaptacaoExploracao />
+      </Suspense>
     </ModuloGate>
   );
 }
@@ -329,6 +348,7 @@ function CaptacaoExploracao() {
       modalidade: filtros.modalidade || undefined,
       orgao: filtros.orgao || undefined,
       natureza_juridica: filtros.naturezaJuridica || undefined,
+      natureza_grupo: filtros.naturezaGrupo || undefined,
       qualificacao: filtros.qualificacao || undefined,
       ano: filtros.ano || undefined,
       mes: filtros.mes || undefined,
@@ -526,6 +546,23 @@ function CaptacaoExploracao() {
     })();
   }, [filtros.pastaId]);
 
+  // Chegando do Meu painel (`/panel/funding?natureza_grupo=…&ano=…`), a tela
+  // abre já na lente E na safra escolhidas no card — o clique não pode trocar o
+  // recorte por baixo do usuário. Só na chegada: depois quem manda são os chips.
+  const paramsUrl = useSearchParams();
+  const lenteUrl = paramsUrl.get("natureza_grupo");
+  const lenteValida = LENTES_NATUREZA.some(([v]) => v && v === lenteUrl) ? lenteUrl : null;
+  const anoUrl = paramsUrl.get("ano");
+  const anoValido = anoUrl && /^\d{4}$/.test(anoUrl) ? anoUrl : null;
+  useEffect(() => {
+    if (lenteValida) setFiltros({ naturezaGrupo: lenteValida });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lenteValida]);
+  useEffect(() => {
+    if (anoValido) setFiltros({ ano: anoValido });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anoValido]);
+
   function setFiltros(patch: Partial<Filtros>) {
     setAbas((prev) =>
       prev.map((a) =>
@@ -680,6 +717,12 @@ function CaptacaoExploracao() {
         chave: "tipo",
         rotulo: filtros.tipo === "disponivel" ? "Disponíveis" : "Cadastradas",
         limpar: { tipo: "" },
+      });
+    if (filtros.naturezaGrupo)
+      lista.push({
+        chave: "natureza-grupo",
+        rotulo: LENTES_NATUREZA.find(([v]) => v === filtros.naturezaGrupo)?.[1] ?? "",
+        limpar: { naturezaGrupo: "" },
       });
     if (filtros.naturezaJuridica)
       lista.push({
@@ -876,7 +919,9 @@ function CaptacaoExploracao() {
             <input
               value={filtros.q}
               onChange={(e) => setFiltros({ q: e.target.value })}
-              placeholder="programa, órgão ou código"
+              // o backend já casa `numero_proposta` — dizer isso aqui é o que
+              // transforma o campo em "buscar a proposta pelo número"
+              placeholder="nº da proposta, programa ou órgão"
               className="input w-full"
             />
           </label>
@@ -950,6 +995,32 @@ function CaptacaoExploracao() {
             ))}
             {/* o que separa "cadastrada" de "disponível" — hint da Central */}
             <Hint chave="funding.tipo" />
+            {/* lentes de natureza jurídica: quem propõe é o município ou não */}
+            <span className="mx-1 h-4 w-px bg-hairline" aria-hidden />
+            <span className="field-label mr-1" title="Natureza jurídica do proponente">
+              Quem propõe
+            </span>
+            {LENTES_NATUREZA.map(([valor, rotulo]) => (
+              <button
+                key={rotulo}
+                onClick={() => setFiltros({ naturezaGrupo: valor })}
+                title={
+                  valor === "entes_municipais"
+                    ? "Prefeitura, secretaria, câmara, fundo/autarquia municipal e consórcio intermunicipal"
+                    : valor === "outros"
+                      ? "Organizações da sociedade civil, entes estaduais/federais e empresas"
+                      : "Todas as naturezas jurídicas"
+                }
+                className={`rounded-full border px-3 py-1 text-sm ${
+                  filtros.naturezaGrupo === valor
+                    ? "border-ink bg-ink text-surface"
+                    : "border-hairline text-ink-2 hover:text-ink"
+                }`}
+              >
+                {rotulo}
+                {contarFaceta("natureza_grupo", valor)}
+              </button>
+            ))}
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-2 text-sm text-ink-2">
@@ -1055,8 +1126,10 @@ function CaptacaoExploracao() {
                 largura="w-28"
                 aoMudar={(v) => setFiltros({ ano: v })}
               />
+              {/* o mês acompanha o ano no mesmo referencial: MES_PROP, o mês
+                  de CRIAÇÃO da proposta — não é mais o mês do prazo */}
               <SelectFaceta
-                rotulo="Mês (prazo)"
+                rotulo="Mês"
                 valor={filtros.mes}
                 opcoes={facetas.mes}
                 largura="w-36"
@@ -1244,7 +1317,10 @@ function CaptacaoExploracao() {
                   <th className="w-20 px-4 py-3"></th>
                   <th className="px-3 py-3">Proposta</th>
                   <th className="px-3 py-3">Município</th>
-                  <th className="px-3 py-3">Prazo</th>
+                  {/* a coluna "Prazo" saiu: vinha do fim de vigência, que não é
+                      prazo de proposta. O dado segue no detalhe, no card
+                      "Prazos", onde é conferível item a item. */}
+                  <th className="px-3 py-3">Ano</th>
                   <th className="px-3 py-3 text-right">Valor global</th>
                   <th className="px-3 py-3 text-right">Empenhado</th>
                   <th className="px-3 py-3">Situação</th>
@@ -1307,34 +1383,33 @@ function CaptacaoExploracao() {
                       </div>
                     </td>
                     <td className="px-3 py-3">
+                      {/* O nº ENCABEÇA a linha, em pílula: varrer a lista atrás
+                          de um número era ler todas as linhas de apoio, onde
+                          ele tinha o mesmo peso do órgão e da modalidade.
+                          Realçado pelo termo da busca quando ela casa nele.
+                          O `id_externo` é plumbing e segue fora daqui — vive no
+                          detalhe, em "Dados gerais". */}
+                      <NumeroProposta
+                        numero={p.numero_proposta}
+                        termo={filtros.q}
+                        tamanho="sm"
+                        className="mb-1"
+                      />
                       <Link
                         href={`/panel/funding/${p.id}`}
-                        className="font-medium hover:underline"
+                        className="block font-medium hover:underline"
                       >
                         {humanizarCaixa(p.titulo ?? p.objeto) ||
                           "Proposta sem título na fonte"}
                       </Link>
-                      {/* Nº da proposta (+ data) abre a linha de apoio: é a
-                          referência que o gestor usa. O `id_externo` é plumbing
-                          e sai daqui — vive no detalhe, em "Dados gerais". */}
                       <p className="mt-0.5 max-w-md text-xs text-ink-3">
-                        {p.numero_proposta && (
-                          <span className="num font-medium text-ink-2">
-                            {p.numero_proposta}
-                            {p.data_proposta
-                              ? ` · ${formatDate(p.data_proposta)}`
-                              : ""}
-                          </span>
-                        )}
-                        {(() => {
-                          const resto = [
-                            humanizarCaixa(p.orgao_superior),
-                            humanizarCaixa(p.modalidade),
-                          ].filter(Boolean);
-                          if (resto.length === 0) return null;
-                          const texto = resto.join(" · ");
-                          return p.numero_proposta ? ` · ${texto}` : texto;
-                        })()}
+                        {[
+                          p.data_proposta ? formatDate(p.data_proposta) : null,
+                          humanizarCaixa(p.orgao_superior),
+                          humanizarCaixa(p.modalidade),
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </p>
                       {/* pílulas de categoria — clicar filtra a lista por ela */}
                       {(p.categorias ?? []).length > 0 && (
@@ -1371,30 +1446,11 @@ function CaptacaoExploracao() {
                         </span>
                       )}
                     </td>
+                    {/* Ano da proposta (ANO_PROP na fonte) — a safra, no lugar
+                        do prazo. É o mesmo critério do filtro de ano. */}
                     <td className="px-3 py-3 text-ink-2">
-                      {p.prazo_final ? (
-                        (() => {
-                          // uma regra só (lib/format::tomPrazo) — antes o vencido
-                          // saía em cinza, menos visível que "vence em 30 dias".
-                          const tom = tomPrazo(
-                            p.dias_restantes ?? p.prazo_final,
-                          );
-                          return (
-                            <span className="flex flex-col">
-                              <span className={cx("num", tom && `tone-${tom}`)}>
-                                {formatDate(p.prazo_final)}
-                              </span>
-                              <span
-                                className={cx(
-                                  "font-mono text-[10px] uppercase tracking-[0.04em]",
-                                  tom ? `tone-${tom}` : "text-ink-3",
-                                )}
-                              >
-                                {prazoLabel(p.prazo_final)}
-                              </span>
-                            </span>
-                          );
-                        })()
+                      {p.ano ? (
+                        <span className="num">{p.ano}</span>
                       ) : (
                         <span className="text-ink-3">—</span>
                       )}
