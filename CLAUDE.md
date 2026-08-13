@@ -1897,3 +1897,48 @@ disciplina dos módulos da §29 e dos gates da §39.
   parece não ter surtido efeito.
 - **Testes** — `test_ui_versao.py` (catálogo, sanitização e resolução da flag).
 
+
+## 49. Anexo no WhatsApp — a escolha documento × imagem
+
+Até aqui o canal WhatsApp (Uniq) só trafegava TEXTO: `uniq.enviar(telefone,
+mensagem)` era a única saída e o webhook de entrada só aceitava
+`telefone`/`mensagem`. Agora o gestor anexa um arquivo e escolhe COMO ele
+viaja — a mesma escolha que o app do WhatsApp oferece ao anexar.
+
+- **A escolha não é cosmética** (`services/anexo_whatsapp.py`): `documento` é
+  **passthrough byte a byte** (teto de 100 MB, sem recompressão — é o que se
+  escolhe para preservar o original); `imagem` chega como foto na conversa, mas
+  a Cloud API só aceita **JPEG/PNG, 8-bit RGB/RGBA, até 5 MB**, então HEIC do
+  iPhone, WebP, PNG 16-bit e foto de 12 MP passam por conversão antes de subir.
+  O que JÁ está dentro das regras **não é reencodado** — recomprimir um JPEG
+  válido só perderia qualidade. `Anexo.convertido` conta ao gestor quando a
+  foto foi mexida, para ele reenviar como documento se quiser o original.
+- **NÃO existe parâmetro de HD/qualidade na API** (conferido na referência
+  oficial da Cloud API: o objeto de mídia aceita `id`/`link` e legenda, nada
+  mais). O que o app chama de "HD" é ele próprio reduzindo MENOS antes do
+  upload. Por isso o teto de lado maior mora em `LADO_MAIOR_PX` (1600 px, o
+  padrão reportado; HD do app fica em ~4096 px): oferecer a escolha de
+  qualidade depois é trocar essa constante por um parâmetro, não mexer no
+  resto do caminho.
+- **Envio** — `notifications/uniq.enviar_midia(telefone, anexo, legenda)`. O
+  formato vira o `type` da mensagem por `TIPO_WHATSAPP` (`imagem`→`image`,
+  `documento`→`document`) — é essa chave que decide foto na conversa × arquivo
+  para baixar. Degrada como `enviar`: sem `uniq_api_key` devolve False.
+  ATENÇÃO: **o contrato de mídia do Uniq não é público** — o payload e a rota
+  são PONTO DE CALIBRAÇÃO (`ROTA_MIDIA`, override `uniq_midia_endpoint` no
+  painel admin, categoria whatsapp), no mesmo molde das rotas dos connectors.
+  Calibrar contra a API viva antes de considerar o envio funcional.
+- **Endpoint** — `POST /contacts/{id}/whatsapp` (multipart: `arquivo`,
+  `formato`, `legenda`), sob o módulo `contatos` (§29) e a RLS por-tenant. O
+  destinatário é o 1º telefone do contato; sem telefone → 422, sem credencial
+  → 503, anexo recusado → 400 com mensagem que diz o que fazer.
+- **Web** — `components/EnviarAnexoWhatsapp.tsx` (modal com prévia, os dois
+  cartões de formato e legenda), acionado pelo botão "WhatsApp" na lista de
+  `app/panel/contacts`. A escolha só aparece quando o arquivo é FOTO: PDF e
+  planilha não têm o que escolher, e um botão inerte sugeriria que dá para
+  mandá-los como imagem. Foto entra pré-marcada como `imagem` (é o que o app
+  faz). Cliente: `enviarAnexoWhatsapp` em `lib/api/client.ts`.
+- **Dependência**: `pillow` virou dependência direta da API (era transitiva).
+- **Testes** — `test_anexo_whatsapp.py`: passthrough do documento, JPEG válido
+  intacto, conversão de WebP/paleta/alfa, redução ao teto, limites e o de-para
+  do `type`.

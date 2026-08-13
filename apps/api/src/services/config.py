@@ -217,6 +217,7 @@ CATALOGO: list[dict] = [
     _c("uniq_api_key", "Uniq API Key (WhatsApp)", "whatsapp", True),
     _c("uniq_base_url", "Uniq base URL", "whatsapp", False),
     _c("uniq_webhook_token", "Uniq webhook token", "whatsapp", True),
+    _c("uniq_midia_endpoint", "Uniq rota de envio de anexo (vazio = padrão)", "whatsapp", False),
     # E-mail transacional (SMTP) — recuperação de senha, convites, boas-vindas
     _c("email_smtp_host", "SMTP host", "email", False),
     _c("email_smtp_port", "SMTP porta (587 TLS / 465 SSL)", "email", False),

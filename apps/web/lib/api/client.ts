@@ -260,6 +260,49 @@ export async function enviarMidiaAjuda(
   }
 }
 
+export interface EnvioWhatsappResultado {
+  enviado: boolean;
+  formato: "imagem" | "documento";
+  nome: string;
+  mime: string;
+  tamanho: number;
+  convertido: boolean;
+}
+
+/**
+ * Envia um anexo ao WhatsApp do contato — multipart, fora do client JSON tipado.
+ *
+ * `formato` é a escolha do gestor no momento de anexar, igual à do app do
+ * WhatsApp: `documento` preserva o arquivo original, `imagem` chega como foto
+ * na conversa (e passa pelo crivo de JPEG/PNG ≤ 5 MB da API).
+ */
+export async function enviarAnexoWhatsapp(
+  contatoId: string,
+  arquivo: File,
+  opts: { formato: "imagem" | "documento"; legenda?: string },
+): Promise<EnvioWhatsappResultado> {
+  const form = new FormData();
+  form.append("arquivo", arquivo);
+  form.append("formato", opts.formato);
+  if (opts.legenda) form.append("legenda", opts.legenda);
+  const resp = await fetch(`${API_ORIGIN}/api/v1/contacts/${contatoId}/whatsapp`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+    body: form,
+  });
+  const corpo = (await resp.json().catch(() => null)) as
+    | (EnvioWhatsappResultado & { detail?: string })
+    | null;
+  if (!resp.ok) {
+    throw new Error(
+      typeof corpo?.detail === "string"
+        ? corpo.detail
+        : `Falha no envio (HTTP ${resp.status})`,
+    );
+  }
+  return corpo as EnvioWhatsappResultado;
+}
+
 /** Baixa a agenda de contatos em .vcf (importável no Google/Apple/Outlook). */
 export async function baixarContatosVcf(): Promise<void> {
   const resp = await fetch(`${API_ORIGIN}/api/v1/contacts/export`, {
