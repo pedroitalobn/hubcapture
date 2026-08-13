@@ -8,18 +8,31 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Response,
+    UploadFile,
+    status,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.users import current_active_user
 from ...models.usuario import Usuario
+from ...notifications import uniq
 from ...schemas.contato import (
     ContatoCreate,
     ContatoRead,
     ContatoUpdate,
+    EnvioWhatsappResultado,
     ImportacaoResultado,
     ImportacaoVcard,
 )
+from ...services import anexo_whatsapp
 from ...services import contatos as service
 from ...services.modulos import require_modulo
 from ..deps import get_rls_db
@@ -106,6 +119,52 @@ async def atualizar_contato(
 ) -> ContatoRead:
     contato = await _get_ou_404(session, contato_id)
     return ContatoRead.model_validate(await service.atualizar(session, contato, body))
+
+
+@router.post("/contacts/{contato_id}/whatsapp", response_model=EnvioWhatsappResultado)
+async def enviar_anexo_whatsapp(
+    contato_id: uuid.UUID,
+    arquivo: UploadFile = File(...),
+    formato: str = Form(default="documento", pattern="^(imagem|documento)$"),
+    legenda: str | None = Form(default=None),
+    session: AsyncSession = Depends(get_rls_db),
+) -> EnvioWhatsappResultado:
+    """Envia um anexo ao WhatsApp do contato, no formato que o gestor escolheu.
+
+    `documento` preserva o arquivo original; `imagem` chega como foto na conversa
+    (e por isso passa pelo crivo de JPEG/PNG ≤ 5 MB da API). A escolha é a mesma
+    que o app do WhatsApp oferece ao anexar.
+    """
+    contato = await _get_ou_404(session, contato_id)
+    telefone = next((t.get("valor") for t in (contato.telefones or []) if t.get("valor")), None)
+    if not telefone:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "CONTATO_SEM_TELEFONE: cadastre um telefone no contato para enviar pelo WhatsApp.",
+        )
+    if not await uniq.habilitado():
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "WHATSAPP_NAO_CONFIGURADO: cadastre a credencial do Uniq no painel admin.",
+        )
+
+    conteudo = await arquivo.read()
+    try:
+        anexo = anexo_whatsapp.preparar(
+            conteudo, arquivo.filename or "anexo", arquivo.content_type, formato
+        )
+    except anexo_whatsapp.AnexoInvalido as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+
+    enviado = await uniq.enviar_midia(telefone, anexo, legenda)
+    return EnvioWhatsappResultado(
+        enviado=enviado,
+        formato=anexo.formato,
+        nome=anexo.nome,
+        mime=anexo.mime,
+        tamanho=anexo.tamanho,
+        convertido=anexo.convertido,
+    )
 
 
 @router.delete("/contacts/{contato_id}", status_code=status.HTTP_204_NO_CONTENT)

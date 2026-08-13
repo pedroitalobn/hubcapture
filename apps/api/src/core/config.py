@@ -148,6 +148,7 @@ class Settings(BaseSettings):
     uniq_api_key: str = ""  # vazio = WhatsApp desabilitado
     uniq_base_url: str = "https://api.uniq.chat"
     uniq_webhook_token: str = ""  # valida o webhook de entrada
+    uniq_midia_endpoint: str = ""  # vazio = ROTA_MIDIA do cliente (calibração)
 
     # ── Config runtime (painel admin) ───────────────────────────────────────
     # Chave para cifrar segredos em repouso na tabela `configuracoes` (Fernet).

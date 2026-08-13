@@ -110,6 +110,21 @@ class ContatoRead(BaseModel):
         return v if v is not None else []
 
 
+class EnvioWhatsappResultado(BaseModel):
+    """Retorno do envio de anexo — diz o que de fato saiu, não o que foi pedido.
+
+    `convertido` avisa que a foto precisou virar JPEG/PNG para caber nas regras
+    da API: quem quer o arquivo original do outro lado reenvia como documento.
+    """
+
+    enviado: bool
+    formato: str  # imagem | documento
+    nome: str
+    mime: str
+    tamanho: int
+    convertido: bool = False
+
+
 # ── Integrações ──────────────────────────────────────────────────────────────
 
 

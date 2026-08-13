@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { EnviarAnexoWhatsapp } from "@/components/EnviarAnexoWhatsapp";
 import { StatCard } from "@/components/StatCard";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import {
@@ -110,6 +111,7 @@ export default function ContatosPage() {
   const [conectando, setConectando] = useState<string | null>(null);
   const [editando, setEditando] = useState<Contato | null>(null);
   const [novo, setNovo] = useState(false);
+  const [enviandoPara, setEnviandoPara] = useState<Contato | null>(null);
   const arquivoRef = useRef<HTMLInputElement>(null);
 
   const carregarContatos = useCallback(async (termo: string) => {
@@ -479,6 +481,14 @@ export default function ContatosPage() {
                   <StatusBadge tone="neutral">
                     {ORIGEM_LABEL[c.origem] ?? c.origem}
                   </StatusBadge>
+                  {c.telefones?.[0]?.valor && (
+                    <button
+                      onClick={() => setEnviandoPara(c)}
+                      className="text-xs text-ink-2 underline underline-offset-2 transition-colors hover:text-ink"
+                    >
+                      WhatsApp
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       setNovo(false);
@@ -500,6 +510,16 @@ export default function ContatosPage() {
           </ul>
         )}
       </section>
+
+      {enviandoPara && (
+        <EnviarAnexoWhatsapp
+          contatoId={enviandoPara.id}
+          nomeContato={[enviandoPara.nome, enviandoPara.sobrenome].filter(Boolean).join(" ")}
+          telefone={enviandoPara.telefones?.[0]?.valor ?? ""}
+          aberto
+          aoFechar={() => setEnviandoPara(null)}
+        />
+      )}
     </>
   );
 }
