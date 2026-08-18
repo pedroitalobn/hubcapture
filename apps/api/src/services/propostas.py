@@ -707,6 +707,26 @@ def _desembolsado(p: Proposta) -> Decimal:
     return _dec(ex.get("valor_liberado")) or _dec(ex.get("valor_pago"))
 
 
+# "Publicado" na fonte vem ora como VALOR, ora como SITUAÇÃO (§ pontos 08/13
+# do feedback). Estas duas funções leem os dois sentidos sem escolher por conta
+# própria: o valor manda quando existe; senão vale o estado da publicação.
+_NAO_PUBLICADO = ("nao", "não", "n", "false", "0", "sem publicacao", "nao publicado")
+
+
+def _valor_publicado(p: Proposta) -> Decimal:
+    return _dec(_execucao(p).get("valor_publicado"))
+
+
+def esta_publicada(p: Proposta) -> bool:
+    """A proposta/convênio foi publicado? (valor > 0 ou situação afirmativa)."""
+    if _valor_publicado(p) > 0:
+        return True
+    bruto = str(_execucao(p).get("situacao_publicacao") or "").strip().lower()
+    if not bruto:
+        return False
+    return not any(bruto.startswith(n) for n in _NAO_PUBLICADO)
+
+
 def _fim_vigencia(p: Proposta) -> date | None:
     bruto = _execucao(p).get("data_fim_vigencia")
     try:
@@ -723,6 +743,8 @@ async def resumo(session: AsyncSession, **filtros) -> dict:
 
     empenhado = sum((_dec(_execucao(p).get("valor_empenhado")) for p in rows), Decimal(0))
     pago = sum((_dec(_execucao(p).get("valor_pago")) for p in rows), Decimal(0))
+    publicado = sum((_valor_publicado(p) for p in rows), Decimal(0))
+    publicadas = sum(1 for p in rows if esta_publicada(p))
     conveniado = sum((_valor_global(p) for p in rows), Decimal(0))
     desembolsado = sum((_desembolsado(p) for p in rows), Decimal(0))
 
@@ -770,6 +792,15 @@ async def resumo(session: AsyncSession, **filtros) -> dict:
             "valor_conveniado": conveniado,
             "valor_desembolsado": desembolsado,
             "valor_empenhado": empenhado,
+            # Pago sai do somatório que já existia para o "a utilizar" — o
+            # Panorama financeiro do painel mostra o par empenhado × pago.
+            "valor_pago": pago,
+            # Publicado: o valor quando a fonte publica valor; a CONTAGEM de
+            # publicadas quando ela só publica o estado. O painel mostra um ou
+            # outro — zero em R$ leria como "nada publicado", que é diferente
+            # de "esta fonte não informa valor de publicação".
+            "valor_publicado": publicado,
+            "propostas_publicadas": publicadas,
             "valor_a_utilizar": max(Decimal(0), empenhado - pago),
             "transferencias": len(rows),
             "convenios_iniciados": iniciados,

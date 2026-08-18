@@ -113,6 +113,19 @@ CATALOGO: list[dict] = [
         False,
     ),
     _c(
+        "planos_trabalho_esp_endpoint",
+        "Plano de trabalho da proposta — rota no módulo especiais "
+        "(padrão: planos_trabalho_especiais). É o elo que destrava os pareceres.",
+        "fonte",
+        False,
+    ),
+    _c(
+        "planos_trabalho_esp_chave",
+        "Plano de trabalho da proposta — parâmetro de filtro (padrão: id_proposta)",
+        "fonte",
+        False,
+    ),
+    _c(
         "empenhos_esp_endpoint",
         "Empenhos da proposta — rota no módulo especiais (padrão: empenhos_especiais)",
         "fonte",

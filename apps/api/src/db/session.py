@@ -50,6 +50,24 @@ async def get_auth_session() -> AsyncIterator[AsyncSession]:
 
 
 @asynccontextmanager
+async def plataforma_session() -> AsyncIterator[AsyncSession]:
+    """Sessão de PLATAFORMA que enxerga tabelas por-tenant marcadas para isso.
+
+    Liga `app.plataforma = on` na transação. Hoje só `demandas` tem policy que
+    reconhece a bandeira: a fila da assessoria é cross-tenant por natureza —
+    quem responde é a administração, e ela precisa ver os pedidos de todos.
+    O modelo de confiança é o mesmo do `app.usuario_id`: quem decide é a camada
+    de API, e só as rotas de admin usam esta sessão.
+    """
+    async with SessionLocal() as session:
+        async with session.begin():
+            await session.execute(
+                text("SELECT set_config('app.plataforma', 'on', true)")
+            )
+            yield session
+
+
+@asynccontextmanager
 async def rls_session(usuario_id: UUID | str) -> AsyncIterator[AsyncSession]:
     """Abre uma sessão com o tenant setado para toda a transação.
 

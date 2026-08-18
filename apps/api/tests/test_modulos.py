@@ -88,6 +88,8 @@ async def test_perfil_expoe_modulos_ativos(seed_user, seed_municipio) -> None:
         "captacao",
         "copiloto",
         "conformidade",
+        "oportunidades",  # consulta de chamamentos/programas abertos
+        "regularidade",  # requisitos fiscais do ente (CAUC)
         "alertas",  # central de alertas nasce ligada
         "contatos",  # agenda de contatos nasce ligada
         "ajuda",  # central de ajuda nasce ligada

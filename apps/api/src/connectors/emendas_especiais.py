@@ -71,6 +71,16 @@ def emendas_do_registro_fonte(dados_fonte: dict | None) -> list[dict]:
     plano = dados_fonte.get("plano_acao")
     linha = plano if isinstance(plano, dict) else dados_fonte
 
+    # A LINHA BRUTA do CSV entra por baixo (§46): o de-para do connector só
+    # mapeia as colunas que ele conhece, e as da emenda (NR_EMENDA,
+    # NOME_PARLAMENTAR, VL_EMENDA) ficavam invisíveis aqui mesmo estando no
+    # registro-fonte — a proposta do SIconv caía direto no texto de erro.
+    bruto = linha.get("csv")
+    if isinstance(bruto, dict):
+        combinada = {k: v for k, v in bruto.items() if isinstance(k, str)}
+        combinada.update({k: v for k, v in linha.items() if v not in (None, "", [], {})})
+        linha = combinada
+
     campos = {
         k: v
         for k, v in linha.items()

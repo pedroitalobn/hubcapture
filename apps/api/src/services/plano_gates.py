@@ -194,7 +194,18 @@ async def config_por_plano_id(plano_id: uuid.UUID | None) -> PlanoConfig:
 
 
 # ── Gates ───────────────────────────────────────────────────────────────────
+# Módulos que NENHUM plano recorta. São lentes cujo conteúdo é consulta pública
+# de portal do governo (chamamentos abertos, requisitos fiscais do ente): não há
+# custo de coleta por trás, e um plano antigo — gravado antes destes módulos
+# existirem — esconderia o item do menu para quem já é cliente. O liga/desliga
+# de plataforma (painel admin → Módulos) continua valendo para os dois.
+# Reavaliar quando a coleta própria de oportunidades entrar (Fase 2 do plano).
+SEMPRE_INCLUSOS = frozenset({"oportunidades", "regularidade"})
+
+
 def modulo_liberado(cfg: PlanoConfig | None, chave: str) -> bool:
+    if chave in SEMPRE_INCLUSOS:
+        return True
     return cfg is None or cfg.modulos is None or chave in cfg.modulos
 
 

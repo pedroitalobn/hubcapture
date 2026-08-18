@@ -39,7 +39,7 @@ def limpar_cache() -> None:
 MODULOS: list[dict] = [
     {
         "chave": "captacao",
-        "label": "Captação",
+        "label": "Propostas",
         "descricao": "Propostas e editais (TransfereGov, FNS, FNDE…)",
         "padrao": True,
     },
@@ -62,6 +62,23 @@ MODULOS: list[dict] = [
         "label": "Obras",
         "descricao": "Execução de obras (SISMOB, SIMEC, CAIXA)",
         "padrao": False,
+    },
+    {
+        # Oportunidades abertas do TransfereGov (chamamento público e programas
+        # aptos a receber proposta). Fase 1 leva à consulta oficial; a coleta
+        # dentro do Hub entra na Fase 2 do plano de melhorias.
+        "chave": "oportunidades",
+        "label": "Oportunidades",
+        "descricao": "Chamamentos públicos e programas abertos a proposta (TransfereGov)",
+        "padrao": True,
+    },
+    {
+        # Requisitos fiscais do ente (CAUC/Tesouro). Lente separada da
+        # conformidade completa, que segue desligada até calibrar o Siconfi.
+        "chave": "regularidade",
+        "label": "Regularidade",
+        "descricao": "Situação do ente nos requisitos fiscais (CAUC — Tesouro Nacional)",
+        "padrao": True,
     },
     {
         "chave": "alertas",

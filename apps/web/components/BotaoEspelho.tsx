@@ -8,7 +8,9 @@ import { cx } from "@/components/ui";
    Exportar a proposta era uma rota da API sem porta na interface. Aqui ela
    vira UM clique, disponível onde a proposta aparece: na linha da lista
    (ícone), no detalhe (botão) e em qualquer tela futura. No celular a ação
-   abre a folha de compartilhamento com o PDF anexado; no desktop, baixa. */
+   abre a folha de compartilhamento com o PDF anexado; no desktop o arquivo é
+   BAIXADO — o cliente perdia o download porque o Chrome de mesa com telefone
+   vinculado também aceita `navigator.share` (ponto 12 do feedback). */
 
 type Estado = "ocioso" | "gerando" | "pronto" | "erro";
 
@@ -99,7 +101,7 @@ export function BotaoEspelho({
   const titulo =
     estado === "gerando"
       ? "Gerando o espelho…"
-      : `Espelho em PDF — proposta diagramada para compartilhar${
+      : `Espelho em PDF — baixa no computador; no celular abre o compartilhamento${
           atalho ? ` (atalho: ${atalho.toUpperCase()})` : ""
         }`;
 

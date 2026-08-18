@@ -7,7 +7,7 @@ São a fonte de verdade da navegação profile-centric do web.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.users import current_active_user
@@ -15,6 +15,7 @@ from ...models.usuario import Usuario
 from ...schemas.perfil import (
     NovidadesPerfil,
     PerfilRead,
+    RemocaoMunicipioResultado,
     ResetPerfilResultado,
     VisaoGeralPerfil,
 )
@@ -45,6 +46,29 @@ async def zerar_perfil(
     cai no onboarding de novo.
     """
     return await service.zerar(session, user)
+
+
+@router.delete(
+    "/profile/municipalities/{ibge}", response_model=RemocaoMunicipioResultado
+)
+async def remover_municipio(
+    ibge: str,
+    user: Usuario = Depends(current_active_user),
+    session: AsyncSession = Depends(get_rls_db),
+) -> RemocaoMunicipioResultado:
+    """Tira UM município do território, sem zerar o perfil.
+
+    Remove a linha do território e as buscas monitoradas daquele município. O
+    cache (propostas, repasses, obras) não é apagado: é global e compartilhado
+    com outros clientes — sair do território já esconde tudo pelo RLS.
+    """
+    try:
+        return await service.remover_municipio(session, user, ibge)
+    except service.MunicipioNaoEncontrado:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="MUNICIPIO_FORA_DO_TERRITORIO",
+        ) from None
 
 
 # O painel filtra QUAIS dos municípios do perfil o usuário quer ver agora —

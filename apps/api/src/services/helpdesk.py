@@ -74,13 +74,13 @@ HINT_CHAVES: list[dict[str, str]] = [
     {
         "chave": "funding.tipo",
         "rotulo": "Cadastrada × disponível",
-        "tela": "Captação",
+        "tela": "Propostas",
     },
-    {"chave": "funding.fonte", "rotulo": "Fontes de captação", "tela": "Captação"},
+    {"chave": "funding.fonte", "rotulo": "Fontes de captação", "tela": "Propostas"},
     {
         "chave": "funding.qualificacao",
         "rotulo": "Tipo de transferência",
-        "tela": "Captação",
+        "tela": "Propostas",
     },
     # Recursos recebidos
     {

@@ -98,7 +98,7 @@ export default function MinhasPropostasPage() {
               : "Nenhuma proposta favoritada nos municípios filtrados — ajuste o território no menu lateral."}
           </p>
           <Link href="/panel/funding" className="btn btn-primary mt-4 inline-flex">
-            Ir para a Captação
+            Ir para as Propostas
           </Link>
         </div>
       ) : (

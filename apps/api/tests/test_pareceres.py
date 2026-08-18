@@ -164,3 +164,49 @@ def test_so_id_numerico_vai_para_a_rota() -> None:
     assert id_do_plano("988776") == "988776"
     assert id_do_plano("14275/2026") is None
     assert id_do_plano(None) is None
+
+
+# ── O elo proposta → plano de trabalho (ponto 15 do feedback) ───────────────
+# A rota de análises filtra pelo id INTEIRO do plano. A proposta que chega pelo
+# CSV do SIconv não traz esse id, e mandar o número da proposta ("30011/2026")
+# fazia o painel dizer "não consegui consultar os pareceres" numa proposta que
+# TEM parecer publicado. Estes testes cobrem a resolução do id.
+
+
+def test_id_do_plano_sai_do_registro_fonte() -> None:
+    from src.connectors.planos_trabalho import id_no_registro_fonte
+
+    dados = {"plano_acao": {"csv": {"ID_PLANO_TRABALHO": "988776", "NR_PROPOSTA": "30011/2026"}}}
+    assert id_no_registro_fonte(dados) == "988776"
+
+
+def test_registro_sem_id_do_plano_nao_inventa() -> None:
+    from src.connectors.planos_trabalho import id_no_registro_fonte
+
+    assert id_no_registro_fonte({"plano_acao": {"csv": {"NR_PROPOSTA": "30011/2026"}}}) is None
+    assert id_no_registro_fonte(None) is None
+
+
+def test_linha_de_outra_proposta_e_descartada() -> None:
+    """Rota que ignora o filtro devolveria a tabela nacional — o refiltro barra."""
+    from src.connectors.planos_trabalho import linha_e_da_proposta
+
+    chaves = {"numero_proposta": "30011/2026"}
+    assert linha_e_da_proposta({"numero_proposta": "30011/2026"}, chaves) is True
+    assert linha_e_da_proposta({"numero_proposta": "99999/2026"}, chaves) is False
+    # sem coluna de identificação não dá para afirmar nem negar
+    assert linha_e_da_proposta({"id_plano_trabalho": 1}, chaves) is None
+
+
+def test_numero_formatado_casa_com_digitos() -> None:
+    from src.connectors.planos_trabalho import linha_e_da_proposta
+
+    linha = {"numero_proposta": "300112026"}
+    assert linha_e_da_proposta(linha, {"numero_proposta": "30011/2026"}) is True
+
+
+def test_id_da_linha_so_aceita_inteiro() -> None:
+    from src.connectors.planos_trabalho import id_da_linha
+
+    assert id_da_linha({"id_plano_trabalho": 988776}) == "988776"
+    assert id_da_linha({"numero_proposta": "30011/2026"}) is None

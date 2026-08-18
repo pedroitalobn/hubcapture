@@ -145,8 +145,9 @@ async def test_perfil_intersecta_modulos_do_plano(seed_user, seed_municipio) -> 
 
     async with rls_session(uid) as s:
         p = await perfil_service.get_perfil(s, _FakeUser(uid))
-    # plataforma ∩ plano: só captacao (obras segue off na plataforma)
-    assert p.modulos == ["captacao"]
+    # plataforma ∩ plano: captacao (obras segue off na plataforma) + os módulos
+    # que nenhum plano recorta (plano_gates.SEMPRE_INCLUSOS)
+    assert set(p.modulos) == {"captacao", "oportunidades", "regularidade"}
     assert p.plano is not None
     assert p.plano.municipios_max == 2 and p.plano.membros_max == 1
     assert p.plano.fontes == ["transferegov"]

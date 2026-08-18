@@ -73,6 +73,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/advisory/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Fila */
+        get: operations["listar_fila_api_v1_admin_advisory_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/advisory/requests/{demanda_id}/reply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Responder Demanda
+         * @description Resposta da assessoria — entra no histórico e pode mudar a situação.
+         */
+        post: operations["responder_demanda_api_v1_admin_advisory_requests__demanda_id__reply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/class/articles": {
         parameters: {
             query?: never;
@@ -386,6 +423,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/contacts/institutional": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Listar */
+        get: operations["admin_listar_api_v1_admin_contacts_institutional_get"];
+        /**
+         * Admin Definir
+         * @description Substitui o diretório inteiro — a tela do admin manda a lista completa.
+         */
+        put: operations["admin_definir_api_v1_admin_contacts_institutional_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/email/test": {
         parameters: {
             query?: never;
@@ -618,6 +676,44 @@ export interface paths {
         get: operations["listar_contatos_api_v1_advisory_contacts_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advisory/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Demandas */
+        get: operations["listar_demandas_api_v1_advisory_requests_get"];
+        put?: never;
+        /** Criar Demanda */
+        post: operations["criar_demanda_api_v1_advisory_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advisory/requests/{demanda_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Comentar Demanda
+         * @description Mensagem do gestor na própria demanda (e, se ele quiser, encerramento).
+         */
+        post: operations["comentar_demanda_api_v1_advisory_requests__demanda_id__messages_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1032,6 +1128,40 @@ export interface paths {
         put?: never;
         /** Importar Contatos */
         post: operations["importar_contatos_api_v1_contacts_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contacts/institutional": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Institucionais */
+        get: operations["listar_institucionais_api_v1_contacts_institutional_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contacts/institutional/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Categorias */
+        get: operations["listar_categorias_api_v1_contacts_institutional_categories_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1638,6 +1768,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/profile/municipalities/{ibge}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remover Municipio
+         * @description Tira UM município do território, sem zerar o perfil.
+         *
+         *     Remove a linha do território e as buscas monitoradas daquele município. O
+         *     cache (propostas, repasses, obras) não é apagado: é global e compartilhado
+         *     com outros clientes — sair do território já esconde tudo pelo RLS.
+         */
+        delete: operations["remover_municipio_api_v1_profile_municipalities__ibge__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/profile/overview": {
         parameters: {
             query?: never;
@@ -1975,6 +2129,23 @@ export interface paths {
         put?: never;
         /** Sync Repasses */
         post: operations["sync_repasses_api_v1_transfers_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ui": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Ui */
+        get: operations["get_ui_api_v1_ui_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2381,6 +2552,16 @@ export interface components {
             state?: string | null;
         };
         /**
+         * CategoriaInstitucional
+         * @description Opção de filtro da tela (o eixo pelo qual o gestor procura).
+         */
+        CategoriaInstitucional: {
+            /** Chave */
+            chave: string;
+            /** Rotulo */
+            rotulo: string;
+        };
+        /**
          * CategoriaTag
          * @description Pílula de categoria: o slug (filtrável) e o rótulo (exibível).
          */
@@ -2676,6 +2857,68 @@ export interface components {
             /** Uf */
             uf?: string | null;
         };
+        /**
+         * ContatoInstitucional
+         * @description Uma entrada do diretório. `nome` OU `orgao` basta — parte das linhas é
+         *     o próprio gabinete ("Gabinete do Ministro da Saúde"), sem pessoa nomeada.
+         */
+        ContatoInstitucional: {
+            /** Cargo */
+            cargo?: string | null;
+            /**
+             * Categoria
+             * @default outros
+             */
+            categoria: string;
+            /** Email */
+            email?: string | null;
+            /**
+             * Nome
+             * @default
+             */
+            nome: string;
+            /** Observacao */
+            observacao?: string | null;
+            /** Orgao */
+            orgao?: string | null;
+            /** Sei */
+            sei?: string | null;
+            /** Sei Url */
+            sei_url?: string | null;
+            /** Telefone */
+            telefone?: string | null;
+        };
+        /** ContatoInstitucionalRead */
+        ContatoInstitucionalRead: {
+            /** Cargo */
+            cargo?: string | null;
+            /**
+             * Categoria
+             * @default outros
+             */
+            categoria: string;
+            /** Categoria Rotulo */
+            categoria_rotulo: string;
+            /** Email */
+            email?: string | null;
+            /**
+             * Nome
+             * @default
+             */
+            nome: string;
+            /** Observacao */
+            observacao?: string | null;
+            /** Orgao */
+            orgao?: string | null;
+            /** Sei */
+            sei?: string | null;
+            /** Sei Url */
+            sei_url?: string | null;
+            /** Telefone */
+            telefone?: string | null;
+            /** Whatsapp Url */
+            whatsapp_url?: string | null;
+        };
         /** ContatoRead */
         ContatoRead: {
             /**
@@ -2819,6 +3062,99 @@ export interface components {
             token: string;
         };
         /**
+         * DemandaComentario
+         * @description Mensagem nova na demanda; `situacao` só quando ela muda de estado.
+         */
+        DemandaComentario: {
+            /** Situacao */
+            situacao?: string | null;
+            /**
+             * Texto
+             * @default
+             */
+            texto: string;
+        };
+        /** DemandaCreate */
+        DemandaCreate: {
+            /** Assunto */
+            assunto: string;
+            /** Descricao */
+            descricao?: string | null;
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Proposta Id */
+            proposta_id?: string | null;
+        };
+        /**
+         * DemandaFilaRead
+         * @description A mesma demanda, na fila do admin — com quem pediu.
+         */
+        DemandaFilaRead: {
+            /** Assunto */
+            assunto: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Descricao */
+            descricao?: string | null;
+            /** Historico */
+            historico?: components["schemas"]["EventoDemanda"][] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Origem */
+            origem: string;
+            /** Proposta Id */
+            proposta_id?: string | null;
+            /** Resolvida Em */
+            resolvida_em?: string | null;
+            /** Situacao */
+            situacao: string;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Usuario Email */
+            usuario_email?: string | null;
+            /** Usuario Nome */
+            usuario_nome?: string | null;
+        };
+        /** DemandaRead */
+        DemandaRead: {
+            /** Assunto */
+            assunto: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Descricao */
+            descricao?: string | null;
+            /** Historico */
+            historico?: components["schemas"]["EventoDemanda"][] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Origem */
+            origem: string;
+            /** Proposta Id */
+            proposta_id?: string | null;
+            /** Resolvida Em */
+            resolvida_em?: string | null;
+            /** Situacao */
+            situacao: string;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /**
          * DiagnosticoFontes
          * @description Estado real da ingestão: fontes ao vivo + providers de scraping/IA.
          */
@@ -2877,6 +3213,11 @@ export interface components {
              * @default 0
              */
             total: number;
+        };
+        /** DiretorioInstitucionalSet */
+        DiretorioInstitucionalSet: {
+            /** Contatos */
+            contatos: components["schemas"]["ContatoInstitucional"][];
         };
         /**
          * DistribuicaoItem
@@ -3200,6 +3541,20 @@ export interface components {
             url?: string | null;
             /** Valor */
             valor?: string | null;
+        };
+        /**
+         * EventoDemanda
+         * @description Uma linha do histórico — quem falou, quando e o que mudou.
+         */
+        EventoDemanda: {
+            /** Autor */
+            autor?: string | null;
+            /** Em */
+            em?: string | null;
+            /** Situacao */
+            situacao?: string | null;
+            /** Texto */
+            texto?: string | null;
         };
         /**
          * FacetaOpcao
@@ -4728,6 +5083,22 @@ export interface components {
             /** Refresh Token */
             refresh_token: string;
         };
+        /**
+         * RemocaoMunicipioResultado
+         * @description O que saiu ao remover UM município do território.
+         *
+         *     Só conta o que é do tenant: o cache global (propostas, repasses, obras) não
+         *     é tocado — a mesma cidade pode estar no território de outro cliente.
+         */
+        RemocaoMunicipioResultado: {
+            /**
+             * Buscas Monitoradas
+             * @default 0
+             */
+            buscas_monitoradas: number;
+            /** Ibge */
+            ibge: string;
+        };
         /** RepasseRead */
         RepasseRead: {
             /** Cache Atualizado Em */
@@ -4873,6 +5244,8 @@ export interface components {
             convenios_iniciados: number;
             /** Oportunidades Abertas */
             oportunidades_abertas: number;
+            /** Propostas Publicadas */
+            propostas_publicadas: number;
             /** Transferencias */
             transferencias: number;
             /** Valor A Utilizar */
@@ -4883,6 +5256,10 @@ export interface components {
             valor_desembolsado: string;
             /** Valor Empenhado */
             valor_empenhado: string;
+            /** Valor Pago */
+            valor_pago: string;
+            /** Valor Publicado */
+            valor_publicado: string;
         };
         /**
          * ResumoEmendas
@@ -5041,6 +5418,11 @@ export interface components {
              * @default bearer
              */
             token_type: string;
+        };
+        /** UiRead */
+        UiRead: {
+            /** Versao */
+            versao: string;
         };
         /** UltimaColeta */
         UltimaColeta: {
@@ -5351,6 +5733,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContatoAssessoriaRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_fila_api_v1_admin_advisory_requests_get: {
+        parameters: {
+            query?: {
+                /** @description aberta|em_andamento|resolvida|cancelada */
+                situacao?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemandaFilaRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    responder_demanda_api_v1_admin_advisory_requests__demanda_id__reply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                demanda_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemandaComentario"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemandaFilaRead"];
                 };
             };
             /** @description Validation Error */
@@ -6152,6 +6601,59 @@ export interface operations {
             };
         };
     };
+    admin_listar_api_v1_admin_contacts_institutional_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContatoInstitucionalRead"][];
+                };
+            };
+        };
+    };
+    admin_definir_api_v1_admin_contacts_institutional_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiretorioInstitucionalSet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContatoInstitucionalRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     testar_email_api_v1_admin_email_test_post: {
         parameters: {
             query?: never;
@@ -6581,6 +7083,108 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContatoAssessoriaRead"][];
+                };
+            };
+        };
+    };
+    listar_demandas_api_v1_advisory_requests_get: {
+        parameters: {
+            query?: {
+                /** @description aberta|em_andamento|resolvida|cancelada */
+                situacao?: string | null;
+                /** @description só o que ainda está em aberto */
+                abertas?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemandaRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    criar_demanda_api_v1_advisory_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemandaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemandaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    comentar_demanda_api_v1_advisory_requests__demanda_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                demanda_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemandaComentario"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemandaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -7334,6 +7938,60 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_institucionais_api_v1_contacts_institutional_get: {
+        parameters: {
+            query?: {
+                /** @description nome, órgão, cargo, e-mail ou nº do SEI */
+                q?: string | null;
+                /** @description chave da categoria */
+                categoria?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContatoInstitucionalRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_categorias_api_v1_contacts_institutional_categories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoriaInstitucional"][];
                 };
             };
         };
@@ -8554,6 +9212,37 @@ export interface operations {
             };
         };
     };
+    remover_municipio_api_v1_profile_municipalities__ibge__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ibge: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemocaoMunicipioResultado"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     visao_geral_perfil_api_v1_profile_overview_get: {
         parameters: {
             query?: {
@@ -9284,6 +9973,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_ui_api_v1_ui_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UiRead"];
                 };
             };
         };

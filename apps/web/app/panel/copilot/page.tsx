@@ -11,6 +11,7 @@ export default function ChatPage() {
   const [pergunta, setPergunta] = useState("");
   const [mensagens, setMensagens] = useState<Msg[]>([]);
   const [ocupado, setOcupado] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
   const fimRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,6 +24,7 @@ export default function ChatPage() {
     if (!q || ocupado) return;
     setPergunta("");
     setMensagens((m) => [...m, { autor: "user", texto: q }, { autor: "ia", texto: "" }]);
+    setErro(null);
     setOcupado(true);
     try {
       await chatStream(q, modo, (delta) => {
@@ -34,6 +36,20 @@ export default function ChatPage() {
           }
           return copia;
         });
+      });
+    } catch (err) {
+      // O `finally` sozinho engolia a falha: a bolha ficava vazia e o usuário
+      // não sabia se era credencial, plano ou rede (ponto 20 do feedback).
+      const texto =
+        err instanceof Error && err.message
+          ? err.message
+          : "Não consegui falar com o Copiloto agora. Tente novamente.";
+      setErro(texto);
+      setMensagens((m) => {
+        const copia = [...m];
+        // remove a bolha vazia que ficaria girando para sempre
+        if (copia[copia.length - 1]?.texto === "") copia.pop();
+        return copia;
       });
     } finally {
       setOcupado(false);
@@ -56,6 +72,12 @@ export default function ChatPage() {
           ))}
         </div>
       </header>
+
+      {erro && (
+        <p role="status" className="text-sm tone-danger">
+          {erro}
+        </p>
+      )}
 
       <div className="card flex min-h-[50vh] flex-col gap-3 p-5">
         {mensagens.length === 0 && (

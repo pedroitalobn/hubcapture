@@ -137,3 +137,15 @@ def test_data_proposta_remontada_da_linha_bruta() -> None:
                          "ANO_PROP": "2009"})
     )
     assert p.data_proposta == date(2009, 7, 3)
+
+
+def test_publicado_entra_na_execucao_como_valor_e_como_situacao() -> None:
+    """"Publicado" (pontos 08/13) vem da fonte nos dois sentidos — o de-para
+    aceita os dois, e quem escolhe o que exibir é a tela."""
+    from src.ingestion.normalizer import _montar_execucao
+
+    exec_valor = _montar_execucao({"VL_PUBLICADO": "1500,00"})
+    assert exec_valor and exec_valor["valor_publicado"] == "1500,00"
+
+    exec_situacao = _montar_execucao({"PUBLICACAO": "Publicado"})
+    assert exec_situacao and exec_situacao["situacao_publicacao"] == "Publicado"

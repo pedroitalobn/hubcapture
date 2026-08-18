@@ -653,3 +653,16 @@ async def test_csv_emendas(seed_user, seed_municipio) -> None:
     assert cabecalho.startswith("codigo;numero;parlamentar;")
     assert "Fulana de Tal" in linha
     assert "40.0" in linha  # % executado (40k de 100k)
+
+
+def test_esta_publicada_le_valor_e_estado() -> None:
+    """O card "Publicado" do painel conta o que a fonte marcou como publicado —
+    seja por valor, seja por estado. "Não publicado" não pode contar."""
+    from src.models.proposta import Proposta
+    from src.services.propostas import esta_publicada
+
+    assert esta_publicada(Proposta(execucao={"valor_publicado": "10"})) is True
+    assert esta_publicada(Proposta(execucao={"situacao_publicacao": "Publicado"})) is True
+    assert esta_publicada(Proposta(execucao={"situacao_publicacao": "Não publicado"})) is False
+    assert esta_publicada(Proposta(execucao={})) is False
+    assert esta_publicada(Proposta()) is False

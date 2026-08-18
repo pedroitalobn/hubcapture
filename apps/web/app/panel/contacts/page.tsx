@@ -8,6 +8,7 @@ import {
   baixarContatosVcf,
   importarContatosVcf,
 } from "@/lib/api/client";
+import { humanizarCaixa } from "@/lib/format";
 
 interface Valor {
   tipo?: string | null;
@@ -274,6 +275,8 @@ export default function ContatosPage() {
         />
       </div>
 
+      <DiretorioInstitucional />
+
       {/* ── Agendas conectadas ─────────────────────────────────────────── */}
       <section className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -505,6 +508,166 @@ export default function ContatosPage() {
 }
 
 /** Conexão Apple/iCloud e CardDAV genérico (conta + senha de app). */
+/* ── Diretório institucional (ponto 19) ─────────────────────────────────────
+   Gabinetes de ministros, chefias de gabinete, assessorias parlamentares e os
+   SEIs dos protocolos. Não é a agenda PESSOAL do gestor (que ele edita e
+   sincroniza com o celular): é lista curada pela administração, igual para
+   todos — por isso vive numa aba própria, só de leitura, com busca que alcança
+   o número do processo. */
+interface ContatoInstitucional {
+  nome: string;
+  orgao?: string | null;
+  cargo?: string | null;
+  categoria: string;
+  categoria_rotulo: string;
+  email?: string | null;
+  telefone?: string | null;
+  sei?: string | null;
+  sei_url?: string | null;
+  observacao?: string | null;
+  whatsapp_url?: string | null;
+}
+
+function DiretorioInstitucional() {
+  const [itens, setItens] = useState<ContatoInstitucional[]>([]);
+  const [categorias, setCategorias] = useState<{ chave: string; rotulo: string }[]>([]);
+  const [busca, setBusca] = useState("");
+  const [categoria, setCategoria] = useState("");
+  const [carregando, setCarregando] = useState(true);
+
+  useEffect(() => {
+    void api
+      .GET("/api/v1/contacts/institutional/categories")
+      .then(({ data }) => {
+        if (data) setCategorias(data as { chave: string; rotulo: string }[]);
+      });
+  }, []);
+
+  useEffect(() => {
+    // busca com respiro: a lista é curada e pequena, mas o campo é digitado
+    const t = setTimeout(() => {
+      void api
+        .GET("/api/v1/contacts/institutional", {
+          params: {
+            query: { q: busca.trim() || undefined, categoria: categoria || undefined },
+          },
+        })
+        .then(({ data }) => {
+          if (data) setItens(data as ContatoInstitucional[]);
+          setCarregando(false);
+        });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [busca, categoria]);
+
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">Diretório institucional</h2>
+        <span className="label-mono">mantido pela administração</span>
+      </div>
+      <p className="text-sm text-ink-3">
+        Gabinetes de ministros, chefias de gabinete, assessorias parlamentares e
+        os SEIs dos protocolos. Procure pelo órgão — ou pelo número do processo,
+        se for ele que você tem em mãos.
+      </p>
+
+      <div className="flex flex-wrap gap-2">
+        <input
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="órgão, pessoa, cargo ou nº do SEI"
+          className="input min-w-[16rem] flex-1"
+        />
+        <select
+          value={categoria}
+          onChange={(e) => setCategoria(e.target.value)}
+          className="input w-56"
+        >
+          <option value="">Todas as categorias</option>
+          {categorias.map((c) => (
+            <option key={c.chave} value={c.chave}>
+              {c.rotulo}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {carregando ? (
+        <p className="text-sm text-ink-3">Carregando…</p>
+      ) : itens.length === 0 ? (
+        <p className="text-sm text-ink-3">
+          {busca || categoria
+            ? "Nenhum contato institucional com esse filtro."
+            : "A administração ainda não publicou o diretório institucional."}
+        </p>
+      ) : (
+        <ul className="flex flex-col divide-y divide-hairline">
+          {itens.map((c, i) => (
+            <li key={`${c.nome}-${i}`} className="flex flex-wrap gap-3 py-3 text-sm">
+              <span className="min-w-0 flex-1">
+                {/* o ÓRGÃO lidera: é por ele que o gestor procura */}
+                <span className="block text-ink">
+                  {humanizarCaixa(c.orgao) || humanizarCaixa(c.nome)}
+                </span>
+                <span className="mt-0.5 block text-xs text-ink-3">
+                  {[
+                    c.orgao ? humanizarCaixa(c.nome) : null,
+                    humanizarCaixa(c.cargo),
+                    c.categoria_rotulo,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+                {c.sei && (
+                  <span className="mt-1 block font-mono text-xs text-ink-2">
+                    SEI{" "}
+                    {c.sei_url ? (
+                      <a
+                        href={c.sei_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline underline-offset-2"
+                      >
+                        {c.sei} ↗
+                      </a>
+                    ) : (
+                      <span className="select-all">{c.sei}</span>
+                    )}
+                  </span>
+                )}
+                {c.observacao && (
+                  <span className="mt-1 block text-xs text-ink-3">{c.observacao}</span>
+                )}
+              </span>
+              <span className="flex shrink-0 flex-wrap items-start gap-2">
+                {c.email && (
+                  <a href={`mailto:${c.email}`} className="btn btn-ghost btn-sm">
+                    E-mail
+                  </a>
+                )}
+                {c.telefone && (
+                  <span className="font-mono text-xs text-ink-2">{c.telefone}</span>
+                )}
+                {c.whatsapp_url && (
+                  <a
+                    href={c.whatsapp_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-ghost btn-sm"
+                  >
+                    WhatsApp
+                  </a>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function FormularioSenhaApp({
   provedor,
   onCancelar,

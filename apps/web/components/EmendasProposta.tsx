@@ -112,14 +112,26 @@ export function EmendasProposta({ proposta, podeConsultarFonte = true }: Props) 
       {carregando ? (
         <p className="text-sm text-ink-3">Carregando…</p>
       ) : coleta?.status === "erro" ? (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1.5">
           <p className="tone-warn text-sm">
-            Não consegui consultar a emenda desta proposta na fonte.
+            Não consegui consultar a emenda desta proposta na fonte — e o
+            registro que temos não traz emenda. Pode ser que esta proposta não
+            seja de emenda parlamentar.
           </p>
-          <p className="text-xs text-ink-3">
-            {coleta.erro ?? "Fonte indisponível."} Um administrador pode calibrar a
-            rota em Administração → Configuração → Fontes.
-          </p>
+          {/* O texto cru do connector (rota, parâmetro, exceção) é para quem
+              vai calibrar, não para o gestor: fica atrás de um clique em vez
+              de ocupar a seção com um parágrafo técnico. */}
+          {coleta.erro && (
+            <details className="text-xs text-ink-3">
+              <summary className="cursor-pointer select-none">
+                Detalhe técnico (para a administração)
+              </summary>
+              <p className="mt-1.5 break-words">
+                {coleta.erro} A rota é calibrável em Administração →
+                Configurações → Fontes.
+              </p>
+            </details>
+          )}
         </div>
       ) : coleta?.status === "sem_chave" ? (
         <p className="text-sm text-ink-3">

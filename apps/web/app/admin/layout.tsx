@@ -21,6 +21,8 @@ const NAV = [
   { href: "/admin/sources", label: "Fontes (diagnóstico)" },
   { href: "/admin/modules", label: "Módulos" },
   { href: "/admin/advisory", label: "Assessoria" },
+  { href: "/admin/directory", label: "Diretório institucional" },
+  { href: "/admin/requests", label: "Demandas" },
   { href: "/admin/class", label: "Class" },
 ];
 

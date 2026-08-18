@@ -21,6 +21,10 @@ interface ResumoPainelData {
   cards: {
     valor_conveniado: string;
     valor_desembolsado: string;
+    valor_empenhado: string;
+    valor_pago: string;
+    valor_publicado: string;
+    propostas_publicadas: number;
     valor_a_utilizar: string;
     transferencias: number;
     convenios_em_execucao: number;
@@ -84,24 +88,35 @@ function PanoramaFinanceiro({ ano }: { ano: string }) {
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard
-          label="Valor conveniado"
+          label="Total geral"
           value={formatBRL(resumo.cards.valor_conveniado)}
           context={`${resumo.cards.transferencias} transferências`}
         />
         <StatCard
-          label="Desembolsado"
-          value={formatBRL(resumo.cards.valor_desembolsado)}
-          context="liberado ao ente"
+          label="Empenhado"
+          value={formatBRL(resumo.cards.valor_empenhado)}
+          context="reservado pelo concedente"
+        />
+        {/* "Publicado" vem da fonte ora como valor, ora como estado. Com
+            valor, mostra o valor; sem ele, a contagem de publicadas — R$ 0,00
+            leria como "nada publicado", que é outra coisa. */}
+        <StatCard
+          label="Publicado"
+          value={
+            numBR(resumo.cards.valor_publicado) > 0
+              ? formatBRL(resumo.cards.valor_publicado)
+              : String(resumo.cards.propostas_publicadas)
+          }
+          context={
+            numBR(resumo.cards.valor_publicado) > 0
+              ? "publicado pela fonte"
+              : "propostas publicadas"
+          }
         />
         <StatCard
-          label="Em execução"
-          value={String(resumo.cards.convenios_em_execucao)}
-          context="convênios vigentes"
-        />
-        <StatCard
-          label="Oportunidades abertas"
-          value={String(resumo.cards.oportunidades_abertas)}
-          context="disponíveis p/ captar"
+          label="Pago"
+          value={formatBRL(resumo.cards.valor_pago)}
+          context="efetivamente pago"
         />
       </div>
 
@@ -429,22 +444,31 @@ function MeuPainel() {
         {/* Filtro de ano da PÁGINA: cards, panorama e novidades no mesmo
             recorte. Só aparece quando o território tem mais de uma safra —
             filtro que não muda nada parece quebrado. */}
-        {!semTerritorio && anosDisponiveis.length > 1 && (
+        {!semTerritorio && anosDisponiveis.length > 0 && (
           <label className="flex items-center gap-2 text-sm text-ink-2">
             <span className="label-mono">Ano</span>
-            <select
-              value={ano}
-              onChange={(e) => setAno(e.target.value)}
-              className="input w-44"
-              title="Recorta o painel inteiro por safra (ano)"
-            >
-              <option value="">Todos os anos</option>
-              {anosDisponiveis.map((a) => (
-                <option key={a.ano} value={a.ano}>
-                  {a.ano} ({a.total})
-                </option>
-              ))}
-            </select>
+            {anosDisponiveis.length === 1 ? (
+              <span
+                className="input flex w-44 items-center text-ink-2"
+                title="O território tem uma única safra — não há o que recortar"
+              >
+                safra única: {anosDisponiveis[0]?.ano}
+              </span>
+            ) : (
+              <select
+                value={ano}
+                onChange={(e) => setAno(e.target.value)}
+                className="input w-44"
+                title="Recorta o painel inteiro por safra (ano)"
+              >
+                <option value="">Todos os anos</option>
+                {anosDisponiveis.map((a) => (
+                  <option key={a.ano} value={a.ano}>
+                    {a.ano} ({a.total})
+                  </option>
+                ))}
+              </select>
+            )}
           </label>
         )}
       </header>
@@ -502,7 +526,9 @@ function MeuPainel() {
                     >
                       {d.total}
                     </div>
-                    <p className="mt-2 text-sm text-ink-2">{d.destaque ?? "—"}</p>
+                    {d.destaque && (
+                      <p className="mt-2 text-sm text-ink-2">{d.destaque}</p>
+                    )}
                   </div>
                 </>
               );
@@ -556,9 +582,8 @@ function MeuPainel() {
           <section className="anim-fade-up flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <h2 className="tracking-tight">
-                {ano
-                  ? `Novidades de ${ano} no seu território`
-                  : "Últimas novidades no seu território"}
+                Propostas{" "}
+                <span className="text-ink-3">(filtro conforme o ano)</span>
               </h2>
               {aguardandoDados && (
                 <span className="label-mono animate-pulse">
@@ -667,7 +692,7 @@ function MeuPainel() {
                         </p>
                         <p className="mt-0.5 flex flex-wrap gap-x-2 text-[12px] text-ink-3">
                           <span className="font-mono uppercase tracking-[0.04em]">
-                            {n.tipo === "captacao" ? "Captação" : "Recebido"}
+                            {n.tipo === "captacao" ? "Proposta" : "Recebido"}
                           </span>
                           <span>{FONTE_LABEL[n.fonte] ?? n.fonte}</span>
                           {n.municipio_nome && (
