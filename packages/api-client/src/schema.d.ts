@@ -1638,6 +1638,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/profile/municipalities/{ibge}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remover Municipio
+         * @description Tira UM município do território, sem zerar o perfil.
+         *
+         *     Remove a linha do território e as buscas monitoradas daquele município. O
+         *     cache (propostas, repasses, obras) não é apagado: é global e compartilhado
+         *     com outros clientes — sair do território já esconde tudo pelo RLS.
+         */
+        delete: operations["remover_municipio_api_v1_profile_municipalities__ibge__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/profile/overview": {
         parameters: {
             query?: never;
@@ -4745,6 +4769,22 @@ export interface components {
             /** Refresh Token */
             refresh_token: string;
         };
+        /**
+         * RemocaoMunicipioResultado
+         * @description O que saiu ao remover UM município do território.
+         *
+         *     Só conta o que é do tenant: o cache global (propostas, repasses, obras) não
+         *     é tocado — a mesma cidade pode estar no território de outro cliente.
+         */
+        RemocaoMunicipioResultado: {
+            /**
+             * Buscas Monitoradas
+             * @default 0
+             */
+            buscas_monitoradas: number;
+            /** Ibge */
+            ibge: string;
+        };
         /** RepasseRead */
         RepasseRead: {
             /** Cache Atualizado Em */
@@ -4890,6 +4930,8 @@ export interface components {
             convenios_iniciados: number;
             /** Oportunidades Abertas */
             oportunidades_abertas: number;
+            /** Propostas Publicadas */
+            propostas_publicadas: number;
             /** Transferencias */
             transferencias: number;
             /** Valor A Utilizar */
@@ -4902,6 +4944,8 @@ export interface components {
             valor_empenhado: string;
             /** Valor Pago */
             valor_pago: string;
+            /** Valor Publicado */
+            valor_publicado: string;
         };
         /**
          * ResumoEmendas
@@ -8565,6 +8609,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NovidadesPerfil"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_municipio_api_v1_profile_municipalities__ibge__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ibge: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemocaoMunicipioResultado"];
                 };
             };
             /** @description Validation Error */

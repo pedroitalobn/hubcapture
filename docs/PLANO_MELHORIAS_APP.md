@@ -6,6 +6,24 @@
 > Execução em **duas fases**: primeiro o que é **UI/rótulo/layout** (rápido, sem tocar
 > em ingestão), depois o que é **lógica/dados** (endpoints, connectors, migrations).
 
+## Estado da execução
+
+| Fase | Situação |
+|---|---|
+| **Fase 1 — interface** (§1.1 a §1.12) | ✅ entregue |
+| **Fase 2 — 01 (excluir município)** | ✅ entregue |
+| **Fase 2 — 20 (copiloto que não respondia)** | ✅ entregue (a central de demandas segue pendente) |
+| **Fase 2 — 15 (pareceres)** | ✅ o elo proposta → plano de trabalho; falta **calibrar a rota contra a fonte viva** |
+| **Fase 2 — 08/13 (“Publicado”)** | ✅ coletado nos dois sentidos (valor e estado); ver decisão 1 |
+| **Fase 2 — 16 (emenda)** | 🔶 degradação e leitura da linha bruta do CSV; falta **calibrar a rota** |
+| **Fase 2 — 03 (pesquisa falha)**, **11 (Oportunidades)**, **18 (Regularidade com dado)**, **19 (diretório institucional)**, **20b (central de demandas)** | ⏳ pendente |
+
+**Bloqueio de ambiente:** a política de rede do ambiente de desenvolvimento remoto
+recusa `CONNECT` para `*.gov.br`, então `probe_fontes` e `probe_especiais` não rodam
+aqui. Tudo que depende de calibração contra a fonte viva (03, 11, 15 e 16 na parte de
+rota) precisa de uma máquina com saída para gov.br — o código já está preparado, com
+rota e parâmetro sobrescritíveis no painel admin.
+
 ---
 
 ## 0. Leitura geral do feedback

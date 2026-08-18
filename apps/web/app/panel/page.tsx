@@ -23,6 +23,8 @@ interface ResumoPainelData {
     valor_desembolsado: string;
     valor_empenhado: string;
     valor_pago: string;
+    valor_publicado: string;
+    propostas_publicadas: number;
     valor_a_utilizar: string;
     transferencias: number;
     convenios_em_execucao: number;
@@ -95,10 +97,21 @@ function PanoramaFinanceiro({ ano }: { ano: string }) {
           value={formatBRL(resumo.cards.valor_empenhado)}
           context="reservado pelo concedente"
         />
+        {/* "Publicado" vem da fonte ora como valor, ora como estado. Com
+            valor, mostra o valor; sem ele, a contagem de publicadas — R$ 0,00
+            leria como "nada publicado", que é outra coisa. */}
         <StatCard
           label="Publicado"
-          value="—"
-          context="em calibração na fonte"
+          value={
+            numBR(resumo.cards.valor_publicado) > 0
+              ? formatBRL(resumo.cards.valor_publicado)
+              : String(resumo.cards.propostas_publicadas)
+          }
+          context={
+            numBR(resumo.cards.valor_publicado) > 0
+              ? "publicado pela fonte"
+              : "propostas publicadas"
+          }
         />
         <StatCard
           label="Pago"

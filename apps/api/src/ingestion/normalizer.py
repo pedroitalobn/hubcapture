@@ -114,6 +114,26 @@ _EXEC_KEYS = {
     "valor_empenhado": ("valor_empenhado", "valor empenhado", "vl_empenhado"),
     "valor_liberado": ("valor_liberado", "valor liberado", "vl_desembolsado", "vl_liberado"),
     "valor_pago": ("valor_pago", "valor pago", "vl_pago"),
+    # PUBLICADO (pontos 08 e 13 do feedback). O termo aparece na fonte nos dois
+    # sentidos, e a proposta não diz qual: como VALOR (o publicado do convênio)
+    # e como SITUAÇÃO (publicado no DOU / não publicado). Coletamos os dois e a
+    # tela prefere o valor quando ele existe — assim nenhuma das duas leituras
+    # fica sem resposta enquanto o cliente não confirma qual quis.
+    "valor_publicado": (
+        "valor_publicado",
+        "valor publicado",
+        "vl_publicado",
+        "vl_publicacao",
+    ),
+    "situacao_publicacao": (
+        "situacao_publicacao",
+        "situacao publicacao",
+        "publicacao",
+        "sit_publicacao",
+        "publicado",
+        "dt_publicacao",
+        "data_publicacao",
+    ),
     "saldo_conta": ("saldo_conta", "saldo em conta", "vl_saldo"),
     "ano": ("ano",),
     "qtd_transferencias": ("qtd_transferencias", "qtd. transferencias"),

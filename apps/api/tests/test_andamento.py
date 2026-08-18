@@ -415,3 +415,31 @@ async def test_emenda_nao_duplica_entre_coletas(
             resultado = await andamento.emendas(s, pid, atualizar=True, usuario_id=uid)
     itens, _ = resultado
     assert len(itens) == 1
+
+
+def test_emenda_do_registro_fonte_le_a_linha_bruta_do_csv() -> None:
+    """A proposta do SIconv guarda a linha do CSV em `csv` (§46). Sem olhar
+    ali, o painel caía no texto de erro mesmo com a emenda à vista no
+    registro-fonte (ponto 16 do feedback)."""
+    from src.connectors.emendas_especiais import emendas_do_registro_fonte
+
+    dados = {
+        "plano_acao": {
+            "objeto": "Aquisição de equipamento",
+            "csv": {
+                "NR_EMENDA": "50410003",
+                "NOME_PARLAMENTAR": "MARCOS PEREIRA",
+                "VL_EMENDA": "500000,00",
+            },
+        }
+    }
+    achadas = emendas_do_registro_fonte(dados)
+    assert len(achadas) == 1
+    assert achadas[0]["NOME_PARLAMENTAR"] == "MARCOS PEREIRA"
+    assert achadas[0]["_origem"] == "registro_fonte"
+
+
+def test_registro_sem_emenda_continua_sem_emenda() -> None:
+    from src.connectors.emendas_especiais import emendas_do_registro_fonte
+
+    assert emendas_do_registro_fonte({"plano_acao": {"csv": {"OBJETO": "obra"}}}) == []

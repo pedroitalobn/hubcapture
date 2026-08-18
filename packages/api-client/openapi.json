@@ -7354,6 +7354,25 @@
         "title": "RefreshRequest",
         "type": "object"
       },
+      "RemocaoMunicipioResultado": {
+        "description": "O que saiu ao remover UM município do território.\n\nSó conta o que é do tenant: o cache global (propostas, repasses, obras) não\né tocado — a mesma cidade pode estar no território de outro cliente.",
+        "properties": {
+          "buscas_monitoradas": {
+            "default": 0,
+            "title": "Buscas Monitoradas",
+            "type": "integer"
+          },
+          "ibge": {
+            "title": "Ibge",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ibge"
+        ],
+        "title": "RemocaoMunicipioResultado",
+        "type": "object"
+      },
       "RepasseRead": {
         "properties": {
           "cache_atualizado_em": {
@@ -7686,6 +7705,10 @@
             "title": "Oportunidades Abertas",
             "type": "integer"
           },
+          "propostas_publicadas": {
+            "title": "Propostas Publicadas",
+            "type": "integer"
+          },
           "transferencias": {
             "title": "Transferencias",
             "type": "integer"
@@ -7714,6 +7737,11 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Valor Pago",
             "type": "string"
+          },
+          "valor_publicado": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Publicado",
+            "type": "string"
           }
         },
         "required": [
@@ -7721,6 +7749,8 @@
           "valor_desembolsado",
           "valor_empenhado",
           "valor_pago",
+          "valor_publicado",
+          "propostas_publicadas",
           "valor_a_utilizar",
           "transferencias",
           "convenios_iniciados",
@@ -13763,6 +13793,54 @@
           }
         ],
         "summary": "Novidades Perfil",
+        "tags": [
+          "perfil"
+        ]
+      }
+    },
+    "/api/v1/profile/municipalities/{ibge}": {
+      "delete": {
+        "description": "Tira UM município do território, sem zerar o perfil.\n\nRemove a linha do território e as buscas monitoradas daquele município. O\ncache (propostas, repasses, obras) não é apagado: é global e compartilhado\ncom outros clientes — sair do território já esconde tudo pelo RLS.",
+        "operationId": "remover_municipio_api_v1_profile_municipalities__ibge__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ibge",
+            "required": true,
+            "schema": {
+              "title": "Ibge",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemocaoMunicipioResultado"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Remover Municipio",
         "tags": [
           "perfil"
         ]

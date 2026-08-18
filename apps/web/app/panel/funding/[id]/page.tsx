@@ -72,6 +72,9 @@ type Proposta = {
     valor_empenhado?: string | null;
     valor_liberado?: string | null;
     valor_pago?: string | null;
+    /** "Publicado" — a fonte manda ora valor, ora estado; a tela usa os dois. */
+    valor_publicado?: string | null;
+    situacao_publicacao?: string | null;
     saldo_conta?: string | null;
     ano?: string | number | null;
     ente_recebedor?: string | null;
@@ -422,6 +425,40 @@ export default function PropostaDetalhePage() {
             )}
           </div>
 
+          {/* PUBLICADO (ponto 13). A fonte usa o termo nos dois sentidos: o
+              valor publicado do convênio e o estado da publicação no DOU. O
+              valor manda quando existe; senão vale o estado, que ainda é a
+              resposta que o gestor procura ("saiu ou não saiu?"). */}
+          <div className="field">
+            <span className="field-label">Publicado</span>
+            {num(p.execucao?.valor_publicado) > 0 ? (
+              <>
+                <span className="value-hero">
+                  {formatBRL(p.execucao!.valor_publicado)}
+                </span>
+                <span className="num mt-1 text-xs text-ink-3">
+                  valor publicado na fonte
+                </span>
+              </>
+            ) : p.execucao?.situacao_publicacao ? (
+              <>
+                <span className="value-lg">
+                  {humanizarCaixa(String(p.execucao.situacao_publicacao))}
+                </span>
+                <span className="num mt-1 text-xs text-ink-3">
+                  situação da publicação
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="value-hero text-ink-3">—</span>
+                <span className="num mt-1 text-xs text-ink-3">
+                  sem publicação informada na fonte
+                </span>
+              </>
+            )}
+          </div>
+
           {/* PAGO subiu da seção de execução financeira (ponto 13): é o que
               responde "o recurso chegou?", e o gestor lia isso só depois de
               rolar a página inteira. */}
@@ -446,31 +483,6 @@ export default function PropostaDetalhePage() {
             )}
           </div>
 
-          {/* ANO da proposta no lugar do prazo de vencimento: a safra (ANO_PROP)
-              é o que situa a proposta — o prazo vinha marcado errado com
-              frequência e segue disponível na seção "Prazos", abaixo. */}
-          <div className="field">
-            <span className="field-label">
-              Ano da proposta <Hint chave="proposta.ano" />
-            </span>
-            {anoProposta ? (
-              <>
-                <span className="value-hero num">{anoProposta}</span>
-                <span className="mt-1 font-mono text-xs uppercase tracking-[0.04em] text-ink-3">
-                  {p.data_proposta
-                    ? `criada em ${formatDate(p.data_proposta)}`
-                    : "ano de criação na fonte"}
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="value-hero text-ink-3">—</span>
-                <span className="num mt-1 text-xs text-ink-3">
-                  sem ano informado na fonte
-                </span>
-              </>
-            )}
-          </div>
         </div>
 
         <hr className="hairline-rule" />
@@ -509,6 +521,22 @@ export default function PropostaDetalhePage() {
               </>
             }
             valor={humanizarCaixa(p.modalidade)}
+            destaque
+          />
+
+          <Dado
+            rotulo={
+              <>
+                Ano da proposta <Hint chave="proposta.ano" />
+              </>
+            }
+            valor={
+              anoProposta
+                ? p.data_proposta
+                  ? `${anoProposta} · criada em ${formatDate(p.data_proposta)}`
+                  : anoProposta
+                : null
+            }
             destaque
           />
         </div>
