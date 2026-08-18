@@ -16,7 +16,9 @@
 | **Fase 2 — 15 (pareceres)** | ✅ o elo proposta → plano de trabalho; falta **calibrar a rota contra a fonte viva** |
 | **Fase 2 — 08/13 (“Publicado”)** | ✅ coletado nos dois sentidos (valor e estado); ver decisão 1 |
 | **Fase 2 — 16 (emenda)** | 🔶 degradação e leitura da linha bruta do CSV; falta **calibrar a rota** |
-| **Fase 2 — 03 (pesquisa falha)**, **11 (Oportunidades)**, **18 (Regularidade com dado)**, **19 (diretório institucional)**, **20b (central de demandas)** | ⏳ pendente |
+| **Fase 2 — 19 (diretório institucional)** | ✅ entregue |
+| **Fase 2 — 20b (central de demandas)** | ✅ entregue |
+| **Fase 2 — 03 (pesquisa falha)**, **11 (Oportunidades com coleta)**, **18 (Regularidade com dado)** | ⏳ bloqueado por rede — precisa de máquina com saída para gov.br |
 
 **Bloqueio de ambiente:** a política de rede do ambiente de desenvolvimento remoto
 recusa `CONNECT` para `*.gov.br`, então `probe_fontes` e `probe_especiais` não rodam
