@@ -39,6 +39,7 @@ from ..schemas.perfil import (
     PerfilRead,
     PlanoPerfil,
     QuebraDimensao,
+    RemocaoMunicipioResultado,
     ResetPerfilResultado,
     SyncRunStatus,
     VisaoGeralPerfil,
@@ -156,6 +157,68 @@ async def get_perfil(session: AsyncSession, usuario: Usuario) -> PerfilRead:
 # só a cópia local do que a fonte publicou sobre o território dele. `propostas`
 # tem soft delete próprio; os demais só perdem o frescor.
 _CACHES_DO_TERRITORIO = (Repasse, Conformidade, Obra)
+
+
+class MunicipioNaoEncontrado(Exception):
+    """O IBGE pedido não está no território deste usuário."""
+
+
+async def remover_municipio(
+    session: AsyncSession, usuario: Usuario, ibge: str
+) -> RemocaoMunicipioResultado:
+    """Tira UM município do território (ponto 01 do feedback do cliente).
+
+    Até aqui o onboarding só INSERIA: quem errou o município, ou deixou de
+    acompanhar uma cidade, não tinha caminho — só o `DELETE /profile`, que zera
+    o perfil inteiro. Esta é a saída cirúrgica.
+
+    Apaga o que é do TENANT e diz respeito só a este município: a linha do
+    território e as buscas monitoradas dele. O que é cache GLOBAL — propostas,
+    repasses, conformidades, obras — não é tocado: a mesma cidade pode estar no
+    território de outro cliente, e o cascade das FKs ignora RLS (§41). Sair do
+    território já esconde tudo pelo próprio RLS.
+
+    Favoritos e pastas ficam de pé de propósito: se o município voltar, a
+    curadoria volta com ele — e, enquanto fora, o RLS não os deixa aparecer.
+    """
+    alvo = str(ibge or "").strip()
+    existe = (
+        await session.execute(
+            select(MunicipioInteresse.ibge).where(
+                MunicipioInteresse.usuario_id == usuario.id,
+                MunicipioInteresse.ibge == alvo,
+            )
+        )
+    ).scalar_one_or_none()
+    if existe is None:
+        raise MunicipioNaoEncontrado(alvo)
+
+    buscas = await session.execute(
+        delete(MonitoramentoBusca).where(
+            MonitoramentoBusca.usuario_id == usuario.id,
+            MonitoramentoBusca.municipio_ibge == alvo,
+        )
+    )
+    await session.execute(
+        delete(MunicipioInteresse).where(
+            MunicipioInteresse.usuario_id == usuario.id,
+            MunicipioInteresse.ibge == alvo,
+        )
+    )
+
+    # A memória de coleta em processo acompanha: sem isso, readicionar o
+    # município logo depois não recoletaria nada por até 6h (§38) e a tela
+    # abriria vazia como se a cidade não tivesse dados.
+    from . import consulta_avulsa  # import tardio: consulta_avulsa usa AREA_FONTES
+
+    consulta_avulsa.esquecer_municipio(alvo)
+
+    session.add(
+        AuditLog(usuario_id=usuario.id, acao="remover_municipio", entidade=f"municipio:{alvo}")
+    )
+    return RemocaoMunicipioResultado(
+        ibge=alvo, buscas_monitoradas=int(buscas.rowcount or 0)
+    )
 
 
 async def zerar(session: AsyncSession, usuario: Usuario) -> ResetPerfilResultado:

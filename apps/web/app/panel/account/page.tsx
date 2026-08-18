@@ -2,8 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { api, atualizarPerfil, meProfile, zerarPerfil } from "@/lib/api/client";
-import { limparTerritorioSalvo } from "@/lib/territorio";
+import {
+  api,
+  atualizarPerfil,
+  meProfile,
+  removerMunicipio,
+  zerarPerfil,
+} from "@/lib/api/client";
+import {
+  limparTerritorioSalvo,
+  rotuloMunicipio,
+  useTerritorio,
+} from "@/lib/territorio";
 
 interface Membro {
   convite_id: string;
@@ -171,6 +181,8 @@ export default function ContaPage() {
         </button>
       </form>
 
+      <MeuTerritorio />
+
       <MembrosDaConta />
 
       <section className="card flex max-w-md flex-col gap-4 border-danger/40 p-6">
@@ -214,6 +226,102 @@ export default function ContaPage() {
         </button>
       </section>
     </>
+  );
+}
+
+/** Território do perfil — adicionar é o onboarding; REMOVER é aqui.
+ *
+ * Até o ponto 01 do feedback, o onboarding só inseria município: quem errava a
+ * cidade (ou deixava de acompanhá-la) só tinha a zeragem do perfil inteiro. A
+ * remoção fica junto da conta, e não no filtro do trilho lateral, porque lá o
+ * "×" significa tirar do RECORTE da tela — misturar os dois gestos apagaria
+ * perfil de quem só queria filtrar.
+ */
+function MeuTerritorio() {
+  const { municipios, recarregar } = useTerritorio();
+  const [removendo, setRemovendo] = useState<string | null>(null);
+  const [confirmar, setConfirmar] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function remover(ibge: string) {
+    setErro(null);
+    setRemovendo(ibge);
+    try {
+      await removerMunicipio(ibge);
+      // o recorte salvo pode apontar para o município que saiu
+      limparTerritorioSalvo();
+      await recarregar();
+      setConfirmar(null);
+    } catch (err) {
+      setErro(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível remover o município agora.",
+      );
+    } finally {
+      setRemovendo(null);
+    }
+  }
+
+  return (
+    <section className="card flex max-w-md flex-col gap-4 p-6">
+      <h2 className="label-mono">Meu território</h2>
+      {municipios.length === 0 ? (
+        <p className="text-sm text-ink-2">
+          Você ainda não acompanha nenhum município — configure no onboarding.
+        </p>
+      ) : (
+        <ul className="flex flex-col divide-y divide-hairline">
+          {municipios.map((m) => (
+            <li
+              key={m.ibge}
+              className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm"
+            >
+              <span>
+                {rotuloMunicipio(m)}
+                <span className="ml-2 font-mono text-[11px] text-ink-3">
+                  IBGE {m.ibge}
+                </span>
+              </span>
+              {confirmar === m.ibge ? (
+                <span className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void remover(m.ibge)}
+                    disabled={removendo === m.ibge}
+                    className="btn btn-sm border border-danger/50 text-danger hover:bg-danger/10"
+                  >
+                    {removendo === m.ibge ? "Removendo…" : "Confirmar"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmar(null)}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    Cancelar
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmar(m.ibge)}
+                  className="btn btn-ghost btn-sm"
+                  title="Deixar de acompanhar este município"
+                >
+                  Remover
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {erro && <p className="text-sm text-danger">{erro}</p>}
+      <p className="text-[12px] text-ink-3">
+        Remover tira a cidade do seu painel e para os avisos dela. As propostas
+        já coletadas não são apagadas — elas são de todo mundo que acompanha o
+        município; se você voltar a acompanhá-lo, tudo reaparece.
+      </p>
+    </section>
   );
 }
 

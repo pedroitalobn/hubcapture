@@ -7,6 +7,7 @@ stream; o gerador só chama o LLM (não toca no banco). Sem LLM, degrada com o c
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, Depends
@@ -25,6 +26,8 @@ from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
 # Módulo desligável pelo painel admin: desativado → todo o eixo responde 404.
+logger = logging.getLogger(__name__)
+
 router = APIRouter(tags=["copiloto"], dependencies=[Depends(require_modulo("copiloto"))])
 
 # Perguntas sobre prazo ("quais propostas vencem este mês?") têm resposta
@@ -74,8 +77,21 @@ async def copiloto_chat(
     papel = user.papel or "executivo"
 
     async def gen() -> AsyncIterator[str]:
-        async for token in ai_chat.stream(contexto, body.pergunta, papel):
-            yield f"data: {json.dumps({'delta': token}, ensure_ascii=False)}\n\n"
+        # O corpo do SSE já começou quando a geração roda: um erro aqui não vira
+        # HTTP 500 — a conexão simplesmente encerra, e a tela fica com a bolha
+        # vazia para sempre ("não conseguimos usar, está funcionando?" do ponto
+        # 20). Então a falha viaja como EVENTO, e o chat diz o que houve.
+        try:
+            async for token in ai_chat.stream(contexto, body.pergunta, papel):
+                yield f"data: {json.dumps({'delta': token}, ensure_ascii=False)}\n\n"
+        except Exception as exc:  # noqa: BLE001 — provedor de IA fora do ar
+            logger.exception("copiloto: falha ao gerar resposta")
+            aviso = (
+                "Não consegui responder agora: o provedor de IA recusou a consulta "
+                f"({type(exc).__name__}). Um administrador pode conferir a credencial "
+                "em Administração → Configurações → IA."
+            )
+            yield f"data: {json.dumps({'erro': aviso}, ensure_ascii=False)}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(gen(), media_type="text/event-stream")

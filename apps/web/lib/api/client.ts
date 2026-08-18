@@ -147,6 +147,27 @@ export async function zerarPerfil(): Promise<ResetPerfil> {
   return resp.json();
 }
 
+/** Tira UM município do território (ponto 01). O cache global não é apagado —
+ *  sair do território já esconde tudo pelo RLS. */
+export async function removerMunicipio(
+  ibge: string,
+): Promise<{ ibge: string; buscas_monitoradas: number }> {
+  const resp = await fetch(
+    `${API_ORIGIN}/api/v1/profile/municipalities/${encodeURIComponent(ibge)}`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+    },
+  );
+  if (resp.status === 404) {
+    throw new Error("Este município não está no seu território.");
+  }
+  if (!resp.ok) {
+    throw new Error(`Falha ao remover o município (HTTP ${resp.status})`);
+  }
+  return resp.json();
+}
+
 /** Exclui um convite (admin). Rota fora do client tipado → fetch cru. */
 export async function excluirConvite(id: string): Promise<void> {
   const resp = await fetch(`${API_ORIGIN}/api/v1/admin/invites/${id}`, {
@@ -326,6 +347,25 @@ export async function baixarCsv(
 /**
  * Chat do Copiloto (SSE). Chama `onDelta` a cada token e resolve ao terminar.
  */
+/** Mensagem legível a partir de uma resposta de erro da API. */
+async function mensagemDeErro(resp: Response): Promise<string> {
+  let detalhe = "";
+  try {
+    const corpo = (await resp.json()) as { detail?: unknown };
+    detalhe = typeof corpo?.detail === "string" ? corpo.detail : "";
+  } catch {
+    /* corpo vazio ou não-JSON */
+  }
+  if (resp.status === 401) return "Sua sessão expirou — entre de novo.";
+  if (detalhe.startsWith("MODULO_DESATIVADO"))
+    return "O Copiloto está desligado pela administração da plataforma.";
+  if (detalhe.startsWith("MODULO_NAO_INCLUIDO_PLANO"))
+    return "O Copiloto não está incluído no seu plano.";
+  if (resp.status === 404)
+    return "O Copiloto está desligado pela administração da plataforma.";
+  return detalhe || `O Copiloto não respondeu (HTTP ${resp.status}).`;
+}
+
 export async function chatStream(
   pergunta: string,
   modo: "propostas" | "copiloto",
@@ -339,7 +379,11 @@ export async function chatStream(
     },
     body: JSON.stringify({ pergunta, modo }),
   });
-  if (!resp.body) return;
+  // Sem esta checagem, 401/403/404/500 caíam no `!resp.body` e a tela ficava
+  // com a bolha vazia para sempre — o usuário não sabia se era o Copiloto, o
+  // plano dele ou a rede (ponto 20 do feedback).
+  if (!resp.ok) throw new Error(await mensagemDeErro(resp));
+  if (!resp.body) throw new Error("O Copiloto não respondeu. Tente novamente.");
   const reader = resp.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -353,10 +397,13 @@ export async function chatStream(
       const m = linha.replace(/^data: /, "").trim();
       if (!m || m === "[DONE]") continue;
       try {
-        const { delta } = JSON.parse(m) as { delta?: string };
-        if (delta) onDelta(delta);
-      } catch {
-        /* ignora linhas não-JSON */
+        const evento = JSON.parse(m) as { delta?: string; erro?: string };
+        // a falha do provedor chega DENTRO do stream (o HTTP já era 200)
+        if (evento.erro) throw new Error(evento.erro);
+        if (evento.delta) onDelta(evento.delta);
+      } catch (e) {
+        if (e instanceof Error && e.message) throw e;
+        /* linha não-JSON: ignora */
       }
     }
   }

@@ -76,6 +76,17 @@ class ResetPerfilResultado(BaseModel):
     cache_invalidado: int = 0
 
 
+class RemocaoMunicipioResultado(BaseModel):
+    """O que saiu ao remover UM município do território.
+
+    Só conta o que é do tenant: o cache global (propostas, repasses, obras) não
+    é tocado — a mesma cidade pode estar no território de outro cliente.
+    """
+
+    ibge: str
+    buscas_monitoradas: int = 0
+
+
 class QuebraDimensao(BaseModel):
     """Recorte rápido dentro de uma dimensão (ex.: propostas por natureza).
 

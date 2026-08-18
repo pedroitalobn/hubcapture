@@ -14,11 +14,13 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..connectors import planos_trabalho
 from ..connectors.pareceres import SOURCE_ID, ParecerConnector
+from ..ingestion._campos import palavras
 from ..ingestion.normalizer_parecer import normalize_parecer
 from ..models.parecer import Parecer
 from ..models.proposta import Proposta
@@ -167,6 +169,78 @@ async def por_plano(
     return await municipios_service.enriquecer(session, lidos), coleta
 
 
+async def resolver_plano_trabalho(session: AsyncSession, proposta: Proposta) -> str | None:
+    """O id do plano de trabalho desta proposta — a chave que a fonte exige.
+
+    A rota de análises filtra pelo id INTEIRO do plano (§36). A proposta que
+    chega pelo CSV do SIconv não traz esse id, e o fallback antigo mandava o
+    NÚMERO DA PROPOSTA ("30011/2026"): o connector recusava, e o painel dizia
+    "não consegui consultar os pareceres" numa proposta que tem parecer
+    publicado na fonte. A ordem aqui é a do custo:
+
+      1. o que já está na coluna, se for id;
+      2. o registro-fonte da coleta (sem rede, e corrige o que já está no cache);
+      3. a rota de planos de trabalho do módulo especiais;
+      4. o número da proposta, como último recurso — a fonte às vezes o aceita,
+         e é melhor tentar do que devolver vazio sem explicar.
+
+    Quando descobre um id novo, GRAVA na proposta: a próxima consulta (e o
+    andamento, e o espelho) já nascem com o elo.
+    """
+    guardado = str(proposta.numero_plano_trabalho or "").strip()
+    if guardado.isdigit():
+        return guardado
+
+    do_registro = planos_trabalho.id_no_registro_fonte(proposta.dados_fonte)
+    if not do_registro:
+        do_registro = await planos_trabalho.get_connector().id_por_proposta(
+            {
+                "id_proposta": _id_proposta_de(proposta),
+                "numero_proposta": proposta.numero_proposta,
+                "id_plano_acao": proposta.id_externo,
+                "numero_plano_acao": proposta.numero_proposta,
+            }
+        )
+
+    if do_registro:
+        if do_registro != guardado:
+            await session.execute(
+                update(Proposta)
+                .where(Proposta.id == proposta.id)
+                .values(numero_plano_trabalho=do_registro)
+            )
+            proposta.numero_plano_trabalho = do_registro
+        return do_registro
+
+    return guardado or (proposta.numero_proposta or None)
+
+
+def _id_proposta_de(proposta: Proposta) -> str | None:
+    """`ID_PROPOSTA` do registro-fonte (o id interno do SIconv), se houver."""
+    return por_termos_no_registro(proposta.dados_fonte, ("id", "proposta"))
+
+
+def por_termos_no_registro(dados, termos: tuple[str, ...]) -> str | None:
+    """Primeiro valor do registro-fonte cuja chave tenha todas as palavras."""
+    if isinstance(dados, dict):
+        for chave, valor in dados.items():
+            if isinstance(chave, str) and isinstance(valor, (str, int)):
+                if palavras(chave).issuperset(termos):
+                    bruto = str(valor).strip()
+                    if bruto:
+                        return bruto
+        for valor in dados.values():
+            achado = por_termos_no_registro(valor, termos)
+            if achado:
+                return achado
+    elif isinstance(dados, list):
+        for item in dados:
+            achado = por_termos_no_registro(item, termos)
+            if achado:
+                return achado
+    return None
+
+
 async def por_proposta(
     session: AsyncSession,
     proposta_id: uuid.UUID,
@@ -181,9 +255,7 @@ async def por_proposta(
     if proposta is None:
         return [], ParecerColeta(status="sem_plano_trabalho", total=0)
 
-    # sem o nº do plano na proposta, o nº da proposta costuma servir de chave na
-    # fonte — melhor tentar do que devolver vazio sem explicar
-    numero_plano = proposta.numero_plano_trabalho or proposta.numero_proposta
+    numero_plano = await resolver_plano_trabalho(session, proposta)
     if not numero_plano:
         return [], ParecerColeta(status="sem_plano_trabalho", total=0)
 
