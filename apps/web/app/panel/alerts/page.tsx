@@ -30,7 +30,9 @@ const TIPO_LABEL: Record<string, string> = {
   status: "Mudança de status",
   prazo: "Prazo alterado",
   pendencia: "Nova pendência",
-  nova_proposta: "Nova proposta",
+  // O rótulo do chip é "Novo alerta" (pedido do cliente); a CHAVE segue
+  // `nova_proposta` — é contrato com o backend (dedupe e despacho).
+  nova_proposta: "Novo alerta",
   oportunidade: "Oportunidade",
 };
 
@@ -58,7 +60,7 @@ function descricao(a: Alerta): string {
   if (a.tipo === "nova_proposta")
     // mesmo teto de 80 do feed: o título do alerta é o `objeto` da fonte e,
     // inteiro, empurrava a fonte e o município para o fim de um parágrafo
-    return `${recortarTexto(p.titulo, 80).trecho || "Nova proposta"} (${p.fonte ?? ""}) em ${municipio}`;
+    return `${recortarTexto(p.titulo, 80).trecho || "Nova proposta na fonte"} (${p.fonte ?? ""}) em ${municipio}`;
   if (a.tipo === "oportunidade")
     return `Recursos da fonte ${p.fonte ?? "?"} recebidos em ${municipio} sem proposta de captação cadastrada`;
   return `Proposta atualizada${municipio ? ` em ${municipio}` : ""}`;
@@ -152,6 +154,21 @@ function AlertasConteudo() {
       await carregar();
     }
   }
+
+  /** Volta o formulário e o filtro da lista ao estado inicial. */
+  function limparPesquisa() {
+    setNovoIbge("");
+    setNovaArea("");
+    setNovosCanais(["painel"]);
+    setSoNaoLidos(false);
+    setMsg(null);
+  }
+
+  const pesquisaSuja =
+    Boolean(novoIbge) ||
+    Boolean(novaArea) ||
+    novosCanais.length > 1 ||
+    soNaoLidos;
 
   async function removerBusca(id: string) {
     await api.DELETE("/api/v1/monitors/searches/{busca_id}", {
@@ -248,6 +265,15 @@ function AlertasConteudo() {
           </div>
           <button type="submit" className="btn btn-primary">
             Monitorar
+          </button>
+          <button
+            type="button"
+            onClick={limparPesquisa}
+            disabled={!pesquisaSuja}
+            className="btn btn-ghost disabled:opacity-40"
+            title="Volta os campos e o filtro da lista ao padrão"
+          >
+            Limpar pesquisa
           </button>
         </form>
 

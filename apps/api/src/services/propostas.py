@@ -770,6 +770,9 @@ async def resumo(session: AsyncSession, **filtros) -> dict:
             "valor_conveniado": conveniado,
             "valor_desembolsado": desembolsado,
             "valor_empenhado": empenhado,
+            # Pago sai do somatório que já existia para o "a utilizar" — o
+            # Panorama financeiro do painel mostra o par empenhado × pago.
+            "valor_pago": pago,
             "valor_a_utilizar": max(Decimal(0), empenhado - pago),
             "transferencias": len(rows),
             "convenios_iniciados": iniciados,

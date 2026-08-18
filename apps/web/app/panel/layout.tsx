@@ -17,10 +17,16 @@ import { TerritorioProvider, useTerritorio } from "@/lib/territorio";
 // Itens com `modulo` só aparecem se o módulo estiver ativo (painel admin).
 const NAV = [
   { href: "/panel", label: "Meu painel", exact: true },
-  { href: "/panel/funding", label: "Captação", modulo: "captacao" },
+  { href: "/panel/funding", label: "Propostas", modulo: "captacao" },
   // Minhas Propostas é ACOMPANHAMENTO (favoritas do cache) — panel-core, não
   // exploração: fica no menu mesmo com o módulo captação desligado (§40).
   { href: "/panel/my-proposals", label: "Minhas Propostas" },
+  {
+    href: "/panel/opportunities",
+    label: "Oportunidades",
+    modulo: "oportunidades",
+  },
+  { href: "/panel/regularity", label: "Regularidade", modulo: "regularidade" },
   { href: "/panel/transfers", label: "Recursos recebidos", modulo: "recebidos" },
   {
     href: "/panel/compliance",

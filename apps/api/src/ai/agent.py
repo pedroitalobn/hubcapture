@@ -760,7 +760,7 @@ def _formatar_fallback(nome: str, dado: dict[str, Any]) -> str:
             return (
                 f"Você acompanha {dado.get('total', 0)} proposta(s):\n" + "\n".join(linhas)
                 if linhas
-                else "Você ainda não favoritou nenhuma proposta — use a ★ na Captação."
+                else "Você ainda não favoritou nenhuma proposta — use a ★ em Propostas."
             )
         return (
             f"{dado.get('total', 0)} proposta(s) no seu território:\n" + "\n".join(linhas)
@@ -783,7 +783,7 @@ def _formatar_fallback(nome: str, dado: dict[str, Any]) -> str:
     if nome == "captacao_resumo":
         c = dado.get("cards", {})
         return (
-            f"Captação: {c.get('transferencias', 0)} transferências — conveniado "
+            f"Propostas: {c.get('transferencias', 0)} transferências — conveniado "
             f"{_brl(c.get('valor_conveniado'))}, empenhado {_brl(c.get('valor_empenhado'))}, "
             f"a utilizar {_brl(c.get('valor_a_utilizar'))}; "
             f"{c.get('oportunidades_abertas', 0)} oportunidade(s) aberta(s)."

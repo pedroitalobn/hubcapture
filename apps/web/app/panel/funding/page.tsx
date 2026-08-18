@@ -279,7 +279,7 @@ function SelectFaceta({
 // território continua no Meu painel e em Minhas Propostas).
 export default function CaptacaoPage() {
   return (
-    <ModuloGate modulo="captacao" titulo="Captação">
+    <ModuloGate modulo="captacao" titulo="Propostas">
       {/* useSearchParams (lente vinda do Meu painel) exige boundary de Suspense */}
       <Suspense fallback={null}>
         <CaptacaoExploracao />
@@ -854,7 +854,7 @@ function CaptacaoExploracao() {
     <>
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="page-title">Captação</h1>
+          <h1 className="page-title">Propostas</h1>
           <p className="mt-1 text-sm text-ink-2">
             Propostas e oportunidades de{" "}
             {/* condiciona ao que JÁ carregou (não ao recorte salvo no

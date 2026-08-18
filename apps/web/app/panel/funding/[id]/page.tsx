@@ -22,7 +22,6 @@ import {
   formatDateTime,
   humanizarCaixa,
   municipioPrincipal,
-  municipioSecundario,
   prazoLabel,
   tomPrazo,
 } from "@/lib/format";
@@ -82,8 +81,6 @@ type Proposta = {
     data_fim_vigencia?: string | null;
     tipo_transferencia?: string | null;
   } | null;
-  // registro-fonte COMPLETO (todos os campos do site de origem)
-  dados_fonte?: Record<string, unknown> | null;
 };
 
 function num(v?: string | number | null): number {
@@ -98,112 +95,6 @@ function tomSituacao(situacao?: string | null): BadgeTone {
   if (/pendenc|análise|analise|aguardand|diligenc/.test(s)) return "warning";
   if (/rejeitad|cancelad|impedid|arquivad/.test(s)) return "danger";
   return "neutral";
-}
-
-// rótulo legível a partir da chave crua da fonte (ex.: valor_total_repasse_plano_acao
-// → "Valor total repasse"). Remove os sufixos de tabela e capitaliza.
-function humanizar(chave: string): string {
-  const limpa = chave
-    .replace(/_(plano_acao|programa|especial|convenio|beneficiario|proposta)$/g, "")
-    .replace(/_/g, " ")
-    .trim();
-  return limpa.charAt(0).toUpperCase() + limpa.slice(1);
-}
-
-function valorLegivel(v: unknown): string {
-  if (v === null || v === undefined || v === "") return "—";
-  if (Array.isArray(v)) {
-    // lista de escalares vira "a · b · c"; de objetos, JSON indentado legível
-    return v.every((x) => x === null || typeof x !== "object")
-      ? v.map((x) => humanizarCaixa(String(x))).join(" · ")
-      : JSON.stringify(v, null, 2);
-  }
-  if (typeof v === "object") return JSON.stringify(v, null, 2);
-  return humanizarCaixa(String(v));
-}
-
-// A partir daqui o valor deixa de caber numa célula da grade e passa a ocupar a
-// linha inteira, recortado e com botão de ampliar. O limiar é de caracteres
-// (grosseiro de propósito): quem decide se HÁ corte é a medição no DOM, dentro
-// do TextoExpansivel — isto aqui só escolhe o layout.
-const LIMIAR_CAMPO_LONGO = 160;
-
-function ehLongo(valor: string): boolean {
-  return valor.length > LIMIAR_CAMPO_LONGO || valor.includes("\n");
-}
-
-/** Um campo do registro-fonte: curto vira par rótulo/valor; longo, bloco amplo. */
-function CampoFonte({
-  rotulo,
-  valor,
-  abrirTudo,
-}: {
-  rotulo: string;
-  valor: string;
-  abrirTudo: boolean;
-}) {
-  if (!ehLongo(valor)) return <Dado rotulo={rotulo} valor={valor} />;
-  return (
-    <div className="field col-span-full">
-      <span className="field-label">{rotulo}</span>
-      <TextoExpansivel
-        // remonta ao alternar "ampliar tudo" — o botão da seção manda no campo
-        key={abrirTudo ? "aberto" : "fechado"}
-        texto={valor}
-        abertoInicial={abrirTudo}
-        linhas={3}
-      />
-    </div>
-  );
-}
-
-// Renderiza TODOS os campos do registro-fonte. `dados_fonte` costuma vir agrupado
-// ({plano_acao:{...}, programa:{...}}); se um valor for objeto, vira subgrupo.
-function DadosCompletos({
-  dados,
-  abrirTudo,
-}: {
-  dados: Record<string, unknown>;
-  abrirTudo: boolean;
-}) {
-  const grupos = Object.entries(dados).filter(
-    ([, v]) => v && typeof v === "object" && !Array.isArray(v),
-  );
-  const soltos = Object.entries(dados).filter(
-    ([, v]) => !(v && typeof v === "object" && !Array.isArray(v)),
-  );
-  const bloco = (titulo: string | null, obj: Record<string, unknown>) => {
-    const entradas = Object.entries(obj)
-      .filter(([, v]) => v !== null && v !== "")
-      .map(([k, v]) => [k, valorLegivel(v)] as const);
-    if (entradas.length === 0) return null;
-    // curtos primeiro: assim a grade fecha suas colunas antes de o campo de
-    // extensão tomar a linha inteira (senão sobram buracos no meio da grade)
-    const ordenadas = [
-      ...entradas.filter(([, v]) => !ehLongo(v)),
-      ...entradas.filter(([, v]) => ehLongo(v)),
-    ];
-    return (
-      <div key={titulo ?? "raiz"} className="mb-5 last:mb-0">
-        {titulo && (
-          <p className="field-label mb-2.5 border-b border-hairline pb-1.5">
-            {humanizar(titulo)}
-          </p>
-        )}
-        <div className="data-grid">
-          {ordenadas.map(([k, v]) => (
-            <CampoFonte key={k} rotulo={humanizar(k)} valor={v} abrirTudo={abrirTudo} />
-          ))}
-        </div>
-      </div>
-    );
-  };
-  return (
-    <>
-      {soltos.length > 0 && bloco(null, Object.fromEntries(soltos))}
-      {grupos.map(([g, obj]) => bloco(g, obj as Record<string, unknown>))}
-    </>
-  );
 }
 
 function Secao({
@@ -229,12 +120,6 @@ function Secao({
   );
 }
 
-const CANAIS = [
-  ["painel", "Painel"],
-  ["email", "E-mail"],
-  ["wpp", "WhatsApp"],
-] as const;
-
 function Carregando() {
   return (
     <div className="flex flex-col gap-5">
@@ -258,14 +143,11 @@ export default function PropostaDetalhePage() {
   const [erro, setErro] = useState<string | null>(null);
   const [favorita, setFavorita] = useState(false);
   const [monitorando, setMonitorando] = useState(false);
-  const [canais, setCanais] = useState<string[]>(["painel"]);
   // Aviso da tela com TOM: os erros (favorita que não salvou, PDF que falhou)
   // não podem sair pintados de verde como se fossem sucesso.
   const [msg, setMsg] = useState<{ tom: "ok" | "erro"; texto: string } | null>(
     null,
   );
-  // "Ampliar tudo" da seção de dados da fonte (campos de extensão longa)
-  const [abrirTudo, setAbrirTudo] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -318,7 +200,9 @@ export default function PropostaDetalhePage() {
 
   async function monitorar() {
     const { error } = await api.POST("/api/v1/monitors", {
-      body: { proposta_id: params.id, canais },
+      // canal painel: os demais (e-mail/WhatsApp) são escolhidos na central
+      // de Alertas, onde o usuário configura o monitoramento por município
+      body: { proposta_id: params.id, canais: ["painel"] },
     });
     if (!error) {
       setMonitorando(true);
@@ -367,14 +251,11 @@ export default function PropostaDetalhePage() {
             href="/panel/funding"
             className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 transition-colors hover:text-ink"
           >
-            ← Captação
+            ← Propostas
           </Link>
+          {/* Ponto 14: o código IBGE saiu daqui — é desambiguador, não
+              identidade, e segue rotulado em "Dados gerais". */}
           <h1 className="page-title mt-1.5">{municipioPrincipal(p)}</h1>
-          {municipioSecundario(p) && (
-            <p className="mt-0.5 font-mono text-[11px] tracking-[0.04em] text-ink-3">
-              {municipioSecundario(p)}
-            </p>
-          )}
           {/* O objeto da proposta vem logo abaixo — nunca um identificador:
               antes o h1 caía para `id_externo` quando faltava título.
               Com TETO de caracteres: a fonte não separa título de descrição, e
@@ -422,10 +303,10 @@ export default function PropostaDetalhePage() {
               {humanizarCaixa(p.orgao_superior)}
             </p>
           )}
+          {/* Ponto 14: a FONTE saiu do cabeçalho — é detalhe de ingestão,
+              não identidade do registro (§19). Continua no link "Fonte
+              oficial ↗" e na seção de proveniência. */}
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink-2">
-            <span className="font-mono text-xs uppercase tracking-[0.04em]">
-              {p.fonte}
-            </span>
             <StatusBadge tone={disponivel ? "success" : "neutral"}>
               {disponivel ? "oportunidade disponível" : "cadastrada"}
             </StatusBadge>
@@ -453,6 +334,25 @@ export default function PropostaDetalhePage() {
             className={cx("btn btn-sm", favorita ? "btn-accent" : "btn-ghost")}
           >
             {favorita ? "★ Favorita" : "☆ Favoritar"}
+          </button>
+          {/* O quadro "Acompanhar e ser avisado" saiu (ponto 17), mas monitorar
+              não podia sair com ele: vira ação do cabeçalho, no canal painel.
+              Os demais canais seguem na central de Alertas. */}
+          <button
+            onClick={monitorar}
+            disabled={monitorando}
+            aria-pressed={monitorando}
+            title={
+              monitorando
+                ? "Você recebe aviso quando a situação ou o prazo mudar"
+                : "Avisar quando a situação ou o prazo mudar"
+            }
+            className={cx(
+              "btn btn-sm",
+              monitorando ? "btn-accent" : "btn-ghost",
+            )}
+          >
+            {monitorando ? "🔔 Monitorando" : "🔔 Monitorar"}
           </button>
           {/* atalho "P": o gestor exporta sem tirar a mão do teclado */}
           <BotaoEspelho
@@ -482,7 +382,7 @@ export default function PropostaDetalhePage() {
           cima inteira; o resto desce um nível. Quatro colunas de peso igual
           não cabiam — os números colidiam. */}
       <section className="hero-band anim-page-delayed">
-        <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
           <div className="field">
             <span className="field-label">
               Valor total <Hint chave="proposta.valor_total" />
@@ -517,6 +417,30 @@ export default function PropostaDetalhePage() {
                 <span className="value-hero text-ink-3">—</span>
                 <span className="num mt-1 text-xs text-ink-3">
                   sem valor global informado na fonte
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* PAGO subiu da seção de execução financeira (ponto 13): é o que
+              responde "o recurso chegou?", e o gestor lia isso só depois de
+              rolar a página inteira. */}
+          <div className="field">
+            <span className="field-label">Pago</span>
+            {num(p.execucao?.valor_pago) > 0 ? (
+              <>
+                <span className="value-hero">
+                  {formatBRL(p.execucao!.valor_pago)}
+                </span>
+                <span className="num mt-1 text-xs text-ink-3">
+                  efetivamente pago ao ente
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="value-hero text-ink-3">—</span>
+                <span className="num mt-1 text-xs text-ink-3">
+                  nada pago até agora
                 </span>
               </>
             )}
@@ -654,94 +578,6 @@ export default function PropostaDetalhePage() {
         </Secao>
       </div>
 
-      {/* ── Execução financeira: largura inteira, a barra precisa dela ─ */}
-      {p.execucao && (
-        <Secao
-          titulo={`Execução financeira — TransfereGov${
-            p.execucao.ano ? ` (${p.execucao.ano})` : ""
-          }`}
-          acao={<Hint chave="proposta.execucao" />}
-        >
-          {(() => {
-            const global = num(p.execucao!.valor_global ?? p.valor_total);
-            const empenhado = num(p.execucao!.valor_empenhado);
-            const liberado = num(p.execucao!.valor_liberado);
-            const pago = num(p.execucao!.valor_pago);
-            const pct = (v: number) =>
-              global > 0 ? `${Math.min(100, (v / global) * 100)}%` : "0%";
-            return (
-              <div className="flex flex-col gap-4">
-                <div
-                  className="relative h-3 overflow-hidden rounded-full bg-surface-2"
-                  title="Barra sobre o valor global: empenhado, liberado e pago"
-                >
-                  <div
-                    className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out"
-                    style={{ width: pct(empenhado), background: "var(--bar-1)" }}
-                  />
-                  <div
-                    className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out"
-                    style={{ width: pct(liberado), background: "var(--bar-2)" }}
-                  />
-                  <div
-                    className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out"
-                    style={{ width: pct(pago), background: "var(--bar-3)" }}
-                  />
-                </div>
-                <div className="data-grid">
-                  <Dado
-                    rotulo="Valor global"
-                    valor={formatBRL(p.execucao!.valor_global)}
-                    destaque
-                  />
-                  <Dado
-                    rotulo="Empenhado"
-                    valor={formatBRL(p.execucao!.valor_empenhado)}
-                    destaque
-                  />
-                  <Dado rotulo="Liberado" valor={formatBRL(p.execucao!.valor_liberado)} />
-                  <Dado rotulo="Pago" valor={formatBRL(p.execucao!.valor_pago)} />
-                  <Dado
-                    rotulo="Saldo em conta"
-                    valor={formatBRL(p.execucao!.saldo_conta)}
-                  />
-                </div>
-                <hr className="hairline-rule" />
-                <div className="data-grid">
-                  <Dado
-                    rotulo="Tipo"
-                    valor={humanizarCaixa(p.execucao!.tipo_transferencia)}
-                  />
-                  <Dado
-                    rotulo="Ente recebedor"
-                    valor={humanizarCaixa(p.execucao!.ente_recebedor)}
-                  />
-                  <Dado
-                    rotulo="Natureza jurídica"
-                    valor={humanizarCaixa(
-                      p.natureza_juridica ?? p.execucao!.natureza_juridica,
-                    )}
-                  />
-                  <Dado
-                    rotulo="Assinatura"
-                    valor={formatDate(p.execucao!.data_assinatura)}
-                  />
-                  <Dado
-                    rotulo="Início da vigência"
-                    valor={formatDate(p.execucao!.data_inicio_vigencia)}
-                  />
-                  <Dado
-                    rotulo="Fim da vigência"
-                    valor={formatDate(p.execucao!.data_fim_vigencia)}
-                    tom={tomPrazo(diasAte(p.execucao!.data_fim_vigencia))}
-                  />
-                </div>
-              </div>
-            );
-          })()}
-        </Secao>
-      )}
-
       <div className="stagger grid gap-5 md:grid-cols-2">
         <Secao titulo="Dados gerais">
           <div className="data-grid">
@@ -773,6 +609,45 @@ export default function PropostaDetalhePage() {
               valor={formatDateTime(p.cache_atualizado_em)}
             />
           </div>
+          {/* Vindos da antiga seção "Execução financeira" (ponto 13): o quadro
+              saiu da tela, mas liberado, saldo, vigências e ente recebedor
+              seguem sendo dado da proposta — só mudaram de lugar. */}
+          {p.execucao && (
+            <>
+              <hr className="hairline-rule my-4" />
+              <div className="data-grid">
+                <Dado
+                  rotulo="Liberado"
+                  valor={formatBRL(p.execucao.valor_liberado)}
+                />
+                <Dado
+                  rotulo="Saldo em conta"
+                  valor={formatBRL(p.execucao.saldo_conta)}
+                />
+                <Dado
+                  rotulo="Ente recebedor"
+                  valor={humanizarCaixa(p.execucao.ente_recebedor)}
+                />
+                <Dado
+                  rotulo="Tipo de transferência"
+                  valor={humanizarCaixa(p.execucao.tipo_transferencia)}
+                />
+                <Dado
+                  rotulo="Assinatura"
+                  valor={formatDate(p.execucao.data_assinatura)}
+                />
+                <Dado
+                  rotulo="Início da vigência"
+                  valor={formatDate(p.execucao.data_inicio_vigencia)}
+                />
+                <Dado
+                  rotulo="Fim da vigência"
+                  valor={formatDate(p.execucao.data_fim_vigencia)}
+                  tom={tomPrazo(diasAte(p.execucao.data_fim_vigencia))}
+                />
+              </div>
+            </>
+          )}
           {p.objeto && (
             <>
               <hr className="hairline-rule my-4" />
@@ -813,71 +688,6 @@ export default function PropostaDetalhePage() {
       <EmpenhosProposta proposta={p} podeConsultarFonte={podeExplorar} />
 
       <EmendasProposta proposta={p} podeConsultarFonte={podeExplorar} />
-
-      <Secao titulo="Acompanhar e ser avisado">
-        {monitorando ? (
-          <p className="tone-ok text-sm">
-            ✓ Você monitora esta proposta — aviso quando mudar status ou prazo.
-          </p>
-        ) : (
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="flex flex-wrap gap-2">
-              {CANAIS.map(([valor, rotulo]) => {
-                const ativo = canais.includes(valor);
-                const fixo = valor === "painel";
-                return (
-                  <button
-                    key={valor}
-                    type="button"
-                    disabled={fixo}
-                    aria-pressed={ativo}
-                    onClick={() =>
-                      setCanais((prev) =>
-                        prev.includes(valor)
-                          ? prev.filter((c) => c !== valor)
-                          : [...prev, valor],
-                      )
-                    }
-                    className={cx(
-                      "chip",
-                      ativo && "chip-active",
-                      fixo && "cursor-default opacity-70",
-                    )}
-                  >
-                    {rotulo}
-                  </button>
-                );
-              })}
-            </div>
-            <button onClick={monitorar} className="btn btn-primary btn-sm">
-              Monitorar proposta-chave
-            </button>
-          </div>
-        )}
-      </Secao>
-
-      {p.dados_fonte && Object.keys(p.dados_fonte).length > 0 && (
-        <Secao
-          titulo="Dados completos da fonte"
-          acao={
-            <button
-              type="button"
-              onClick={() => setAbrirTudo((v) => !v)}
-              aria-expanded={abrirTudo}
-              className="btn btn-ghost btn-sm"
-            >
-              {abrirTudo ? "Recolher tudo ↑" : "Ampliar tudo ↓"}
-            </button>
-          }
-        >
-          <p className="mb-4 text-xs text-ink-3">
-            Todos os campos como vêm da origem — a mesma informação que você veria
-            direto no site oficial. Campos longos entram recortados; use{" "}
-            <span className="font-mono">Ampliar</span> para ler por inteiro.
-          </p>
-          <DadosCompletos dados={p.dados_fonte} abrirTudo={abrirTudo} />
-        </Secao>
-      )}
 
       {p.proveniencia && Object.keys(p.proveniencia).length > 0 && (
         <Secao titulo="Proveniência dos dados (API × painel)">

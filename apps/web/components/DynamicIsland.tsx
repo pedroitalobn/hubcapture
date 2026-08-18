@@ -83,7 +83,7 @@ const TIPO_ALERTA: Record<string, string> = {
   status: "situação mudou",
   prazo: "prazo alterado",
   pendencia: "nova pendência",
-  nova_proposta: "nova proposta",
+  nova_proposta: "novo alerta",
   oportunidade: "oportunidade",
 };
 

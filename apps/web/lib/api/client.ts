@@ -198,6 +198,8 @@ export type ResultadoEspelho = "compartilhado" | "baixado";
  */
 export async function exportarEspelhoProposta(
   id: string,
+  /** `false` força o download mesmo no celular (usado pelo "Baixar"). */
+  compartilhar?: boolean,
 ): Promise<ResultadoEspelho> {
   const resp = await fetch(`${API_ORIGIN}/api/v1/proposals/${id}/pdf`, {
     headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
@@ -207,9 +209,17 @@ export async function exportarEspelhoProposta(
   const nome = nomeDoArquivo(resp, `espelho-proposta-${id}.pdf`);
 
   const arquivo = new File([blob], nome, { type: "application/pdf" });
+  // Compartilhar é o gesto do CELULAR. No desktop o Chrome com telefone
+  // vinculado também aceita `canShare`, e aí um clique em "Espelho PDF" abria
+  // a folha do Android em vez de baixar o arquivo — o usuário ficava sem o
+  // documento na máquina onde está trabalhando. Ponteiro grosso (toque) é o
+  // sinal de que a folha nativa é o caminho certo; no resto, download.
+  const toque =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(pointer: coarse)").matches;
   // `canShare` com o arquivo é a checagem que importa: há navegador com
   // navigator.share que recusa anexos, e aí a folha abriria sem o PDF.
-  if (navigator.canShare?.({ files: [arquivo] })) {
+  if (compartilhar !== false && toque && navigator.canShare?.({ files: [arquivo] })) {
     try {
       await navigator.share({ files: [arquivo], title: nome });
       return "compartilhado";

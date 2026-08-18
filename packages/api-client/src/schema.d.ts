@@ -1981,6 +1981,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ui": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Ui */
+        get: operations["get_ui_api_v1_ui_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/me": {
         parameters: {
             query?: never;
@@ -4883,6 +4900,8 @@ export interface components {
             valor_desembolsado: string;
             /** Valor Empenhado */
             valor_empenhado: string;
+            /** Valor Pago */
+            valor_pago: string;
         };
         /**
          * ResumoEmendas
@@ -5041,6 +5060,11 @@ export interface components {
              * @default bearer
              */
             token_type: string;
+        };
+        /** UiRead */
+        UiRead: {
+            /** Versao */
+            versao: string;
         };
         /** UltimaColeta */
         UltimaColeta: {
@@ -9284,6 +9308,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_ui_api_v1_ui_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UiRead"];
                 };
             };
         };

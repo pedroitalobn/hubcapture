@@ -206,6 +206,7 @@ class ResumoCards(BaseModel):
     valor_conveniado: Decimal
     valor_desembolsado: Decimal
     valor_empenhado: Decimal
+    valor_pago: Decimal
     valor_a_utilizar: Decimal
     transferencias: int
     convenios_iniciados: int

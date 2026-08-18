@@ -351,9 +351,12 @@ async def visao_geral(
 
     _dimensao(
         "captacao",
-        "Captação",
+        "Propostas",
         int(prop_n),
-        f"{_brl(prop_valor)} em propostas" if prop_n else "sem propostas ainda",
+        # O card mostra só a CONTAGEM: o valor somado no destaque dizia pouco
+        # (soma de propostas em estágios diferentes) e competia com o Panorama
+        # financeiro logo abaixo, que é onde o dinheiro é lido.
+        "" if prop_n else "sem propostas ainda",
         "/panel/funding" + (f"?ano={ano}" if ano else ""),
         quebras_captacao,
     )

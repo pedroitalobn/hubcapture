@@ -7709,12 +7709,18 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Valor Empenhado",
             "type": "string"
+          },
+          "valor_pago": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Valor Pago",
+            "type": "string"
           }
         },
         "required": [
           "valor_conveniado",
           "valor_desembolsado",
           "valor_empenhado",
+          "valor_pago",
           "valor_a_utilizar",
           "transferencias",
           "convenios_iniciados",
@@ -8104,6 +8110,19 @@
           "refresh_token"
         ],
         "title": "TokenPair",
+        "type": "object"
+      },
+      "UiRead": {
+        "properties": {
+          "versao": {
+            "title": "Versao",
+            "type": "string"
+          }
+        },
+        "required": [
+          "versao"
+        ],
+        "title": "UiRead",
         "type": "object"
       },
       "UltimaColeta": {
@@ -16454,6 +16473,27 @@
         "summary": "Sync Repasses",
         "tags": [
           "repasses"
+        ]
+      }
+    },
+    "/api/v1/ui": {
+      "get": {
+        "operationId": "get_ui_api_v1_ui_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UiRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Ui",
+        "tags": [
+          "ui"
         ]
       }
     },
