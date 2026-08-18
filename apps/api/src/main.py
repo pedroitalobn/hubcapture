@@ -93,6 +93,7 @@ def register_routers() -> None:
         consulta_avulsa,
         conta,
         contatos,
+        contatos_institucionais,
         copiloto,
         favoritos,
         helpdesk,
@@ -127,6 +128,9 @@ def register_routers() -> None:
         favoritos,
         pastas,
         conta,
+        # ANTES de `contatos`: /contacts/institutional precisa casar antes
+        # de /contacts/{contato_id}, senão "institutional" viraria um UUID
+        contatos_institucionais,
         contatos,
         integracoes,
         monitoramentos,

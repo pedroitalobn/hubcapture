@@ -675,6 +675,25 @@
         "title": "CallbackOAuth",
         "type": "object"
       },
+      "CategoriaInstitucional": {
+        "description": "Opção de filtro da tela (o eixo pelo qual o gestor procura).",
+        "properties": {
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "rotulo": {
+            "title": "Rotulo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chave",
+          "rotulo"
+        ],
+        "title": "CategoriaInstitucional",
+        "type": "object"
+      },
       "CategoriaTag": {
         "description": "Pílula de categoria: o slug (filtrável) e o rótulo (exibível).",
         "properties": {
@@ -1548,6 +1567,211 @@
         "title": "ContatoEndereco",
         "type": "object"
       },
+      "ContatoInstitucional": {
+        "description": "Uma entrada do diretório. `nome` OU `orgao` basta — parte das linhas é\no próprio gabinete (\"Gabinete do Ministro da Saúde\"), sem pessoa nomeada.",
+        "properties": {
+          "cargo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cargo"
+          },
+          "categoria": {
+            "default": "outros",
+            "title": "Categoria",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "nome": {
+            "default": "",
+            "title": "Nome",
+            "type": "string"
+          },
+          "observacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observacao"
+          },
+          "orgao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgao"
+          },
+          "sei": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sei"
+          },
+          "sei_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sei Url"
+          },
+          "telefone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefone"
+          }
+        },
+        "title": "ContatoInstitucional",
+        "type": "object"
+      },
+      "ContatoInstitucionalRead": {
+        "properties": {
+          "cargo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cargo"
+          },
+          "categoria": {
+            "default": "outros",
+            "title": "Categoria",
+            "type": "string"
+          },
+          "categoria_rotulo": {
+            "title": "Categoria Rotulo",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "nome": {
+            "default": "",
+            "title": "Nome",
+            "type": "string"
+          },
+          "observacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observacao"
+          },
+          "orgao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgao"
+          },
+          "sei": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sei"
+          },
+          "sei_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sei Url"
+          },
+          "telefone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefone"
+          },
+          "whatsapp_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Whatsapp Url"
+          }
+        },
+        "required": [
+          "categoria_rotulo"
+        ],
+        "title": "ContatoInstitucionalRead",
+        "type": "object"
+      },
       "ContatoRead": {
         "properties": {
           "arquivado": {
@@ -2062,6 +2286,313 @@
         "title": "ConviteRead",
         "type": "object"
       },
+      "DemandaComentario": {
+        "description": "Mensagem nova na demanda; `situacao` só quando ela muda de estado.",
+        "properties": {
+          "situacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Situacao"
+          },
+          "texto": {
+            "default": "",
+            "title": "Texto",
+            "type": "string"
+          }
+        },
+        "title": "DemandaComentario",
+        "type": "object"
+      },
+      "DemandaCreate": {
+        "properties": {
+          "assunto": {
+            "title": "Assunto",
+            "type": "string"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Ibge"
+          },
+          "proposta_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposta Id"
+          }
+        },
+        "required": [
+          "assunto"
+        ],
+        "title": "DemandaCreate",
+        "type": "object"
+      },
+      "DemandaFilaRead": {
+        "description": "A mesma demanda, na fila do admin — com quem pediu.",
+        "properties": {
+          "assunto": {
+            "title": "Assunto",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "historico": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/EventoDemanda"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Historico"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Ibge"
+          },
+          "origem": {
+            "title": "Origem",
+            "type": "string"
+          },
+          "proposta_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposta Id"
+          },
+          "resolvida_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolvida Em"
+          },
+          "situacao": {
+            "title": "Situacao",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "usuario_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usuario Email"
+          },
+          "usuario_nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usuario Nome"
+          }
+        },
+        "required": [
+          "id",
+          "assunto",
+          "situacao",
+          "origem",
+          "created_at"
+        ],
+        "title": "DemandaFilaRead",
+        "type": "object"
+      },
+      "DemandaRead": {
+        "properties": {
+          "assunto": {
+            "title": "Assunto",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "historico": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/EventoDemanda"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Historico"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Ibge"
+          },
+          "origem": {
+            "title": "Origem",
+            "type": "string"
+          },
+          "proposta_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposta Id"
+          },
+          "resolvida_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolvida Em"
+          },
+          "situacao": {
+            "title": "Situacao",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "id",
+          "assunto",
+          "situacao",
+          "origem",
+          "created_at"
+        ],
+        "title": "DemandaRead",
+        "type": "object"
+      },
       "DiagnosticoFontes": {
         "description": "Estado real da ingestão: fontes ao vivo + providers de scraping/IA.",
         "properties": {
@@ -2154,6 +2685,22 @@
           "titulo"
         ],
         "title": "DimensaoResumo",
+        "type": "object"
+      },
+      "DiretorioInstitucionalSet": {
+        "properties": {
+          "contatos": {
+            "items": {
+              "$ref": "#/components/schemas/ContatoInstitucional"
+            },
+            "title": "Contatos",
+            "type": "array"
+          }
+        },
+        "required": [
+          "contatos"
+        ],
+        "title": "DiretorioInstitucionalSet",
         "type": "object"
       },
       "DistribuicaoItem": {
@@ -3201,6 +3748,57 @@
           "titulo"
         ],
         "title": "EventoAndamento",
+        "type": "object"
+      },
+      "EventoDemanda": {
+        "description": "Uma linha do histórico — quem falou, quando e o que mudou.",
+        "properties": {
+          "autor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Autor"
+          },
+          "em": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Em"
+          },
+          "situacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Situacao"
+          },
+          "texto": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Texto"
+          }
+        },
+        "title": "EventoDemanda",
         "type": "object"
       },
       "FacetaOpcao": {
@@ -8908,6 +9506,125 @@
         ]
       }
     },
+    "/api/v1/admin/advisory/requests": {
+      "get": {
+        "operationId": "listar_fila_api_v1_admin_advisory_requests_get",
+        "parameters": [
+          {
+            "description": "aberta|em_andamento|resolvida|cancelada",
+            "in": "query",
+            "name": "situacao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "aberta|em_andamento|resolvida|cancelada",
+              "title": "Situacao"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DemandaFilaRead"
+                  },
+                  "title": "Response Listar Fila Api V1 Admin Advisory Requests Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Fila",
+        "tags": [
+          "admin-assessoria"
+        ]
+      }
+    },
+    "/api/v1/admin/advisory/requests/{demanda_id}/reply": {
+      "post": {
+        "description": "Resposta da assessoria — entra no histórico e pode mudar a situação.",
+        "operationId": "responder_demanda_api_v1_admin_advisory_requests__demanda_id__reply_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "demanda_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Demanda Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemandaComentario"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemandaFilaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Responder Demanda",
+        "tags": [
+          "admin-assessoria"
+        ]
+      }
+    },
     "/api/v1/admin/class/articles": {
       "get": {
         "description": "Todos os artigos, inclusive rascunhos (a visão pública filtra publicado).",
@@ -10096,6 +10813,85 @@
         ]
       }
     },
+    "/api/v1/admin/contacts/institutional": {
+      "get": {
+        "operationId": "admin_listar_api_v1_admin_contacts_institutional_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ContatoInstitucionalRead"
+                  },
+                  "title": "Response Admin Listar Api V1 Admin Contacts Institutional Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Admin Listar",
+        "tags": [
+          "contatos-institucionais"
+        ]
+      },
+      "put": {
+        "description": "Substitui o diretório inteiro — a tela do admin manda a lista completa.",
+        "operationId": "admin_definir_api_v1_admin_contacts_institutional_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiretorioInstitucionalSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ContatoInstitucionalRead"
+                  },
+                  "title": "Response Admin Definir Api V1 Admin Contacts Institutional Put",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Admin Definir",
+        "tags": [
+          "contatos-institucionais"
+        ]
+      }
+    },
     "/api/v1/admin/email/test": {
       "post": {
         "description": "Envia um e-mail de teste (Maileroo/SMTP) p/ validar a configuração.\n\nSem `destinatario`, manda para o próprio admin. Se o provedor recusar\n(chave/domínio inválido), devolve o motivo — pra depurar sem adivinhar.",
@@ -10714,6 +11510,181 @@
           }
         ],
         "summary": "Listar Contatos",
+        "tags": [
+          "assessoria"
+        ]
+      }
+    },
+    "/api/v1/advisory/requests": {
+      "get": {
+        "operationId": "listar_demandas_api_v1_advisory_requests_get",
+        "parameters": [
+          {
+            "description": "aberta|em_andamento|resolvida|cancelada",
+            "in": "query",
+            "name": "situacao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "aberta|em_andamento|resolvida|cancelada",
+              "title": "Situacao"
+            }
+          },
+          {
+            "description": "só o que ainda está em aberto",
+            "in": "query",
+            "name": "abertas",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "só o que ainda está em aberto",
+              "title": "Abertas",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DemandaRead"
+                  },
+                  "title": "Response Listar Demandas Api V1 Advisory Requests Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Demandas",
+        "tags": [
+          "assessoria"
+        ]
+      },
+      "post": {
+        "operationId": "criar_demanda_api_v1_advisory_requests_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemandaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemandaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Criar Demanda",
+        "tags": [
+          "assessoria"
+        ]
+      }
+    },
+    "/api/v1/advisory/requests/{demanda_id}/messages": {
+      "post": {
+        "description": "Mensagem do gestor na própria demanda (e, se ele quiser, encerramento).",
+        "operationId": "comentar_demanda_api_v1_advisory_requests__demanda_id__messages_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "demanda_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Demanda Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemandaComentario"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemandaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Comentar Demanda",
         "tags": [
           "assessoria"
         ]
@@ -11915,6 +12886,114 @@
         "summary": "Importar Contatos",
         "tags": [
           "contatos"
+        ]
+      }
+    },
+    "/api/v1/contacts/institutional": {
+      "get": {
+        "operationId": "listar_institucionais_api_v1_contacts_institutional_get",
+        "parameters": [
+          {
+            "description": "nome, órgão, cargo, e-mail ou nº do SEI",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "nome, órgão, cargo, e-mail ou nº do SEI",
+              "title": "Q"
+            }
+          },
+          {
+            "description": "chave da categoria",
+            "in": "query",
+            "name": "categoria",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "chave da categoria",
+              "title": "Categoria"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ContatoInstitucionalRead"
+                  },
+                  "title": "Response Listar Institucionais Api V1 Contacts Institutional Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Institucionais",
+        "tags": [
+          "contatos-institucionais"
+        ]
+      }
+    },
+    "/api/v1/contacts/institutional/categories": {
+      "get": {
+        "operationId": "listar_categorias_api_v1_contacts_institutional_categories_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CategoriaInstitucional"
+                  },
+                  "title": "Response Listar Categorias Api V1 Contacts Institutional Categories Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Categorias",
+        "tags": [
+          "contatos-institucionais"
         ]
       }
     },

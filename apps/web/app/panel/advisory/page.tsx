@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ModuloGate } from "@/components/ModuloGate";
 import { SkeletonCards } from "@/components/Skeleton";
+import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api/client";
+import { useTerritorio } from "@/lib/territorio";
 
 interface ContatoAssessoria {
   nome: string;
@@ -91,7 +93,252 @@ function ListaContatos() {
           </div>
         ))}
       </section>
+
+      <CentralDeDemandas />
     </>
+  );
+}
+
+/* ── Central de demandas (ponto 20) ─────────────────────────────────────────
+   O WhatsApp resolve a conversa, não o acompanhamento: o pedido some no meio
+   do chat e ninguém sabe o que ficou pendente. Aqui a demanda é registro —
+   nasce aberta, anda, e termina resolvida, com histórico que o gestor relê. */
+interface EventoDemanda {
+  em?: string | null;
+  autor?: string | null;
+  texto?: string | null;
+  situacao?: string | null;
+}
+
+interface Demanda {
+  id: string;
+  assunto: string;
+  descricao?: string | null;
+  situacao: string;
+  created_at: string;
+  historico?: EventoDemanda[] | null;
+}
+
+const SITUACAO_TOM: Record<string, "success" | "warning" | "neutral"> = {
+  aberta: "warning",
+  em_andamento: "warning",
+  resolvida: "success",
+  cancelada: "neutral",
+};
+
+const SITUACAO_ROTULO: Record<string, string> = {
+  aberta: "Aberta",
+  em_andamento: "Em andamento",
+  resolvida: "Resolvida",
+  cancelada: "Cancelada",
+};
+
+function quando(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleString("pt-BR");
+}
+
+function CentralDeDemandas() {
+  const { municipios, selecionados } = useTerritorio();
+  const [itens, setItens] = useState<Demanda[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [assunto, setAssunto] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [aberta, setAberta] = useState<string | null>(null);
+  const [resposta, setResposta] = useState("");
+
+  const carregar = useCallback(async () => {
+    const { data } = await api.GET("/api/v1/advisory/requests", {});
+    if (data) setItens(data as Demanda[]);
+    setCarregando(false);
+  }, []);
+
+  useEffect(() => {
+    void carregar();
+  }, [carregar]);
+
+  async function abrir(e: React.FormEvent) {
+    e.preventDefault();
+    if (!assunto.trim() || enviando) return;
+    setEnviando(true);
+    setErro(null);
+    // o município do recorte ativo viaja junto: quase toda demanda é sobre um
+    const municipio = selecionados[0] ?? municipios[0]?.ibge ?? null;
+    const { error } = await api.POST("/api/v1/advisory/requests", {
+      body: {
+        assunto: assunto.trim(),
+        descricao: descricao.trim() || null,
+        municipio_ibge: municipio,
+      },
+    });
+    setEnviando(false);
+    if (error) {
+      setErro("Não foi possível registrar a demanda agora. Tente novamente.");
+      return;
+    }
+    setAssunto("");
+    setDescricao("");
+    await carregar();
+  }
+
+  async function responder(id: string, situacao?: string) {
+    const texto = resposta.trim();
+    if (!texto && !situacao) return;
+    const { error } = await api.POST(
+      "/api/v1/advisory/requests/{demanda_id}/messages",
+      {
+        params: { path: { demanda_id: id } },
+        body: { texto, situacao: situacao ?? null },
+      },
+    );
+    if (error) {
+      setErro("Não foi possível enviar a mensagem agora.");
+      return;
+    }
+    setResposta("");
+    await carregar();
+  }
+
+  return (
+    <section className="flex flex-col gap-4">
+      <div>
+        <h2 className="tracking-tight">Central de demandas</h2>
+        <p className="mt-1 max-w-2xl text-sm text-ink-2">
+          Registre o pedido aqui e ele fica com prazo, estado e histórico — em vez
+          de se perder na conversa. A assessoria responde por esta mesma tela.
+        </p>
+      </div>
+
+      <form onSubmit={abrir} className="card flex flex-col gap-3 p-5">
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">Assunto</span>
+          <input
+            value={assunto}
+            onChange={(e) => setAssunto(e.target.value)}
+            placeholder="Ex.: revisar plano de trabalho da proposta 30011/2026"
+            className="input"
+          />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">Descrição (opcional)</span>
+          <textarea
+            value={descricao}
+            onChange={(e) => setDescricao(e.target.value)}
+            rows={3}
+            placeholder="Conte o que precisa, com o número da proposta ou do processo."
+            className="input"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={enviando || !assunto.trim()}
+          className="btn btn-primary self-start"
+        >
+          {enviando ? "Registrando…" : "Abrir demanda"}
+        </button>
+      </form>
+
+      {erro && (
+        <p role="status" className="text-sm tone-danger">
+          {erro}
+        </p>
+      )}
+
+      {carregando ? (
+        <p className="text-sm text-ink-3">Carregando suas demandas…</p>
+      ) : itens.length === 0 ? (
+        <p className="text-sm text-ink-3">
+          Nenhuma demanda registrada ainda.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {itens.map((d) => (
+            <li key={d.id} className="card flex flex-col gap-3 p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm text-ink">{d.assunto}</p>
+                  <p className="mt-0.5 font-mono text-[11px] text-ink-3">
+                    aberta em {quando(d.created_at)}
+                  </p>
+                </div>
+                <StatusBadge tone={SITUACAO_TOM[d.situacao] ?? "neutral"}>
+                  {SITUACAO_ROTULO[d.situacao] ?? d.situacao}
+                </StatusBadge>
+              </div>
+
+              {(d.historico ?? []).length > 0 && (
+                <ol className="flex flex-col gap-2 border-l border-hairline pl-3">
+                  {(d.historico ?? []).map((e, i) => (
+                    <li key={i} className="text-sm">
+                      <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3">
+                        {e.autor === "assessoria" ? "Assessoria" : "Você"} ·{" "}
+                        {quando(e.em)}
+                      </span>
+                      {e.texto && (
+                        <span className="mt-0.5 block text-ink-2">{e.texto}</span>
+                      )}
+                      {e.situacao && (
+                        <span className="mt-0.5 block text-[12px] text-ink-3">
+                          situação: {SITUACAO_ROTULO[e.situacao] ?? e.situacao}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              )}
+
+              {aberta === d.id ? (
+                <div className="flex flex-col gap-2">
+                  <textarea
+                    value={resposta}
+                    onChange={(e) => setResposta(e.target.value)}
+                    rows={2}
+                    placeholder="Escreva sua mensagem"
+                    className="input"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => void responder(d.id)}
+                      disabled={!resposta.trim()}
+                      className="btn btn-primary btn-sm"
+                    >
+                      Enviar
+                    </button>
+                    {d.situacao !== "resolvida" && (
+                      <button
+                        onClick={() => void responder(d.id, "resolvida")}
+                        className="btn btn-ghost btn-sm"
+                      >
+                        Marcar como resolvida
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setAberta(null);
+                        setResposta("");
+                      }}
+                      className="btn btn-ghost btn-sm"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setAberta(d.id)}
+                  className="btn btn-ghost btn-sm self-start"
+                >
+                  Responder / acompanhar
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
