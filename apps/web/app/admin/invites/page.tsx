@@ -186,7 +186,7 @@ export default function AdminConvitesPage() {
             {convites.map((c) => (
               <tr
                 key={c.id}
-                className="border-b border-hairline last:border-0 hover:bg-surface-2"
+                className="border-b border-hairline last:border-0 row-interactive"
               >
                 <td className="px-5 py-3">{c.email}</td>
                 <td className="px-3 py-3 text-ink-2">{c.papel ?? "—"}</td>

@@ -8,6 +8,7 @@ import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { Hint } from "@/components/Hint";
 import { AndamentoProposta } from "@/components/AndamentoProposta";
 import { EmendasProposta } from "@/components/EmendasProposta";
+import { Favorito } from "@/components/Favorito";
 import { EmpenhosProposta } from "@/components/EmpenhosProposta";
 import { NumeroProposta } from "@/components/NumeroProposta";
 import { Skeleton } from "@/components/Skeleton";
@@ -335,13 +336,13 @@ export default function PropostaDetalhePage() {
         </div>
         {/* Ações agrupadas — nunca um botão grande solto no canto */}
         <div className="flex shrink-0 items-center gap-2">
-          <button
-            onClick={alternarFavorito}
-            aria-pressed={favorita}
-            className={cx("btn btn-sm", favorita ? "btn-accent" : "btn-ghost")}
-          >
-            {favorita ? "★ Favorita" : "☆ Favoritar"}
-          </button>
+          <Favorito
+            ativo={favorita}
+            onToggle={alternarFavorito}
+            comRotulo
+            tamanho={15}
+            className="h-8 border border-hairline"
+          />
           {/* O quadro "Acompanhar e ser avisado" saiu (ponto 17), mas monitorar
               não podia sair com ele: vira ação do cabeçalho, no canal painel.
               Os demais canais seguem na central de Alertas. */}

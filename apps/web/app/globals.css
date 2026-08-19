@@ -1038,6 +1038,467 @@ p {
 }
 
 /* ============================================================
+   Camada de FLUIDEZ — "Bancada v2.1"
+   O sistema já tinha gradiente, vidro e keyframes, mas o TOQUE
+   continuava duro: o clique não devolvia nada, o campo era uma
+   caixa transparente que só trocava a cor da borda, a estrela de
+   favoritar era um glifo de texto e as listas não reagiam ao
+   ponteiro. Movimento que o usuário não SENTE não existe.
+   Aqui entram os estados de INTERAÇÃO — press, hover, foco,
+   confirmação — sempre curtos (≤450ms), com easing spring e
+   desligados em prefers-reduced-motion (bloco no fim do arquivo)
+   e na UI v1 (flag da plataforma, §48).
+   ============================================================ */
+
+:root {
+  /* Campo com superfície própria: transparente, o input sumia no
+     canvas e a única resposta ao foco era a borda mudar de cor. */
+  --field-bg: rgba(255, 255, 255, 0.66);
+  --field-bg-hover: rgba(255, 255, 255, 0.92);
+  --field-bg-focus: #ffffff;
+  /* Anel de foco — no light o lime some no branco, então é tinta. */
+  --focus-ring: color-mix(in srgb, var(--ink) 42%, transparent);
+  /* Lavagem de hover em linha/lista: gradiente curto, não bloco chapado */
+  --wash: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-lime) 18%, transparent),
+    color-mix(in srgb, var(--color-aqua) 10%, transparent) 55%,
+    transparent
+  );
+  /* Escada de duração — um vocabulário, não um número por componente */
+  --dur-1: 140ms; /* troca de cor */
+  --dur-2: 240ms; /* superfície, sombra */
+  --dur-3: 400ms; /* deslocamento, morph */
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --field-bg: rgba(255, 255, 255, 0.035);
+    --field-bg-hover: rgba(255, 255, 255, 0.06);
+    --field-bg-focus: rgba(255, 255, 255, 0.08);
+    --focus-ring: color-mix(in srgb, var(--color-lime) 55%, transparent);
+  }
+}
+:root[data-theme="dark"] {
+  --field-bg: rgba(255, 255, 255, 0.035);
+  --field-bg-hover: rgba(255, 255, 255, 0.06);
+  --field-bg-focus: rgba(255, 255, 255, 0.08);
+  --focus-ring: color-mix(in srgb, var(--color-lime) 55%, transparent);
+}
+
+/* Rolagem: âncora suave + barra fina na paleta (a barra nativa do SO
+   era o único elemento do app fora do design system). */
+html {
+  scroll-behavior: smooth;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--hairline) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 9999px;
+  background-clip: content-box;
+  background-color: var(--hairline);
+  transition: background-color var(--dur-2) ease;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--ink-3);
+}
+
+/* Foco visível em TUDO que recebe teclado — um anel só, na paleta.
+   `:where()` mantém especificidade 0, então qualquer componente pode
+   sobrescrever sem `!important`. */
+:where(a, button, [role="button"], [tabindex], input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ── Keyframes da camada de interação ─────────────────────────── */
+@keyframes hc-burst {
+  from {
+    opacity: 0.85;
+    transform: scale(0.55);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+@keyframes hc-star {
+  0% {
+    transform: scale(0.55) rotate(-20deg);
+  }
+  55% {
+    transform: scale(1.32) rotate(9deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+@keyframes hc-sheen {
+  from {
+    transform: translateX(-160%) skewX(-14deg);
+  }
+  to {
+    transform: translateX(220%) skewX(-14deg);
+  }
+}
+@keyframes hc-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes hc-ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@layer components {
+  /* ── Toque: o clique tem que devolver alguma coisa ────────────
+     `.pressable` é a resposta física padrão do app — sobe 1px no
+     hover, afunda no :active. Vale para botão, link, linha de
+     tabela, card clicável: um vocabulário só. */
+  .pressable {
+    transition:
+      transform var(--dur-2) var(--ease-spring),
+      box-shadow var(--dur-2) var(--ease-spring),
+      background-color var(--dur-2) ease,
+      border-color var(--dur-1) ease,
+      color var(--dur-1) ease,
+      opacity var(--dur-1) ease;
+  }
+  .pressable:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+  .pressable:active:not(:disabled) {
+    transform: translateY(0) scale(0.975);
+    transition-duration: 60ms;
+  }
+
+  /* Botão de ícone: alvo redondo de 32px com halo no hover. Antes
+     cada tela punha um glifo solto de 12px sem área de clique. */
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 2rem;
+    width: 2rem;
+    flex-shrink: 0;
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+    transition:
+      color var(--dur-1) ease,
+      background-color var(--dur-2) ease,
+      border-color var(--dur-1) ease,
+      transform var(--dur-2) var(--ease-spring);
+  }
+  .icon-btn:hover:not(:disabled) {
+    color: var(--ink);
+    background: var(--surface-2);
+    transform: translateY(-1px);
+  }
+  .icon-btn:active:not(:disabled) {
+    transform: scale(0.9);
+    transition-duration: 60ms;
+  }
+  .icon-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .icon-btn-sm {
+    height: 1.625rem;
+    width: 1.625rem;
+  }
+
+  /* ── Favoritar ────────────────────────────────────────────────
+     Era o glifo ★/☆ trocando de cor: nenhuma confirmação de que a
+     ação pegou. Agora a estrela estoura (pop + anel radiando) no
+     instante do clique — a confirmação é do gesto, não do reload. */
+  .fav {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 2rem;
+    width: 2rem;
+    flex-shrink: 0;
+    border-radius: 9999px;
+    color: var(--ink-3);
+    background: transparent;
+    cursor: pointer;
+    transition:
+      color var(--dur-1) ease,
+      background-color var(--dur-2) ease,
+      transform var(--dur-2) var(--ease-spring);
+  }
+  .fav:hover:not(:disabled) {
+    color: var(--warn);
+    background: color-mix(in srgb, var(--warn) 14%, transparent);
+  }
+  .fav:active:not(:disabled) {
+    transform: scale(0.86);
+    transition-duration: 60ms;
+  }
+  .fav-on {
+    color: var(--warn);
+  }
+  .fav svg {
+    transition:
+      transform var(--dur-3) var(--ease-spring),
+      fill-opacity var(--dur-2) ease;
+  }
+  .fav::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: 9999px;
+    border: 2px solid color-mix(in srgb, var(--warn) 65%, transparent);
+    opacity: 0;
+    pointer-events: none;
+  }
+  /* a classe entra no clique e sai por timeout no componente */
+  .fav-burst::after {
+    animation: hc-burst 0.55s var(--ease-out-soft);
+  }
+  .fav-burst svg {
+    animation: hc-star 0.45s var(--ease-spring);
+  }
+
+  /* ── Linha de lista/tabela viva ───────────────────────────────
+     Hover era `bg-surface-2` chapado — o mesmo bloco cinza de
+     sempre. Aqui a linha ganha uma lavagem em gradiente e um fio
+     de acento que desliza pela borda esquerda. */
+  .row-interactive {
+    position: relative;
+    transition: background-color var(--dur-2) ease;
+  }
+  .row-interactive::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--grad-brand);
+    transform: scaleY(0);
+    transform-origin: center;
+    transition: transform var(--dur-2) var(--ease-spring);
+  }
+  .row-interactive:hover {
+    background-image: var(--wash);
+  }
+  .row-interactive:hover::before {
+    transform: scaleY(1);
+  }
+
+  /* Link com sublinhado que cresce da esquerda (em vez do
+     `hover:underline` que pisca do nada). */
+  .link-soft {
+    position: relative;
+    color: var(--ink-2);
+    transition: color var(--dur-1) ease;
+  }
+  .link-soft::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: 1px;
+    background: var(--grad-brand);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--dur-2) var(--ease-spring);
+  }
+  .link-soft:hover {
+    color: var(--ink);
+  }
+  .link-soft:hover::after {
+    transform: scaleX(1);
+  }
+
+  /* ── Campo com superfície e reação ────────────────────────────
+     `.input` era `background: transparent` + troca de borda. Agora
+     tem superfície própria, muda no hover, sobe no foco e o anel
+     acompanha — o campo responde antes de o usuário digitar. */
+  .input {
+    background: var(--field-bg);
+    transition:
+      background-color var(--dur-2) ease,
+      border-color var(--dur-1) ease,
+      box-shadow var(--dur-2) var(--ease-spring),
+      transform var(--dur-2) var(--ease-spring);
+  }
+  .input:hover:not(:disabled):not(:focus) {
+    background: var(--field-bg-hover);
+    border-color: color-mix(in srgb, var(--ink) 28%, var(--hairline));
+  }
+  .input:focus {
+    background: var(--field-bg-focus);
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--color-lime) 18%, transparent),
+      var(--elev-1);
+  }
+  .input:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  /* select/textarea herdam a mesma classe no app — a seta do select
+     nativo precisa de espaço quando o campo é estreito. */
+  select.input {
+    cursor: pointer;
+    appearance: none;
+    padding-right: 2rem;
+    background-image: linear-gradient(
+        45deg,
+        transparent 50%,
+        var(--ink-3) 50%
+      ),
+      linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
+    background-position:
+      calc(100% - 1.05rem) 55%,
+      calc(100% - 0.7rem) 55%;
+    background-size:
+      5px 5px,
+      5px 5px;
+    background-repeat: no-repeat;
+  }
+  textarea.input {
+    resize: vertical;
+  }
+
+  /* ── Botões com o acento da marca ─────────────────────────────
+     `.btn-accent` era lime chapado; agora carrega o gradiente do
+     sistema e um facho que varre a superfície no hover. */
+  .btn {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-accent {
+    background: var(--grad-brand);
+    border-color: transparent;
+    box-shadow: 0 2px 12px color-mix(in srgb, var(--color-lime) 26%, transparent);
+  }
+  .btn-accent:hover:not(:disabled) {
+    opacity: 1;
+    box-shadow: 0 6px 22px color-mix(in srgb, var(--color-lime) 36%, transparent);
+  }
+  .btn-primary::after,
+  .btn-accent::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 45%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.28),
+      transparent
+    );
+    transform: translateX(-160%) skewX(-14deg);
+    pointer-events: none;
+  }
+  .btn-primary:hover:not(:disabled)::after,
+  .btn-accent:hover:not(:disabled)::after {
+    animation: hc-sheen 0.7s var(--ease-out-soft);
+  }
+
+  /* Spinner do estado ocupado — o app dizia "salvando…" em texto e
+     mais nada; a espera parecia travamento. */
+  .spinner {
+    display: inline-block;
+    height: 0.875rem;
+    width: 0.875rem;
+    flex-shrink: 0;
+    border-radius: 9999px;
+    border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
+    border-top-color: currentColor;
+    animation: hc-ring-spin 0.7s linear infinite;
+  }
+
+  /* Chip: mesmo facho contido do botão de acento quando ativo */
+  .chip-active::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      100deg,
+      transparent 40%,
+      rgba(255, 255, 255, 0.35) 50%,
+      transparent 60%
+    );
+    transform: translateX(-160%);
+    pointer-events: none;
+  }
+  .chip {
+    position: relative;
+    overflow: hidden;
+  }
+  .chip-active:hover::after {
+    animation: hc-sheen 0.8s var(--ease-out-soft);
+  }
+
+  /* Entrada por rolagem — sem JS e sem IntersectionObserver: o
+     navegador que suporta timeline de view anima o bloco ao entrar
+     na viewport; quem não suporta simplesmente vê o conteúdo. */
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: hc-fade-up 0.6s var(--ease-out-soft) both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+  }
+
+  /* Cápsula/ilha do Copiloto — morph com mola, não corte seco */
+  .island {
+    transition:
+      width var(--dur-3) var(--ease-spring),
+      max-width var(--dur-3) var(--ease-spring),
+      border-radius var(--dur-3) var(--ease-spring),
+      box-shadow var(--dur-3) var(--ease-spring),
+      transform var(--dur-2) var(--ease-spring);
+  }
+  .island-fechada:hover {
+    transform: translateY(1px) scale(1.03);
+  }
+  .island-fechada:active {
+    transform: scale(0.97);
+  }
+  /* fio de gradiente no topo da ilha — a mesma assinatura do card */
+  .island::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: var(--grad-hairline);
+    opacity: 0.9;
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+/* ============================================================
    Camada UI v1 — "Bancada v1 (flat)" via flag da plataforma
    Ligada pelo admin em /admin/config (chave `ui_versao` = v1);
    o web aplica `data-ui="v1"` no <html> (UiVersionSync + boot
@@ -1143,4 +1604,37 @@ html[data-ui="v1"]::before {
    apertou o texto (16px/1.55); aqui volta o ritmo mais solto do original. */
 [data-ui="v1"] body {
   line-height: 1.5;
+}
+
+/* Porte da camada de FLUIDEZ (v2.1) para a v1: o toque continua
+   existindo — clicar sem resposta é defeito, não estilo —, mas sem
+   as assinaturas decorativas da v2 (facho, lavagem em gradiente,
+   fio de acento, halo de estrela, entrada por rolagem). */
+[data-ui="v1"] .btn-primary::after,
+[data-ui="v1"] .btn-accent::after,
+[data-ui="v1"] .chip-active::after,
+[data-ui="v1"] .island::before,
+[data-ui="v1"] .row-interactive::before,
+[data-ui="v1"] .fav::after {
+  display: none;
+}
+[data-ui="v1"] .btn-accent {
+  background: var(--color-lime);
+  box-shadow: none;
+}
+[data-ui="v1"] .row-interactive:hover {
+  background-image: none;
+  background-color: var(--surface-2);
+}
+[data-ui="v1"] .link-soft::after {
+  background: var(--color-lime);
+}
+[data-ui="v1"] .input:focus {
+  box-shadow: none;
+}
+[data-ui="v1"] .reveal {
+  animation: none;
+}
+[data-ui="v1"] .island-fechada:hover {
+  transform: none;
 }

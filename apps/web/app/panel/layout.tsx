@@ -220,10 +220,14 @@ function PainelShell({ children }: { children: React.ReactNode }) {
         {/* `key={pathname}` remonta o wrapper a cada navegação, então a
             animação de entrada REEXECUTA — sem isso o layout persiste no App
             Router e a transição só aconteceria no primeiro carregamento.
-            Uma linha aqui cobre todas as telas do painel. */}
+            Uma linha aqui cobre todas as telas do painel.
+            `stagger` faz as SEÇÕES da tela entrarem em cascata em vez de o
+            conteúdo aparecer de bloco — 35 das 39 páginas não tinham nenhuma
+            animação própria, e resolver no shell evita repetir a classe em
+            cada uma delas. */}
         <div
           key={pathname}
-          className="anim-page flex min-w-0 flex-1 flex-col gap-6"
+          className="anim-page stagger flex min-w-0 flex-1 flex-col gap-6"
         >
           {children}
         </div>
