@@ -32,7 +32,10 @@ function brl(v?: string | null): string {
 }
 
 export default function MinhasPropostasPage() {
-  const { selecionados } = useTerritorio();
+  const { selecionados, perfil } = useTerritorio();
+  // A exploração da captação pode estar desligada (§29/§40): sem o módulo, a
+  // lista de propostas responde com o ModuloGate — CTA para um beco não ajuda.
+  const podeExplorar = (perfil?.modulos ?? []).includes("captacao");
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -97,9 +100,11 @@ export default function MinhasPropostasPage() {
               ? "Você ainda não favoritou nenhuma proposta."
               : "Nenhuma proposta favoritada nos municípios filtrados — ajuste o território no menu lateral."}
           </p>
-          <Link href="/panel/funding" className="btn btn-primary mt-4 inline-flex">
-            Ir para as Propostas
-          </Link>
+          {podeExplorar && (
+            <Link href="/panel/funding" className="btn btn-primary mt-4 inline-flex">
+              Ir para as Propostas
+            </Link>
+          )}
         </div>
       ) : (
         <div className="card overflow-x-auto">
