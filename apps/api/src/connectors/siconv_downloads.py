@@ -11,10 +11,11 @@ proposta.ID_PROPOSTA` que carimba o `COD_MUNIC_IBGE` — a chave canônica do Hu
 (§4). A tabela `emenda` sozinha não sabe de que município é o dinheiro, e a
 `apoiadores_emendas_programas` nem chega à proposta (só tem FK para `programa`).
 
-O NOME do ZIP não é adivinhável com segurança: o repo já usa
-`siconv_proposta.zip`, mas nem toda tabela segue esse prefixo. Por isso o nome é
+O NOME do ZIP quase sempre é `siconv_<tabela>.zip`, mas nem sempre:
+`apoiadores_emendas_programas.zip` vai sem o prefixo. Por isso o nome é
 RESOLVIDO em runtime, testando candidatos, com override no painel admin — §27
-(rota chutada foi exatamente o que quebrou em produção).
+(rota chutada foi exatamente o que quebrou em produção). Os nomes das tabelas
+que carregamos foram conferidos contra a página oficial de downloads.
 
 Tudo em DISCO, nunca em memória: `proposta.csv` passa de 1 GB descompactado e
 carregá-lo em RAM derrubaria o worker.
@@ -64,14 +65,16 @@ class Arquivo:
 
 # Catálogo. Ligar uma tabela nova = mais uma entrada aqui; o downloader não muda.
 ARQUIVOS: dict[str, Arquivo] = {
+    # Os tamanhos são a referência de custo diário do job (conferidos na página
+    # oficial): as quatro carregadas somam ~245 MB comprimidos.
     "emenda": Arquivo(
         "emenda",
-        "Emenda parlamentar da proposta (NR_EMENDA, autor, tipo, valores)",
+        "Emenda parlamentar da proposta (NR_EMENDA, autor, tipo, valores) — ~8 MB",
         carrega=True,
     ),
     "proposta": Arquivo(
         "proposta",
-        "Proposta (COD_MUNIC_IBGE, NR_PROPOSTA, ANO_PROP, objeto, valores)",
+        "Proposta (COD_MUNIC_IBGE, NR_PROPOSTA, ANO_PROP, objeto, valores) — ~196 MB",
         carrega=True,
     ),
     # Cadeia de execução: proposta → convenio → empenho. O convênio é a PONTE
@@ -79,24 +82,29 @@ ARQUIVOS: dict[str, Arquivo] = {
     # número do convênio, então sem ele não há como dizer de que município é.
     "convenio": Arquivo(
         "convenio",
-        "Convênio celebrado — ponte proposta↔empenho (e os agregados do convênio)",
+        "Convênio celebrado — ponte proposta↔empenho (e os agregados) — ~18 MB",
         carrega=True,
     ),
     "empenho": Arquivo(
         "empenho",
-        "Empenhos por convênio (inclui DESCRICAO_EMENDA_SIAFI)",
+        "Empenhos por convênio (inclui DESCRICAO_EMENDA_SIAFI) — ~22 MB",
         carrega=True,
     ),
-    # `pagamento`/`desembolso` são por CONVÊNIO, não por empenho: atribuir um
-    # pagamento a um empenho específico exigiria `empenho_desembolso`, que é
-    # mais um arquivo. Enquanto `proposta_empenhos.valor_pago` não tiver origem
-    # confiável, ele fica NULL — melhor vazio que um número que não é daquele
-    # documento.
-    "pagamento": Arquivo("pagamento", "Pagamentos por convênio"),
-    "desembolso": Arquivo("desembolso", "Desembolsos por convênio"),
+    # `pagamento`/`desembolso` são por CONVÊNIO, não por empenho. `desembolso`
+    # (~16 MB) + `empenho_desembolso` (~3 MB) fecham a atribuição por documento
+    # e são baratos — é o próximo passo para `proposta_empenhos.valor_pago`
+    # deixar de ser NULL. Enquanto não houver essa origem, ele fica vazio:
+    # melhor nada que um rateio que não é daquele empenho.
+    "desembolso": Arquivo("desembolso", "Desembolsos por convênio — ~16 MB"),
+    "empenho_desembolso": Arquivo(
+        "empenho_desembolso", "Elo empenho↔desembolso — destrava o pago por empenho (~3 MB)"
+    ),
+    "pagamento": Arquivo("pagamento", "Pagamentos por convênio — ~349 MB"),
     "apoiadores_emendas_programas": Arquivo(
         "apoiadores_emendas_programas",
         "Apoiadores da emenda (complemento — NÃO liga à proposta)",
+        # publicado SEM o prefixo `siconv_`
+        candidatos=("apoiadores_emendas_programas.zip",),
     ),
 }
 

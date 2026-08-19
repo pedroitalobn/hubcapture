@@ -17,9 +17,10 @@ from pydantic import BaseModel
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...connectors import transferegov_disc
+from ...connectors import siconv_downloads, transferegov_disc
 from ...connectors.base import available_sources, get_connector
 from ...core.users import current_superuser
+from ...jobs import siconv_diario
 from ...models.proposta import Proposta
 from ...models.sync_run import SyncRun
 from ...models.usuario import Usuario
@@ -35,6 +36,34 @@ HEALTH_TIMEOUT = 10.0  # s por fonte — fonte pendurada não trava o diagnósti
 
 class ResultadoLimpeza(BaseModel):
     removidas: int
+
+
+class ArquivoSiconv(BaseModel):
+    tabela: str
+    descricao: str
+    carrega: bool
+
+
+class ExecucaoSiconv(BaseModel):
+    status: str | None = None
+    registros: int | None = None
+    iniciado_em: datetime | None = None
+    finalizado_em: datetime | None = None
+    erro: str | None = None
+
+
+class EstadoCargaSiconv(BaseModel):
+    """O que o painel precisa para desenhar o botão e o que aconteceu depois."""
+
+    rodando: bool
+    iniciado_em: datetime | None = None
+    arquivos: list[ArquivoSiconv]
+    execucoes: list[ExecucaoSiconv]
+
+
+class DisparoCargaSiconv(BaseModel):
+    disparada: bool
+    detalhe: str
 
 
 def _esquecer_coletas() -> None:
@@ -82,6 +111,67 @@ async def restaurar_propostas(
     await session.commit()
     _esquecer_coletas()
     return ResultadoLimpeza(removidas=int(result.rowcount or 0))
+
+
+async def _estado_siconv(session: AsyncSession) -> EstadoCargaSiconv:
+    execucoes = (
+        (
+            await session.execute(
+                select(SyncRun)
+                .where(SyncRun.fonte == siconv_downloads.SOURCE_ID)
+                .order_by(SyncRun.iniciado_em.desc())
+                .limit(5)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return EstadoCargaSiconv(
+        rodando=siconv_diario.esta_rodando(),
+        iniciado_em=siconv_diario.inicio_da_execucao(),
+        arquivos=[
+            ArquivoSiconv(tabela=a.tabela, descricao=a.descricao, carrega=a.carrega)
+            for a in siconv_downloads.ARQUIVOS.values()
+        ],
+        execucoes=[
+            ExecucaoSiconv(
+                status=r.status,
+                registros=r.registros,
+                iniciado_em=r.iniciado_em,
+                finalizado_em=r.finalizado_em,
+                erro=r.erro,
+            )
+            for r in execucoes
+        ],
+    )
+
+
+@router.get("/admin/siconv/load", response_model=EstadoCargaSiconv)
+async def estado_carga_siconv(
+    _admin: Usuario = Depends(current_superuser),
+    session: AsyncSession = Depends(get_platform_db),
+) -> EstadoCargaSiconv:
+    """Estado da carga do pacote SIconv: em andamento? o que deu nas últimas?"""
+    return await _estado_siconv(session)
+
+
+@router.post("/admin/siconv/load", response_model=DisparoCargaSiconv)
+async def disparar_carga_siconv(
+    _admin: Usuario = Depends(current_superuser),
+) -> DisparoCargaSiconv:
+    """Roda a carga diária AGORA, sem esperar a janela agendada.
+
+    Devolve na hora: a carga segue no event loop (ver `siconv_diario.disparar`)
+    e leva minutos — o painel acompanha pelo GET. Clique repetido não empilha
+    carga: o segundo volta com `disparada=false`.
+    """
+    if not siconv_diario.disparar():
+        return DisparoCargaSiconv(disparada=False, detalhe="Já existe uma carga em andamento.")
+    tabelas = ", ".join(siconv_diario.tabelas_alvo())
+    return DisparoCargaSiconv(
+        disparada=True,
+        detalhe=f"Carga iniciada ({tabelas}). Leva alguns minutos.",
+    )
 
 
 async def _health(fonte: str) -> bool:
