@@ -1944,3 +1944,73 @@ lista inteira.
 - **Fora do escopo por ora**: o menu de abas do shell admin e o menu por categoria de
   `/admin/config` seguem sem glifo (usam `.nav-item`, então basta o mesmo componente
   quando forem contemplados).
+
+## 50. Carga diária do pacote SIconv — emendas parlamentares no banco
+
+As emendas do TransfereGov não vinham de rota de API: o módulo `especiais`
+**não tem endpoint de emenda** (§42 descobre rota por spec e nunca acha uma —
+os campos da emenda moram dentro de `/planos_acao_especiais`), e o pacote de
+dados abertos do SIconv (discricionárias e legais) publica a entidade inteira
+como ZIP nacional. Agora um job diário baixa, descompacta e carrega.
+
+- **A tabela certa é `emenda`, não `apoiadores_emendas_programas`.** No modelo
+  oficial, `emenda` tem `ID_PROPOSTA` (FK → `proposta`), e é por ela que se
+  chega ao `COD_MUNIC_IBGE` — a chave canônica do Hub (§4). A
+  `apoiadores_emendas_programas` só tem FK para `programa`: **não existe
+  caminho dela até a proposta**, então nem município ela resolve. É complemento
+  (quem apoiou/indicou), não a fonte.
+- **Connector** `connectors/siconv_downloads.py`: catálogo por TABELA do modelo
+  (`emenda`, `proposta` carregadas; `convenio`/`empenho`/`pagamento`/
+  `desembolso` mapeadas mas `carrega=False` — baixar centenas de MB sem destino
+  no schema seria desperdício). O NOME do ZIP é resolvido em runtime
+  (`siconv_<t>.zip` → `<t>.zip`, 404 = próximo candidato), com override no
+  painel (`siconv_downloads_url`, `siconv_<tabela>_arquivo`) — §27. Download em
+  streaming **para disco**: `proposta.csv` passa de 1 GB e em memória derrubaria
+  o worker.
+- **Job** `jobs/siconv_diario.py`: `COPY` de cada CSV para uma temp table
+  `ON COMMIT DROP` (dispensa GRANT de CREATE e não gruda na conexão do pool) e
+  **um** `INSERT … SELECT … ON CONFLICT` em `proposta_emendas`. O join
+  `emenda → proposta` acontece no Postgres, não em Python — a memória do
+  processo fica constante. Schema da staging vem do HEADER do arquivo
+  (`utf-8-sig`: sem isso o BOM gruda no nome da 1ª coluna); coluna que a fonte
+  renomear vira `NULL` em vez de derrubar a carga. `id_externo` =
+  `ID_PROPOSTA|NR_EMENDA` — a mesma proposta acumula emendas de autores
+  diferentes. Agendador próprio (`worker-siconv` no compose, 07:00 UTC),
+  advisory lock contra réplica dupla, `RODAR_AGORA=1` para carga imediata,
+  `sync_runs` por execução.
+- **`ON CONFLICT DO UPDATE` aplica a policy de SELECT** sobre a linha nova, não
+  só as de INSERT/UPDATE. Como a de `proposta_emendas` recorta por
+  `municipios_interesse` e o job é global (sem tenant), TODA linha com município
+  preenchido era recusada com "new row violates row-level security policy" e
+  nenhuma emenda entrava. Migration `e2f3a4b5c6d7` acrescenta uma policy
+  PERMISSIVE de SELECT que reconhece a bandeira `app.plataforma` (a mesma de
+  `demandas`) em `proposta_emendas`, `proposta_empenhos` e `pareceres`;
+  `aplicar_carga` liga a bandeira na transação. A policy por município segue
+  intacta para o request do usuário — permissivas somam com OR. **Nem o owner
+  escapa** (FORCE RLS): leitura administrativa dessas tabelas também precisa da
+  bandeira.
+- **`DISTINCT ON (id_proposta, nr_emenda)`** é obrigatório: emenda repetida no
+  arquivo faz o Postgres recusar o comando inteiro ("cannot affect row a second
+  time"). E **sem `RETURNING`** — ele leria sob a policy de SELECT e reportaria
+  "0 gravadas" com a tabela cheia (§41); a contagem sai do `rowcount`.
+- **Número BR decide pela vírgula**: `1.234,56` tem ponto de milhar, `1234.56`
+  já é decimal. Converter às cegas transformaria o segundo em `123456`.
+- **Cadeia de execução** (`convenio` + `empenho` → `proposta_empenhos`): o
+  empenho só conhece `NR_CONVENIO`; quem sabe de que proposta — e portanto de
+  que MUNICÍPIO — ele é, é o convênio (`convenio.ID_PROPOSTA`). Por isso são
+  três arquivos em cadeia, e o convênio entra como PONTE mesmo sem tela própria.
+  Empenho de convênio ausente do pacote entra sem território em vez de sumir: o
+  documento existe. Datas aceitam `DD/MM/AAAA` e ISO via `to_date` (nunca
+  `::date` cru — linha suja não aborta a carga). `valor_pago`/`valor_liquidado`
+  ficam **NULL de propósito**: o pacote publica pagamento por CONVÊNIO, e ratear
+  entre os empenhos daria um número que não é daquele documento — a
+  `proveniencia` diz isso. Atribuir de verdade exigiria `empenho_desembolso`.
+- **Recorte operacional**: `SICONV_TABELAS=emenda,proposta` restringe a carga
+  (a cadeia de execução custa centenas de MB a mais por dia). Vazio = catálogo
+  inteiro. `aplicar_carga` só roda o upsert cujos arquivos estão presentes —
+  baixar menos degrada o escopo, não quebra o job.
+- **O que a fonte NÃO publica** (e não é inventado): o **ano da emenda** —
+  `NR_EMENDA` é código do autor + sequencial. Gravamos `ano` a partir de
+  `proposta.ANO_PROP` para o filtro de safra funcionar e marcamos
+  `proveniencia.ano = 'derivado:…'`. **Partido e UF do parlamentar** também não
+  existem no pacote: vêm do connector `emendas` (Portal da Transparência).

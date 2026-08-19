@@ -69,6 +69,32 @@ services:
       - default
     restart: unless-stopped
 
+  worker-siconv:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: hubcapture-worker-siconv
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      DATABASE_URL: postgresql+asyncpg://hubcapture_app:${APP_DB_PASSWORD:-app_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
+      DATABASE_MIGRATOR_URL: postgresql+asyncpg://${POSTGRES_USER:-hubcapture}:${POSTGRES_PASSWORD:-postgres_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
+      # 07:00 UTC ≈ 04:00 em Brasília — depois do refresh diário, para os dois
+      # não disputarem CPU e rede baixando arquivo grande ao mesmo tempo.
+      SICONV_DIARIO_HORA_UTC: ${SICONV_DIARIO_HORA_UTC:-7}
+      SICONV_DIARIO_ATIVO: ${SICONV_DIARIO_ATIVO:-1}
+    # Agendador próprio, não a API: sem `--` o módulo herdaria o boot HTTP.
+    entrypoint: ["/app/apps/api/.venv/bin/python", "-m", "src.jobs.siconv_diario"]
+    working_dir: /app/apps/api
+    # Fora da dokploy-network: só fala com o banco e com a fonte oficial.
+    networks:
+      - default
+    restart: unless-stopped
+
   api:
     build:
       context: .
