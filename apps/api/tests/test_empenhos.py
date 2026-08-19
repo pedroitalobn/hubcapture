@@ -320,7 +320,11 @@ async def test_fonte_fora_do_ar_nao_derruba_a_tela(
 async def test_proposta_sem_numero_diz_que_falta_chave(
     seed_user, seed_municipio, seed_proposta
 ) -> None:
-    """Sem nº de proposta não há como consultar — e isso não é "não tem empenho"."""
+    """Sem chave consultável não há como perguntar — e isso não é "não tem empenho".
+
+    `id_externo` só vira `id_plano_acao` quando é INTEIRO: "X-1" não é id de
+    plano de ação, e mandá-lo devolveria 422 ou os empenhos do país inteiro.
+    """
     pid = await seed_proposta("fns", "X-1", "3550308")
     uid = await seed_user("semchave@x.com")
     await seed_municipio(uid, "3550308")
@@ -329,10 +333,7 @@ async def test_proposta_sem_numero_diz_que_falta_chave(
 
     async with rls_session(uid) as s:
         proposta = await _carregar(s, pid)
-        assert service.chaves_da_proposta(proposta) == {
-            "id_plano_acao": "X-1",
-            "numero_plano_acao": "X-1",
-        }
+        assert service.chaves_da_proposta(proposta) == {}
 
 
 async def _carregar(session, pid: uuid.UUID):

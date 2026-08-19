@@ -107,6 +107,8 @@ def test_proposta_carrega_o_numero_do_plano_de_trabalho() -> None:
 # A rota devolve o veredito da análise, o texto e o valor reprovado, com id
 # próprio — e filtra por id_plano_trabalho INTEIRO (não pelo nº da proposta).
 
+# Payload com os nomes REAIS das colunas de /planos_trabalho_analises_especiais
+# (spec oficial do módulo especiais — API nova).
 API = {
     "id_plano_trabalho_analise_pt": 55123,
     "id_plano_trabalho": 988776,
@@ -210,3 +212,94 @@ def test_id_da_linha_so_aceita_inteiro() -> None:
 
     assert id_da_linha({"id_plano_trabalho": 988776}) == "988776"
     assert id_da_linha({"numero_proposta": "30011/2026"}) is None
+
+
+# ── Dialeto da rota (calibração contra o spec oficial do módulo) ───────────
+# São DUAS APIs: a nova (api-publica/especiais, FastAPI) usa rota no plural,
+# filtro direto e `pagina`/`tamanho_da_pagina`; a antiga (PostgREST) usa rota no
+# singular, `eq.` e `limit`/`offset`. Mandar o dialeto errado no PostgREST não
+# dá 404 — o filtro é ignorado e voltam as análises do país inteiro.
+
+
+async def test_consulta_usa_a_rota_e_a_paginacao_da_api_nova(monkeypatch) -> None:
+    from src.connectors import pareceres as mod
+
+    capturado: dict = {}
+
+    async def _fake_get_json(base, endpoint, params):
+        capturado["endpoint"] = endpoint
+        capturado["params"] = params
+        return {"data": [], "total_pages": 0}
+
+    monkeypatch.setattr(mod, "get_json", _fake_get_json)
+
+    async def _sem_descoberta(*_a, **_kw):
+        return None
+
+    monkeypatch.setattr(mod, "descobrir", _sem_descoberta)
+    await mod.ParecerConnector()._via_api("988776")
+
+    assert capturado["endpoint"] == "planos_trabalho_analises_especiais"
+    assert capturado["params"]["id_plano_trabalho"] == "988776"  # sem `eq.`
+    assert capturado["params"]["pagina"] == "1"
+    assert capturado["params"]["tamanho_da_pagina"] == "50"
+
+
+async def test_envelope_paginado_da_api_nova_e_lido(monkeypatch) -> None:
+    """A API nova responde `{data: [...]}` — ler só lista pura devolveria vazio
+    e o painel diria "sem parecer" com parecer publicado na fonte."""
+    from src.connectors import pareceres as mod
+
+    async def _fake_get_json(base, endpoint, params):
+        return {"data": [{"id_plano_trabalho_analise_pt": 1}], "total_pages": 1}
+
+    monkeypatch.setattr(mod, "get_json", _fake_get_json)
+
+    async def _sem_descoberta(*_a, **_kw):
+        return None
+
+    monkeypatch.setattr(mod, "descobrir", _sem_descoberta)
+    linhas = await mod.ParecerConnector()._via_api("988776")
+    assert len(linhas) == 1
+
+
+async def test_dialeto_postgrest_quando_a_descoberta_aponta_a_api_antiga(monkeypatch) -> None:
+    from src.connectors import pareceres as mod
+    from src.connectors._especiais import Rota
+
+    capturado: dict = {}
+
+    async def _fake_get_json(base, endpoint, params):
+        capturado["endpoint"] = endpoint
+        capturado["params"] = params
+        return []
+
+    async def _descoberta_postgrest(*_a, **_kw):
+        return Rota(
+            endpoint="plano_trabalho_analise_especial",
+            chave="id_plano_trabalho",
+            postgrest=True,
+        )
+
+    monkeypatch.setattr(mod, "get_json", _fake_get_json)
+    monkeypatch.setattr(mod, "descobrir", _descoberta_postgrest)
+    await mod.ParecerConnector()._via_api("988776")
+
+    assert capturado["endpoint"] == "plano_trabalho_analise_especial"
+    assert capturado["params"]["id_plano_trabalho"] == "eq.988776"
+    assert capturado["params"]["limit"] == "50"
+    assert capturado["params"]["offset"] == "0"
+
+
+def test_identidade_usa_a_coluna_real_da_analise() -> None:
+    """`id_plano_trabalho_analise_pt` é o identificador no spec da API nova.
+    Sem ele a identidade cairia na chave sintética — e, como a API não traz
+    responsável nem papel, dois pareceres do mesmo dia colidiriam."""
+    assert _norm(API).id_externo == "55123"
+    outro = {**API, "id_plano_trabalho_analise_pt": 55124}
+    assert _norm(outro).id_externo == "55124"
+
+
+def test_valor_reprovado_le_a_coluna_real() -> None:
+    p = _norm(API)
+    assert p.valor_reprovado is not None and float(p.valor_reprovado) == 125000.50

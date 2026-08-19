@@ -37,13 +37,17 @@ ENDPOINT_PADRAO = "empenhos_especiais"
 
 PALAVRAS_ROTA = ("empenho",)
 
-# O empenho é consultado pelo NÚMERO DA PROPOSTA — daí ele liderar a ordem de
-# especificidade. Os demais entram como retaguarda para rotas irmãs.
+# `id_plano_acao` LIDERA porque é o único vínculo com a proposta que a rota
+# `/empenhos_especiais` realmente aceita (spec oficial do módulo). Mandar
+# `numero_proposta` — como esta lista fazia — é pior que erro: o FastAPI
+# IGNORA query param não declarado, então a resposta vinha com os empenhos do
+# país inteiro, e o valor exibido na proposta era de empenho alheio. As demais
+# chaves ficam como retaguarda para rotas irmãs de outros módulos.
 CHAVES = (
-    "numero_proposta",
-    "id_proposta",
     "id_plano_acao",
     "numero_plano_acao",
+    "numero_proposta",
+    "id_proposta",
     "id_plano_trabalho",
 )
 

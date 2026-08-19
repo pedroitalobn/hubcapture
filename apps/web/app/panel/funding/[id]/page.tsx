@@ -241,6 +241,11 @@ export default function PropostaDetalhePage() {
   // propostas ela dava zero e não dizia nada ao gestor.
   const valorGlobal = p.valor_global ?? p.execucao?.valor_global ?? null;
   const temValorGlobal = num(valorGlobal) > 0;
+  // O empenhado é o que a fonte publica como EMPENHADO — nunca o valor global
+  // (que é o total previsto da proposta). Quando a fonte não informa, o card
+  // fica vazio de propósito: a seção "Empenhos" abaixo soma os documentos.
+  const valorEmpenhado = p.execucao?.valor_empenhado ?? null;
+  const temEmpenhado = num(valorEmpenhado) > 0;
 
   return (
     <div className="flex flex-col gap-5">
@@ -399,27 +404,27 @@ export default function PropostaDetalhePage() {
             )}
           </div>
 
-          {/* EMPENHO no primeiro degrau: é o valor global que a fonte publica
-              para a proposta (VL_GLOBAL_PROP). Antes vivia lá embaixo, na
-              grade secundária. */}
-          {/* O hint contextual em ação: o ⓘ ao lado de "Empenho" abre o
-              artigo que o admin plantou na chave proposta.empenhado. */}
+          {/* EMPENHADO — o valor que a fonte informa como empenhado, e só ele.
+              Este card já mostrou o VALOR GLOBAL da proposta com o rótulo
+              "Empenho": dava o mesmo número do "Valor total" ao lado e fazia o
+              gestor ler como reservado o que ainda era só previsto. O valor
+              global não sumiu: está logo abaixo, com o nome dele. */}
           <div className="field">
             <span className="field-label">
-              Empenho <Hint chave="proposta.empenhado" />
+              Empenhado <Hint chave="proposta.empenhado" />
             </span>
-            {temValorGlobal ? (
+            {temEmpenhado ? (
               <>
-                <span className="value-hero">{formatBRL(valorGlobal)}</span>
+                <span className="value-hero">{formatBRL(valorEmpenhado)}</span>
                 <span className="num mt-1 text-xs text-ink-3">
-                  valor global da proposta na fonte
+                  reservado pelo concedente
                 </span>
               </>
             ) : (
               <>
                 <span className="value-hero text-ink-3">—</span>
                 <span className="num mt-1 text-xs text-ink-3">
-                  sem valor global informado na fonte
+                  sem empenho informado na fonte
                 </span>
               </>
             )}
@@ -523,6 +528,14 @@ export default function PropostaDetalhePage() {
             valor={humanizarCaixa(p.modalidade)}
             destaque
           />
+
+          {temValorGlobal && (
+            <Dado
+              rotulo="Valor global da proposta"
+              valor={formatBRL(valorGlobal)}
+              destaque
+            />
+          )}
 
           <Dado
             rotulo={

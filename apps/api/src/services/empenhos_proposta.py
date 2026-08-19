@@ -57,12 +57,21 @@ _UPSERT_FIELDS = (
 
 
 def chaves_da_proposta(proposta: Proposta) -> dict[str, str]:
-    """O que a rota de empenho aceita como filtro — o nº da proposta primeiro."""
+    """O que a rota de empenho aceita como filtro — `id_plano_acao` primeiro.
+
+    O `id_externo` só serve de retaguarda para `id_plano_acao` quando é INTEIRO:
+    nas propostas vindas do CSV do SIconv ele é o número formatado
+    ("30011/2026"), e mandá-lo numa rota que espera um id inteiro devolve 422 —
+    ou, pior, é ignorado e a resposta vem com empenho de todo mundo.
+    """
     fonte_bruta = proposta.dados_fonte if isinstance(proposta.dados_fonte, dict) else {}
     plano = fonte_bruta.get("plano_acao")
     linha = plano if isinstance(plano, dict) else fonte_bruta
+    externo = str(proposta.id_externo or "").strip()
     id_plano_acao = str(
-        linha.get("id_plano_acao") or linha.get("numero_plano_acao") or proposta.id_externo or ""
+        linha.get("id_plano_acao")
+        or linha.get("numero_plano_acao")
+        or (externo if externo.isdigit() else "")
     ).strip()
     numero = (proposta.numero_proposta or "").strip()
 
