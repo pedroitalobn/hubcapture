@@ -143,6 +143,27 @@ CATALOGO: list[dict] = [
         "fonte",
         False,
     ),
+    # Pacote de dados abertos do SIconv (ZIPs nacionais por tabela). A carga
+    # diária de emendas (`jobs/siconv_diario`) baixa daqui; o nome de cada
+    # arquivo é resolvido em runtime e estas chaves são o override manual.
+    _c(
+        "siconv_downloads_url",
+        "SIconv — base dos downloads (ZIPs nacionais: emenda, proposta…)",
+        "fonte",
+        False,
+    ),
+    _c(
+        "siconv_emenda_arquivo",
+        "SIconv — nome do ZIP de emendas (vazio = tenta siconv_emenda.zip / emenda.zip)",
+        "fonte",
+        False,
+    ),
+    _c(
+        "siconv_proposta_arquivo",
+        "SIconv — nome do ZIP de propostas (vazio = tenta siconv_proposta.zip / proposta.zip)",
+        "fonte",
+        False,
+    ),
     _c("transferegov_esp_base_url", "TransfereGov Especiais base URL", "fonte", False),
     _c(
         "transferegov_esp_endpoint",
