@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, baixarCsv } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
+import { Favorito } from "@/components/Favorito";
 import { Hint } from "@/components/Hint";
 import { ModuloGate } from "@/components/ModuloGate";
 import { NumeroProposta } from "@/components/NumeroProposta";
@@ -903,8 +904,13 @@ function CaptacaoExploracao() {
         {abas.map((a) => (
           <span
             key={a.id}
-            className={`inline-flex items-center overflow-hidden rounded-t-lg border border-b-0 border-hairline text-sm ${
-              a.id === abaAtiva ? "bg-surface-2 font-medium" : "text-ink-2"
+            /* a aba ativa carrega o fio de gradiente da marca (mesma
+               assinatura do card); a inativa reage ao ponteiro em vez de
+               ficar parada — era o único controle da tela sem hover. */
+            className={`relative inline-flex items-center overflow-hidden rounded-t-lg border border-b-0 border-hairline text-sm transition-colors duration-200 ${
+              a.id === abaAtiva
+                ? "bg-surface-2 font-medium before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-[image:var(--grad-brand)]"
+                : "text-ink-2 hover:border-ink-2 hover:bg-surface-2/60 hover:text-ink"
             }`}
           >
             <button
@@ -918,7 +924,7 @@ function CaptacaoExploracao() {
             {abas.length > 1 && (
               <button
                 onClick={() => fecharAba(a.id)}
-                className="pr-2 text-ink-3 hover:text-ink"
+                className="pressable pr-2 text-ink-3 hover:text-danger"
                 aria-label={`Fechar aba ${a.nome}`}
               >
                 ×
@@ -1227,7 +1233,10 @@ function CaptacaoExploracao() {
       {!acompanhando && (
       <div className="flex flex-wrap items-center gap-2 text-sm text-ink-2">
         {buscando ? (
-          <span className="label-mono animate-pulse">Carregando propostas…</span>
+          <span className="label-mono flex items-center gap-2">
+            <span className="spinner" aria-hidden />
+            Carregando propostas…
+          </span>
         ) : curadoriaAtiva ? (
           <span className="label-mono">
             {visiveis.length} de {propostas.length} carregada
@@ -1261,7 +1270,14 @@ function CaptacaoExploracao() {
           className="btn btn-ghost btn-sm disabled:opacity-50"
           title="Consulta as fontes oficiais agora e grava o que houver de novo. A lista já é atualizada sozinha uma vez por dia."
         >
-          {atualizando ? "Consultando fontes…" : "↻ Atualizar fontes"}
+          {atualizando ? (
+            <>
+              <span className="spinner" aria-hidden />
+              Consultando fontes…
+            </>
+          ) : (
+            "↻ Atualizar fontes"
+          )}
         </button>
 
         {/* idade do dado: a lista vem do banco, alimentado pelo sweep diário —
@@ -1366,20 +1382,14 @@ function CaptacaoExploracao() {
                 {visiveis.map((p) => (
                   <tr
                     key={p.id}
-                    className="border-b border-hairline last:border-0 hover:bg-surface-2"
+                    className="border-b border-hairline last:border-0 row-interactive"
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => alternarFavorito(p)}
-                          aria-label="Favoritar"
-                          title={favoritos.has(p.id) ? "Desfavoritar" : "Favoritar"}
-                          className={
-                            favoritos.has(p.id) ? "text-warn" : "text-ink-3 hover:text-warn"
-                          }
-                        >
-                          {favoritos.has(p.id) ? "★" : "☆"}
-                        </button>
+                        <Favorito
+                          ativo={favoritos.has(p.id)}
+                          onToggle={() => alternarFavorito(p)}
+                        />
                         <button
                           onClick={() => alternarAlerta(p)}
                           aria-label="Alerta"
@@ -1388,12 +1398,7 @@ function CaptacaoExploracao() {
                               ? "Alerta ligado — avisa quando mudar situação/prazo"
                               : "Ligar alerta desta proposta"
                           }
-                          className={cx(
-                            "transition-colors",
-                            alertas.has(p.id)
-                              ? "tone-ok"
-                              : "text-ink-3 hover:text-ink",
-                          )}
+                          className={cx("icon-btn", alertas.has(p.id) && "tone-ok")}
                         >
                           {/* o emoji 🔕 renderizava como pictograma vermelho
                               cortado e lia como estado de ERRO; o glifo abaixo
@@ -1584,9 +1589,14 @@ function CaptacaoExploracao() {
                   disabled={carregandoMais}
                   className="btn btn-ghost btn-sm disabled:opacity-50"
                 >
-                  {carregandoMais
-                    ? "Carregando…"
-                    : `Carregar mais (${total - propostas.length} restantes)`}
+                  {carregandoMais ? (
+                    <>
+                      <span className="spinner" aria-hidden />
+                      Carregando…
+                    </>
+                  ) : (
+                    `Carregar mais (${total - propostas.length} restantes)`
+                  )}
                 </button>
                 <span className="label-mono text-ink-3">
                   {propostas.length} de {total}
