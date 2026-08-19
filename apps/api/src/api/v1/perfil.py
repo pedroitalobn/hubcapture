@@ -48,9 +48,7 @@ async def zerar_perfil(
     return await service.zerar(session, user)
 
 
-@router.delete(
-    "/profile/municipalities/{ibge}", response_model=RemocaoMunicipioResultado
-)
+@router.delete("/profile/municipalities/{ibge}", response_model=RemocaoMunicipioResultado)
 async def remover_municipio(
     ibge: str,
     user: Usuario = Depends(current_active_user),
@@ -102,6 +100,10 @@ async def novidades_perfil(
     municipio: list[str] | None = _MUNICIPIO_QUERY,
     limite: int = Query(default=20, ge=1, le=200, description="tamanho da janela do feed"),
     ano: str | None = _ANO_QUERY,
+    fonte: str | None = Query(
+        default=None,
+        description="recorte de fonte: grupo ('transferegov', 'fns') ou connector id",
+    ),
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> NovidadesPerfil:
@@ -109,8 +111,9 @@ async def novidades_perfil(
 
     `limite` controla a profundidade da janela e `ano`, a safra: o filtro entra
     ANTES da janela, então escolher um ano anterior traz os itens daquele ano —
-    não só os que sobraram das novidades mais recentes.
+    não só os que sobraram das novidades mais recentes. `fonte` recorta por
+    grupo de fonte (o filtro global do trilho lateral) ou connector id.
     """
     return await service.novidades(
-        session, user, limite=limite, municipios_filtro=municipio, ano=ano
+        session, user, limite=limite, municipios_filtro=municipio, ano=ano, fonte=fonte
     )

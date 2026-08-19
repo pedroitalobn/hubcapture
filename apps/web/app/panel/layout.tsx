@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/AuthShell";
 import DynamicIsland from "@/components/DynamicIsland";
+import { FonteFiltro } from "@/components/FonteFiltro";
 import { TerritorioFiltro } from "@/components/TerritorioFiltro";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { IconeNav, type NomeIcone } from "@/components/icons";
@@ -113,7 +114,7 @@ export default function PainelLayout({
 function PainelShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { perfil, municipios, selecionados } = useTerritorio();
+  const { perfil, municipios, selecionados, fonteAtiva } = useTerritorio();
   const [admin, setAdmin] = useState(false);
 
   useEffect(() => {
@@ -155,6 +156,14 @@ function PainelShell({ children }: { children: React.ReactNode }) {
             )}
           </p>
           <TerritorioFiltro />
+          {/* Recorte de FONTE, logo abaixo do de município: de onde vêm os
+              dados em tela (TransfereGov | FNS). Filtro de leitura — a fonte
+              segue sendo detalhe de ingestão, nunca navegação (§19). */}
+          <p className="label-mono mb-1.5 mt-3">
+            Fonte
+            {fonteAtiva && <span className="ml-1.5 normal-case text-ink-2">(filtrada)</span>}
+          </p>
+          <FonteFiltro />
           {(perfil?.areas ?? []).length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {perfil!.areas.map((a) => (

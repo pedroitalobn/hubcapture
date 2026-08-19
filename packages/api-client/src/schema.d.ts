@@ -1757,7 +1757,8 @@ export interface paths {
          *
          *     `limite` controla a profundidade da janela e `ano`, a safra: o filtro entra
          *     ANTES da janela, então escolher um ano anterior traz os itens daquele ano —
-         *     não só os que sobraram das novidades mais recentes.
+         *     não só os que sobraram das novidades mais recentes. `fonte` recorta por
+         *     grupo de fonte (o filtro global do trilho lateral) ou connector id.
          */
         get: operations["novidades_perfil_api_v1_profile_feed_get"];
         put?: never;
@@ -9185,6 +9186,8 @@ export interface operations {
                 limite?: number;
                 /** @description safra (ano) do recorte; omitir = todos os anos */
                 ano?: string | null;
+                /** @description recorte de fonte: grupo ('transferegov', 'fns') ou connector id */
+                fonte?: string | null;
             };
             header?: never;
             path?: never;
@@ -9284,6 +9287,7 @@ export interface operations {
                 municipio?: string[] | null;
                 /** @description unidade federativa */
                 uf?: string | null;
+                /** @description grupo de fonte ('transferegov', 'fns') ou connector id */
                 fonte?: string | null;
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
@@ -9381,6 +9385,7 @@ export interface operations {
                 municipio?: string[] | null;
                 /** @description unidade federativa */
                 uf?: string | null;
+                /** @description grupo de fonte ('transferegov', 'fns') ou connector id */
                 fonte?: string | null;
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
@@ -9472,6 +9477,7 @@ export interface operations {
                 municipio?: string[] | null;
                 /** @description unidade federativa */
                 uf?: string | null;
+                /** @description grupo de fonte ('transferegov', 'fns') ou connector id */
                 fonte?: string | null;
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
@@ -9532,6 +9538,7 @@ export interface operations {
                 municipio?: string[] | null;
                 /** @description unidade federativa */
                 uf?: string | null;
+                /** @description grupo de fonte ('transferegov', 'fns') ou connector id */
                 fonte?: string | null;
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
@@ -9789,6 +9796,7 @@ export interface operations {
             query?: {
                 /** @description códigos IBGE (repita o parâmetro para vários municípios) */
                 municipio?: string[] | null;
+                /** @description grupo de fonte ('transferegov', 'fns') ou connector id */
                 fonte?: string | null;
                 inicio?: string | null;
                 fim?: string | null;
@@ -9913,6 +9921,8 @@ export interface operations {
             query?: {
                 /** @description códigos IBGE (repita o parâmetro para vários municípios) */
                 municipio?: string[] | null;
+                /** @description grupo de fonte ('transferegov', 'fns') ou connector id */
+                fonte?: string | null;
                 inicio?: string | null;
                 fim?: string | null;
             };

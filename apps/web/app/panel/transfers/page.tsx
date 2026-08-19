@@ -8,6 +8,7 @@ import { FilterChips } from "@/components/FilterChips";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
+import { paramFonte } from "@/lib/fontes";
 import { formatBRL } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
@@ -47,7 +48,7 @@ const FONTE_LABEL: Record<string, string> = {
 };
 
 export default function RepassesPage() {
-  const { selecionados } = useTerritorio();
+  const { selecionados, fonteAtiva } = useTerritorio();
   const [preset, setPreset] = useState<RangePreset>("30d");
   const [data, setData] = useState<VisaoGeral | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,6 +64,8 @@ export default function RepassesPage() {
         query: {
           inicio: presetToInicio(preset),
           municipio: paramMunicipio(selecionados),
+          // recorte global de fonte do trilho lateral (grupo ou connector id)
+          fonte: paramFonte(fonteAtiva),
         },
       },
     });
@@ -72,7 +75,7 @@ export default function RepassesPage() {
       setData(vg as VisaoGeral);
     }
     setLoading(false);
-  }, [preset, selecionados]);
+  }, [preset, selecionados, fonteAtiva]);
 
   useEffect(() => {
     void carregar();

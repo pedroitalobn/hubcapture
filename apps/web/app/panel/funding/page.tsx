@@ -17,6 +17,7 @@ import {
   municipioPrincipal,
   municipioSecundario,
 } from "@/lib/format";
+import { paramFonte } from "@/lib/fontes";
 import { paramMunicipio, rotuloMunicipio, useTerritorio } from "@/lib/territorio";
 import { cx } from "@/components/ui";
 
@@ -306,8 +307,9 @@ function CaptacaoExploracao() {
   const [alertas, setAlertas] = useState<Map<string, string>>(new Map());
   const [pastas, setPastas] = useState<Pasta[]>([]);
   const [pastaPropostas, setPastaPropostas] = useState<Set<string>>(new Set());
-  // território ativo: quais dos municípios do perfil estão em tela agora
-  const { selecionados, ativos: municipiosAtivos } = useTerritorio();
+  // recortes globais do trilho lateral: municípios do perfil em tela agora e
+  // a fonte dos dados (grupo TransfereGov | FNS; vazio = todas)
+  const { selecionados, ativos: municipiosAtivos, fonteAtiva } = useTerritorio();
   const [abas, setAbas] = useState<Aba[]>(abasIniciais);
   const [abaAtiva, setAbaAtiva] = useState<string>(
     () => abasIniciais()[0]?.id ?? "aba-1",
@@ -342,7 +344,9 @@ function CaptacaoExploracao() {
       // desta tela — vazio quando o usuário está vendo todos os municípios.
       municipio: paramMunicipio(selecionados),
       uf: filtros.uf || undefined,
-      fonte: filtros.fonte || undefined,
+      // o filtro local (connector id, mais específico) vence o recorte global
+      // de fonte do trilho lateral (grupo TransfereGov | FNS)
+      fonte: filtros.fonte || paramFonte(fonteAtiva),
       area: filtros.area || undefined,
       categoria: filtros.categoria || undefined,
       situacao: filtros.situacao || undefined,
@@ -359,7 +363,7 @@ function CaptacaoExploracao() {
       valor_max: filtros.valorMax || undefined,
       tipo: filtros.tipo || undefined,
     }),
-    [filtros, selecionados],
+    [filtros, selecionados, fonteAtiva],
   );
 
   /**
@@ -803,7 +807,7 @@ function CaptacaoExploracao() {
           // o relatório sai no mesmo recorte da tela, território incluído
           municipio: selecionados,
           uf: filtros.uf,
-          fonte: filtros.fonte,
+          fonte: filtros.fonte || paramFonte(fonteAtiva),
           area: filtros.area,
           categoria: filtros.categoria,
           situacao: filtros.situacao,

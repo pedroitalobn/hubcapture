@@ -33,6 +33,7 @@ from ..schemas.repasse import (
     SerieAnoEmendas,
     VisaoGeral,
 )
+from . import fontes as fontes_service
 from . import municipios
 from ._sync import registrar_sync
 from ._territorio import Municipios
@@ -80,7 +81,9 @@ async def listar(
     # um município, vários (recorte do painel) ou nenhum (todo o território)
     stmt = filtrar_municipio(stmt, Repasse.municipio_ibge, municipio)
     if fonte:
-        stmt = stmt.where(Repasse.fonte == fonte)
+        # aceita grupo ("fns", "transferegov") além do connector id — mesmo
+        # contrato do filtro de fonte da captação (filtro global do painel)
+        stmt = stmt.where(Repasse.fonte.in_(fontes_service.expandir_filtro(fonte)))
     if inicio:
         stmt = stmt.where(Repasse.data_repasse >= inicio)
     if fim:
@@ -123,11 +126,12 @@ async def visao_geral(
     session: AsyncSession,
     *,
     municipio: Municipios = None,
+    fonte: str | None = None,
     inicio: date | None = None,
     fim: date | None = None,
 ) -> VisaoGeral:
     """Painel consolidado: KPI de total pago, cards por fonte e feed por data."""
-    rows = await listar(session, municipio=municipio, inicio=inicio, fim=fim)
+    rows = await listar(session, municipio=municipio, fonte=fonte, inicio=inicio, fim=fim)
 
     total = Decimal(0)
     por_fonte_total: dict[str, Decimal] = defaultdict(lambda: Decimal(0))

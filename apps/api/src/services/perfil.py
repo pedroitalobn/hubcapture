@@ -216,9 +216,7 @@ async def remover_municipio(
     session.add(
         AuditLog(usuario_id=usuario.id, acao="remover_municipio", entidade=f"municipio:{alvo}")
     )
-    return RemocaoMunicipioResultado(
-        ibge=alvo, buscas_monitoradas=int(buscas.rowcount or 0)
-    )
+    return RemocaoMunicipioResultado(ibge=alvo, buscas_monitoradas=int(buscas.rowcount or 0))
 
 
 async def zerar(session: AsyncSession, usuario: Usuario) -> ResetPerfilResultado:
@@ -376,7 +374,9 @@ async def visao_geral(
                     select(
                         func.count(Proposta.id),
                         func.coalesce(func.sum(Proposta.valor_total), 0),
-                    ).where(Proposta.excluido_em.is_(None)),  # zerada não conta
+                    ).where(
+                        Proposta.excluido_em.is_(None)
+                    ),  # zerada não conta
                     Proposta.municipio_ibge,
                 )
             )
@@ -544,6 +544,7 @@ async def novidades(
     limite: int = 20,
     municipios_filtro: Municipios = None,
     ano: str | None = None,
+    fonte: str | None = None,
 ) -> NovidadesPerfil:
     """Últimas novidades do território: propostas (captação) e verbas (recebidos).
 
@@ -559,6 +560,9 @@ async def novidades(
     permanentemente vazios, porque a janela nunca alcançava esses itens. `anos`
     volta sempre com o território inteiro, para o filtro não perder as opções
     que ele mesmo escondeu.
+
+    `fonte` é o recorte global de fonte do painel (grupo "transferegov"/"fns"
+    ou connector id) — entra antes da janela, como o ano.
     """
     pref = await _preferencias(session, usuario.id)
     fontes = _fontes_do_perfil(pref)
@@ -571,6 +575,13 @@ async def novidades(
     stmt_r = select(Repasse).order_by(Repasse.data_repasse.desc().nullslast())
     stmt_p = filtrar_municipio(stmt_p, Proposta.municipio_ibge, municipios_filtro)
     stmt_r = filtrar_municipio(stmt_r, Repasse.municipio_ibge, municipios_filtro)
+    if fonte:
+        # recorte do filtro global de fonte do painel: grupo ("transferegov",
+        # "fns") ou connector id. Condição INDEPENDENTE do recorte fino do
+        # perfil (abaixo) — os dois se somam por E, nunca se substituem.
+        do_filtro = fontes_service.expandir_filtro(fonte)
+        stmt_p = stmt_p.where(Proposta.fonte.in_(do_filtro))
+        stmt_r = stmt_r.where(Repasse.fonte.in_(do_filtro))
     if fontes:
         stmt_p = stmt_p.where(Proposta.fonte.in_(fontes))
         stmt_r = stmt_r.where(Repasse.fonte.in_(fontes))

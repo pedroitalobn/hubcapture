@@ -84,6 +84,17 @@ def expandir(escolhas: list[str] | None) -> list[str]:
     return saida
 
 
+def expandir_filtro(fonte: str) -> list[str]:
+    """Valor de um FILTRO de fonte → connector ids a casar no cache.
+
+    Aceita grupo ("transferegov", "fns") — é o que o filtro global de fonte do
+    painel manda — além do connector id de sempre. Connector fora do recorte
+    volta como veio: o cache pode guardar fontes hoje desabilitadas (§30) e o
+    filtro exato continua funcionando para elas.
+    """
+    return expandir([fonte]) or [fonte]
+
+
 def grupo_de(fonte: str) -> str | None:
     """Connector id → grupo que o usuário reconhece (None se fora do recorte)."""
     for chave, grupo in GRUPOS.items():

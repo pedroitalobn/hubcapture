@@ -52,7 +52,9 @@ async def listar_repasses(
     municipio: list[str] | None = Query(
         default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
     ),
-    fonte: str | None = Query(default=None),
+    fonte: str | None = Query(
+        default=None, description="grupo de fonte ('transferegov', 'fns') ou connector id"
+    ),
     inicio: date | None = Query(default=None),
     fim: date | None = Query(default=None),
     emenda: bool | None = Query(default=None, description="só repasses de emenda"),
@@ -108,11 +110,16 @@ async def visao_geral(
     municipio: list[str] | None = Query(
         default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
     ),
+    fonte: str | None = Query(
+        default=None, description="grupo de fonte ('transferegov', 'fns') ou connector id"
+    ),
     inicio: date | None = Query(default=None),
     fim: date | None = Query(default=None),
     session: AsyncSession = Depends(get_rls_db),
 ) -> VisaoGeral:
-    return await service.visao_geral(session, municipio=municipio, inicio=inicio, fim=fim)
+    return await service.visao_geral(
+        session, municipio=municipio, fonte=fonte, inicio=inicio, fim=fim
+    )
 
 
 @router.post("/transfers/sync", response_model=dict)

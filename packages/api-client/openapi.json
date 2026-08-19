@@ -14786,7 +14786,7 @@
     },
     "/api/v1/profile/feed": {
       "get": {
-        "description": "Feed 'últimas novidades' do território, recortado pelo perfil do usuário.\n\n`limite` controla a profundidade da janela e `ano`, a safra: o filtro entra\nANTES da janela, então escolher um ano anterior traz os itens daquele ano —\nnão só os que sobraram das novidades mais recentes.",
+        "description": "Feed 'últimas novidades' do território, recortado pelo perfil do usuário.\n\n`limite` controla a profundidade da janela e `ano`, a safra: o filtro entra\nANTES da janela, então escolher um ano anterior traz os itens daquele ano —\nnão só os que sobraram das novidades mais recentes. `fonte` recorta por\ngrupo de fonte (o filtro global do trilho lateral) ou connector id.",
         "operationId": "novidades_perfil_api_v1_profile_feed_get",
         "parameters": [
           {
@@ -14841,6 +14841,24 @@
               ],
               "description": "safra (ano) do recorte; omitir = todos os anos",
               "title": "Ano"
+            }
+          },
+          {
+            "description": "recorte de fonte: grupo ('transferegov', 'fns') ou connector id",
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "recorte de fonte: grupo ('transferegov', 'fns') ou connector id",
+              "title": "Fonte"
             }
           }
         ],
@@ -15050,6 +15068,7 @@
             }
           },
           {
+            "description": "grupo de fonte ('transferegov', 'fns') ou connector id",
             "in": "query",
             "name": "fonte",
             "required": false,
@@ -15062,6 +15081,7 @@
                   "type": "null"
                 }
               ],
+              "description": "grupo de fonte ('transferegov', 'fns') ou connector id",
               "title": "Fonte"
             }
           },
@@ -15530,6 +15550,7 @@
             }
           },
           {
+            "description": "grupo de fonte ('transferegov', 'fns') ou connector id",
             "in": "query",
             "name": "fonte",
             "required": false,
@@ -15542,6 +15563,7 @@
                   "type": "null"
                 }
               ],
+              "description": "grupo de fonte ('transferegov', 'fns') ou connector id",
               "title": "Fonte"
             }
           },
@@ -15928,6 +15950,7 @@
             }
           },
           {
+            "description": "grupo de fonte ('transferegov', 'fns') ou connector id",
             "in": "query",
             "name": "fonte",
             "required": false,
@@ -15940,6 +15963,7 @@
                   "type": "null"
                 }
               ],
+              "description": "grupo de fonte ('transferegov', 'fns') ou connector id",
               "title": "Fonte"
             }
           },
@@ -16297,6 +16321,7 @@
             }
           },
           {
+            "description": "grupo de fonte ('transferegov', 'fns') ou connector id",
             "in": "query",
             "name": "fonte",
             "required": false,
@@ -16309,6 +16334,7 @@
                   "type": "null"
                 }
               ],
+              "description": "grupo de fonte ('transferegov', 'fns') ou connector id",
               "title": "Fonte"
             }
           },
@@ -16979,6 +17005,7 @@
             }
           },
           {
+            "description": "grupo de fonte ('transferegov', 'fns') ou connector id",
             "in": "query",
             "name": "fonte",
             "required": false,
@@ -16991,6 +17018,7 @@
                   "type": "null"
                 }
               ],
+              "description": "grupo de fonte ('transferegov', 'fns') ou connector id",
               "title": "Fonte"
             }
           },
@@ -17515,6 +17543,24 @@
               ],
               "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
+            }
+          },
+          {
+            "description": "grupo de fonte ('transferegov', 'fns') ou connector id",
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "grupo de fonte ('transferegov', 'fns') ou connector id",
+              "title": "Fonte"
             }
           },
           {

@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..ai import categorias as categorias_ai
 from ..models.proposta import Proposta
 from ..schemas.proposta import PropostaCanonica
+from . import fontes as fontes_service
 from ._territorio import Municipios
 from ._territorio import condicao as condicao_municipio
 from ._territorio import filtrar as filtrar_municipio
@@ -426,7 +427,10 @@ def _condicoes(
     if uf:
         condicoes.append(Proposta.uf == uf.upper())
     if fonte:
-        condicoes.append(Proposta.fonte == fonte)
+        # aceita GRUPO ("transferegov", "fns") além do connector id — é o que o
+        # filtro global de fonte do trilho lateral manda (mesma filosofia de
+        # `fontes.expandir`: o usuário fala grupo, a ingestão fala connector)
+        condicoes.append(Proposta.fonte.in_(fontes_service.expandir_filtro(fonte)))
     if situacao:
         condicoes.append(Proposta.situacao == situacao)
     if modalidade:
@@ -636,6 +640,10 @@ def _casa(p: Proposta, filtros: dict[str, Filtro], ignorar: str | None = None) -
         escolhidos = _escolhidos(valor)
         if not escolhidos or dim == ignorar:
             continue
+        if dim == "fonte":
+            # o filtro pode chegar como GRUPO (filtro global do painel):
+            # expande para os connector ids antes de casar com `p.fonte`
+            escolhidos = [c for v in escolhidos for c in fontes_service.expandir_filtro(v)]
         # multi-seleção casa por interseção: a proposta entra se bate com QUALQUER
         # valor escolhido (é um OU dentro da dimensão, E entre dimensões).
         if not set(escolhidos) & set(_valores(dim, p)):

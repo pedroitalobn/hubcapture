@@ -2014,3 +2014,32 @@ como ZIP nacional. Agora um job diário baixa, descompacta e carrega.
   `proposta.ANO_PROP` para o filtro de safra funcionar e marcamos
   `proveniencia.ano = 'derivado:…'`. **Partido e UF do parlamentar** também não
   existem no pacote: vêm do connector `emendas` (Portal da Transparência).
+
+## 51. Filtro global de FONTE no trilho lateral (TransfereGov | FNS)
+
+Abaixo do filtro de município (§33) entrou um recorte global de **fonte dos
+dados**, para o usuário escolher de onde quer ver os dados agora. O usuário
+fala **GRUPO** (§30: `transferegov`, `fns`), nunca connector id — e a §19
+continua intacta: é um FILTRO de leitura, nunca navegação (fonte não vira aba).
+
+- **Backend** — `services/fontes.py::expandir_filtro(fonte)`: valor de filtro →
+  connector ids (grupo expande; connector id — mesmo fora do recorte, que pode
+  existir no cache — volta como veio). Aceitam grupo OU connector id: o `fonte`
+  de propostas (lista/facetas/resumo/relatório via `_condicoes`; nas facetas o
+  `_casa` expande o grupo e a dimensão fonte segue ignorando o próprio filtro),
+  o de repasses (`listar` e `GET /transfers/overview`, que ganhou o parâmetro)
+  e o novo `GET /profile/feed?fonte=` (condição INDEPENDENTE do recorte fino
+  do perfil — somam por E).
+- **Web** — `lib/fontes.ts` (espelho dos grupos do backend + `paramFonte`;
+  `grupoDeFonte` devolve `null` p/ fonte fora do recorte — não empurra para um
+  grupo errado). O estado vive no `TerritorioProvider` (`fonteAtiva`,
+  `localStorage hub_fonte_ativa`, limpo junto do território ao zerar o perfil).
+  `components/FonteFiltro.tsx` (chips Todas · TransfereGov · FNS; clicar no
+  ativo volta a "Todas") montado em `app/panel/layout.tsx` sob o rótulo
+  "Fonte". Telas que mandam o recorte: Meu painel (feed + panorama), Captação
+  (lista/facetas/relatório — o filtro LOCAL de connector id vence o global),
+  Resumo da captação e Recursos recebidos (overview).
+- Com o recorte v1 (§30), escolher FNS zera a captação e escolher TransfereGov
+  zera os recebidos — comportamento honesto, não bug: o valor real hoje está no
+  feed do Meu painel, que mistura os dois eixos. Ligar fonte nova = entrada nos
+  registros dos §30 e `lib/fontes.ts`; o filtro acompanha sozinho.

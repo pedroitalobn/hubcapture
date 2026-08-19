@@ -8,6 +8,7 @@ import { NumeroProposta } from "@/components/NumeroProposta";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
+import { paramFonte } from "@/lib/fontes";
 import { formatBRL, humanizarCaixa, recortarTexto } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
@@ -39,7 +40,7 @@ function numBR(v?: string | number | null): number {
 }
 
 function PanoramaFinanceiro({ ano }: { ano: string }) {
-  const { selecionados } = useTerritorio();
+  const { selecionados, fonteAtiva } = useTerritorio();
   const [resumo, setResumo] = useState<ResumoPainelData | null>(null);
   const [carregando, setCarregando] = useState(true);
 
@@ -51,6 +52,7 @@ function PanoramaFinanceiro({ ano }: { ano: string }) {
           query: {
             ano: ano || undefined,
             municipio: paramMunicipio(selecionados),
+            fonte: paramFonte(fonteAtiva),
           },
         } as never,
       })
@@ -66,7 +68,7 @@ function PanoramaFinanceiro({ ano }: { ano: string }) {
         if (ok) setResumo(data as ResumoPainelData);
         setCarregando(false);
       });
-  }, [ano, selecionados]);
+  }, [ano, selecionados, fonteAtiva]);
 
   if (carregando && !resumo) return <SkeletonCards />;
   if (!resumo) return null;
@@ -279,8 +281,9 @@ function lerAnoSalvo(): string {
 function MeuPainel() {
   const searchParams = useSearchParams();
   const sincronizando = searchParams.get("sync") === "1";
-  // recorte de município escolhido no trilho lateral (vazio = todo o território)
-  const { selecionados } = useTerritorio();
+  // recortes do trilho lateral: municípios (vazio = todo o território) e a
+  // fonte dos dados (vazio = todas — TransfereGov e FNS)
+  const { selecionados, fonteAtiva } = useTerritorio();
 
   const [data, setData] = useState<VisaoGeral | null>(null);
   const [novidades, setNovidades] = useState<Novidades | null>(null);
@@ -305,7 +308,9 @@ function MeuPainel() {
     const [{ data: vg }, { data: nov }] = await Promise.all([
       api.GET("/api/v1/profile/overview", { params: { query } }),
       api.GET("/api/v1/profile/feed", {
-        params: { query: { ...query, limite: FEED_LIMITE } },
+        params: {
+          query: { ...query, limite: FEED_LIMITE, fonte: paramFonte(fonteAtiva) },
+        },
       }),
     ]);
     if (vg) setData(vg as VisaoGeral);
@@ -315,7 +320,7 @@ function MeuPainel() {
     // ausente — um nível a menos de defesa do que o próprio `?.` pretendia.
     // Sem o segundo `?.`, um feed sem `itens` derruba a tela inicial inteira.
     return (nov as Novidades | undefined)?.itens?.length ?? 0;
-  }, [selecionados, ano]);
+  }, [selecionados, ano, fonteAtiva]);
 
   useEffect(() => {
     void carregar();

@@ -39,6 +39,7 @@ export interface Perfil {
 }
 
 const CHAVE = "hub_territorio_ativo";
+const CHAVE_FONTE = "hub_fonte_ativa";
 
 interface TerritorioCtx {
   perfil: Perfil | null;
@@ -49,9 +50,12 @@ interface TerritorioCtx {
   selecionados: string[];
   /** Municípios efetivamente em tela (o recorte, ou todos). */
   ativos: MunicipioPerfil[];
+  /** Recorte global de FONTE (grupo "transferegov" | "fns"); vazio = todas. */
+  fonteAtiva: string;
   alternar: (ibge: string) => void;
   apenas: (ibge: string) => void;
   todos: () => void;
+  definirFonte: (grupo: string) => void;
   recarregar: () => Promise<void>;
 }
 
@@ -68,16 +72,23 @@ function lerSalvos(): string[] {
   }
 }
 
+function lerFonteSalva(): string {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem(CHAVE_FONTE) ?? "";
+}
+
 /** Esquece o recorte salvo (usado ao zerar o perfil: o território deixa de existir). */
 export function limparTerritorioSalvo(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(CHAVE);
+  window.localStorage.removeItem(CHAVE_FONTE);
 }
 
 export function TerritorioProvider({ children }: { children: React.ReactNode }) {
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [selecionados, setSelecionados] = useState<string[]>(lerSalvos);
+  const [fonteAtiva, setFonteAtiva] = useState<string>(lerFonteSalva);
 
   const recarregar = useCallback(async () => {
     const { data } = await api.GET("/api/v1/profile");
@@ -104,6 +115,10 @@ export function TerritorioProvider({ children }: { children: React.ReactNode }) 
     window.localStorage.setItem(CHAVE, JSON.stringify(selecionados));
   }, [selecionados]);
 
+  useEffect(() => {
+    window.localStorage.setItem(CHAVE_FONTE, fonteAtiva);
+  }, [fonteAtiva]);
+
   const municipios = useMemo(() => perfil?.municipios ?? [], [perfil]);
 
   const valor = useMemo<TerritorioCtx>(() => {
@@ -116,15 +131,17 @@ export function TerritorioProvider({ children }: { children: React.ReactNode }) 
       ativos: escolhidos.size
         ? municipios.filter((m) => escolhidos.has(m.ibge))
         : municipios,
+      fonteAtiva,
       alternar: (ibge) =>
         setSelecionados((prev) =>
           prev.includes(ibge) ? prev.filter((i) => i !== ibge) : [...prev, ibge],
         ),
       apenas: (ibge) => setSelecionados([ibge]),
       todos: () => setSelecionados([]),
+      definirFonte: setFonteAtiva,
       recarregar,
     };
-  }, [perfil, carregando, municipios, selecionados, recarregar]);
+  }, [perfil, carregando, municipios, selecionados, fonteAtiva, recarregar]);
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
 }
