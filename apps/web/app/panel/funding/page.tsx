@@ -904,8 +904,13 @@ function CaptacaoExploracao() {
         {abas.map((a) => (
           <span
             key={a.id}
-            className={`inline-flex items-center overflow-hidden rounded-t-lg border border-b-0 border-hairline text-sm ${
-              a.id === abaAtiva ? "bg-surface-2 font-medium" : "text-ink-2"
+            /* a aba ativa carrega o fio de gradiente da marca (mesma
+               assinatura do card); a inativa reage ao ponteiro em vez de
+               ficar parada — era o único controle da tela sem hover. */
+            className={`relative inline-flex items-center overflow-hidden rounded-t-lg border border-b-0 border-hairline text-sm transition-colors duration-200 ${
+              a.id === abaAtiva
+                ? "bg-surface-2 font-medium before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-[image:var(--grad-brand)]"
+                : "text-ink-2 hover:border-ink-2 hover:bg-surface-2/60 hover:text-ink"
             }`}
           >
             <button
@@ -919,7 +924,7 @@ function CaptacaoExploracao() {
             {abas.length > 1 && (
               <button
                 onClick={() => fecharAba(a.id)}
-                className="pr-2 text-ink-3 hover:text-ink"
+                className="pressable pr-2 text-ink-3 hover:text-danger"
                 aria-label={`Fechar aba ${a.nome}`}
               >
                 ×
