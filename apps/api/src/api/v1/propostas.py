@@ -109,7 +109,8 @@ async def listar_propostas(
     session: AsyncSession = Depends(get_rls_db),
 ) -> PropostasPagina:
     """Página da listagem lida do banco (cache-first) + total do recorte."""
-    rows, total = await propostas_service.listar_pagina(session, **filtros.model_dump())
+    dados = filtros.model_dump()
+    rows, total = await propostas_service.listar_pagina(session, **dados)
     return PropostasPagina(
         # o nome do município lidera a exibição — completa o que a fonte não trouxe
         itens=await municipios_service.enriquecer(
@@ -118,6 +119,7 @@ async def listar_propostas(
         total=total,
         limite=filtros.limite,
         offset=filtros.offset,
+        atualizado_em=await propostas_service.atualizado_em(session, **dados),
     )
 
 

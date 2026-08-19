@@ -160,6 +160,11 @@ class PropostasPagina(BaseModel):
     total: int
     limite: int | None = None
     offset: int = 0
+    # Quando a coleta mais recente DESTE recorte tocou o cache. A lista é lida
+    # do banco (o sweep diário é quem alimenta), então sem este carimbo o painel
+    # não tem como dizer de quando é o dado — e "o número mudou" vira mistério
+    # em vez de "a coleta das 03h trouxe novidade".
+    atualizado_em: datetime | None = None
 
 
 class PropostaPrazo(BaseModel):

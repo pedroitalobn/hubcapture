@@ -539,6 +539,29 @@ async def listar_pagina(
     return rows, total
 
 
+async def atualizado_em(session: AsyncSession, **filtros) -> datetime | None:
+    """Coleta mais recente que tocou este recorte (max `cache_atualizado_em`).
+
+    É o carimbo de idade que o painel mostra. A lista é servida do banco — quem
+    alimenta é o sweep diário —, então sem dizer DE QUANDO é o dado o gestor não
+    tem como distinguir "a fonte não tem mais nada" de "ninguém coletou ainda".
+    """
+    condicoes = _condicoes(
+        municipio=filtros.get("municipio"),
+        uf=filtros.get("uf"),
+        fonte=filtros.get("fonte"),
+        situacao=filtros.get("situacao"),
+        area=filtros.get("area"),
+        valor_min=filtros.get("valor_min"),
+        valor_max=filtros.get("valor_max"),
+        q=filtros.get("q"),
+        modalidade=filtros.get("modalidade"),
+        orgao=filtros.get("orgao"),
+    )
+    stmt = select(func.max(Proposta.cache_atualizado_em)).where(*condicoes)
+    return (await session.execute(stmt)).scalar_one_or_none()
+
+
 async def listar(session: AsyncSession, **filtros) -> list[Proposta]:
     """O recorte inteiro (sem total). Ver `listar_pagina` para os filtros."""
     rows, _ = await listar_pagina(session, **filtros)
