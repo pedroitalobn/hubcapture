@@ -95,7 +95,10 @@ export async function garantirSessao(): Promise<string | null> {
 }
 
 /** Client tipado (openapi-fetch) — injeta o Bearer, renovando quando vencido. */
-export const api = createHubClient({ baseUrl: API_ORIGIN, getToken: garantirSessao });
+export const api = createHubClient({
+  baseUrl: API_ORIGIN,
+  getToken: garantirSessao,
+});
 
 /**
  * Zera TODAS as propostas do sistema (admin/superuser) — uso: validação da
@@ -108,7 +111,8 @@ export async function zerarPropostas(): Promise<{ removidas: number }> {
     method: "DELETE",
     headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
   });
-  if (!resp.ok) throw new Error(`Falha ao zerar propostas (HTTP ${resp.status})`);
+  if (!resp.ok)
+    throw new Error(`Falha ao zerar propostas (HTTP ${resp.status})`);
   return resp.json();
 }
 
@@ -118,7 +122,48 @@ export async function restaurarPropostas(): Promise<{ removidas: number }> {
     method: "POST",
     headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
   });
-  if (!resp.ok) throw new Error(`Falha ao restaurar propostas (HTTP ${resp.status})`);
+  if (!resp.ok)
+    throw new Error(`Falha ao restaurar propostas (HTTP ${resp.status})`);
+  return resp.json();
+}
+
+export interface ExecucaoSiconv {
+  status: string | null;
+  registros: number | null;
+  iniciado_em: string | null;
+  finalizado_em: string | null;
+  erro: string | null;
+}
+
+export interface EstadoCargaSiconv {
+  rodando: boolean;
+  iniciado_em: string | null;
+  arquivos: { tabela: string; descricao: string; carrega: boolean }[];
+  execucoes: ExecucaoSiconv[];
+}
+
+/** Estado da carga do pacote SIconv — em andamento? o que deu nas últimas? */
+export async function estadoCargaSiconv(): Promise<EstadoCargaSiconv> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/admin/siconv/load`, {
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+    cache: "no-store",
+  });
+  if (!resp.ok)
+    throw new Error(`Falha ao ler o estado da carga (HTTP ${resp.status})`);
+  return resp.json();
+}
+
+/** Dispara a carga do SIconv agora (admin). Responde na hora; a carga segue no servidor. */
+export async function dispararCargaSiconv(): Promise<{
+  disparada: boolean;
+  detalhe: string;
+}> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/admin/siconv/load`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+  });
+  if (!resp.ok)
+    throw new Error(`Falha ao disparar a carga (HTTP ${resp.status})`);
   return resp.json();
 }
 
@@ -143,7 +188,8 @@ export async function zerarPerfil(): Promise<ResetPerfil> {
     method: "DELETE",
     headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
   });
-  if (!resp.ok) throw new Error(`Falha ao zerar o perfil (HTTP ${resp.status})`);
+  if (!resp.ok)
+    throw new Error(`Falha ao zerar o perfil (HTTP ${resp.status})`);
   return resp.json();
 }
 
@@ -174,7 +220,8 @@ export async function excluirConvite(id: string): Promise<void> {
     method: "DELETE",
     headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
   });
-  if (!resp.ok) throw new Error(`Falha ao excluir convite (HTTP ${resp.status})`);
+  if (!resp.ok)
+    throw new Error(`Falha ao excluir convite (HTTP ${resp.status})`);
 }
 
 /** Exclui um usuário (admin). FKs CASCADE limpam favoritos/monitoramentos/etc. */
@@ -183,7 +230,8 @@ export async function excluirUsuario(id: string): Promise<void> {
     method: "DELETE",
     headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
   });
-  if (!resp.ok) throw new Error(`Falha ao excluir usuário (HTTP ${resp.status})`);
+  if (!resp.ok)
+    throw new Error(`Falha ao excluir usuário (HTTP ${resp.status})`);
 }
 
 /** Dispara um e-mail de teste (admin) e devolve o resultado do provedor. */
@@ -240,7 +288,11 @@ export async function exportarEspelhoProposta(
     window.matchMedia?.("(pointer: coarse)").matches;
   // `canShare` com o arquivo é a checagem que importa: há navegador com
   // navigator.share que recusa anexos, e aí a folha abriria sem o PDF.
-  if (compartilhar !== false && toque && navigator.canShare?.({ files: [arquivo] })) {
+  if (
+    compartilhar !== false &&
+    toque &&
+    navigator.canShare?.({ files: [arquivo] })
+  ) {
     try {
       await navigator.share({ files: [arquivo], title: nome });
       return "compartilhado";
@@ -266,7 +318,11 @@ export async function exportarEspelhoProposta(
 export async function enviarMidiaAjuda(
   artigoId: string,
   arquivo: File,
-  opts: { tipo: "video" | "documento"; titulo?: string; orientacao?: "horizontal" | "vertical" },
+  opts: {
+    tipo: "video" | "documento";
+    titulo?: string;
+    orientacao?: "horizontal" | "vertical";
+  },
 ): Promise<void> {
   const form = new FormData();
   form.append("arquivo", arquivo);
@@ -282,7 +338,9 @@ export async function enviarMidiaAjuda(
     },
   );
   if (!resp.ok) {
-    const corpo = (await resp.json().catch(() => null)) as { detail?: string } | null;
+    const corpo = (await resp.json().catch(() => null)) as {
+      detail?: string;
+    } | null;
     throw new Error(
       typeof corpo?.detail === "string"
         ? corpo.detail
@@ -322,14 +380,18 @@ export async function importarContatosVcf(arquivo: File) {
  */
 export async function baixarCsv(
   path: string,
-  params: Record<string, string | number | boolean | string[] | null | undefined>,
+  params: Record<
+    string,
+    string | number | boolean | string[] | null | undefined
+  >,
   filename: string,
 ): Promise<void> {
   const qs = new URLSearchParams();
   for (const [chave, valor] of Object.entries(params)) {
     if (valor === null || valor === undefined || valor === "") continue;
     // lista = parâmetro repetido (?municipio=A&municipio=B), como a API espera
-    if (Array.isArray(valor)) valor.forEach((v) => v !== "" && qs.append(chave, String(v)));
+    if (Array.isArray(valor))
+      valor.forEach((v) => v !== "" && qs.append(chave, String(v)));
     else qs.set(chave, String(valor));
   }
   const resp = await fetch(`${API_ORIGIN}${path}?${qs.toString()}`, {
@@ -464,7 +526,10 @@ export async function esqueciSenha(email: string): Promise<void> {
 }
 
 /** Redefine a senha a partir do token recebido por e-mail. */
-export async function redefinirSenha(token: string, senha: string): Promise<void> {
+export async function redefinirSenha(
+  token: string,
+  senha: string,
+): Promise<void> {
   const { error } = await api.POST("/api/v1/auth/reset-password", {
     body: { token, password: senha },
   });
@@ -519,7 +584,10 @@ export async function islandStream(
       "Content-Type": "application/json",
       Authorization: `Bearer ${(await garantirSessao()) ?? ""}`,
     },
-    body: JSON.stringify({ pergunta, municipios: municipios?.length ? municipios : null }),
+    body: JSON.stringify({
+      pergunta,
+      municipios: municipios?.length ? municipios : null,
+    }),
   });
   if (!resp.body) return;
   const reader = resp.body.getReader();

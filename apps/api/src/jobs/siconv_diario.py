@@ -479,6 +479,43 @@ async def sweep() -> dict:
             await conn.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": LOCK_ID})
 
 
+# --------------------------------------------------------------------------
+# disparo sob demanda (botão do painel admin)
+# --------------------------------------------------------------------------
+
+# A carga leva minutos e baixa centenas de MB. O advisory lock do `sweep` já
+# protege contra duas RÉPLICAS carregando junto; este guarda protege contra o
+# clique duplo no mesmo processo — e é o que deixa a API responder "já está
+# rodando" na hora, sem ir ao banco.
+_execucao: asyncio.Task | None = None
+_inicio_execucao: datetime | None = None
+
+
+def esta_rodando() -> bool:
+    return _execucao is not None and not _execucao.done()
+
+
+def inicio_da_execucao() -> datetime | None:
+    return _inicio_execucao if esta_rodando() else None
+
+
+def disparar() -> bool:
+    """Agenda uma carga agora. `False` = já havia uma em andamento.
+
+    `asyncio.create_task` e não `BackgroundTasks`: a mesma razão do §19b — o
+    BackgroundTasks roda antes do teardown da sessão do request e prenderia a
+    resposta atrás de uma carga de minutos. Aqui a request devolve na hora e a
+    carga segue no event loop; ela é toda I/O (download em stream, unzip em
+    thread, COPY assíncrono), então não trava quem está usando o painel.
+    """
+    global _execucao, _inicio_execucao
+    if esta_rodando():
+        return False
+    _inicio_execucao = datetime.now(UTC)
+    _execucao = asyncio.create_task(sweep())
+    return True
+
+
 def _segundos_ate_proxima_execucao(agora: datetime) -> float:
     alvo = agora.replace(hour=HORA_UTC, minute=0, second=0, microsecond=0)
     if alvo <= agora:

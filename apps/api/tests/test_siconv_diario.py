@@ -10,6 +10,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+
 from src.connectors import siconv_downloads
 from src.jobs import siconv_diario as job
 
@@ -305,3 +307,48 @@ def test_recorte_de_tabelas_pelo_ambiente(monkeypatch):
     assert job.tabelas_alvo() == ("emenda", "proposta")
     monkeypatch.setattr(job, "_TABELAS_ENV", [])
     assert job.tabelas_alvo() == siconv_downloads.CARREGADAS
+
+
+# --------------------------------------------------------------------------
+# botão do painel admin
+# --------------------------------------------------------------------------
+
+
+async def test_disparo_nao_empilha_carga(monkeypatch):
+    """Clique repetido não dispara duas cargas — a segunda volta `False`."""
+    import asyncio
+
+    pausa = asyncio.Event()
+
+    async def _sweep_lento():
+        await pausa.wait()
+        return {"status": "ok"}
+
+    monkeypatch.setattr(job, "sweep", _sweep_lento)
+    monkeypatch.setattr(job, "_execucao", None)
+
+    assert job.disparar() is True
+    assert job.esta_rodando() is True
+    assert job.inicio_da_execucao() is not None
+    assert job.disparar() is False  # o clique duplo
+
+    pausa.set()
+    await job._execucao
+    assert job.esta_rodando() is False
+    assert job.inicio_da_execucao() is None
+
+
+async def test_disparo_libera_apos_falha(monkeypatch):
+    """Carga que estoura não pode deixar o botão travado para sempre."""
+
+    async def _sweep_ruim():
+        raise RuntimeError("fonte fora do ar")
+
+    monkeypatch.setattr(job, "sweep", _sweep_ruim)
+    monkeypatch.setattr(job, "_execucao", None)
+
+    assert job.disparar() is True
+    with pytest.raises(RuntimeError):
+        await job._execucao
+    assert job.esta_rodando() is False
+    assert job.disparar() is True  # dá para tentar de novo

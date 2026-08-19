@@ -2009,6 +2009,16 @@ como ZIP nacional. Agora um job diário baixa, descompacta e carrega.
   (a cadeia de execução custa centenas de MB a mais por dia). Vazio = catálogo
   inteiro. `aplicar_carga` só roda o upsert cujos arquivos estão presentes —
   baixar menos degrada o escopo, não quebra o job.
+- **Botão no painel admin** (`app/admin/sources`, superuser): `POST /admin/siconv/load`
+  dispara a carga AGORA e `GET /admin/siconv/load` devolve o estado (em andamento?
+  últimas 5 execuções de `sync_runs`). O disparo é `asyncio.create_task` sobre o
+  MESMO `sweep()` do agendador — nunca `BackgroundTasks` (§19b): a resposta sai na
+  hora e a carga segue no event loop, que ela é toda I/O (download em stream,
+  unzip em thread, COPY assíncrono). Guarda em memória (`esta_rodando`) impede o
+  clique duplo de empilhar carga, e a página faz poll de 10s enquanto roda. Os
+  nomes dos ZIPs foram conferidos contra a página oficial: `siconv_<tabela>.zip`
+  para as quatro carregadas (~245 MB somadas), mas `apoiadores_emendas_programas`
+  vai SEM o prefixo — daí o candidato próprio.
 - **O que a fonte NÃO publica** (e não é inventado): o **ano da emenda** —
   `NR_EMENDA` é código do autor + sequencial. Gravamos `ano` a partir de
   `proposta.ANO_PROP` para o filtro de safra funcionar e marcamos

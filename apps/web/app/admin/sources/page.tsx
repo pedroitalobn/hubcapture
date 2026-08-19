@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Skeleton } from "@/components/Skeleton";
-import { api, restaurarPropostas, zerarPropostas } from "@/lib/api/client";
+import {
+  api,
+  dispararCargaSiconv,
+  estadoCargaSiconv,
+  restaurarPropostas,
+  zerarPropostas,
+  type EstadoCargaSiconv,
+} from "@/lib/api/client";
 
 interface UltimaColeta {
   status?: string | null;
@@ -50,6 +57,8 @@ export default function AdminFontesPage() {
   const [carregando, setCarregando] = useState(true);
   const [zerando, setZerando] = useState(false);
   const [msgLimpeza, setMsgLimpeza] = useState<string | null>(null);
+  const [siconv, setSiconv] = useState<EstadoCargaSiconv | null>(null);
+  const [msgSiconv, setMsgSiconv] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -63,9 +72,13 @@ export default function AdminFontesPage() {
     setMsgLimpeza(null);
     try {
       const { removidas } = await restaurarPropostas();
-      setMsgLimpeza(`✓ ${removidas} proposta(s) restaurada(s) — voltaram ao painel.`);
+      setMsgLimpeza(
+        `✓ ${removidas} proposta(s) restaurada(s) — voltaram ao painel.`,
+      );
     } catch (e) {
-      setMsgLimpeza(`Falha: ${e instanceof Error ? e.message : "erro desconhecido"}`);
+      setMsgLimpeza(
+        `Falha: ${e instanceof Error ? e.message : "erro desconhecido"}`,
+      );
     } finally {
       setZerando(false);
     }
@@ -89,15 +102,47 @@ export default function AdminFontesPage() {
           "ou restaure, se foi engano.",
       );
     } catch (e) {
-      setMsgLimpeza(`Falha: ${e instanceof Error ? e.message : "erro desconhecido"}`);
+      setMsgLimpeza(
+        `Falha: ${e instanceof Error ? e.message : "erro desconhecido"}`,
+      );
     } finally {
       setZerando(false);
     }
   }, []);
 
+  const lerSiconv = useCallback(async () => {
+    try {
+      setSiconv(await estadoCargaSiconv());
+    } catch {
+      setSiconv(null); // sem permissão ou API fora — a seção some, não quebra
+    }
+  }, []);
+
+  const rodarSiconv = useCallback(async () => {
+    setMsgSiconv(null);
+    try {
+      const { disparada, detalhe } = await dispararCargaSiconv();
+      setMsgSiconv(detalhe);
+      if (disparada) await lerSiconv();
+    } catch (e) {
+      setMsgSiconv(
+        `Falha: ${e instanceof Error ? e.message : "erro desconhecido"}`,
+      );
+    }
+  }, [lerSiconv]);
+
   useEffect(() => {
     void carregar();
-  }, [carregar]);
+    void lerSiconv();
+  }, [carregar, lerSiconv]);
+
+  // Enquanto a carga roda, o painel acompanha sozinho: ela leva minutos e o
+  // admin não deveria ficar apertando F5 para saber se terminou.
+  useEffect(() => {
+    if (!siconv?.rodando) return;
+    const t = setInterval(() => void lerSiconv(), 10_000);
+    return () => clearInterval(t);
+  }, [siconv?.rodando, lerSiconv]);
 
   const providers = diag
     ? [
@@ -135,16 +180,76 @@ export default function AdminFontesPage() {
             painel.
           </p>
         </div>
-        <button onClick={carregar} disabled={carregando} className="btn btn-ghost">
+        <button
+          onClick={carregar}
+          disabled={carregando}
+          className="btn btn-ghost"
+        >
           {carregando ? "Testando…" : "Testar novamente"}
         </button>
       </header>
+
+      {/* Carga do pacote SIconv — emendas e empenhos, sob demanda */}
+      {siconv && (
+        <section className="card anim-fade-up p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-medium">Carga do pacote SIconv</h2>
+              <p className="mt-0.5 text-xs text-ink-2">
+                Baixa os arquivos nacionais e atualiza emendas parlamentares e
+                empenhos. Roda sozinha todo dia às 07:00 UTC — o botão antecipa.
+                São ~245 MB e leva alguns minutos.
+              </p>
+            </div>
+            <button
+              onClick={rodarSiconv}
+              disabled={siconv.rodando}
+              className="btn btn-primary"
+            >
+              {siconv.rodando ? "Carregando…" : "Rodar carga agora"}
+            </button>
+          </div>
+
+          {siconv.rodando && (
+            <p className="mt-3 text-xs text-ink-2">
+              Em andamento desde {dataBr(siconv.iniciado_em)} — esta página se
+              atualiza sozinha.
+            </p>
+          )}
+          {msgSiconv && <p className="mt-3 text-xs text-ink-2">{msgSiconv}</p>}
+
+          {siconv.execucoes.length > 0 && (
+            <ul className="mt-3 flex flex-col gap-1 text-xs text-ink-3">
+              {siconv.execucoes.map((e, i) => (
+                <li key={i} className="flex flex-wrap items-center gap-2">
+                  <StatusBadge tone={e.status === "ok" ? "success" : "danger"}>
+                    {e.status ?? "?"}
+                  </StatusBadge>
+                  <span>{dataBr(e.iniciado_em)}</span>
+                  <span>{e.registros ?? 0} registro(s)</span>
+                  {e.erro && <span className="text-danger">{e.erro}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <p className="mt-3 text-xs text-ink-3">
+            Arquivos desta carga:{" "}
+            {siconv.arquivos
+              .filter((a) => a.carrega)
+              .map((a) => a.tabela)
+              .join(" · ")}
+          </p>
+        </section>
+      )}
 
       {/* Zona de manutenção — ferramenta de VALIDAÇÃO (destrutiva) */}
       <section className="card anim-fade-up border border-danger/30 bg-danger/5 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-medium text-danger">Zona de manutenção</h2>
+            <h2 className="text-sm font-medium text-danger">
+              Zona de manutenção
+            </h2>
             <p className="mt-0.5 text-xs text-ink-2">
               Zerar todas as propostas para recomeçar a coleta do zero durante a
               validação. É soft delete: elas somem do painel, mas favoritos,
@@ -159,14 +264,16 @@ export default function AdminFontesPage() {
             >
               {zerando ? "Zerando…" : "Zerar todas as propostas"}
             </button>
-            <button onClick={restaurar} disabled={zerando} className="btn btn-ghost">
+            <button
+              onClick={restaurar}
+              disabled={zerando}
+              className="btn btn-ghost"
+            >
               Restaurar
             </button>
           </div>
         </div>
-        {msgLimpeza && (
-          <p className="mt-3 text-xs text-ink-2">{msgLimpeza}</p>
-        )}
+        {msgLimpeza && <p className="mt-3 text-xs text-ink-2">{msgLimpeza}</p>}
       </section>
 
       {carregando && !diag ? (
@@ -185,7 +292,9 @@ export default function AdminFontesPage() {
                     {p.ok ? "configurado" : "faltando"}
                   </StatusBadge>
                 </div>
-                {!p.ok && <p className="text-xs leading-relaxed text-ink-3">{p.dica}</p>}
+                {!p.ok && (
+                  <p className="text-xs leading-relaxed text-ink-3">{p.dica}</p>
+                )}
               </div>
             ))}
           </section>
@@ -239,7 +348,10 @@ export default function AdminFontesPage() {
                       {f.ultima_coleta?.registros ?? "—"}
                     </td>
                     <td className="max-w-72 px-3 py-3">
-                      <span className="block truncate text-xs text-ink-3" title={f.ultima_coleta?.erro ?? ""}>
+                      <span
+                        className="block truncate text-xs text-ink-3"
+                        title={f.ultima_coleta?.erro ?? ""}
+                      >
                         {f.ultima_coleta?.erro ?? "—"}
                       </span>
                     </td>
@@ -250,7 +362,9 @@ export default function AdminFontesPage() {
           </section>
         </>
       ) : (
-        <p className="text-sm text-danger">Não foi possível carregar o diagnóstico.</p>
+        <p className="text-sm text-danger">
+          Não foi possível carregar o diagnóstico.
+        </p>
       )}
     </>
   );
