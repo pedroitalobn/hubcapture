@@ -1328,15 +1328,31 @@ que é o que o gestor tem em mãos. Entidade própria, não coluna.
   `normalizer_obra`.
 - **Connector** `connectors/pareceres.py` — o ÚNICO que coleta por plano de
   trabalho em vez de município (não implementa o Protocol de `base.py`).
-  CALIBRADO contra `/planos_trabalho_analises_especiais` da API pública
-  (módulo `especiais`). Diferente das demais rotas do TransfereGov, **não é
-  PostgREST**: filtra por query param direto (`id_plano_trabalho=123`, sem
-  `eq.`) e pagina com `pagina`/`tamanho_da_pagina` — por isso não usa
-  `_postgrest.py`. A chave é o **id INTEIRO** do plano; `id_do_plano()` barra o
+  **Existem DUAS APIs do módulo especiais e os dialetos são diferentes** — a
+  rota é resolvida pelo spec (`_especiais.descobrir`), nunca chutada:
+  (a) **nova** `api-publica.../especiais/` (OpenAPI 3.1/FastAPI) —
+  `planos_trabalho_analises_especiais` (PLURAL), filtro direto
+  (`id_plano_trabalho=123`), paginação `pagina`/`tamanho_da_pagina`, resposta em
+  envelope `{data, total_pages, total_items, page_number, page_size}`. É o
+  padrão. (b) **antiga** `api.../transferenciasespeciais/` (PostgREST) —
+  `plano_trabalho_analise_especial` (SINGULAR), filtro `eq.123`, paginação
+  `limit`/`offset`, lista pura. Mandar o dialeto errado no PostgREST não dá 404:
+  o filtro é IGNORADO e voltam as análises do país inteiro — parecer de outra
+  proposta na tela. A chave é o **id INTEIRO** do plano; `id_do_plano()` barra o
   que não for numérico (mandar "14275/2026" daria 422 e o gestor leria "fonte
-  indisponível" onde a verdade é "não tenho o id"). Scraping da tela de
-  tramitação segue como 2ª fonte: a API dá o veredito e o texto, a tela dá QUEM
-  assinou (responsável, papel, cargo) — se completam.
+  indisponível" onde a verdade é "não tenho o id") —
+  `connectors/planos_trabalho.py` resolve esse id a partir da proposta.
+  Colunas da API nova: `id_plano_trabalho_analise_pt` (identidade),
+  `situacao_parecer_analise_pt` (veredito: Aprovar/Reprovar/Solicitar
+  Complementação/Não se aplica), `situacao_analise_pt` (Concluída/Em
+  elaboração), `situacao_planejamento_pt`, `data_analise_pt`,
+  `texto_parecer_analise_pt`, `valor_reprovado_pt`, `nome_orgao_analise_pt`,
+  `codigo_siorg_orgao_analise_pt`, `id_plano_trabalho`. A API **não** traz
+  responsável/papel/cargo — por isso o scraping da tela de tramitação segue como
+  2ª fonte: a API dá o veredito e o texto, a tela dá QUEM assinou. (Há ainda
+  `/plano_trabalho_analise_historico_especiais` para o histórico das análises,
+  com `responsaveis_analise_pt_hist` — caminho para trazer o responsável sem
+  scraping.)
 - **Serviço** `services/pareceres.py`: cache-first (TTL 12h), `por_plano` (a
   consulta direta) e `por_proposta` (resolve o plano e delega; sem nº de plano,
   tenta o nº da proposta). Falha de fonte → `sync_runs` + status na resposta.
@@ -1721,7 +1737,13 @@ AGREGADO, e no módulo especiais o empenho mora em rota própria —
   servem os dois — a regra de casar por PALAVRA da coluna (nunca substring) mora
   em um lugar só.
 - **Config** (categoria fonte): `empenhos_esp_endpoint` (padrão
-  `empenhos_especiais`) e `empenhos_esp_chave` (padrão `numero_proposta`).
+  `empenhos_especiais`) e `empenhos_esp_chave` (padrão **`id_plano_acao`**). O
+  spec oficial mostra que `/empenhos_especiais` só aceita `id_plano_acao` como
+  vínculo com a proposta — `numero_proposta`, que era o padrão, é IGNORADO pelo
+  FastAPI e a resposta vinha com os empenhos do país inteiro (valor de empenho
+  alheio na proposta). O `id_externo` só serve de retaguarda para `id_plano_acao`
+  quando é inteiro: no CSV do SIconv ele é "30011/2026". Campo de valor na rota:
+  `valor_empenho`.
 - **Calibração**: `python -m src.tools.probe_especiais --rotas` passou a mostrar
   também a rota escolhida para empenho, e `--numero-proposta 14275/2026` bate na
   rota e mostra campos brutos + normalizados.
@@ -1898,7 +1920,32 @@ disciplina dos módulos da §29 e dos gates da §39.
 - **Testes** — `test_ui_versao.py` (catálogo, sanitização e resolução da flag).
 
 
-## 49. Carga diária do pacote SIconv — emendas parlamentares no banco
+## 49. Ícones do menu lateral — o slot que o design system já reservava
+
+`.nav-item` nasceu no design system Bancada com `display:flex`, `align-items:center`
+e `gap: .625rem` — a folga era para um glifo que nunca foi desenhado, e o menu ficou
+14 linhas de texto mono do mesmo tamanho. Cada lente do menu profile-centric (§19)
+passa a ter um ícone próprio: o gestor volta ao mesmo item pela FORMA, sem reler a
+lista inteira.
+
+- **`components/icons.tsx`** — `IconeNav` + o registro `GLIFOS` (união `NomeIcone`).
+  SVG inline de 16px, `viewBox` 24, traço 1.5 em `currentColor`, mesmo padrão do
+  ícone de `BotaoEspelho`. **Nenhuma biblioteca de ícones**: herdar a cor é o que faz
+  o item ativo (fundo em gradiente, tinta abyss) e o hover funcionarem sem regra
+  extra, e a stack da §1 não muda. Ícone é decorativo (`aria-hidden`) — quem nomeia o
+  destino é o rótulo ao lado; anunciá-lo duplicaria o link no leitor de tela.
+- **`.nav-icon`** (globals.css, `@layer components`): `flex-shrink: 0` (rótulo longo
+  como "Agenda de contatos" não espreme o desenho) e opacidade 0.65 que sobe a 1 no
+  hover e no item ativo — o glifo fica um tom abaixo do texto, nunca competindo com
+  ele. Vale igual na v1 e na v2 (§48): ícone não é assinatura de versão.
+- **Onde**: `app/panel/layout.tsx` — cada entrada do `NAV` declara `icone`, e o link
+  "Administração" usa `admin`. Item novo no menu = mais um glifo no registro + a
+  chave na entrada; o TypeScript recusa `icone` que não exista.
+- **Fora do escopo por ora**: o menu de abas do shell admin e o menu por categoria de
+  `/admin/config` seguem sem glifo (usam `.nav-item`, então basta o mesmo componente
+  quando forem contemplados).
+
+## 50. Carga diária do pacote SIconv — emendas parlamentares no banco
 
 As emendas do TransfereGov não vinham de rota de API: o módulo `especiais`
 **não tem endpoint de emenda** (§42 descobre rota por spec e nunca acha uma —

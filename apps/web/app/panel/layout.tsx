@@ -7,6 +7,7 @@ import { BrandMark } from "@/components/AuthShell";
 import DynamicIsland from "@/components/DynamicIsland";
 import { TerritorioFiltro } from "@/components/TerritorioFiltro";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { IconeNav, type NomeIcone } from "@/components/icons";
 import { api, clearTokens, getToken } from "@/lib/api/client";
 import { HelpProvider } from "@/lib/help";
 import { TerritorioProvider, useTerritorio } from "@/lib/territorio";
@@ -15,31 +16,74 @@ import { TerritorioProvider, useTerritorio } from "@/lib/territorio";
 // recortado pelo território do usuário (via RLS). Cada item é uma LENTE sobre
 // o(s) município(s) do perfil, não uma aba de plataforma de governo.
 // Itens com `modulo` só aparecem se o módulo estiver ativo (painel admin).
-const NAV = [
-  { href: "/panel", label: "Meu painel", exact: true },
-  { href: "/panel/funding", label: "Propostas", modulo: "captacao" },
+const NAV: {
+  href: string;
+  label: string;
+  icone: NomeIcone;
+  exact?: boolean;
+  modulo?: string;
+}[] = [
+  { href: "/panel", label: "Meu painel", icone: "painel", exact: true },
+  {
+    href: "/panel/funding",
+    label: "Propostas",
+    icone: "propostas",
+    modulo: "captacao",
+  },
   // Minhas Propostas é ACOMPANHAMENTO (favoritas do cache) — panel-core, não
   // exploração: fica no menu mesmo com o módulo captação desligado (§40).
-  { href: "/panel/my-proposals", label: "Minhas Propostas" },
+  { href: "/panel/my-proposals", label: "Minhas Propostas", icone: "favoritas" },
   {
     href: "/panel/opportunities",
     label: "Oportunidades",
+    icone: "oportunidades",
     modulo: "oportunidades",
   },
-  { href: "/panel/regularity", label: "Regularidade", modulo: "regularidade" },
-  { href: "/panel/transfers", label: "Recursos recebidos", modulo: "recebidos" },
+  {
+    href: "/panel/regularity",
+    label: "Regularidade",
+    icone: "regularidade",
+    modulo: "regularidade",
+  },
+  {
+    href: "/panel/transfers",
+    label: "Recursos recebidos",
+    icone: "recebidos",
+    modulo: "recebidos",
+  },
   {
     href: "/panel/compliance",
     label: "Conformidade fiscal",
+    icone: "conformidade",
     modulo: "conformidade",
   },
-  { href: "/panel/works", label: "Obras", modulo: "obras" },
-  { href: "/panel/alerts", label: "Alertas", modulo: "alertas" },
-  { href: "/panel/contacts", label: "Agenda de contatos", modulo: "contatos" },
-  { href: "/panel/copilot", label: "Copiloto", modulo: "copiloto" },
-  { href: "/panel/advisory", label: "Assessoria", modulo: "assessoria" },
-  { href: "/panel/class", label: "Class", modulo: "ajuda" },
-  { href: "/panel/account", label: "Minha conta" },
+  { href: "/panel/works", label: "Obras", icone: "obras", modulo: "obras" },
+  {
+    href: "/panel/alerts",
+    label: "Alertas",
+    icone: "alertas",
+    modulo: "alertas",
+  },
+  {
+    href: "/panel/contacts",
+    label: "Agenda de contatos",
+    icone: "contatos",
+    modulo: "contatos",
+  },
+  {
+    href: "/panel/copilot",
+    label: "Copiloto",
+    icone: "copiloto",
+    modulo: "copiloto",
+  },
+  {
+    href: "/panel/advisory",
+    label: "Assessoria",
+    icone: "assessoria",
+    modulo: "assessoria",
+  },
+  { href: "/panel/class", label: "Class", icone: "class", modulo: "ajuda" },
+  { href: "/panel/account", label: "Minha conta", icone: "conta" },
 ];
 
 const PAPEL_LABEL: Record<string, string> = {
@@ -146,12 +190,14 @@ function PainelShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 className={`nav-item ${active ? "nav-item-active" : ""}`}
               >
+                <IconeNav nome={item.icone} />
                 {item.label}
               </Link>
             );
           })}
           {admin && (
             <Link href="/admin/users" className="nav-item">
+              <IconeNav nome="admin" />
               Administração
             </Link>
           )}

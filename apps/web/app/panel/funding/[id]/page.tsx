@@ -55,7 +55,6 @@ type Proposta = {
   data_proposta?: string | null;
   data_atualizacao_fonte?: string | null;
   url_origem?: string | null;
-  proveniencia?: Record<string, string> | null;
   resumo_ia?: string | null;
   /** Pílulas de categoria (curadoria) — slug filtrável + rótulo exibível. */
   categorias?: { slug: string; rotulo: string }[] | null;
@@ -241,6 +240,11 @@ export default function PropostaDetalhePage() {
   // propostas ela dava zero e não dizia nada ao gestor.
   const valorGlobal = p.valor_global ?? p.execucao?.valor_global ?? null;
   const temValorGlobal = num(valorGlobal) > 0;
+  // O empenhado é o que a fonte publica como EMPENHADO — nunca o valor global
+  // (que é o total previsto da proposta). Quando a fonte não informa, o card
+  // fica vazio de propósito: a seção "Empenhos" abaixo soma os documentos.
+  const valorEmpenhado = p.execucao?.valor_empenhado ?? null;
+  const temEmpenhado = num(valorEmpenhado) > 0;
 
   return (
     <div className="flex flex-col gap-5">
@@ -308,7 +312,7 @@ export default function PropostaDetalhePage() {
           )}
           {/* Ponto 14: a FONTE saiu do cabeçalho — é detalhe de ingestão,
               não identidade do registro (§19). Continua no link "Fonte
-              oficial ↗" e na seção de proveniência. */}
+              oficial ↗". */}
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink-2">
             <StatusBadge tone={disponivel ? "success" : "neutral"}>
               {disponivel ? "oportunidade disponível" : "cadastrada"}
@@ -399,27 +403,27 @@ export default function PropostaDetalhePage() {
             )}
           </div>
 
-          {/* EMPENHO no primeiro degrau: é o valor global que a fonte publica
-              para a proposta (VL_GLOBAL_PROP). Antes vivia lá embaixo, na
-              grade secundária. */}
-          {/* O hint contextual em ação: o ⓘ ao lado de "Empenho" abre o
-              artigo que o admin plantou na chave proposta.empenhado. */}
+          {/* EMPENHADO — o valor que a fonte informa como empenhado, e só ele.
+              Este card já mostrou o VALOR GLOBAL da proposta com o rótulo
+              "Empenho": dava o mesmo número do "Valor total" ao lado e fazia o
+              gestor ler como reservado o que ainda era só previsto. O valor
+              global não sumiu: está logo abaixo, com o nome dele. */}
           <div className="field">
             <span className="field-label">
-              Empenho <Hint chave="proposta.empenhado" />
+              Empenhado <Hint chave="proposta.empenhado" />
             </span>
-            {temValorGlobal ? (
+            {temEmpenhado ? (
               <>
-                <span className="value-hero">{formatBRL(valorGlobal)}</span>
+                <span className="value-hero">{formatBRL(valorEmpenhado)}</span>
                 <span className="num mt-1 text-xs text-ink-3">
-                  valor global da proposta na fonte
+                  reservado pelo concedente
                 </span>
               </>
             ) : (
               <>
                 <span className="value-hero text-ink-3">—</span>
                 <span className="num mt-1 text-xs text-ink-3">
-                  sem valor global informado na fonte
+                  sem empenho informado na fonte
                 </span>
               </>
             )}
@@ -523,6 +527,14 @@ export default function PropostaDetalhePage() {
             valor={humanizarCaixa(p.modalidade)}
             destaque
           />
+
+          {temValorGlobal && (
+            <Dado
+              rotulo="Valor global da proposta"
+              valor={formatBRL(valorGlobal)}
+              destaque
+            />
+          )}
 
           <Dado
             rotulo={
@@ -716,28 +728,6 @@ export default function PropostaDetalhePage() {
       <EmpenhosProposta proposta={p} podeConsultarFonte={podeExplorar} />
 
       <EmendasProposta proposta={p} podeConsultarFonte={podeExplorar} />
-
-      {p.proveniencia && Object.keys(p.proveniencia).length > 0 && (
-        <Secao titulo="Proveniência dos dados (API × painel)">
-          <div className="flex flex-wrap gap-1.5">
-            {Object.entries(p.proveniencia).map(([campo, origem]) => (
-              <span
-                key={campo}
-                className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-0.5 font-mono text-[11px] text-ink-2"
-              >
-                <span
-                  className={cx(
-                    "h-1.5 w-1.5 rounded-full",
-                    origem === "api" ? "bg-aqua" : "bg-lime",
-                  )}
-                  aria-hidden
-                />
-                {campo}: {origem}
-              </span>
-            ))}
-          </div>
-        </Secao>
-      )}
     </div>
   );
 }

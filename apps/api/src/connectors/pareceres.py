@@ -5,9 +5,22 @@ connector que coleta por PLANO DE TRABALHO em vez de município (não implementa
 Protocol de `base.py`): o parecer é emitido sobre o plano, e a mesma proposta
 acumula vários ao longo da análise.
 
-Diferente das demais rotas do TransfereGov, esta **não é PostgREST**: filtra por
-query param direto (`id_plano_trabalho=123`, sem `eq.`) e pagina com
-`pagina`/`tamanho_da_pagina`. Por isso não usa `_postgrest.py`.
+**Existem DUAS APIs do módulo especiais, com dialetos diferentes**, e o
+connector precisa falar os dois — qual vale depende da base configurada:
+
+  - **nova** (`api-publica.../especiais/`, OpenAPI 3.1/FastAPI): rota no PLURAL
+    `planos_trabalho_analises_especiais`, filtro direto (`id_plano_trabalho=123`),
+    paginação `pagina`/`tamanho_da_pagina` e resposta em envelope
+    `{data, total_pages, total_items, ...}`. É o padrão.
+  - **antiga** (`api.../transferenciasespeciais/`, PostgREST): rota no SINGULAR
+    `plano_trabalho_analise_especial`, filtro com operador (`eq.123`) e
+    paginação `limit`/`offset`.
+
+Mandar o dialeto errado não dá 404 — dá coisa pior: no PostgREST um filtro sem
+`eq.` é ignorado e a resposta vem com as análises do país inteiro, ou seja,
+parecer de OUTRA proposta na tela do gestor. Por isso a rota é resolvida pelo
+spec do módulo (`_especiais.descobrir`, que já distingue os dois dialetos), com
+a rota da API nova como padrão confirmado.
 
 A chave de filtro é o **id inteiro** do plano de trabalho — não o número
 formatado da proposta ("14275/2026"). Quem chama passa o que tem; aqui só vai
@@ -24,13 +37,18 @@ from __future__ import annotations
 from typing import Any
 
 from ..services import config as config_service
+from ._especiais import Rota, descobrir
 from ._http import ConnectorClientError, get_json
 
 SOURCE_ID = "transferegov_parecer"
 
 # Rota real da API pública (módulo "especiais"). Overrides no painel admin.
 BASE_PADRAO = "https://api-publica.transferegov.gestao.gov.br/especiais/"
+# Rota da API NOVA, confirmada no spec oficial do módulo.
 ENDPOINT_PADRAO = "planos_trabalho_analises_especiais"
+# Assunto e chaves que a descoberta usa para reconhecer a rota nas duas APIs.
+PALAVRAS_ROTA = ("analise",)
+CHAVES = ("id_plano_trabalho",)
 
 PARAM_PLANO = "id_plano_trabalho"
 PARAM_PAGINA = "pagina"
@@ -90,26 +108,48 @@ class ParecerConnector:
     async def _base(self) -> str:
         return self._base_url or await config_service.resolver("pareceres_base_url") or BASE_PADRAO
 
-    async def _endpoint(self) -> str:
-        return await config_service.resolver("pareceres_endpoint") or ENDPOINT_PADRAO
+    async def _rota(self) -> Rota:
+        """Override do painel > spec do módulo > a rota da API nova.
+
+        A `Rota` carrega o DIALETO junto (filtro com ou sem `eq.`, paginação por
+        página ou por offset), então quem chama não precisa saber em qual das
+        duas APIs está falando.
+        """
+        endpoint = await config_service.resolver("pareceres_endpoint")
+        if endpoint:
+            postgrest = "/" not in endpoint and endpoint.startswith("plano_trabalho_analise")
+            return Rota(
+                endpoint=endpoint.strip("/"),
+                chave=PARAM_PLANO,
+                postgrest=postgrest,
+                param_pagina=None if postgrest else PARAM_PAGINA,
+                param_tamanho=None if postgrest else PARAM_TAMANHO,
+            )
+
+        descoberta = await descobrir(await self._base(), PALAVRAS_ROTA, CHAVES)
+        if descoberta is not None:
+            return descoberta
+
+        return Rota(
+            endpoint=ENDPOINT_PADRAO,
+            chave=PARAM_PLANO,
+            param_pagina=PARAM_PAGINA,
+            param_tamanho=PARAM_TAMANHO,
+        )
 
     async def _via_api(self, id_plano: str) -> list[dict]:
         """Pagina a rota até acabar (ou até MAX_PAGINAS)."""
-        base, endpoint = await self._base(), await self._endpoint()
+        base, rota = await self._base(), await self._rota()
         coletados: list[dict] = []
         for pagina in range(1, MAX_PAGINAS + 1):
             dados = await get_json(
                 base,
-                endpoint,
-                {
-                    PARAM_PLANO: id_plano,
-                    PARAM_PAGINA: str(pagina),
-                    PARAM_TAMANHO: str(TAMANHO_PAGINA),
-                },
+                rota.endpoint,
+                {**rota.filtro(id_plano), **rota.paginacao(pagina, TAMANHO_PAGINA)},
             )
-            # a rota pode devolver lista pura ou envelope paginado
+            # API nova responde envelope {data: [...]}; PostgREST, lista pura
             if isinstance(dados, dict):
-                dados = dados.get("itens") or dados.get("items") or dados.get("data") or []
+                dados = dados.get("data") or dados.get("itens") or dados.get("items") or []
             linhas = [d for d in dados if isinstance(d, dict)]
             coletados.extend(linhas)
             if len(linhas) < TAMANHO_PAGINA:
@@ -170,7 +210,8 @@ class ParecerConnector:
 
     async def health_check(self) -> bool:
         try:
-            await get_json(await self._base(), await self._endpoint(), {PARAM_TAMANHO: "1"})
+            rota = await self._rota()
+            await get_json(await self._base(), rota.endpoint, rota.paginacao(1, 1))
             return True
         except Exception:
             return False

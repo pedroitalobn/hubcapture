@@ -133,7 +133,8 @@ CATALOGO: list[dict] = [
     ),
     _c(
         "empenhos_esp_chave",
-        "Empenhos da proposta — parâmetro de filtro (padrão: numero_proposta)",
+        "Empenhos da proposta — parâmetro de filtro (padrão: id_plano_acao, "
+        "o único vínculo com a proposta que a rota aceita)",
         "fonte",
         False,
     ),

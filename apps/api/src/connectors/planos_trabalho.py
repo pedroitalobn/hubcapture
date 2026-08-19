@@ -1,8 +1,8 @@
 """Plano de trabalho da proposta — o elo que faltava para os PARECERES.
 
 O parecer não é emitido sobre a proposta: é emitido sobre o **plano de trabalho**
-dela (§36), e a rota `/planos_trabalho_analises_especiais` filtra pelo **id
-INTEIRO** do plano. Só que a proposta que chega pelo CSV do SIconv não traz esse
+dela (§36), e a rota `/plano_trabalho_analise_especial` filtra pelo **id INTEIRO**
+do plano. Só que a proposta que chega pelo CSV do SIconv não traz esse
 id — traz o número da proposta ("30011/2026") e o `ID_PROPOSTA` interno. Sem o
 elo, `services/pareceres` mandava o número formatado, o connector recusava (com
 razão: a API responderia 422) e o gestor lia "não consegui consultar os pareceres"
@@ -16,11 +16,11 @@ de trabalho. Duas portas, nesta ordem:
   2. **a rota de planos de trabalho** do módulo `especiais`, descoberta no spec
      (`_especiais.descobrir`) como nas demais rotas irmãs.
 
-**Refiltro no cliente, sempre** — mesma disciplina de `empenhos_especiais`:
-FastAPI ignora query param desconhecido em vez de recusar, então uma rota que
-não aceite a chave devolveria a tabela nacional paginada e nós adotaríamos o
-plano de trabalho de OUTRA proposta. Linha que não casa a identidade da proposta
-é descartada.
+**Refiltro no cliente, sempre** — mesma disciplina de `empenhos_especiais`: no
+PostgREST um filtro com nome de coluna inexistente é erro, mas um filtro que o
+servidor aceite parcialmente (ou uma rota irmã com outra semântica) devolveria a
+tabela nacional paginada e nós adotaríamos o plano de trabalho de OUTRA
+proposta. Linha que não casa a identidade da proposta é descartada.
 """
 
 from __future__ import annotations
@@ -35,7 +35,10 @@ from ._http import get_json
 SOURCE_ID = "transferegov_plano_trabalho"
 
 BASE_PADRAO = "https://api-publica.transferegov.gestao.gov.br/especiais/"
-ENDPOINT_PADRAO = "planos_trabalho_especiais"
+# O módulo nomeia as rotas no SINGULAR (`plano_trabalho_analise_especial` é a
+# irmã confirmada pelo spec), e é PostgREST — por isso o palpite de retaguarda
+# segue essa convenção e esse dialeto. A descoberta pelo spec vence o palpite.
+ENDPOINT_PADRAO = "plano_trabalho_especial"
 
 PALAVRAS_ROTA = ("plano", "trabalho")
 
@@ -134,12 +137,7 @@ class PlanoTrabalhoConnector:
         endpoint = await config_service.resolver("planos_trabalho_esp_endpoint")
         if endpoint:
             chave = await config_service.resolver("planos_trabalho_esp_chave") or CHAVES[0]
-            return Rota(
-                endpoint=endpoint.strip("/"),
-                chave=chave,
-                param_pagina="pagina",
-                param_tamanho="tamanho_da_pagina",
-            )
+            return Rota(endpoint=endpoint.strip("/"), chave=chave, postgrest=True)
 
         descoberta = await descobrir(await self.base(), PALAVRAS_ROTA, CHAVES)
         if descoberta is not None:
@@ -148,8 +146,7 @@ class PlanoTrabalhoConnector:
         return Rota(
             endpoint=ENDPOINT_PADRAO,
             chave=CHAVES[0],
-            param_pagina="pagina",
-            param_tamanho="tamanho_da_pagina",
+            postgrest=True,
             confirmada=False,
         )
 
