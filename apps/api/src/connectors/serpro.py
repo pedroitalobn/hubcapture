@@ -23,7 +23,7 @@ from datetime import date
 from ..core.config import settings
 from ..scraping.scraper import get_scraper
 from ..services import config as config_service
-from . import _combinada
+from . import _combinada, _identidade
 from ._http import get_json
 from .base import RawRecord, register
 
@@ -93,7 +93,7 @@ class SerproConnector:
             return []
 
         registros: list[RawRecord] = []
-        for i, (api, painel) in enumerate(_combinada.aglutinar(linhas_api, linhas_painel)):
+        for api, painel in _combinada.aglutinar(linhas_api, linhas_painel):
             numero = (painel or {}).get("numero") or api.get("id")
             raw: dict = {"enrichment": api} if api else {}
             if painel:
@@ -101,7 +101,16 @@ class SerproConnector:
             registros.append(
                 RawRecord(
                     source_id=self.source_id,
-                    id_externo=str(numero or f"painel-{municipio_ibge}-{i}"),
+                    # sem número na página, a identidade sai do CONTEÚDO da linha
+                    # (_identidade): a posição na lista mudava a cada coleta e fazia a
+                    # mesma transferência ora duplicar, ora sobrescrever a vizinha
+                    id_externo=(
+                        str(numero)
+                        if numero
+                        else _identidade.hash_conteudo(
+                            painel or api, municipio_ibge, prefixo="painel:"
+                        )
+                    ),
                     municipio_ibge=municipio_ibge,
                     endpoint=ENDPOINT if api else "scrape",
                     raw=raw,

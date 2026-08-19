@@ -3617,6 +3617,11 @@ export interface components {
             fonte: string;
             /** Municipio Ibge */
             municipio_ibge: string;
+            /**
+             * Registros
+             * @description linhas trazidas pela fonte nesta rodada (null quando 'cache')
+             */
+            registros?: number | null;
             /** Status */
             status: string;
         };
@@ -4020,6 +4025,12 @@ export interface components {
             categoria?: string | null;
             /** Fonte */
             fonte?: string | null;
+            /**
+             * Forcar
+             * @description ignora o cache e consulta as fontes agora (ação explícita)
+             * @default false
+             */
+            forcar: boolean;
             /**
              * Limite
              * @description itens da página devolvida (sem limite: tudo)
@@ -5015,6 +5026,8 @@ export interface components {
          *     ainda há próxima página, não o tamanho de `itens`.
          */
         PropostasPagina: {
+            /** Atualizado Em */
+            atualizado_em?: string | null;
             /** Itens */
             itens: components["schemas"]["PropostaRead"][];
             /** Limite */

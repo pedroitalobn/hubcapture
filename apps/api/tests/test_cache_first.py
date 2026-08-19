@@ -69,3 +69,48 @@ async def test_consulta_avulsa_registra_municipio_avulso(seed_user, monkeypatch)
         )
     # o resultado é visível ao próprio usuário que buscou
     assert len(rows) == 1
+
+
+class MockFonteCaptacao(MockConnector):
+    """Connector no recorte de captação, para exercitar a busca ao vivo."""
+
+    source_id = "transferegov_ff"
+
+
+async def test_atualizar_fontes_ignora_o_cache_e_consulta_agora(seed_user, monkeypatch) -> None:
+    """"Atualizar fontes" é pedido EXPLÍCITO: não pode devolver cache em silêncio.
+
+    Sem `forcar`, o botão herdava o TTL de 6h do cache-first — o gestor clicava,
+    a tela dizia "consultando as fontes…" e nenhuma fonte era consultada.
+    """
+    uid = await seed_user("f@f.com")
+    mock = MockFonteCaptacao()
+    monkeypatch.setitem(cbase._registry, mock.source_id, mock)
+
+    async with rls_session(uid) as s:
+        await service.live_search(
+            s, usuario_id=uid, municipio="3106200", fonte=mock.source_id, limite=10
+        )
+    assert mock.calls == 1
+
+    # leitura automática dentro do TTL: serve do cache (é o que barateia o painel)
+    async with rls_session(uid) as s:
+        _, _, status = await service.live_search(
+            s, usuario_id=uid, municipio="3106200", fonte=mock.source_id, limite=10
+        )
+    assert mock.calls == 1
+    assert [f["status"] for f in status] == ["cache"]  # a tela sabe que não coletou
+
+    # pedido explícito: consulta agora, TTL ou não
+    async with rls_session(uid) as s:
+        _, _, status = await service.live_search(
+            s,
+            usuario_id=uid,
+            municipio="3106200",
+            fonte=mock.source_id,
+            limite=10,
+            forcar=True,
+        )
+    assert mock.calls == 2
+    assert [f["status"] for f in status] == ["ok"]
+    assert [f["registros"] for f in status] == [1]

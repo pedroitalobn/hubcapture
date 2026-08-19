@@ -13,6 +13,8 @@ import { TextoLimitado } from "@/components/TextoLimitado";
 import {
   formatBRL,
   formatDate,
+  formatDateTime,
+  haQuantoTempo,
   humanizarCaixa,
   municipioPrincipal,
   municipioSecundario,
@@ -70,8 +72,12 @@ type Proposta = {
 type FonteStatus = {
   fonte: string;
   municipio_ibge: string;
+  // "ok" = consultada agora · "erro" = fonte falhou · "cache" = não foi
+  // consultada (o dado ainda estava fresco). O terceiro estado existe para a
+  // tela não anunciar consulta que não houve.
   status: string;
   erro?: string | null;
+  registros?: number | null;
 };
 
 type Opcao = { valor: string; rotulo: string; total: number };
@@ -298,6 +304,9 @@ function CaptacaoExploracao() {
   const prefCarregada = useRef(false);
   const sentinela = useRef<HTMLDivElement | null>(null);
   const [fontesStatus, setFontesStatus] = useState<FonteStatus[]>([]);
+  // quando a última coleta tocou este recorte — a lista vem do banco (o sweep
+  // diário é quem alimenta), então a idade do dado precisa estar na tela
+  const [atualizadoEm, setAtualizadoEm] = useState<string | null>(null);
   const [facetas, setFacetas] = useState<Facetas>({});
   const [buscando, setBuscando] = useState(true);
   const [mostrarAvancados, setMostrarAvancados] = useState(false);
@@ -387,7 +396,12 @@ function CaptacaoExploracao() {
       if (lista.error) {
         setMsg("Não consegui carregar as propostas. Tente novamente.");
       } else if (lista.data) {
-        const pagina = lista.data as { itens: Proposta[]; total: number };
+        const pagina = lista.data as {
+          itens: Proposta[];
+          total: number;
+          atualizado_em?: string | null;
+        };
+        if (offset === 0) setAtualizadoEm(pagina.atualizado_em ?? null);
         setPropostas((prev) =>
           offset === 0 ? (pagina.itens ?? []) : [...prev, ...(pagina.itens ?? [])],
         );
@@ -482,6 +496,10 @@ function CaptacaoExploracao() {
         tipo: f.tipo ?? null,
         limite: porPagina,
         offset: 0,
+        // pedido EXPLÍCITO: ignora o TTL do cache-first e consulta agora. Sem
+        // isto o botão herdava as 6h do cache e não consultava nada — a tela
+        // dizia "consultando as fontes…" e devolvia o mesmo dado de antes.
+        forcar: true,
       } as never,
     });
     setAtualizando(false);
@@ -846,6 +864,10 @@ function CaptacaoExploracao() {
   }, [visiveis]);
 
   const fontesOk = fontesStatus.filter((f) => f.status === "ok").length;
+  // linhas que a rodada trouxe (soma do que cada fonte devolveu): é o número que
+  // explica uma contagem que mudou — sem ele, "atualizei e agora são outras 5"
+  // não tem como ser conferido na tela.
+  const linhasColetadas = fontesStatus.reduce((t, f) => t + (f.registros ?? 0), 0);
   const fontesErro = Array.from(
     new Set(fontesStatus.filter((f) => f.status === "erro").map((f) => f.fonte)),
   );
@@ -1242,11 +1264,23 @@ function CaptacaoExploracao() {
           {atualizando ? "Consultando fontes…" : "↻ Atualizar fontes"}
         </button>
 
+        {/* idade do dado: a lista vem do banco, alimentado pelo sweep diário —
+            sem o carimbo, "o número mudou" não tem como ser explicado */}
+        {atualizadoEm && !atualizando && (
+          <span
+            className="label-mono"
+            title={`Coleta mais recente deste recorte: ${formatDateTime(atualizadoEm)}`}
+          >
+            dados de {haQuantoTempo(atualizadoEm)}
+          </span>
+        )}
+
         {/* só faz sentido depois de uma atualização — é dela que vem o status */}
         {fontesStatus.length > 0 && !atualizando && (
           <>
             <span className="label-mono">
-              {fontesOk} consulta{fontesOk === 1 ? "" : "s"} ok
+              {fontesOk} consulta{fontesOk === 1 ? "" : "s"} ok · {linhasColetadas}{" "}
+              registro{linhasColetadas === 1 ? "" : "s"}
             </span>
             {fontesErro.length > 0 && (
               <span className="rounded-full bg-warn/10 px-2 py-0.5 font-mono text-[11px] text-warn">

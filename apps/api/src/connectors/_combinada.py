@@ -94,28 +94,36 @@ def aglutinar(
     Linha de scraping sem par na API entra sozinha (a página conhece transferência
     que a API ainda não publicou) — é o ganho de tratar o scraping como fonte, e
     não como plano B.
+
+    NENHUMA linha some aqui. A versão anterior indexava o scraping por número e
+    devolvia só o índice: linha sem número identificável era descartada quando
+    ALGUMA outra tinha número (a página mistura os dois casos o tempo todo), e
+    duas linhas com o mesmo número colapsavam numa só. O município que trazia 5
+    transferências da página chegava ao painel com 1 — e o gestor lia isso como
+    "a fonte só tem uma", que é o pior erro possível para quem usa o Hub para
+    decidir. Agora o índice serve APENAS para casar com a API; toda linha de
+    scraping não casada sai na lista, com número ou sem.
     """
-    indice: dict[str, dict] = {}
+    # número → linhas de scraping (lista: número repetido não colapsa)
+    indice: dict[str, list[dict]] = {}
     for linha in linhas_scrape:
         chave = chave_de(linha)
         if chave:
-            indice[chave] = linha
+            indice.setdefault(chave, []).append(linha)
 
     pares: list[tuple[dict, dict | None]] = []
-    usadas: set[str] = set()
+    pareadas: list[int] = []  # id() das linhas de scraping já usadas
     for linha in linhas_api:
         chave = chave_de(linha)
-        par = indice.get(chave) if chave else None
-        if par is not None:
-            usadas.add(chave)
+        candidatas = indice.get(chave) if chave else None
+        par = None
+        if candidatas:
+            # cada linha da página casa com UMA da API: consome a primeira livre
+            par = candidatas.pop(0)
+            pareadas.append(id(par))
         pares.append((linha, par))
 
-    for chave, linha in indice.items():
-        if chave not in usadas:
-            pares.append(({}, linha))
-
-    # scraping sem número identificável: sem par possível, mas ainda é dado
-    if not indice:
-        pares.extend(({}, linha) for linha in linhas_scrape)
+    # tudo que a página trouxe e não casou com a API entra como registro próprio
+    pares.extend(({}, linha) for linha in linhas_scrape if id(linha) not in pareadas)
 
     return pares

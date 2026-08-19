@@ -260,7 +260,18 @@ async def test_live_search_usa_cache_fresco_e_reporta_erro(seed_user, seed_munic
         rows, total, status = await ca.live_search(s, usuario_id=u, fonte="transferegov_ff")
         assert [p.id_externo for p in rows] == ["LV1"]
         assert total == 1
-        assert status == [{"fonte": "transferegov_ff", "municipio_ibge": "3550308", "status": "ok"}]
+        # 'cache' e não 'ok': a fonte NÃO foi consultada nesta rodada. Reportar
+        # "ok" fazia a tela anunciar consulta que não houve — e o gestor lia o
+        # dado de horas atrás como recém-colhido.
+        assert status == [
+            {
+                "fonte": "transferegov_ff",
+                "municipio_ibge": "3550308",
+                "status": "cache",
+                "erro": None,
+                "registros": None,
+            }
+        ]
 
     # fonte desconhecida → status de erro, sem derrubar a busca
     async with rls_session(u) as s:

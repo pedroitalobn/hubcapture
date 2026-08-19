@@ -1897,3 +1897,55 @@ disciplina dos módulos da §29 e dos gates da §39.
   parece não ter surtido efeito.
 - **Testes** — `test_ui_versao.py` (catálogo, sanitização e resolução da flag).
 
+
+## 49. Identidade do registro coletado — o `id_externo` é a chave do cache
+
+Relato do gestor: "Apuiarés aparece com **1** proposta (tipo scraping) em 2026,
+mas tinha 5" e "o número de propostas do município fica mudando". Não eram os
+filtros nem o cache-first: eram DOIS defeitos na ingestão, ambos na identidade
+do registro. `unique (fonte, id_externo)` é a chave do upsert — é por ela que a
+coleta decide se ATUALIZA uma linha ou CRIA outra —, então identificador mal
+formado não é cosmético: ele reescreve o cache.
+
+- **Aglutinação perdia linha** (`connectors/_combinada.aglutinar`): o scraping
+  era indexado por número e só o índice era devolvido. Linha de página SEM
+  número identificável era descartada sempre que alguma OUTRA tinha número (a
+  página mistura os dois casos o tempo todo), e duas linhas com o mesmo número
+  colapsavam numa. Agora o índice serve APENAS para casar com a API — cada linha
+  da página casa com no máximo uma da API e tudo que sobra entra como registro
+  próprio. Nenhuma linha some.
+- **`connectors/_identidade.py`** é a regra única: id publicado pela fonte vence;
+  sem id, a identidade é o **hash do CONTEÚDO da linha, escopado no município**.
+  As retaguardas antigas eram POSICIONAIS (`i`, `len(records)+1`,
+  `painel-{ibge}-{i}`) — a posição muda a cada coleta, então a mesma
+  transferência trocava de identidade entre rodadas — ou NÃO ESCOPADAS
+  (`i` puro, `str(None)` → o id literal `"None"`): o par único é GLOBAL, então a
+  proposta "1" de um município e a "1" de outro eram a MESMA linha e a proposta
+  mudava de território a cada rodada. Aplicado em `serpro`, `transferegov_disc`,
+  `transferegov_esp`, `transferegov_voluntarias`, `fns`, `caixa`, `simec` e
+  `sismob` (`fpm`/`fns` já usavam o hash — o helper unifica).
+- **Migration `e2f3a4b5c6d7`** MARCA (soft delete, §41 — nunca apaga: o cascade
+  ignora RLS) as propostas gravadas com o esquema antigo, que não seriam mais
+  reemitidas e ficariam órfãs, congeladas e possivelmente no município errado. É
+  auto-corrigível: o upsert zera `excluido_em`, então uma linha cujo id era
+  legítimo volta na coleta seguinte.
+- **Regressão**: `test_contagem_municipio.py`.
+
+### 49b. "Atualizar fontes" consulta AGORA (`forcar`)
+
+O botão herdava o TTL de 6h do cache-first: o gestor clicava, a tela dizia
+"consultando as fontes…" e nenhuma fonte era consultada. Pedido EXPLÍCITO de
+atualização não pode devolver cache em silêncio.
+
+- `consulta_avulsa.live_search(..., forcar=True)` pula o cache de dados e o de
+  tentativa; `POST /proposals/live-search` aceita `forcar` e o painel o envia só
+  no botão. Toda leitura AUTOMÁTICA segue cache-first — é onde ele economiza a
+  coleta cara (§38).
+- **Status por fonte ganhou um terceiro estado**: `ok` (consultada agora, com
+  `registros` trazidos) · `erro` · **`cache`** (não foi consultada). Antes tudo
+  que não falhava vinha como "ok" e a tela anunciava consulta que não houve.
+- **Idade do dado na tela**: `GET /proposals` devolve `atualizado_em` (max
+  `cache_atualizado_em` do recorte, via `propostas.atualizado_em`) e a Captação
+  mostra "dados de há X". A lista é servida do banco e quem alimenta é o sweep
+  diário (`jobs/refresh_diario`) — sem o carimbo, "o número mudou" não tem como
+  ser explicado ao gestor.

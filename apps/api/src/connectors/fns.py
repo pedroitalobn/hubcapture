@@ -27,6 +27,7 @@ from typing import Any
 from ..core.config import settings
 from ..scraping.scraper import get_scraper
 from ..services import config as config_service
+from . import _identidade
 from ._combinada import coletar
 from ._http import ConnectorClientError, get_json
 from .base import RawRecord, register
@@ -302,7 +303,7 @@ class FnsConnector:
 
         # linha que só o scraping conhece entra sozinha (a página publica
         # repasse que a API ainda não expõe) — ganho da coleta combinada
-        for i, item in enumerate(itens_scrape):
+        for item in itens_scrape:
             chave = _digits(item.get("portaria"))
             if chave and chave in usadas:
                 continue
@@ -311,7 +312,9 @@ class FnsConnector:
             records.append(
                 RawRecord(
                     source_id=self.source_id,
-                    id_externo=str(item.get("portaria") or f"{municipio_ibge}-{i}"),
+                    id_externo=_identidade.id_externo(
+                        item, municipio_ibge, candidatos=("portaria",), prefixo="fns:"
+                    ),
                     municipio_ibge=municipio_ibge,
                     endpoint="scrape",
                     raw=raw,
