@@ -74,10 +74,24 @@ ARQUIVOS: dict[str, Arquivo] = {
         "Proposta (COD_MUNIC_IBGE, NR_PROPOSTA, ANO_PROP, objeto, valores)",
         carrega=True,
     ),
-    # Cadeia de execução — proposta → convenio → empenho/pagamento. Mapeadas
-    # para quando o eixo de execução por emenda entrar (ver README do job).
-    "convenio": Arquivo("convenio", "Convênio celebrado (empenhado/desembolsado/saldo)"),
-    "empenho": Arquivo("empenho", "Empenhos por convênio (inclui DESCRICAO_EMENDA_SIAFI)"),
+    # Cadeia de execução: proposta → convenio → empenho. O convênio é a PONTE
+    # (é ele que tem `ID_PROPOSTA` e `NR_CONVENIO`); o empenho só conhece o
+    # número do convênio, então sem ele não há como dizer de que município é.
+    "convenio": Arquivo(
+        "convenio",
+        "Convênio celebrado — ponte proposta↔empenho (e os agregados do convênio)",
+        carrega=True,
+    ),
+    "empenho": Arquivo(
+        "empenho",
+        "Empenhos por convênio (inclui DESCRICAO_EMENDA_SIAFI)",
+        carrega=True,
+    ),
+    # `pagamento`/`desembolso` são por CONVÊNIO, não por empenho: atribuir um
+    # pagamento a um empenho específico exigiria `empenho_desembolso`, que é
+    # mais um arquivo. Enquanto `proposta_empenhos.valor_pago` não tiver origem
+    # confiável, ele fica NULL — melhor vazio que um número que não é daquele
+    # documento.
     "pagamento": Arquivo("pagamento", "Pagamentos por convênio"),
     "desembolso": Arquivo("desembolso", "Desembolsos por convênio"),
     "apoiadores_emendas_programas": Arquivo(

@@ -1948,6 +1948,20 @@ como ZIP nacional. Agora um job diário baixa, descompacta e carrega.
   "0 gravadas" com a tabela cheia (§41); a contagem sai do `rowcount`.
 - **Número BR decide pela vírgula**: `1.234,56` tem ponto de milhar, `1234.56`
   já é decimal. Converter às cegas transformaria o segundo em `123456`.
+- **Cadeia de execução** (`convenio` + `empenho` → `proposta_empenhos`): o
+  empenho só conhece `NR_CONVENIO`; quem sabe de que proposta — e portanto de
+  que MUNICÍPIO — ele é, é o convênio (`convenio.ID_PROPOSTA`). Por isso são
+  três arquivos em cadeia, e o convênio entra como PONTE mesmo sem tela própria.
+  Empenho de convênio ausente do pacote entra sem território em vez de sumir: o
+  documento existe. Datas aceitam `DD/MM/AAAA` e ISO via `to_date` (nunca
+  `::date` cru — linha suja não aborta a carga). `valor_pago`/`valor_liquidado`
+  ficam **NULL de propósito**: o pacote publica pagamento por CONVÊNIO, e ratear
+  entre os empenhos daria um número que não é daquele documento — a
+  `proveniencia` diz isso. Atribuir de verdade exigiria `empenho_desembolso`.
+- **Recorte operacional**: `SICONV_TABELAS=emenda,proposta` restringe a carga
+  (a cadeia de execução custa centenas de MB a mais por dia). Vazio = catálogo
+  inteiro. `aplicar_carga` só roda o upsert cujos arquivos estão presentes —
+  baixar menos degrada o escopo, não quebra o job.
 - **O que a fonte NÃO publica** (e não é inventado): o **ano da emenda** —
   `NR_EMENDA` é código do autor + sequencial. Gravamos `ano` a partir de
   `proposta.ANO_PROP` para o filtro de safra funcionar e marcamos

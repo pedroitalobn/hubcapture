@@ -49,10 +49,10 @@ def test_coluna_ausente_vira_null_em_vez_de_quebrar():
     assert job.col(COLS_EMENDA, "e", "coluna_que_nao_existe") == "NULL::text"
 
 
-def test_numero_decide_pela_virgula():
+def test_numero_br_decide_pela_virgula():
     """`1.234,56` é BR (ponto = milhar); `1234.56` já é decimal. Converter às
     cegas transformaria o segundo em 123456."""
-    expr = job.numero("e.valor_repasse_emenda")
+    expr = job.numero_br("e.valor_repasse_emenda")
     assert "position(',' in e.valor_repasse_emenda) > 0" in expr
     assert "::numeric" in expr
 
@@ -88,10 +88,10 @@ def test_proveniencia_marca_o_ano_como_derivado():
 
 
 def test_catalogo_carrega_apenas_o_que_tem_destino():
-    assert siconv_downloads.CARREGADAS == ("emenda", "proposta")
-    # As tabelas de execução estão mapeadas, mas não se baixa centenas de MB
-    # sem destino no schema.
-    assert not siconv_downloads.ARQUIVOS["empenho"].carrega
+    assert siconv_downloads.CARREGADAS == ("emenda", "proposta", "convenio", "empenho")
+    # pagamento/desembolso são por CONVÊNIO, não por empenho: sem
+    # `empenho_desembolso` não há como atribuí-los a um documento.
+    assert not siconv_downloads.ARQUIVOS["pagamento"].carrega
 
 
 def test_candidatos_de_nome_do_zip():
@@ -145,7 +145,7 @@ async def _rodar_carga(tmp_path: Path) -> list[dict]:
 
     async with engine.begin() as conn:
         gravadas = await job.aplicar_carga(conn, {"emenda": emenda, "proposta": proposta})
-    assert gravadas == 3
+    assert gravadas == {"emendas": 3}
 
     from tests.conftest import _owner_engine
 
@@ -200,3 +200,108 @@ async def test_carga_e_idempotente(tmp_path: Path):
     await _rodar_carga(tmp_path)
     linhas = await _rodar_carga(tmp_path)
     assert len(linhas) == 3
+
+
+# --------------------------------------------------------------------------
+# cadeia de execução: empenho → convenio → proposta
+# --------------------------------------------------------------------------
+
+_CONVENIO_CSV = (
+    "NR_CONVENIO;ID_PROPOSTA;SIT_CONVENIO;VL_GLOBAL_CONV;VL_EMPENHADO_CONV\n"
+    "912345;901;Em execução;1.500.000,00;1.234.567,89\n"
+)
+
+_EMPENHO_CSV = (
+    "ID_EMPENHO;NR_CONVENIO;NR_EMPENHO;TIPO_NOTA;DESC_TIPO_NOTA;DATA_EMISSAO;"
+    "DESC_SITUACAO_EMPENHO;UG_EMITENTE;NATUREZA_DESPESA;FONTE_RECURSO;"
+    "PLANO_INTERNO;VALOR_EMPENHO;OBSERVACAO_EMPENHO;DESCRICAO_EMENDA_SIAFI\n"
+    "5001;912345;2024NE000123;1;Empenho Ordinário;12/03/2024;Enviado;153173;"
+    "44904200;1000000000;PI-EMENDA;1.234.567,89;UBS Monte Carlo;71260013\n"
+    # data em ISO: a fonte mistura formatos entre pacotes
+    "5002;912345;2024NE000124;3;Anulação;2024-06-30;Enviado;153173;44904200;"
+    "1000000000;PI-EMENDA;5000;Anulação parcial;71260013\n"
+    # convênio que não veio no pacote: entra sem território, não some
+    "5003;999999;2024NE000999;1;Empenho Ordinário;01/02/2024;Enviado;153173;"
+    "44904200;1000000000;PI;100;Orfão;\n"
+)
+
+
+async def _rodar_carga_execucao(tmp_path: Path) -> list[dict]:
+    from sqlalchemy import text as sql_text
+
+    from src.db.session import engine
+
+    arquivos = {}
+    for nome, conteudo in (
+        ("proposta", _PROPOSTA_CSV),
+        ("convenio", _CONVENIO_CSV),
+        ("empenho", _EMPENHO_CSV),
+    ):
+        caminho = tmp_path / f"{nome}.csv"
+        caminho.write_text(conteudo, encoding="utf-8-sig")
+        arquivos[nome] = caminho
+
+    async with engine.begin() as conn:
+        gravadas = await job.aplicar_carga(conn, arquivos)
+    assert gravadas == {"empenhos": 3}
+
+    from tests.conftest import _owner_engine
+
+    async with _owner_engine.begin() as conn:
+        await conn.execute(sql_text("SELECT set_config('app.plataforma', 'on', true)"))
+        linhas = (
+            await conn.execute(
+                sql_text(
+                    "SELECT id_externo, numero_empenho, numero_proposta, municipio_ibge, "
+                    "data_empenho, ano, tipo_empenho, valor_empenhado, valor_pago, detalhe "
+                    "FROM proposta_empenhos WHERE fonte = 'siconv' ORDER BY id_externo"
+                )
+            )
+        ).mappings()
+        return [dict(r) for r in linhas]
+
+
+async def test_empenho_chega_a_proposta_pelo_convenio(tmp_path: Path):
+    """O empenho só conhece NR_CONVENIO — é o convênio que sabe de que proposta
+    (e portanto de que município) ele é."""
+    from datetime import date
+    from decimal import Decimal
+
+    linhas = await _rodar_carga_execucao(tmp_path)
+    assert [linha["id_externo"] for linha in linhas] == ["5001", "5002", "5003"]
+
+    ordinario = linhas[0]
+    assert ordinario["numero_empenho"] == "2024NE000123"
+    assert ordinario["municipio_ibge"] == "4211272"  # veio de proposta, via convenio
+    assert ordinario["numero_proposta"] == "014275/2024"
+    assert ordinario["data_empenho"] == date(2024, 3, 12)  # DD/MM/AAAA
+    assert ordinario["ano"] == "2024"
+    assert ordinario["valor_empenhado"] == Decimal("1234567.89")
+    assert ordinario["detalhe"]["nr_convenio"] == "912345"
+
+    # a fonte mistura formatos de data entre pacotes
+    assert linhas[1]["data_empenho"] == date(2024, 6, 30)
+
+    # empenho de convênio ausente do pacote: o documento existe, entra sem território
+    assert linhas[2]["municipio_ibge"] is None
+    assert linhas[2]["valor_empenhado"] == Decimal("100")
+
+
+async def test_valor_pago_do_empenho_fica_vazio_em_vez_de_rateado(tmp_path: Path):
+    """O pacote publica pagamento por CONVÊNIO. Ratear entre os empenhos daria
+    um número que não é daquele documento — melhor vazio e dito na proveniência."""
+    linhas = await _rodar_carga_execucao(tmp_path)
+    assert all(linha["valor_pago"] is None for linha in linhas)
+
+
+async def test_carga_de_execucao_e_idempotente(tmp_path: Path):
+    await _rodar_carga_execucao(tmp_path)
+    assert len(await _rodar_carga_execucao(tmp_path)) == 3
+
+
+def test_recorte_de_tabelas_pelo_ambiente(monkeypatch):
+    """`SICONV_TABELAS` degrada o escopo da carga, não a quebra."""
+    monkeypatch.setattr(job, "_TABELAS_ENV", ["emenda", "proposta"])
+    assert job.tabelas_alvo() == ("emenda", "proposta")
+    monkeypatch.setattr(job, "_TABELAS_ENV", [])
+    assert job.tabelas_alvo() == siconv_downloads.CARREGADAS
