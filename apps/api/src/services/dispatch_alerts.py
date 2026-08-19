@@ -13,6 +13,7 @@ from ..models.proposta import Proposta
 from ..models.usuario import Usuario
 from ..notifications import uniq
 from . import alertas as alertas_service
+from . import criterios_alerta
 from .municipios import rotulo
 
 
@@ -32,7 +33,12 @@ def _formatar(alertas: list, propostas: dict) -> str:
         p = propostas.get(a.proposta_id)
         municipio = rotulo(p.municipio_nome, p.uf, p.municipio_ibge) if p else "Seu território"
         objeto = (p.titulo if p and p.titulo else None) or "proposta acompanhada"
-        linhas.append(f"🔔 {municipio} · {objeto} — {a.tipo or 'atualização'}")
+        # o critério em português e, quando há, O QUE mudou (§51) — "vencimento"
+        # cru não diz ao gestor que o convênio está a 10 dias de vencer
+        payload = getattr(a, "payload", None)
+        detalhe = payload.get("resumo") if isinstance(payload, dict) else None
+        motivo = criterios_alerta.rotulo(a.tipo) if a.tipo else "atualização"
+        linhas.append(f"🔔 {municipio} · {objeto} — {motivo}" + (f": {detalhe}" if detalhe else ""))
     return "Hub Capture — atualizações:\n" + "\n".join(linhas)
 
 

@@ -52,6 +52,7 @@ async def criar_busca(
         area=body.area,
         fonte=body.fonte,
         canais=body.canais,
+        criterios=body.criterios,
     )
     return MonitoramentoBuscaRead.model_validate(busca)
 
@@ -80,7 +81,11 @@ async def criar_monitoramento(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> MonitoramentoRead:
-    mon = await service.criar(session, user.id, body.proposta_id, body.canais)
+    # POST é upsert: reenviar a mesma proposta com outros critérios é como o
+    # usuário edita a escolha do multi-select (não há PATCH de monitoramento)
+    mon = await service.criar(
+        session, user.id, body.proposta_id, body.canais, criterios=body.criterios
+    )
     return MonitoramentoRead.model_validate(mon)
 
 

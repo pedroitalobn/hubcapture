@@ -737,6 +737,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/alerts/criteria": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Catalogo Criterios
+         * @description Catálogo dos critérios de alerta — é ele que alimenta o multi-select.
+         *
+         *     Critério novo aparece na tela sem alteração no front (§51).
+         */
+        get: operations["catalogo_criterios_api_v1_alerts_criteria_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/alerts/scan": {
         parameters: {
             query?: never;
@@ -3062,6 +3084,22 @@ export interface components {
             token: string;
         };
         /**
+         * CriterioAlertaRead
+         * @description Item do catálogo que alimenta o multi-select de critérios.
+         */
+        CriterioAlertaRead: {
+            /** Chave */
+            chave: string;
+            /** Descricao */
+            descricao: string;
+            /** Escopo */
+            escopo: string;
+            /** Padrao */
+            padrao: boolean;
+            /** Rotulo */
+            rotulo: string;
+        };
+        /**
          * DemandaComentario
          * @description Mensagem nova na demanda; `situacao` só quando ela muda de estado.
          */
@@ -4221,6 +4259,8 @@ export interface components {
              *     ]
              */
             canais: string[];
+            /** Criterios */
+            criterios?: string[] | null;
             /** Fonte */
             fonte?: string | null;
             /** Municipio Ibge */
@@ -4239,6 +4279,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Criterios */
+            criterios?: string[] | null;
             /** Fonte */
             fonte?: string | null;
             /**
@@ -4260,6 +4302,8 @@ export interface components {
              *     ]
              */
             canais: string[];
+            /** Criterios */
+            criterios?: string[] | null;
             /**
              * Proposta Id
              * Format: uuid
@@ -4277,6 +4321,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Criterios */
+            criterios?: string[] | null;
             /**
              * Id
              * Format: uuid
@@ -4287,6 +4333,8 @@ export interface components {
              * Format: uuid
              */
             proposta_id: string;
+            /** Ultimo Alerta Em */
+            ultimo_alerta_em?: string | null;
         };
         /**
          * MunicipioBusca
@@ -7209,6 +7257,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AlertaRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    catalogo_criterios_api_v1_alerts_criteria_get: {
+        parameters: {
+            query?: {
+                /** @description proposta (monitorar uma proposta) | territorio (monitorar um município) */
+                escopo?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriterioAlertaRead"][];
                 };
             };
             /** @description Validation Error */

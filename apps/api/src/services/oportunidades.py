@@ -1,7 +1,14 @@
-"""Varredura do usuário: futuras propostas + oportunidades não aproveitadas.
+"""Varredura do usuário: mudanças monitoradas + futuras propostas + oportunidades.
 
-Duas detecções, ambas na sessão RLS do próprio usuário:
+Três detecções, todas na sessão RLS do próprio usuário e todas recortadas pelos
+CRITÉRIOS que o usuário escolheu ao configurar o monitoramento (§51) — sem isso
+o painel alertava toda e qualquer alteração:
 
+0. **mudança na proposta monitorada** — para cada `monitoramentos` ativo,
+   compara a fotografia atual da proposta (`detect_changes.snapshot`) com a
+   guardada e emite UM alerta por critério ligado que teve fato novo: parecer,
+   empenho, pagamento, publicação, vencimento do convênio, situação, prazo,
+   pendência.
 1. **nova_proposta** — para cada `monitoramentos_busca` ativo, propostas do
    município (recortadas por fonte/área) que entraram no cache DEPOIS do último
    alerta da busca geram um alerta cada; o cursor `ultimo_alerta_em` avança.
@@ -22,7 +29,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.alerta import Alerta
-from ..models.monitoramento import MonitoramentoBusca
+from ..models.monitoramento import Monitoramento, MonitoramentoBusca
 from ..models.municipio_interesse import MunicipioInteresse
 from ..models.proposta import Proposta
 from ..models.repasse import Repasse
@@ -31,7 +38,9 @@ from ..notifications import email as email_notif
 from ..notifications import uniq
 from ..notifications.email_templates import alertas_resumo
 from . import config as config_service
-from . import plano_gates
+from . import criterios_alerta, detect_changes, plano_gates
+from . import empenhos_proposta as empenhos_service
+from . import pareceres as pareceres_service
 from .perfil import AREA_FONTES
 
 
@@ -44,15 +53,85 @@ def _fontes_da_busca(busca: MonitoramentoBusca) -> set[str] | None:
     return None
 
 
-async def _novas_propostas(
+async def _mudancas_monitoradas(
     session: AsyncSession, usuario: Usuario
 ) -> tuple[list[Alerta], set[str]]:
-    """Alertas 'nova_proposta' para as buscas ativas. Retorna (alertas, canais)."""
+    """Um alerta por CRITÉRIO ligado que teve fato novo na proposta monitorada.
+
+    A fotografia anterior vive em `monitoramentos.snapshot`; a atual é montada
+    do cache (a proposta e, só quando o critério pede, pareceres e empenhos —
+    consulta ao vivo é papel da Captação, não da varredura). O snapshot é
+    PODADO pelos critérios ligados: campo de critério desligado não vira linha
+    de base falsa quando o usuário ligar o critério depois.
+    """
     agora = datetime.now(UTC)
     criados: list[Alerta] = []
     canais: set[str] = set()
 
-    buscas = (
+    monitores = (
+        (
+            await session.execute(
+                select(Monitoramento).where(
+                    Monitoramento.usuario_id == usuario.id,
+                    Monitoramento.ativo.is_(True),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for mon in monitores:
+        ligados = criterios_alerta.efetivos(mon.criterios, criterios_alerta.ESCOPO_PROPOSTA)
+        if not ligados:
+            continue  # o usuário desmarcou tudo — monitoramento em silêncio
+        proposta = (
+            await session.execute(
+                select(Proposta).where(
+                    Proposta.id == mon.proposta_id,
+                    Proposta.excluido_em.is_(None),
+                )
+            )
+        ).scalar_one_or_none()
+        if proposta is None:  # fora do território (RLS) ou zerada — nada a comparar
+            continue
+
+        pareceres: list = []
+        if "parecer" in ligados and proposta.numero_plano_trabalho:
+            pareceres = await pareceres_service.listar(session, proposta.numero_plano_trabalho)
+        empenhos: list = []
+        if ligados & {"empenho", "pagamento"}:
+            empenhos = await empenhos_service.listar(session, proposta)
+
+        atual = detect_changes.podar(
+            detect_changes.snapshot(proposta, pareceres=pareceres, empenhos=empenhos),
+            ligados,
+        )
+        mudancas = detect_changes.avaliar(mon.snapshot, atual, ligados)
+        for mudanca in mudancas:
+            alerta = Alerta(
+                usuario_id=usuario.id,
+                proposta_id=proposta.id,
+                tipo=mudanca.criterio,
+                payload={
+                    **mudanca.payload,
+                    "titulo": proposta.titulo or proposta.objeto,
+                    "numero_proposta": proposta.numero_proposta,
+                    "fonte": proposta.fonte,
+                    "municipio_ibge": proposta.municipio_ibge,
+                    "municipio_nome": proposta.municipio_nome,
+                },
+            )
+            session.add(alerta)
+            criados.append(alerta)
+        if mudancas:
+            mon.ultimo_alerta_em = agora
+            canais.update(mon.canais or [])
+        mon.snapshot = atual
+    return criados, canais
+
+
+async def _buscas_ativas(session: AsyncSession, usuario: Usuario) -> list[MonitoramentoBusca]:
+    return list(
         (
             await session.execute(
                 select(MonitoramentoBusca).where(
@@ -64,7 +143,34 @@ async def _novas_propostas(
         .scalars()
         .all()
     )
+
+
+def _criterios_do_territorio(buscas: list[MonitoramentoBusca]) -> set[str]:
+    """União dos critérios de território das buscas ativas.
+
+    Sem nenhuma busca configurada valem os padrões — a varredura de
+    oportunidade nasceu independente das buscas e continua assim.
+    """
+    if not buscas:
+        return criterios_alerta.padroes(criterios_alerta.ESCOPO_TERRITORIO)
+    ligados: set[str] = set()
+    for b in buscas:
+        ligados |= criterios_alerta.efetivos(b.criterios, criterios_alerta.ESCOPO_TERRITORIO)
+    return ligados
+
+
+async def _novas_propostas(
+    session: AsyncSession, usuario: Usuario, buscas: list[MonitoramentoBusca]
+) -> tuple[list[Alerta], set[str]]:
+    """Alertas 'nova_proposta' para as buscas ativas. Retorna (alertas, canais)."""
+    agora = datetime.now(UTC)
+    criados: list[Alerta] = []
+    canais: set[str] = set()
+
     for busca in buscas:
+        ligados = criterios_alerta.efetivos(busca.criterios, criterios_alerta.ESCOPO_TERRITORIO)
+        if "nova_proposta" not in ligados:
+            continue  # a busca vigia o território, mas não quer aviso de proposta nova
         corte = busca.ultimo_alerta_em or busca.created_at
         stmt = select(Proposta).where(
             Proposta.excluido_em.is_(None),
@@ -166,6 +272,9 @@ async def _oportunidades(session: AsyncSession, usuario: Usuario) -> list[Alerta
 def _linha(alerta: Alerta) -> str:
     p = alerta.payload or {}
     municipio = p.get("municipio_nome") or p.get("municipio_ibge") or "seu município"
+    if p.get("resumo"):  # alerta de mudança: o critério + o que mudou
+        titulo = p.get("titulo") or p.get("numero_proposta") or "proposta monitorada"
+        return f"{criterios_alerta.rotulo(alerta.tipo)} em {municipio}: {titulo} — {p['resumo']}"
     if alerta.tipo == "nova_proposta":
         return f"Nova proposta em {municipio}: {p.get('titulo')} ({p.get('fonte')})"
     if alerta.tipo == "oportunidade":
@@ -192,9 +301,15 @@ async def _despachar(usuario: Usuario, alertas: list[Alerta], canais: set[str]) 
 
 
 async def varredura(session: AsyncSession, usuario: Usuario) -> int:
-    """Roda as duas detecções e despacha. Retorna o nº de alertas criados."""
-    novos, canais = await _novas_propostas(session, usuario)
-    oportunidades = await _oportunidades(session, usuario)
+    """Roda as três detecções e despacha. Retorna o nº de alertas criados."""
+    mudancas, canais = await _mudancas_monitoradas(session, usuario)
+    buscas = await _buscas_ativas(session, usuario)
+    do_territorio = _criterios_do_territorio(buscas)
+    novos, canais_busca = await _novas_propostas(session, usuario, buscas)
+    canais |= canais_busca
+    oportunidades = (
+        await _oportunidades(session, usuario) if "oportunidade" in do_territorio else []
+    )
     # oportunidades saem também por email/wpp quando o usuário tem opt-in
     if oportunidades and usuario.optin_wpp:
         canais.add("wpp")
@@ -206,7 +321,7 @@ async def varredura(session: AsyncSession, usuario: Usuario) -> int:
         canais.discard("email")
     if not plano_gates.feature_liberada(cfg, "alertas_wpp"):
         canais.discard("wpp")
-    todos = novos + oportunidades
+    todos = mudancas + novos + oportunidades
     await session.flush()
     await _despachar(usuario, todos, canais)
     return len(todos)

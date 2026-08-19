@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api/client";
 import { ModuloGate } from "@/components/ModuloGate";
+import { CriteriosAlerta, ResumoCriterios } from "@/components/CriteriosAlerta";
+import { descreverAlerta, useCriteriosAlerta } from "@/lib/alertas";
 import { municipioPrincipal, recortarTexto } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
@@ -23,17 +25,17 @@ type Busca = {
   fonte?: string | null;
   ativo: boolean;
   canais?: string[] | null;
+  criterios?: string[] | null;
   ultimo_alerta_em?: string | null;
 };
 
-const TIPO_LABEL: Record<string, string> = {
-  status: "Mudança de status",
-  prazo: "Prazo alterado",
-  pendencia: "Nova pendência",
-  // O rótulo do chip é "Novo alerta" (pedido do cliente); a CHAVE segue
-  // `nova_proposta` — é contrato com o backend (dedupe e despacho).
-  nova_proposta: "Novo alerta",
-  oportunidade: "Oportunidade",
+type Monitor = {
+  id: string;
+  proposta_id: string;
+  ativo: boolean;
+  canais?: string[] | null;
+  criterios?: string[] | null;
+  ultimo_alerta_em?: string | null;
 };
 
 const AREAS = [
@@ -63,7 +65,10 @@ function descricao(a: Alerta): string {
     return `${recortarTexto(p.titulo, 80).trecho || "Nova proposta na fonte"} (${p.fonte ?? ""}) em ${municipio}`;
   if (a.tipo === "oportunidade")
     return `Recursos da fonte ${p.fonte ?? "?"} recebidos em ${municipio} sem proposta de captação cadastrada`;
-  return `Proposta atualizada${municipio ? ` em ${municipio}` : ""}`;
+  // alerta de mudança (§51): o backend manda a frase pronta do critério
+  const titulo = recortarTexto(p.titulo, 80).trecho || p.numero_proposta || "";
+  const alvo = [titulo, municipio].filter(Boolean).join(" · ");
+  return `${descreverAlerta(a)}${alvo ? ` — ${alvo}` : ""}`;
 }
 
 export default function AlertasPage() {
@@ -87,9 +92,20 @@ function AlertasConteudo() {
   const [novoIbge, setNovoIbge] = useState("");
   const [novaArea, setNovaArea] = useState("");
   const [novosCanais, setNovosCanais] = useState<string[]>(["painel"]);
+  // null = os padrões do catálogo (o usuário ainda não mexeu no multi-select)
+  const [novosCriterios, setNovosCriterios] = useState<string[] | null>(null);
+
+  // propostas monitoradas (uma a uma) + títulos para a lista fazer sentido
+  const [monitores, setMonitores] = useState<Monitor[]>([]);
+  const [titulos, setTitulos] = useState<Record<string, string>>({});
+  // espelho do que já foi resolvido: ler o STATE dentro do callback usaria a
+  // cópia velha do closure e refaria a busca de título a cada recarga
+  const titulosRef = useRef<Record<string, string>>({});
+  const [editando, setEditando] = useState<string | null>(null);
+  const { rotulo } = useCriteriosAlerta();
 
   const carregar = useCallback(async () => {
-    const [al, bu] = await Promise.all([
+    const [al, bu, mo] = await Promise.all([
       api.GET("/api/v1/alerts", {
         params: {
           query: {
@@ -99,9 +115,47 @@ function AlertasConteudo() {
         },
       }),
       api.GET("/api/v1/monitors/searches"),
+      api.GET("/api/v1/monitors"),
     ]);
     if (al.data) setAlertas(al.data as Alerta[]);
     if (bu.data) setBuscas((bu.data as Busca[]).filter((b) => b.ativo));
+    if (mo.data) {
+      const ativos = (mo.data as Monitor[]).filter((m) => m.ativo);
+      setMonitores(ativos);
+      // o monitoramento guarda só o id da proposta; sem o título a lista viraria
+      // uma coluna de UUID (§35: identificador nunca vira nome)
+      const faltando = ativos.filter((m) => !titulosRef.current[m.proposta_id]);
+      if (faltando.length > 0) {
+        const buscados = await Promise.all(
+          faltando.map((m) =>
+            api
+              .GET("/api/v1/proposals/{proposta_id}", {
+                params: { path: { proposta_id: m.proposta_id } },
+              })
+              .then(({ data }) => [m.proposta_id, data] as const),
+          ),
+        );
+        setTitulos((prev) => {
+          const proximo = { ...prev };
+          for (const [id, p] of buscados) {
+            const dados = p as
+              | {
+                  titulo?: string | null;
+                  objeto?: string | null;
+                  numero_proposta?: string | null;
+                }
+              | undefined;
+            proximo[id] =
+              recortarTexto(dados?.titulo ?? dados?.objeto, 80).trecho ||
+              (dados?.numero_proposta
+                ? `Proposta ${dados.numero_proposta}`
+                : "Proposta monitorada");
+          }
+          titulosRef.current = proximo;
+          return proximo;
+        });
+      }
+    }
   }, [soNaoLidos, selecionados]);
 
   useEffect(() => {
@@ -120,7 +174,8 @@ function AlertasConteudo() {
   async function varrer() {
     setVarrendo(true);
     const { data } = await api.POST("/api/v1/alerts/scan");
-    const n = (data as { alertas_criados?: number } | undefined)?.alertas_criados ?? 0;
+    const n =
+      (data as { alertas_criados?: number } | undefined)?.alertas_criados ?? 0;
     setMsg(
       n > 0
         ? `${n} novo(s) alerta(s) encontrado(s).`
@@ -146,6 +201,7 @@ function AlertasConteudo() {
         municipio_ibge: ibge,
         area: novaArea || null,
         canais: novosCanais,
+        criterios: novosCriterios,
       },
     });
     if (!error) {
@@ -160,14 +216,41 @@ function AlertasConteudo() {
     setNovoIbge("");
     setNovaArea("");
     setNovosCanais(["painel"]);
+    setNovosCriterios(null);
     setSoNaoLidos(false);
     setMsg(null);
+  }
+
+  /** Reconfigura o monitoramento da proposta: o POST é upsert (não há PATCH). */
+  async function salvarCriteriosMonitor(m: Monitor, criterios: string[]) {
+    setMonitores((prev) =>
+      prev.map((x) => (x.id === m.id ? { ...x, criterios } : x)),
+    );
+    const { error } = await api.POST("/api/v1/monitors", {
+      body: {
+        proposta_id: m.proposta_id,
+        canais: m.canais ?? ["painel"],
+        criterios,
+      },
+    });
+    if (error) {
+      setMsg("Não foi possível salvar os critérios agora — tente novamente.");
+      await carregar();
+    }
+  }
+
+  async function pararMonitor(id: string) {
+    await api.DELETE("/api/v1/monitors/{monitoramento_id}", {
+      params: { path: { monitoramento_id: id } },
+    });
+    await carregar();
   }
 
   const pesquisaSuja =
     Boolean(novoIbge) ||
     Boolean(novaArea) ||
     novosCanais.length > 1 ||
+    novosCriterios !== null ||
     soNaoLidos;
 
   async function removerBusca(id: string) {
@@ -192,7 +275,11 @@ function AlertasConteudo() {
             oportunidades não aproveitadas.
           </p>
         </div>
-        <button onClick={varrer} disabled={varrendo} className="btn btn-primary">
+        <button
+          onClick={varrer}
+          disabled={varrendo}
+          className="btn btn-primary"
+        >
           {varrendo ? "Varrendo…" : "Varrer agora"}
         </button>
       </header>
@@ -207,74 +294,84 @@ function AlertasConteudo() {
           aparecer nas fontes, você recebe alerta no painel — e por e-mail ou
           WhatsApp, se marcar os canais.
         </p>
-        <form onSubmit={criarBusca} className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1">
-            <span className="field-label">Município</span>
-            <select
-              value={novoIbge}
-              onChange={(e) => setNovoIbge(e.target.value)}
-              className="input w-52"
-            >
-              {municipios.map((m) => (
-                <option key={m.ibge} value={m.ibge}>
-                  {m.nome ?? m.ibge}
-                  {m.uf ? `/${m.uf}` : ""}
-                </option>
+        <form onSubmit={criarBusca} className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1">
+              <span className="field-label">Município</span>
+              <select
+                value={novoIbge}
+                onChange={(e) => setNovoIbge(e.target.value)}
+                className="input w-52"
+              >
+                {municipios.map((m) => (
+                  <option key={m.ibge} value={m.ibge}>
+                    {m.nome ?? m.ibge}
+                    {m.uf ? `/${m.uf}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="field-label">Área (opcional)</span>
+              <select
+                value={novaArea}
+                onChange={(e) => setNovaArea(e.target.value)}
+                className="input w-44"
+              >
+                <option value="">todas</option>
+                {AREAS.map((a) => (
+                  <option key={a} value={a}>
+                    {a.replace("_", " ")}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="flex gap-3 pb-2 text-sm">
+              {(
+                [
+                  ["painel", "Painel"],
+                  ["email", "E-mail"],
+                  ["wpp", "WhatsApp"],
+                ] as const
+              ).map(([valor, rotulo]) => (
+                <label key={valor} className="flex items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={novosCanais.includes(valor)}
+                    disabled={valor === "painel"}
+                    onChange={(e) =>
+                      setNovosCanais((prev) =>
+                        e.target.checked
+                          ? [...prev, valor]
+                          : prev.filter((c) => c !== valor),
+                      )
+                    }
+                  />
+                  {rotulo}
+                </label>
               ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="field-label">Área (opcional)</span>
-            <select
-              value={novaArea}
-              onChange={(e) => setNovaArea(e.target.value)}
-              className="input w-44"
-            >
-              <option value="">todas</option>
-              {AREAS.map((a) => (
-                <option key={a} value={a}>
-                  {a.replace("_", " ")}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="flex gap-3 pb-2 text-sm">
-            {(
-              [
-                ["painel", "Painel"],
-                ["email", "E-mail"],
-                ["wpp", "WhatsApp"],
-              ] as const
-            ).map(([valor, rotulo]) => (
-              <label key={valor} className="flex items-center gap-1.5">
-                <input
-                  type="checkbox"
-                  checked={novosCanais.includes(valor)}
-                  disabled={valor === "painel"}
-                  onChange={(e) =>
-                    setNovosCanais((prev) =>
-                      e.target.checked
-                        ? [...prev, valor]
-                        : prev.filter((c) => c !== valor),
-                    )
-                  }
-                />
-                {rotulo}
-              </label>
-            ))}
+            </div>
           </div>
-          <button type="submit" className="btn btn-primary">
-            Monitorar
-          </button>
-          <button
-            type="button"
-            onClick={limparPesquisa}
-            disabled={!pesquisaSuja}
-            className="btn btn-ghost disabled:opacity-40"
-            title="Volta os campos e o filtro da lista ao padrão"
-          >
-            Limpar pesquisa
-          </button>
+          <CriteriosAlerta
+            escopo="territorio"
+            valor={novosCriterios}
+            onChange={setNovosCriterios}
+            descricao="Marque só o que interessa: o que ficar desmarcado não vira alerta."
+          />
+          <div className="flex flex-wrap gap-3">
+            <button type="submit" className="btn btn-primary">
+              Monitorar
+            </button>
+            <button
+              type="button"
+              onClick={limparPesquisa}
+              disabled={!pesquisaSuja}
+              className="btn btn-ghost disabled:opacity-40"
+              title="Volta os campos e o filtro da lista ao padrão"
+            >
+              Limpar pesquisa
+            </button>
+          </div>
         </form>
 
         {buscas.length > 0 && (
@@ -286,9 +383,14 @@ function AlertasConteudo() {
               >
                 <span>
                   {nomeMunicipio(b.municipio_ibge)}
-                  {b.area ? ` · ${b.area.replace("_", " ")}` : " · todas as áreas"}
+                  {b.area
+                    ? ` · ${b.area.replace("_", " ")}`
+                    : " · todas as áreas"}
                   <span className="ml-2 font-mono text-[11px] text-ink-3">
                     {(b.canais ?? ["painel"]).join(" + ")}
+                  </span>
+                  <span className="ml-2 text-xs">
+                    <ResumoCriterios escopo="territorio" valor={b.criterios} />
                   </span>
                 </span>
                 <button
@@ -302,6 +404,66 @@ function AlertasConteudo() {
           </ul>
         )}
       </section>
+
+      {/* propostas monitoradas: aqui o usuário escolhe QUAIS alterações avisar */}
+      {monitores.length > 0 && (
+        <section className="card p-5">
+          <h2 className="label-mono mb-3">Propostas monitoradas</h2>
+          <p className="mb-3 text-sm text-ink-2">
+            Cada proposta avisa só as alterações marcadas — parecer, empenho,
+            pagamento, publicação, vencimento do convênio, situação, prazos e
+            pendências.
+          </p>
+          <ul className="space-y-2">
+            {monitores.map((m) => (
+              <li
+                key={m.id}
+                className="rounded-lg border border-hairline px-3 py-2 text-sm"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Link
+                    href={`/panel/funding/${m.proposta_id}`}
+                    className="font-medium hover:underline"
+                  >
+                    {titulos[m.proposta_id] ?? "Proposta monitorada"}
+                  </Link>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs">
+                      <ResumoCriterios escopo="proposta" valor={m.criterios} />
+                    </span>
+                    <button
+                      onClick={() =>
+                        setEditando(editando === m.id ? null : m.id)
+                      }
+                      className="btn btn-ghost btn-sm"
+                    >
+                      {editando === m.id ? "Fechar" : "Configurar"}
+                    </button>
+                    <button
+                      onClick={() => pararMonitor(m.id)}
+                      className="btn btn-ghost btn-sm"
+                    >
+                      Parar
+                    </button>
+                  </div>
+                </div>
+                {editando === m.id && (
+                  <div className="mt-3 border-t border-hairline pt-3">
+                    <CriteriosAlerta
+                      escopo="proposta"
+                      valor={m.criterios ?? null}
+                      onChange={(criterios) =>
+                        salvarCriteriosMonitor(m, criterios)
+                      }
+                      compacto
+                    />
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* central de alertas */}
       <section className="flex items-center gap-3">
@@ -340,7 +502,7 @@ function AlertasConteudo() {
                           : "bg-surface-2 text-ink-2"
                     }`}
                   >
-                    {TIPO_LABEL[a.tipo ?? ""] ?? a.tipo}
+                    {rotulo(a.tipo)}
                   </span>
                   {descricao(a)}
                 </p>

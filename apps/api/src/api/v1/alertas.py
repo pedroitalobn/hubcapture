@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.users import current_active_user
 from ...models.usuario import Usuario
-from ...schemas.monitoramento import AlertaRead
+from ...schemas.monitoramento import AlertaRead, CriterioAlertaRead
 from ...services import alertas as service
+from ...services import criterios_alerta as criterios_service
 from ...services import oportunidades as oportunidades_service
 from ...services.modulos import require_modulo
 from ..deps import get_rls_db
@@ -27,6 +28,34 @@ async def varredura_alertas(
     por email/WhatsApp conforme os canais. Retorna quantos alertas foram criados."""
     criados = await oportunidades_service.varredura(session, user)
     return {"alertas_criados": criados}
+
+
+@router.get("/alerts/criteria", response_model=list[CriterioAlertaRead])
+async def catalogo_criterios(
+    escopo: str | None = Query(
+        default=None,
+        description="proposta (monitorar uma proposta) | territorio (monitorar um município)",
+    ),
+    _: Usuario = Depends(current_active_user),
+) -> list[CriterioAlertaRead]:
+    """Catálogo dos critérios de alerta — é ele que alimenta o multi-select.
+
+    Critério novo aparece na tela sem alteração no front (§51)."""
+    if escopo is not None and escopo not in criterios_service.ESCOPOS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"escopo inválido: {escopo}",
+        )
+    return [
+        CriterioAlertaRead(
+            chave=c.chave,
+            rotulo=c.rotulo,
+            descricao=c.descricao,
+            escopo=c.escopo,
+            padrao=c.padrao,
+        )
+        for c in criterios_service.catalogo(escopo)
+    ]
 
 
 @router.get("/alerts", response_model=list[AlertaRead])
