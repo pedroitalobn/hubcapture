@@ -142,7 +142,11 @@ def normalize_parecer(
             _first(r.get("codigo_siorg_orgao_analise_pt"), r.get("codigo_siorg_orgao"))
         ),
         "valor_reprovado": _to_decimal(
-            _first(r.get("valor_reprovado_pt"), r.get("valor_reprovado"))
+            _first(
+                r.get("valor_reprovado_pt"),  # nome no spec da API nova
+                r.get("valor_reprovado_analise_pt"),  # variante da API antiga
+                r.get("valor_reprovado"),
+            )
         ),
         "texto": _texto(
             _first(
@@ -163,7 +167,13 @@ def normalize_parecer(
     # `str(...)`: a API devolve os ids como INTEIRO e o schema é string
     fields["id_externo"] = str(
         _first(
+            # `id_plano_trabalho_analise_pt` é o nome no spec da API NOVA
+            # (`planos_trabalho_analises_especiais`); a API PostgREST antiga
+            # encurta para `id_plano_trabalho_analise`. Aceitar os dois evita
+            # cair na chave sintética — e, como a API não traz responsável nem
+            # papel, dois pareceres do mesmo dia colidiriam nela.
             r.get("id_plano_trabalho_analise_pt"),
+            r.get("id_plano_trabalho_analise"),
             r.get("id_externo"),
             r.get("id"),
             r.get("id_parecer"),
