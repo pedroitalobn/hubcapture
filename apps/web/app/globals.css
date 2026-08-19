@@ -1638,3 +1638,23 @@ html[data-ui="v1"]::before {
 [data-ui="v1"] .island-fechada:hover {
   transform: none;
 }
+
+/* ── Resposta ao clique, por padrão ────────────────────────────
+   O app tem centenas de botões que não são `.btn` (glifos, linhas,
+   controles inline): nenhum devolvia nada ao ser pressionado, e é
+   disso que vem a leitura de "duro". Um afundamento mínimo em TODO
+   botão resolve na raiz. `:where()` mantém especificidade ZERO —
+   qualquer componente sobrescreve sem `!important`, e a regra vale
+   igual na v1 (clicar sem resposta é defeito, não estilo).
+   O realce cinza do toque no mobile sai junto: quem responde agora
+   é o nosso próprio movimento, não o retângulo do sistema. */
+:where(button, [role="button"], summary) {
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms var(--ease-spring);
+}
+:where(button, [role="button"], summary):not(:disabled):active {
+  transform: scale(0.985);
+}
+:where(button):not(:disabled) {
+  cursor: pointer;
+}

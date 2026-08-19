@@ -113,7 +113,10 @@ function Secao({
   className?: string;
 }) {
   return (
-    <section className={cx("card p-5", className)}>
+    /* `reveal` (§camada de fluidez): a página do detalhe é a de rolagem mais
+       longa do app — cada bloco entra quando chega à viewport, pelo timeline
+       de view do navegador (sem JS). Quem não suporta vê o conteúdo direto. */
+    <section className={cx("card reveal p-5", className)}>
       <div className="mb-3.5 flex items-center justify-between gap-3 border-b border-hairline pb-2">
         <h2 className="label-mono">{titulo}</h2>
         {acao}

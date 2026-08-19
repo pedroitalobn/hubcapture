@@ -170,7 +170,7 @@ function PainelShell({ children }: { children: React.ReactNode }) {
           )}
           <Link
             href="/onboarding"
-            className="mt-3 inline-block font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 hover:text-ink"
+            className="link-soft mt-3 inline-block font-mono text-[11px] uppercase tracking-[0.04em]"
           >
             Ajustar perfil →
           </Link>
@@ -209,7 +209,7 @@ function PainelShell({ children }: { children: React.ReactNode }) {
           <ThemeToggle />
           <button
             onClick={sair}
-            className="self-start font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3 transition-colors hover:text-ink"
+            className="link-soft self-start font-mono text-[11px] uppercase tracking-[0.04em]"
           >
             Sair da conta
           </button>

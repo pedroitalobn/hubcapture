@@ -68,7 +68,7 @@ export default function AdminLayout({
         </div>
         <Link
           href="/panel"
-          className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 hover:text-ink"
+          className="link-soft font-mono text-[11px] uppercase tracking-[0.04em]"
         >
           ← Meu painel
         </Link>
