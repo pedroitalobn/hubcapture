@@ -62,7 +62,10 @@ class Arquivo:
         return self.candidatos or (f"siconv_{self.tabela}.zip", f"{self.tabela}.zip")
 
 
-# Catálogo. Ligar uma tabela nova = mais uma entrada aqui; o downloader não muda.
+# Catálogo do pacote. Ligar uma tabela nova = mais uma entrada aqui; o
+# downloader não muda. `carrega=True` = tem destino no schema do Hub hoje; as
+# demais estão mapeadas para o admin poder baixá-las e conferir a fonte, mas
+# não entram na carga (baixar centenas de MB sem destino é desperdício).
 ARQUIVOS: dict[str, Arquivo] = {
     "emenda": Arquivo(
         "emenda",
@@ -94,6 +97,30 @@ ARQUIVOS: dict[str, Arquivo] = {
     # documento.
     "pagamento": Arquivo("pagamento", "Pagamentos por convênio"),
     "desembolso": Arquivo("desembolso", "Desembolsos por convênio"),
+    "empenho_desembolso": Arquivo(
+        "empenho_desembolso",
+        "De-para empenho↔desembolso — o elo que falta para o pago POR EMPENHO",
+    ),
+    "programa": Arquivo("programa", "Programas do órgão concedente (o que se pode captar)"),
+    "programa_proposta": Arquivo(
+        "programa_proposta", "De-para programa↔proposta (a qual programa a proposta concorre)"
+    ),
+    "proponentes": Arquivo("proponentes", "Proponentes cadastrados (CNPJ, natureza jurídica)"),
+    "plano_aplicacao_detalhado": Arquivo(
+        "plano_aplicacao_detalhado", "Plano de aplicação detalhado do convênio"
+    ),
+    "meta_crono_fisico": Arquivo("meta_crono_fisico", "Metas do cronograma físico"),
+    "etapa_crono_fisico": Arquivo("etapa_crono_fisico", "Etapas das metas do cronograma físico"),
+    "cronograma_desembolso": Arquivo("cronograma_desembolso", "Cronograma de desembolso"),
+    "termo_aditivo": Arquivo("termo_aditivo", "Termos aditivos do convênio"),
+    "prorroga_oficio": Arquivo("prorroga_oficio", "Prorrogas de ofício"),
+    "historico_situacao": Arquivo(
+        "historico_situacao", "Histórico de situação da proposta/convênio (tramitação)"
+    ),
+    "obtv": Arquivo("obtv", "Ordem bancária de transferência voluntária"),
+    "ingresso_contrapartida": Arquivo("ingresso_contrapartida", "Ingressos de contrapartida"),
+    "licitacao": Arquivo("licitacao", "Processos licitatórios do convênio"),
+    "obra": Arquivo("obra", "Obras vinculadas ao convênio"),
     "apoiadores_emendas_programas": Arquivo(
         "apoiadores_emendas_programas",
         "Apoiadores da emenda (complemento — NÃO liga à proposta)",
@@ -189,6 +216,90 @@ async def baixar_csv(tabela: str, destino_dir: Path, base: str | None = None) ->
         f"{', '.join(candidatos)}. Detalhe: {'; '.join(erros[:6])}. "
         f"Calibre `siconv_downloads_url` / `siconv_{tabela}_arquivo` no painel admin (Fontes)."
     )
+
+
+@dataclass(frozen=True)
+class Disponibilidade:
+    """O que o admin precisa saber ANTES de mandar baixar centenas de MB."""
+
+    tabela: str
+    descricao: str
+    carrega: bool
+    nome: str | None  # nome do ZIP que respondeu (None = nenhum candidato serviu)
+    url: str | None
+    disponivel: bool
+    tamanho: int | None  # Content-Length, quando a fonte publica
+    erro: str | None = None
+
+
+async def candidatos(tabela: str) -> tuple[str, ...]:
+    """Nomes de ZIP a tentar, na ordem: override do painel vence o catálogo."""
+    arquivo = ARQUIVOS.get(tabela)
+    if arquivo is None:
+        raise DownloadError(f"tabela desconhecida no catálogo do SIconv: {tabela}")
+    override = await config_service.resolver(f"siconv_{tabela}_arquivo")
+    return (override.strip(),) if override else arquivo.nomes()
+
+
+async def _sondar(client: httpx.AsyncClient, url: str) -> tuple[bool, int | None]:
+    """HEAD no candidato. Alguns CDNs recusam HEAD — nesse caso, um GET com
+    `Range` de 1 byte confirma a existência sem baixar o arquivo."""
+    resp = await client.head(url)
+    if resp.status_code == 404:
+        return False, None
+    if resp.status_code >= 400:
+        resp = await client.get(url, headers={"Range": "bytes=0-0"})
+        if resp.status_code == 404:
+            return False, None
+        resp.raise_for_status()
+        bruto = resp.headers.get("content-range", "").rsplit("/", 1)[-1]
+        return True, int(bruto) if bruto.isdigit() else None
+    bruto = resp.headers.get("content-length")
+    return True, int(bruto) if bruto and bruto.isdigit() else None
+
+
+async def inspecionar(tabela: str, base: str | None = None) -> Disponibilidade:
+    """Resolve o nome do ZIP e diz se ele existe e quanto pesa — sem baixar.
+
+    É o que dá honestidade à tela: "a fonte publica este arquivo" é diferente de
+    "tentei e deu erro", e diferente ainda de "o nome mudou". Nunca levanta:
+    falha de rede vira `erro` no próprio registro.
+    """
+    arquivo = ARQUIVOS[tabela]
+    raiz = base or await base_url()
+    try:
+        nomes = await candidatos(tabela)
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(20.0, connect=10.0), follow_redirects=True
+        ) as client:
+            for nome in nomes:
+                url = _url(raiz, nome)
+                existe, tamanho = await _sondar(client, url)
+                if existe:
+                    return Disponibilidade(
+                        tabela, arquivo.descricao, arquivo.carrega, nome, url, True, tamanho
+                    )
+        return Disponibilidade(
+            tabela,
+            arquivo.descricao,
+            arquivo.carrega,
+            None,
+            _url(raiz, nomes[0]) if nomes else None,
+            False,
+            None,
+            f"nenhum candidato respondeu ({', '.join(nomes)})",
+        )
+    except Exception as exc:  # noqa: BLE001 — diagnóstico não levanta
+        return Disponibilidade(
+            tabela, arquivo.descricao, arquivo.carrega, None, None, False, None, str(exc)
+        )
+
+
+async def inspecionar_todos(tabelas: tuple[str, ...] | None = None) -> list[Disponibilidade]:
+    """Sonda o catálogo inteiro em paralelo (uma requisição por tabela)."""
+    alvos = tabelas or tuple(ARQUIVOS)
+    base = await base_url()
+    return list(await asyncio.gather(*(inspecionar(t, base) for t in alvos)))
 
 
 async def health_check() -> bool:

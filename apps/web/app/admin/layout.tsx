@@ -19,6 +19,7 @@ const NAV = [
   { href: "/admin/plans", label: "Planos" },
   { href: "/admin/config", label: "Providers & Config" },
   { href: "/admin/sources", label: "Fontes (diagnóstico)" },
+  { href: "/admin/siconv", label: "Pacote SIconv" },
   { href: "/admin/modules", label: "Módulos" },
   { href: "/admin/advisory", label: "Assessoria" },
   { href: "/admin/directory", label: "Diretório institucional" },
