@@ -55,7 +55,6 @@ type Proposta = {
   data_proposta?: string | null;
   data_atualizacao_fonte?: string | null;
   url_origem?: string | null;
-  proveniencia?: Record<string, string> | null;
   resumo_ia?: string | null;
   /** Pílulas de categoria (curadoria) — slug filtrável + rótulo exibível. */
   categorias?: { slug: string; rotulo: string }[] | null;
@@ -313,7 +312,7 @@ export default function PropostaDetalhePage() {
           )}
           {/* Ponto 14: a FONTE saiu do cabeçalho — é detalhe de ingestão,
               não identidade do registro (§19). Continua no link "Fonte
-              oficial ↗" e na seção de proveniência. */}
+              oficial ↗". */}
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink-2">
             <StatusBadge tone={disponivel ? "success" : "neutral"}>
               {disponivel ? "oportunidade disponível" : "cadastrada"}
@@ -729,28 +728,6 @@ export default function PropostaDetalhePage() {
       <EmpenhosProposta proposta={p} podeConsultarFonte={podeExplorar} />
 
       <EmendasProposta proposta={p} podeConsultarFonte={podeExplorar} />
-
-      {p.proveniencia && Object.keys(p.proveniencia).length > 0 && (
-        <Secao titulo="Proveniência dos dados (API × painel)">
-          <div className="flex flex-wrap gap-1.5">
-            {Object.entries(p.proveniencia).map(([campo, origem]) => (
-              <span
-                key={campo}
-                className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-0.5 font-mono text-[11px] text-ink-2"
-              >
-                <span
-                  className={cx(
-                    "h-1.5 w-1.5 rounded-full",
-                    origem === "api" ? "bg-aqua" : "bg-lime",
-                  )}
-                  aria-hidden
-                />
-                {campo}: {origem}
-              </span>
-            ))}
-          </div>
-        </Secao>
-      )}
     </div>
   );
 }
