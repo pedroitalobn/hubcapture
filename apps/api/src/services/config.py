@@ -133,13 +133,35 @@ CATALOGO: list[dict] = [
     ),
     _c(
         "empenhos_esp_chave",
-        "Empenhos da proposta — parâmetro de filtro (padrão: numero_proposta)",
+        "Empenhos da proposta — parâmetro de filtro (padrão: id_plano_acao, "
+        "o único vínculo com a proposta que a rota aceita)",
         "fonte",
         False,
     ),
     _c(
         "emendas_esp_chave",
         "Emenda da proposta — parâmetro de filtro da rota (ex.: id_plano_acao)",
+        "fonte",
+        False,
+    ),
+    # Pacote de dados abertos do SIconv (ZIPs nacionais por tabela). A carga
+    # diária de emendas (`jobs/siconv_diario`) baixa daqui; o nome de cada
+    # arquivo é resolvido em runtime e estas chaves são o override manual.
+    _c(
+        "siconv_downloads_url",
+        "SIconv — base dos downloads (ZIPs nacionais: emenda, proposta…)",
+        "fonte",
+        False,
+    ),
+    _c(
+        "siconv_emenda_arquivo",
+        "SIconv — nome do ZIP de emendas (vazio = tenta siconv_emenda.zip / emenda.zip)",
+        "fonte",
+        False,
+    ),
+    _c(
+        "siconv_proposta_arquivo",
+        "SIconv — nome do ZIP de propostas (vazio = tenta siconv_proposta.zip / proposta.zip)",
         "fonte",
         False,
     ),

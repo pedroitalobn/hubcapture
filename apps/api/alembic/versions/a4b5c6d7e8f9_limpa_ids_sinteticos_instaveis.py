@@ -1,7 +1,7 @@
 """limpa identificadores sintéticos instáveis (id_externo posicional/não escopado)
 
-Revision ID: e2f3a4b5c6d7
-Revises: d1e2f3a4b5c6
+Revision ID: a4b5c6d7e8f9
+Revises: e2f3a4b5c6d7
 Create Date: 2026-08-19
 
 O par `unique (fonte, id_externo)` é a chave do upsert da coleta: é por ele que
@@ -35,8 +35,8 @@ from collections.abc import Sequence
 
 from alembic import op
 
-revision: str = "e2f3a4b5c6d7"
-down_revision: str | None = "d1e2f3a4b5c6"
+revision: str = "a4b5c6d7e8f9"
+down_revision: str | None = "e2f3a4b5c6d7"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -67,7 +67,7 @@ def upgrade() -> None:
     # policies, então aqui o WHERE vale — mas a contagem sai do rowcount, nunca
     # de um SELECT count(*) posterior.
     resultado = op.get_bind().exec_driver_sql(_MARCAR)
-    print(f"[migration e2f3a4b5c6d7] {resultado.rowcount} proposta(s) com id sintético marcadas")
+    print(f"[migration a4b5c6d7e8f9] {resultado.rowcount} proposta(s) com id sintético marcadas")
 
 
 def downgrade() -> None:

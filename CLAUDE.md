@@ -1328,15 +1328,31 @@ que é o que o gestor tem em mãos. Entidade própria, não coluna.
   `normalizer_obra`.
 - **Connector** `connectors/pareceres.py` — o ÚNICO que coleta por plano de
   trabalho em vez de município (não implementa o Protocol de `base.py`).
-  CALIBRADO contra `/planos_trabalho_analises_especiais` da API pública
-  (módulo `especiais`). Diferente das demais rotas do TransfereGov, **não é
-  PostgREST**: filtra por query param direto (`id_plano_trabalho=123`, sem
-  `eq.`) e pagina com `pagina`/`tamanho_da_pagina` — por isso não usa
-  `_postgrest.py`. A chave é o **id INTEIRO** do plano; `id_do_plano()` barra o
+  **Existem DUAS APIs do módulo especiais e os dialetos são diferentes** — a
+  rota é resolvida pelo spec (`_especiais.descobrir`), nunca chutada:
+  (a) **nova** `api-publica.../especiais/` (OpenAPI 3.1/FastAPI) —
+  `planos_trabalho_analises_especiais` (PLURAL), filtro direto
+  (`id_plano_trabalho=123`), paginação `pagina`/`tamanho_da_pagina`, resposta em
+  envelope `{data, total_pages, total_items, page_number, page_size}`. É o
+  padrão. (b) **antiga** `api.../transferenciasespeciais/` (PostgREST) —
+  `plano_trabalho_analise_especial` (SINGULAR), filtro `eq.123`, paginação
+  `limit`/`offset`, lista pura. Mandar o dialeto errado no PostgREST não dá 404:
+  o filtro é IGNORADO e voltam as análises do país inteiro — parecer de outra
+  proposta na tela. A chave é o **id INTEIRO** do plano; `id_do_plano()` barra o
   que não for numérico (mandar "14275/2026" daria 422 e o gestor leria "fonte
-  indisponível" onde a verdade é "não tenho o id"). Scraping da tela de
-  tramitação segue como 2ª fonte: a API dá o veredito e o texto, a tela dá QUEM
-  assinou (responsável, papel, cargo) — se completam.
+  indisponível" onde a verdade é "não tenho o id") —
+  `connectors/planos_trabalho.py` resolve esse id a partir da proposta.
+  Colunas da API nova: `id_plano_trabalho_analise_pt` (identidade),
+  `situacao_parecer_analise_pt` (veredito: Aprovar/Reprovar/Solicitar
+  Complementação/Não se aplica), `situacao_analise_pt` (Concluída/Em
+  elaboração), `situacao_planejamento_pt`, `data_analise_pt`,
+  `texto_parecer_analise_pt`, `valor_reprovado_pt`, `nome_orgao_analise_pt`,
+  `codigo_siorg_orgao_analise_pt`, `id_plano_trabalho`. A API **não** traz
+  responsável/papel/cargo — por isso o scraping da tela de tramitação segue como
+  2ª fonte: a API dá o veredito e o texto, a tela dá QUEM assinou. (Há ainda
+  `/plano_trabalho_analise_historico_especiais` para o histórico das análises,
+  com `responsaveis_analise_pt_hist` — caminho para trazer o responsável sem
+  scraping.)
 - **Serviço** `services/pareceres.py`: cache-first (TTL 12h), `por_plano` (a
   consulta direta) e `por_proposta` (resolve o plano e delega; sem nº de plano,
   tenta o nº da proposta). Falha de fonte → `sync_runs` + status na resposta.
@@ -1721,7 +1737,13 @@ AGREGADO, e no módulo especiais o empenho mora em rota própria —
   servem os dois — a regra de casar por PALAVRA da coluna (nunca substring) mora
   em um lugar só.
 - **Config** (categoria fonte): `empenhos_esp_endpoint` (padrão
-  `empenhos_especiais`) e `empenhos_esp_chave` (padrão `numero_proposta`).
+  `empenhos_especiais`) e `empenhos_esp_chave` (padrão **`id_plano_acao`**). O
+  spec oficial mostra que `/empenhos_especiais` só aceita `id_plano_acao` como
+  vínculo com a proposta — `numero_proposta`, que era o padrão, é IGNORADO pelo
+  FastAPI e a resposta vinha com os empenhos do país inteiro (valor de empenho
+  alheio na proposta). O `id_externo` só serve de retaguarda para `id_plano_acao`
+  quando é inteiro: no CSV do SIconv ele é "30011/2026". Campo de valor na rota:
+  `valor_empenho`.
 - **Calibração**: `python -m src.tools.probe_especiais --rotas` passou a mostrar
   também a rota escolhida para empenho, e `--numero-proposta 14275/2026` bate na
   rota e mostra campos brutos + normalizados.
@@ -1898,7 +1920,102 @@ disciplina dos módulos da §29 e dos gates da §39.
 - **Testes** — `test_ui_versao.py` (catálogo, sanitização e resolução da flag).
 
 
-## 49. Identidade do registro coletado — o `id_externo` é a chave do cache
+## 49. Ícones do menu lateral — o slot que o design system já reservava
+
+`.nav-item` nasceu no design system Bancada com `display:flex`, `align-items:center`
+e `gap: .625rem` — a folga era para um glifo que nunca foi desenhado, e o menu ficou
+14 linhas de texto mono do mesmo tamanho. Cada lente do menu profile-centric (§19)
+passa a ter um ícone próprio: o gestor volta ao mesmo item pela FORMA, sem reler a
+lista inteira.
+
+- **`components/icons.tsx`** — `IconeNav` + o registro `GLIFOS` (união `NomeIcone`).
+  SVG inline de 16px, `viewBox` 24, traço 1.5 em `currentColor`, mesmo padrão do
+  ícone de `BotaoEspelho`. **Nenhuma biblioteca de ícones**: herdar a cor é o que faz
+  o item ativo (fundo em gradiente, tinta abyss) e o hover funcionarem sem regra
+  extra, e a stack da §1 não muda. Ícone é decorativo (`aria-hidden`) — quem nomeia o
+  destino é o rótulo ao lado; anunciá-lo duplicaria o link no leitor de tela.
+- **`.nav-icon`** (globals.css, `@layer components`): `flex-shrink: 0` (rótulo longo
+  como "Agenda de contatos" não espreme o desenho) e opacidade 0.65 que sobe a 1 no
+  hover e no item ativo — o glifo fica um tom abaixo do texto, nunca competindo com
+  ele. Vale igual na v1 e na v2 (§48): ícone não é assinatura de versão.
+- **Onde**: `app/panel/layout.tsx` — cada entrada do `NAV` declara `icone`, e o link
+  "Administração" usa `admin`. Item novo no menu = mais um glifo no registro + a
+  chave na entrada; o TypeScript recusa `icone` que não exista.
+- **Fora do escopo por ora**: o menu de abas do shell admin e o menu por categoria de
+  `/admin/config` seguem sem glifo (usam `.nav-item`, então basta o mesmo componente
+  quando forem contemplados).
+
+## 50. Carga diária do pacote SIconv — emendas parlamentares no banco
+
+As emendas do TransfereGov não vinham de rota de API: o módulo `especiais`
+**não tem endpoint de emenda** (§42 descobre rota por spec e nunca acha uma —
+os campos da emenda moram dentro de `/planos_acao_especiais`), e o pacote de
+dados abertos do SIconv (discricionárias e legais) publica a entidade inteira
+como ZIP nacional. Agora um job diário baixa, descompacta e carrega.
+
+- **A tabela certa é `emenda`, não `apoiadores_emendas_programas`.** No modelo
+  oficial, `emenda` tem `ID_PROPOSTA` (FK → `proposta`), e é por ela que se
+  chega ao `COD_MUNIC_IBGE` — a chave canônica do Hub (§4). A
+  `apoiadores_emendas_programas` só tem FK para `programa`: **não existe
+  caminho dela até a proposta**, então nem município ela resolve. É complemento
+  (quem apoiou/indicou), não a fonte.
+- **Connector** `connectors/siconv_downloads.py`: catálogo por TABELA do modelo
+  (`emenda`, `proposta` carregadas; `convenio`/`empenho`/`pagamento`/
+  `desembolso` mapeadas mas `carrega=False` — baixar centenas de MB sem destino
+  no schema seria desperdício). O NOME do ZIP é resolvido em runtime
+  (`siconv_<t>.zip` → `<t>.zip`, 404 = próximo candidato), com override no
+  painel (`siconv_downloads_url`, `siconv_<tabela>_arquivo`) — §27. Download em
+  streaming **para disco**: `proposta.csv` passa de 1 GB e em memória derrubaria
+  o worker.
+- **Job** `jobs/siconv_diario.py`: `COPY` de cada CSV para uma temp table
+  `ON COMMIT DROP` (dispensa GRANT de CREATE e não gruda na conexão do pool) e
+  **um** `INSERT … SELECT … ON CONFLICT` em `proposta_emendas`. O join
+  `emenda → proposta` acontece no Postgres, não em Python — a memória do
+  processo fica constante. Schema da staging vem do HEADER do arquivo
+  (`utf-8-sig`: sem isso o BOM gruda no nome da 1ª coluna); coluna que a fonte
+  renomear vira `NULL` em vez de derrubar a carga. `id_externo` =
+  `ID_PROPOSTA|NR_EMENDA` — a mesma proposta acumula emendas de autores
+  diferentes. Agendador próprio (`worker-siconv` no compose, 07:00 UTC),
+  advisory lock contra réplica dupla, `RODAR_AGORA=1` para carga imediata,
+  `sync_runs` por execução.
+- **`ON CONFLICT DO UPDATE` aplica a policy de SELECT** sobre a linha nova, não
+  só as de INSERT/UPDATE. Como a de `proposta_emendas` recorta por
+  `municipios_interesse` e o job é global (sem tenant), TODA linha com município
+  preenchido era recusada com "new row violates row-level security policy" e
+  nenhuma emenda entrava. Migration `e2f3a4b5c6d7` acrescenta uma policy
+  PERMISSIVE de SELECT que reconhece a bandeira `app.plataforma` (a mesma de
+  `demandas`) em `proposta_emendas`, `proposta_empenhos` e `pareceres`;
+  `aplicar_carga` liga a bandeira na transação. A policy por município segue
+  intacta para o request do usuário — permissivas somam com OR. **Nem o owner
+  escapa** (FORCE RLS): leitura administrativa dessas tabelas também precisa da
+  bandeira.
+- **`DISTINCT ON (id_proposta, nr_emenda)`** é obrigatório: emenda repetida no
+  arquivo faz o Postgres recusar o comando inteiro ("cannot affect row a second
+  time"). E **sem `RETURNING`** — ele leria sob a policy de SELECT e reportaria
+  "0 gravadas" com a tabela cheia (§41); a contagem sai do `rowcount`.
+- **Número BR decide pela vírgula**: `1.234,56` tem ponto de milhar, `1234.56`
+  já é decimal. Converter às cegas transformaria o segundo em `123456`.
+- **Cadeia de execução** (`convenio` + `empenho` → `proposta_empenhos`): o
+  empenho só conhece `NR_CONVENIO`; quem sabe de que proposta — e portanto de
+  que MUNICÍPIO — ele é, é o convênio (`convenio.ID_PROPOSTA`). Por isso são
+  três arquivos em cadeia, e o convênio entra como PONTE mesmo sem tela própria.
+  Empenho de convênio ausente do pacote entra sem território em vez de sumir: o
+  documento existe. Datas aceitam `DD/MM/AAAA` e ISO via `to_date` (nunca
+  `::date` cru — linha suja não aborta a carga). `valor_pago`/`valor_liquidado`
+  ficam **NULL de propósito**: o pacote publica pagamento por CONVÊNIO, e ratear
+  entre os empenhos daria um número que não é daquele documento — a
+  `proveniencia` diz isso. Atribuir de verdade exigiria `empenho_desembolso`.
+- **Recorte operacional**: `SICONV_TABELAS=emenda,proposta` restringe a carga
+  (a cadeia de execução custa centenas de MB a mais por dia). Vazio = catálogo
+  inteiro. `aplicar_carga` só roda o upsert cujos arquivos estão presentes —
+  baixar menos degrada o escopo, não quebra o job.
+- **O que a fonte NÃO publica** (e não é inventado): o **ano da emenda** —
+  `NR_EMENDA` é código do autor + sequencial. Gravamos `ano` a partir de
+  `proposta.ANO_PROP` para o filtro de safra funcionar e marcamos
+  `proveniencia.ano = 'derivado:…'`. **Partido e UF do parlamentar** também não
+  existem no pacote: vêm do connector `emendas` (Portal da Transparência).
+
+## 51. Identidade do registro coletado — o `id_externo` é a chave do cache
 
 Relato do gestor: "Apuiarés aparece com **1** proposta (tipo scraping) em 2026,
 mas tinha 5" e "o número de propostas do município fica mudando". Não eram os
@@ -1924,14 +2041,14 @@ formado não é cosmético: ele reescreve o cache.
   mudava de território a cada rodada. Aplicado em `serpro`, `transferegov_disc`,
   `transferegov_esp`, `transferegov_voluntarias`, `fns`, `caixa`, `simec` e
   `sismob` (`fpm`/`fns` já usavam o hash — o helper unifica).
-- **Migration `e2f3a4b5c6d7`** MARCA (soft delete, §41 — nunca apaga: o cascade
+- **Migration `a4b5c6d7e8f9`** MARCA (soft delete, §41 — nunca apaga: o cascade
   ignora RLS) as propostas gravadas com o esquema antigo, que não seriam mais
   reemitidas e ficariam órfãs, congeladas e possivelmente no município errado. É
   auto-corrigível: o upsert zera `excluido_em`, então uma linha cujo id era
   legítimo volta na coleta seguinte.
 - **Regressão**: `test_contagem_municipio.py`.
 
-### 49b. "Atualizar fontes" consulta AGORA (`forcar`)
+### 51b. "Atualizar fontes" consulta AGORA (`forcar`)
 
 O botão herdava o TTL de 6h do cache-first: o gestor clicava, a tela dizia
 "consultando as fontes…" e nenhuma fonte era consultada. Pedido EXPLÍCITO de
