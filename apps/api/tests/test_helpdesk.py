@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import uuid
+
+from src.api.v1 import admin_helpdesk as admin
 from src.db.session import SessionLocal
 from src.models.helpdesk import (
     HelpdeskArtigo,
@@ -9,6 +12,16 @@ from src.models.helpdesk import (
     HelpdeskHint,
     HelpdeskMidia,
     HelpdeskModulo,
+)
+from src.schemas.helpdesk import (
+    ClassModuloCreate,
+    ClassModuloPatch,
+    HelpArtigoCreate,
+    HelpArtigoPatch,
+    HelpCategoriaWrite,
+    HelpMidiaPatch,
+    HelpMidiaUrlCreate,
+    HintSet,
 )
 from src.services import helpdesk as service
 from src.services import modulos as modulos_service
@@ -219,3 +232,92 @@ async def test_midia_upload_roundtrip_e_resumo_conta_tipos() -> None:
         artigos = await service.listar_artigos(s, somente_publicados=True)
         resumo = service.resumo_de_artigo(artigos[0])
     assert resumo["videos"] == 1 and resumo["documentos"] == 1
+
+
+# ── Endpoints de escrita do admin (o botão "Salvar" do editor) ──────────────
+# Regressão: o PATCH do artigo serializa o objeto logo depois do `flush()`.
+# Com `updated_at` gerado por `onupdate=func.now()` (SQL), o SQLAlchemy expira
+# o atributo após o UPDATE e a leitura vira I/O fora do greenlet
+# (`MissingGreenlet`) → 500 em TODO salvamento do Class, com a transação
+# revertida: o admin apertava "Salvar" e nada era gravado.
+
+
+async def _artigo_novo(titulo: str = "O que é um empenho?") -> uuid.UUID:
+    async with SessionLocal() as s:
+        async with s.begin():
+            artigo = await admin.criar_artigo(HelpArtigoCreate(titulo=titulo), s)
+    return artigo.id
+
+
+async def test_patch_artigo_salva_corpo_e_devolve_updated_at() -> None:
+    artigo_id = await _artigo_novo()
+    async with SessionLocal() as s:
+        async with s.begin():
+            lido = await admin.editar_artigo(
+                artigo_id, HelpArtigoPatch(corpo="<p>Empenho é…</p>", resumo="reserva"), s
+            )
+    assert lido.corpo == "<p>Empenho é…</p>"
+    assert lido.resumo == "reserva"
+    assert lido.updated_at is not None  # o carimbo veio junto, sem lazy load
+    # e persistiu de verdade (a falha antiga revertia a transação)
+    async with SessionLocal() as s:
+        async with s.begin():
+            de_novo = await admin.obter_artigo(artigo_id, s)
+    assert de_novo.corpo == "<p>Empenho é…</p>"
+
+
+async def test_patch_artigo_publica_e_despublica() -> None:
+    artigo_id = await _artigo_novo("Prazo de vigência")
+    async with SessionLocal() as s:
+        async with s.begin():
+            publicado = await admin.editar_artigo(artigo_id, HelpArtigoPatch(publicado=True), s)
+    assert publicado.publicado is True
+    async with SessionLocal() as s:
+        async with s.begin():
+            rascunho = await admin.editar_artigo(artigo_id, HelpArtigoPatch(publicado=False), s)
+    assert rascunho.publicado is False
+
+
+async def test_patch_artigo_com_titulo_novo_gera_slug_novo() -> None:
+    artigo_id = await _artigo_novo("Título antigo")
+    async with SessionLocal() as s:
+        async with s.begin():
+            lido = await admin.editar_artigo(
+                artigo_id, HelpArtigoPatch(titulo="Empenho: o guia"), s
+            )
+    assert lido.titulo == "Empenho: o guia"
+    assert lido.slug == "empenho-o-guia"
+
+
+async def test_patch_artigo_vira_aula_do_modulo() -> None:
+    artigo_id = await _artigo_novo("Aula 1")
+    async with SessionLocal() as s:
+        async with s.begin():
+            modulo = await admin.criar_modulo(ClassModuloCreate(titulo="Captação 101"), s)
+            modulo_id = modulo.id
+    async with SessionLocal() as s:
+        async with s.begin():
+            lido = await admin.editar_artigo(
+                artigo_id, HelpArtigoPatch(modulo_id=modulo_id, ordem=1), s
+            )
+    assert lido.modulo is not None and lido.modulo.id == modulo_id
+    assert lido.ordem == 1
+
+
+async def test_escrita_admin_do_class_ponta_a_ponta() -> None:
+    """Cada rota de escrita do Class serializa o que devolve sem estourar."""
+    async with SessionLocal() as s:
+        async with s.begin():
+            cat = await admin.criar_categoria(HelpCategoriaWrite(nome="Orçamento"), s)
+            await admin.editar_categoria(cat.id, HelpCategoriaWrite(nome="Orçamento e finanças"), s)
+            modulo = await admin.criar_modulo(ClassModuloCreate(titulo="Trilha"), s)
+            await admin.editar_modulo(modulo.id, ClassModuloPatch(publicado=True), s)
+            artigo = await admin.criar_artigo(HelpArtigoCreate(titulo="Verbete"), s)
+            midia = await admin.criar_midia_url(
+                artigo.id, HelpMidiaUrlCreate(tipo="video", url="https://youtu.be/x"), s
+            )
+            await admin.editar_midia(midia.id, HelpMidiaPatch(titulo="intro"), s)
+            hints = await admin.definir_hint(
+                HintSet(chave="proposta.empenhado", artigo_id=artigo.id), s
+            )
+    assert [h.chave for h in hints] == ["proposta.empenhado"]

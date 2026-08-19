@@ -13,7 +13,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { api } from "@/lib/api/client";
+import { api, mensagemDaFalha } from "@/lib/api/client";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Skeleton } from "@/components/Skeleton";
 
@@ -81,50 +81,67 @@ export default function AdminClassPage() {
   async function criarArtigo(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
-    const { data, error } = await api.POST("/api/v1/admin/class/articles", {
-      body: {
-        titulo,
-        categoria_id: categoriaId || null,
-        modulo_id: null,
-        corpo: "",
-        publicado: false,
-        ordem: 0,
-      },
-    });
-    if (error || !data) {
-      setMsg("Falha ao criar o artigo.");
-      return;
+    try {
+      const { data, error } = await api.POST("/api/v1/admin/class/articles", {
+        body: {
+          titulo,
+          categoria_id: categoriaId || null,
+          modulo_id: null,
+          corpo: "",
+          publicado: false,
+          ordem: 0,
+        },
+      });
+      if (error || !data) {
+        setMsg(mensagemDaFalha(error, "Falha ao criar o artigo"));
+        return;
+      }
+      // direto para o editor: o fluxo natural é escrever em seguida
+      router.push(`/admin/class/${(data as { id: string }).id}`);
+    } catch (err) {
+      setMsg(mensagemDaFalha(err, "Falha ao criar o artigo"));
     }
-    // direto para o editor: o fluxo natural é escrever em seguida
-    router.push(`/admin/class/${(data as { id: string }).id}`);
   }
 
   async function criarModulo(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
-    const { error } = await api.POST("/api/v1/admin/class/modules", {
-      body: {
-        titulo: novoModulo,
-        descricao: descricaoModulo || null,
-        publicado: false,
-        ordem: 0,
-      },
-    });
-    if (error) {
-      setMsg("Falha ao criar o módulo.");
-      return;
+    try {
+      const { error } = await api.POST("/api/v1/admin/class/modules", {
+        body: {
+          titulo: novoModulo,
+          descricao: descricaoModulo || null,
+          publicado: false,
+          ordem: 0,
+        },
+      });
+      if (error) {
+        setMsg(mensagemDaFalha(error, "Falha ao criar o módulo"));
+        return;
+      }
+      setNovoModulo("");
+      setDescricaoModulo("");
+      await carregar();
+    } catch (err) {
+      setMsg(mensagemDaFalha(err, "Falha ao criar o módulo"));
     }
-    setNovoModulo("");
-    setDescricaoModulo("");
-    await carregar();
   }
 
   async function alternarModulo(m: Modulo) {
-    await api.PATCH("/api/v1/admin/class/modules/{modulo_id}", {
-      params: { path: { modulo_id: m.id } },
-      body: { publicado: !m.publicado },
-    });
-    await carregar();
+    setMsg(null);
+    try {
+      const { error } = await api.PATCH("/api/v1/admin/class/modules/{modulo_id}", {
+        params: { path: { modulo_id: m.id } },
+        body: { publicado: !m.publicado },
+      });
+      if (error) {
+        setMsg(mensagemDaFalha(error, "Falha ao publicar o módulo"));
+        return;
+      }
+      await carregar();
+    } catch (err) {
+      setMsg(mensagemDaFalha(err, "Falha ao publicar o módulo"));
+    }
   }
 
   async function excluirModulo(m: Modulo) {
@@ -143,15 +160,19 @@ export default function AdminClassPage() {
   async function criarCategoria(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
-    const { error } = await api.POST("/api/v1/admin/class/categories", {
-      body: { nome: novaCategoria, ordem: 0 },
-    });
-    if (error) {
-      setMsg("Falha ao criar a categoria.");
-      return;
+    try {
+      const { error } = await api.POST("/api/v1/admin/class/categories", {
+        body: { nome: novaCategoria, ordem: 0 },
+      });
+      if (error) {
+        setMsg(mensagemDaFalha(error, "Falha ao criar a categoria"));
+        return;
+      }
+      setNovaCategoria("");
+      await carregar();
+    } catch (err) {
+      setMsg(mensagemDaFalha(err, "Falha ao criar a categoria"));
     }
-    setNovaCategoria("");
-    await carregar();
   }
 
   async function excluirCategoria(id: string) {

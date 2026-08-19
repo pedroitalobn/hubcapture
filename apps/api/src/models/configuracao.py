@@ -7,7 +7,7 @@ Segredos são cifrados em repouso (Fernet) quando `cifrado=True`.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
@@ -28,5 +28,7 @@ class Configuracao(Base):
     categoria: Mapped[str | None] = mapped_column(String(40), nullable=True)
     descricao: Mapped[str | None] = mapped_column(Text, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=lambda: datetime.now(UTC),
     )

@@ -16,13 +16,12 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, ForeignKey, Integer, LargeBinary, String, Text, func
+from sqlalchemy import Boolean, ForeignKey, Integer, LargeBinary, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.types import DateTime
 
 from ..db.base import Base
-from ._mixins import created_at_col, uuid_pk
+from ._mixins import created_at_col, updated_at_col, uuid_pk
 
 
 class HelpdeskCategoria(Base):
@@ -48,9 +47,7 @@ class HelpdeskModulo(Base):
     publicado: Mapped[bool] = mapped_column(Boolean, server_default="false")
     ordem: Mapped[int] = mapped_column(Integer, server_default="0")
     created_at: Mapped[datetime] = created_at_col()
-    updated_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now(), nullable=True
-    )
+    updated_at: Mapped[datetime | None] = updated_at_col()
 
     aulas: Mapped[list[HelpdeskArtigo]] = relationship(
         lazy="selectin",
@@ -85,9 +82,7 @@ class HelpdeskArtigo(Base):
     publicado: Mapped[bool] = mapped_column(Boolean, server_default="false", index=True)
     ordem: Mapped[int] = mapped_column(Integer, server_default="0")
     created_at: Mapped[datetime] = created_at_col()
-    updated_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now(), nullable=True
-    )
+    updated_at: Mapped[datetime | None] = updated_at_col()
 
     categoria: Mapped[HelpdeskCategoria | None] = relationship(lazy="selectin")
     modulo: Mapped[HelpdeskModulo | None] = relationship(lazy="selectin", back_populates="aulas")

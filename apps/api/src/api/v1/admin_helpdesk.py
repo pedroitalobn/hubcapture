@@ -257,6 +257,11 @@ async def editar_artigo(
     for campo, valor in campos.items():
         setattr(artigo, campo, valor)
     await session.flush()
+    # `refresh` porque trocar `categoria_id`/`modulo_id` NÃO atualiza os
+    # relacionamentos já carregados: sem ele a resposta devolve a categoria e o
+    # módulo ANTIGOS e o editor, que se repinta com o que volta daqui, mostra
+    # que nada mudou — a aula recém-vinculada aparece como artigo avulso.
+    await session.refresh(artigo)
     return HelpArtigoRead.model_validate(artigo)
 
 
