@@ -1897,3 +1897,28 @@ disciplina dos módulos da §29 e dos gates da §39.
   parece não ter surtido efeito.
 - **Testes** — `test_ui_versao.py` (catálogo, sanitização e resolução da flag).
 
+
+## 49. Ícones do menu lateral — o slot que o design system já reservava
+
+`.nav-item` nasceu no design system Bancada com `display:flex`, `align-items:center`
+e `gap: .625rem` — a folga era para um glifo que nunca foi desenhado, e o menu ficou
+14 linhas de texto mono do mesmo tamanho. Cada lente do menu profile-centric (§19)
+passa a ter um ícone próprio: o gestor volta ao mesmo item pela FORMA, sem reler a
+lista inteira.
+
+- **`components/icons.tsx`** — `IconeNav` + o registro `GLIFOS` (união `NomeIcone`).
+  SVG inline de 16px, `viewBox` 24, traço 1.5 em `currentColor`, mesmo padrão do
+  ícone de `BotaoEspelho`. **Nenhuma biblioteca de ícones**: herdar a cor é o que faz
+  o item ativo (fundo em gradiente, tinta abyss) e o hover funcionarem sem regra
+  extra, e a stack da §1 não muda. Ícone é decorativo (`aria-hidden`) — quem nomeia o
+  destino é o rótulo ao lado; anunciá-lo duplicaria o link no leitor de tela.
+- **`.nav-icon`** (globals.css, `@layer components`): `flex-shrink: 0` (rótulo longo
+  como "Agenda de contatos" não espreme o desenho) e opacidade 0.65 que sobe a 1 no
+  hover e no item ativo — o glifo fica um tom abaixo do texto, nunca competindo com
+  ele. Vale igual na v1 e na v2 (§48): ícone não é assinatura de versão.
+- **Onde**: `app/panel/layout.tsx` — cada entrada do `NAV` declara `icone`, e o link
+  "Administração" usa `admin`. Item novo no menu = mais um glifo no registro + a
+  chave na entrada; o TypeScript recusa `icone` que não exista.
+- **Fora do escopo por ora**: o menu de abas do shell admin e o menu por categoria de
+  `/admin/config` seguem sem glifo (usam `.nav-item`, então basta o mesmo componente
+  quando forem contemplados).

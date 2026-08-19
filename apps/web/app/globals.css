@@ -736,6 +736,20 @@ p {
     border-color: var(--hairline);
     padding-left: 1rem;
   }
+  /* Glifo do item: o slot que o `gap` do .nav-item já reservava. Fica um
+     tom abaixo do rótulo (quem nomeia o destino é o texto) e acende junto
+     com ele no hover e no item ativo. `flex-shrink: 0` porque rótulo longo
+     ("Agenda de contatos") não pode espremer o desenho. */
+  .nav-icon {
+    flex-shrink: 0;
+    opacity: 0.65;
+    transition: opacity 0.15s ease;
+  }
+  .nav-item:hover .nav-icon,
+  .nav-item-active .nav-icon {
+    opacity: 1;
+  }
+
   .nav-item-active,
   .nav-item-active:hover {
     background: var(--grad-brand);
