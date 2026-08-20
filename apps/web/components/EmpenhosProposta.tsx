@@ -112,19 +112,24 @@ export function EmpenhosProposta({ proposta, podeConsultarFonte = true }: Props)
         <p className="text-sm text-ink-3">Carregando…</p>
       ) : coleta?.status === "erro" ? (
         <div className="flex flex-col gap-1">
-          <p className="tone-warn text-sm">
-            Não consegui consultar os empenhos desta proposta na fonte.
-          </p>
-          <p className="text-xs text-ink-3">
-            {coleta.erro ?? "Fonte indisponível."} Um administrador pode calibrar a
-            rota em Administração → Configuração → Fontes.
-          </p>
+          {/* Falha de fonte não é conteúdo para o gestor: a tela diz só "sem
+              dados"; o texto cru do connector fica atrás de um clique, para
+              quem vai calibrar (Administração → Configurações → Fontes). */}
+          <p className="text-sm text-ink-3">Sem dados.</p>
+          {coleta.erro && (
+            <details className="text-xs text-ink-3">
+              <summary className="cursor-pointer select-none">
+                Detalhe técnico (para a administração)
+              </summary>
+              <p className="mt-1.5 break-words">
+                {coleta.erro} A rota é calibrável em Administração →
+                Configurações → Fontes.
+              </p>
+            </details>
+          )}
         </div>
       ) : coleta?.status === "sem_chave" ? (
-        <p className="text-sm text-ink-3">
-          Esta proposta ainda não tem número no cache — o empenho é consultado por
-          ele. O número costuma chegar numa nova coleta.
-        </p>
+        <p className="text-sm text-ink-3">Sem dados.</p>
       ) : semEmpenho ? (
         <p className="text-sm text-ink-3">
           Nenhum empenho emitido até agora — o recurso desta proposta ainda não foi

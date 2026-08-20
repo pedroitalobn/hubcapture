@@ -113,11 +113,7 @@ export function EmendasProposta({ proposta, podeConsultarFonte = true }: Props) 
         <p className="text-sm text-ink-3">Carregando…</p>
       ) : coleta?.status === "erro" ? (
         <div className="flex flex-col gap-1.5">
-          <p className="tone-warn text-sm">
-            Não consegui consultar a emenda desta proposta na fonte — e o
-            registro que temos não traz emenda. Pode ser que esta proposta não
-            seja de emenda parlamentar.
-          </p>
+          <p className="text-sm text-ink-3">Sem dados.</p>
           {/* O texto cru do connector (rota, parâmetro, exceção) é para quem
               vai calibrar, não para o gestor: fica atrás de um clique em vez
               de ocupar a seção com um parágrafo técnico. */}
@@ -134,10 +130,7 @@ export function EmendasProposta({ proposta, podeConsultarFonte = true }: Props) 
           )}
         </div>
       ) : coleta?.status === "sem_chave" ? (
-        <p className="text-sm text-ink-3">
-          Esta proposta não tem, no cache, um identificador que a fonte aceite para
-          consultar a emenda. Ele costuma chegar numa nova coleta.
-        </p>
+        <p className="text-sm text-ink-3">Sem dados.</p>
       ) : (
         <ul className="flex flex-col divide-y divide-hairline">
           {itens.map((e) => (

@@ -129,21 +129,21 @@ export function AndamentoProposta({ proposta, podeConsultarFonte = true }: Props
         )}
       </div>
 
-      {/* O incidente de fonte é um AVISO, não o conteúdo: o que já está no
-          cache continua na tela. */}
+      {/* Falha de fonte não vira parágrafo de aviso: a linha do tempo (cache)
+          continua sendo o conteúdo, e o erro cru fica atrás de um clique,
+          para quem administra. */}
       {erroFonte && (
-        <p className="tone-warn mb-3 text-xs">
-          Não consegui consultar os pareceres na fonte agora
-          {pareceres?.erro ? ` (${pareceres.erro})` : ""}. A linha do tempo abaixo é
-          o que já estava no cache.
-        </p>
+        <details className="mb-3 text-xs text-ink-3">
+          <summary className="cursor-pointer select-none">
+            Sem dados novos da fonte
+          </summary>
+          <p className="mt-1.5 break-words">
+            {pareceres?.erro ?? "A fonte não respondeu agora."} A rota é
+            calibrável em Administração → Configurações → Fontes.
+          </p>
+        </details>
       )}
-      {semPlano && (
-        <p className="mb-3 text-xs text-ink-3">
-          Esta proposta ainda não tem número de plano de trabalho no cache — sem ele
-          não há como buscar os pareceres na fonte. Ele costuma chegar numa nova coleta.
-        </p>
-      )}
+      {semPlano && <p className="mb-3 text-xs text-ink-3">Sem dados da fonte.</p>}
 
       {carregando ? (
         <p className="text-sm text-ink-3">Carregando…</p>
