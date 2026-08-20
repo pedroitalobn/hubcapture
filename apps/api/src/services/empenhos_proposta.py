@@ -20,6 +20,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..connectors import pareceres_siconv
 from ..connectors.empenhos_especiais import SOURCE_ID, EmpenhoEspecialConnector
 from ..ingestion.normalizer_empenho import normalize_empenho
 from ..models.proposta import Proposta
@@ -162,9 +163,21 @@ async def sync_proposta(
     if not chaves:
         return EmpenhoColeta(status="sem_chave", total=0)
 
+    # Cada universo tem sua fonte de empenho — mandar a chave errada para o
+    # módulo errado era o que pintava "não consegui consultar" numa proposta
+    # com empenho publicado:
+    #   - discricionária/legal: o empenho vem do PACOTE DIÁRIO do SIconv
+    #     (`jobs/siconv_diario`), já upsertado em `proposta_empenhos`. Não há
+    #     rota on-demand pública; a resposta honesta é o cache da carga do dia.
+    #   - fundo a fundo: o módulo `fundoafundo` publica `empenho` filtrável por
+    #     `id_plano_acao` — mesma mecânica do especiais, só muda a base.
+    #   - especiais: o caminho que já existia.
+    if _e_siconv(proposta):
+        return await _sync_siconv_webapp(session, proposta, chaves, usuario_id=usuario_id)
+
     iniciado = datetime.now(UTC)
     try:
-        brutos = await EmpenhoEspecialConnector().collect_por_proposta(chaves)
+        brutos = await _connector_de(proposta).collect_por_proposta(chaves)
     except Exception as exc:  # noqa: BLE001 — fonte de governo cai; o painel não
         erro = f"{type(exc).__name__}: {exc}"
         await registrar_sync(
@@ -205,6 +218,98 @@ async def sync_proposta(
     return EmpenhoColeta(status="ok", total=len(canonicos), origem="fonte")
 
 
+BASE_FUNDO_A_FUNDO = "https://api.transferegov.gestao.gov.br/fundoafundo/"
+
+
+async def _sync_siconv_webapp(
+    session: AsyncSession,
+    proposta: Proposta,
+    chaves: dict[str, str],
+    *,
+    usuario_id: uuid.UUID | None = None,
+) -> EmpenhoColeta:
+    """Empenhos de proposta discricionária: pacote diário + listagem VIVA.
+
+    O grosso vem do pacote do SIconv (`jobs/siconv_diario`, já em
+    `proposta_empenhos`), mas o espelho público é ~mensal — empenho emitido
+    depois do dump só aparece na listagem do webapp (acesso livre). Aqui a
+    listagem é raspada e entra APENAS o número que o cache ainda não tem:
+    sem esse filtro, o mesmo empenho apareceria duas vezes (uma por fonte)
+    assim que o dump alcançasse o webapp.
+    """
+    id_siconv = str(proposta.id_externo or "").strip()
+    if not id_siconv.isdigit():
+        return EmpenhoColeta(status="ok", total=0, origem="carga diária do SIconv")
+
+    iniciado = datetime.now(UTC)
+    fonte_id = pareceres_siconv.SOURCE_ID_EMPENHO
+    try:
+        brutos = await pareceres_siconv.get_connector().empenhos_por_id_proposta(id_siconv)
+    except Exception as exc:  # noqa: BLE001 — fonte de governo cai; o painel não
+        erro = f"{type(exc).__name__}: {exc}"
+        await registrar_sync(
+            usuario_id=usuario_id,
+            fonte=fonte_id,
+            tipo="avulso",
+            status="erro",
+            registros=0,
+            iniciado_em=iniciado,
+            finalizado_em=datetime.now(UTC),
+            erro=erro[:1000],
+        )
+        # o cache do pacote continua valendo — a coleta viva é complementar
+        return EmpenhoColeta(status="ok", total=0, origem="carga diária do SIconv")
+
+    ja_no_cache = {
+        (x.numero_empenho or "").strip() for x in await listar(session, proposta)
+    }
+    novos = [b for b in brutos if b.get("numero_empenho") not in ja_no_cache]
+    canonicos = [
+        normalize_empenho(
+            b,
+            fonte=fonte_id,
+            numero_proposta=proposta.numero_proposta,
+            numero_plano_acao=chaves.get("id_plano_acao"),
+            municipio_ibge=proposta.municipio_ibge,
+        )
+        for b in novos
+    ]
+    if canonicos:
+        await _upsert(session, canonicos)
+    await registrar_sync(
+        usuario_id=usuario_id,
+        fonte=fonte_id,
+        tipo="avulso",
+        status="ok",
+        registros=len(canonicos),
+        iniciado_em=iniciado,
+        finalizado_em=datetime.now(UTC),
+        erro=None,
+    )
+    return EmpenhoColeta(status="ok", total=len(canonicos), origem="fonte")
+
+
+def _e_siconv(proposta: Proposta) -> bool:
+    """Proposta do universo SIconv (discricionárias/legais)?"""
+    if proposta.fonte in ("transferegov_disc", "transferegov_voluntarias"):
+        return True
+    dados = proposta.dados_fonte if isinstance(proposta.dados_fonte, dict) else {}
+    return str(dados.get("_carga") or "").startswith("siconv")
+
+
+def _connector_de(proposta: Proposta) -> EmpenhoEspecialConnector:
+    """O connector de empenho apontado para o MÓDULO da proposta.
+
+    O `EmpenhoEspecialConnector` já descobre a rota no spec de qualquer módulo
+    PostgREST do TransfereGov — para o fundo a fundo basta trocar a base (a
+    tabela lá se chama `empenho` e filtra por `id_plano_acao`, confirmado no
+    spec do módulo).
+    """
+    if proposta.fonte == "transferegov_ff":
+        return EmpenhoEspecialConnector(base_url=BASE_FUNDO_A_FUNDO)
+    return EmpenhoEspecialConnector()
+
+
 async def por_proposta(
     session: AsyncSession,
     proposta: Proposta,
@@ -221,6 +326,8 @@ async def por_proposta(
         if coleta.status != "erro":
             itens = await listar(session, proposta)
             coleta.total = len(itens)
+            if coleta.origem == "carga diária do SIconv" and itens:
+                coleta.status = "ok"
 
     lidos = [EmpenhoRead.model_validate(x) for x in itens]
     lidos = await municipios_service.enriquecer(session, lidos)
