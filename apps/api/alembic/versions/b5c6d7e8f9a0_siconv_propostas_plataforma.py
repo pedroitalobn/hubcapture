@@ -34,7 +34,7 @@ curadoria dos usuários). É auto-corrigível: o upsert zera `excluido_em`, ent�
 a linha volta assim que a fonte a reemitir sob o id certo.
 
 Revision ID: b5c6d7e8f9a0
-Revises: a4b5c6d7e8f9
+Revises: a1b2c3d4e5f7
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ from __future__ import annotations
 from alembic import op
 
 revision = "b5c6d7e8f9a0"
-down_revision = "a4b5c6d7e8f9"
+down_revision = "a1b2c3d4e5f7"
 branch_labels = None
 depends_on = None
 
