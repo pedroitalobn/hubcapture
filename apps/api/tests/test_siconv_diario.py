@@ -145,7 +145,9 @@ async def _rodar_carga(tmp_path: Path) -> list[dict]:
 
     async with engine.begin() as conn:
         gravadas = await job.aplicar_carga(conn, {"emenda": emenda, "proposta": proposta})
-    assert gravadas == {"emendas": 3}
+    # a carga também alimenta `propostas`; aqui não há território monitorado,
+    # então o recorte é vazio — o que interessa neste teste são as emendas
+    assert gravadas["emendas"] == 3
 
     from tests.conftest import _owner_engine
 
@@ -243,7 +245,7 @@ async def _rodar_carga_execucao(tmp_path: Path) -> list[dict]:
 
     async with engine.begin() as conn:
         gravadas = await job.aplicar_carga(conn, arquivos)
-    assert gravadas == {"empenhos": 3}
+    assert gravadas["empenhos"] == 3
 
     from tests.conftest import _owner_engine
 

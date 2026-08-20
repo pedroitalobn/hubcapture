@@ -203,9 +203,16 @@ class TransferegovDiscConnector:
             # (`len(records) + 1`) dava "1", "2", "3"… para TODO município — e o
             # par único (fonte, id_externo) é global: a proposta "1" de um
             # município sobrescrevia a "1" do outro e mudava de território.
-            id_ext = str(plano.get("numero") or _col(row, "id_proposta") or "") or (
-                _identidade.hash_conteudo(row, municipio_ibge, prefixo="csv:")
-            )
+            # ID_PROPOSTA é a chave primária que a fonte publica para ESTE
+            # arquivo, e é ela que manda (§51). O nº do convênio vinha antes e
+            # isso instabilizava a identidade: a proposta nasce sem convênio
+            # (id = hash do conteúdo) e ganha um ao ser celebrada — a linha
+            # trocava de `id_externo` e virava DUAS no painel. Vale também para
+            # convergir com a carga do pacote (`jobs/siconv_diario`), que casa
+            # pelo mesmo id.
+            id_ext = str(
+                _col_exata(row, "id_proposta") or plano.get("numero") or ""
+            ) or _identidade.hash_conteudo(row, municipio_ibge, prefixo="csv:")
             records.append(
                 RawRecord(
                     source_id=self.source_id,

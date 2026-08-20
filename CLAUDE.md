@@ -2154,3 +2154,79 @@ novo** — não um alerta genérico de "mudou alguma coisa".
   desabilitado. `DynamicIsland` e o WhatsApp (`dispatch_alerts`) leem o mesmo
   rótulo e o `resumo` do payload — "vencimento" cru não diz ao gestor que o
   convênio vence em 10 dias.
+
+## 54. Pacote SIconv como fonte das PROPOSTAS (discricionárias e legais) + rota de operação
+
+A §50 trouxe o pacote nacional do SIconv para o banco, mas só as **emendas**: o
+`proposta.csv` era baixado apenas como JOIN, para carimbar o município. Quem
+perguntava "quero TODAS as propostas do meu município" continuava dependendo da
+busca ao vivo varrendo 1 GB de CSV a cada filtro do painel (§38) — e essa é a
+única via, porque **a fonte não publica consulta por município para as
+discricionárias/legais**: a base sai inteira, um ZIP por tabela do modelo, em
+`https://api-publica.transferegov.gestao.gov.br/downloads/dadosgov/`.
+
+- **Carga de propostas** (`jobs/siconv_diario.sql_upsert_propostas`): `stg_proposta`
+  → tabela canônica `propostas`, com o de-para espelhando o do connector (§35b):
+  `NR_PROPOSTA` é a referência do gestor e a data de criação é **remontada** de
+  `DIA_PROP + MES_PROP + ANO_PROP` (`data_componentes`, `to_date` e nunca
+  `make_date` — linha suja não pode abortar a carga). `VL_GLOBAL_PROP` é o valor
+  da proposta (§46); o fim de vigência vira prazo estruturado; o registro-fonte
+  entra em `dados_fonte` no MESMO formato do connector (`plano_acao.csv` = linha
+  bruta), que é de onde `ano_de`/`mes_de` e o "Dados completos da fonte" leem.
+- **A `fonte` é `transferegov_disc`, não uma fonte nova** (`FONTE_PROPOSTA`). A
+  chave do cache é `(fonte, id_externo)` e os dois caminhos de ingestão — busca
+  ao vivo e carga do pacote — leem o MESMO arquivo: fonte própria faria a mesma
+  proposta aparecer duas vezes no painel. Para convergirem na mesma linha, o
+  `id_externo` do connector passou a ser SEMPRE `ID_PROPOSTA` (a PK publicada);
+  o nº do convênio vinha antes e isso instabilizava a identidade — a proposta
+  nasce sem convênio e ganha um ao ser celebrada, trocando de `id_externo` no
+  meio do caminho (a classe de defeito da §51).
+- **O upsert COMPLETA, não sobrescreve**: `execucao` e `dados_fonte` são fundidos
+  (`||`) com o que já estava lá, porque o painel da Visão Geral traz
+  empenhado/pago/saldo que o CSV não tem. E `excluido_em = NULL`: a fonte ainda
+  publica a proposta, então uma zeragem anterior (§41) é desfeita pela recoleta.
+- **Escopo: `territorio` (padrão) × `nacional`** (`SICONV_PROPOSTAS_ESCOPO` no env,
+  `siconv_propostas_escopo` no painel). O arquivo é nacional e o cache só é lido
+  por município: carregar o país inteiro são milhões de linhas com o
+  registro-fonte em jsonb junto — é decisão de operação, não default. O recorte
+  entra como filtro da própria varredura (carregar e descartar depois custaria a
+  carga inteira em disco). Sem nenhum município monitorado a carga grava zero e
+  **diz isso no log**, em vez de gravar o país "por via das dúvidas".
+- **RLS: dois bloqueios silenciosos** (migration `b5c6d7e8f9a0`). (1)
+  `INSERT … ON CONFLICT DO UPDATE` aplica a policy de **SELECT** sobre a linha
+  existente, e a de `propostas` recorta por município — sem uma policy PERMISSIVE
+  sob a bandeira `app.plataforma`, toda proposta já cacheada era recusada com
+  "new row violates row-level security policy" (mesmo tropeço da §50). (2) ler
+  `municipios_interesse` (o recorte do território) exige atravessar o `FOR ALL`
+  por-tenant, que sob FORCE RLS bloqueia até o owner (§41): a policy nova ali é
+  **só de SELECT** e só sob a bandeira — escrita segue exclusivamente por-tenant.
+  Sem as duas, a carga entregaria zero em silêncio, o pior desfecho possível.
+- **Catálogo do pacote ampliado** (`connectors/siconv_downloads.ARQUIVOS`): além de
+  emenda/proposta/convenio/empenho (`carrega=True`), estão mapeados programa,
+  proponentes, plano de aplicação, cronogramas, termo aditivo, histórico de
+  situação, licitação, obra, obtv… — baixáveis para conferência, fora da carga
+  (baixar centenas de MB sem destino no schema é desperdício).
+  `inspecionar()/inspecionar_todos()` sondam **sem baixar**: HEAD e, quando o CDN
+  recusa HEAD, um GET com `Range` de 1 byte; devolvem nome resolvido, tamanho e o
+  motivo quando nada responde ("a fonte renomeou" ≠ "a fonte caiu").
+- **Rotas de operação** (`api/v1/admin_siconv.py`, superuser):
+  `GET /admin/siconv/files` (catálogo + disponibilidade ao vivo + território
+  monitorado + últimas cargas), `POST /admin/siconv/load` (dispara a carga, com
+  recorte opcional de tabelas — tabela fora do catálogo é 422 ANTES de baixar) e
+  `GET /admin/siconv/runs`. O disparo usa `asyncio.create_task` e nunca
+  `BackgroundTasks` (§19b); a trava é o advisory lock do próprio `sweep`, então
+  disparo manual e worker agendado não carregam em paralelo. O download **não é
+  proxiado**: o catálogo devolve a URL direta da fonte — passar centenas de MB
+  pela API seria pagar banda duas vezes.
+- **Web**: `app/admin/siconv` — cards de escopo/território/tabelas, tabela de
+  arquivos com estado real, tamanho, link de download e seleção para carga, e o
+  histórico de execuções. Item "Pacote SIconv" no shell admin. O botão
+  "Carregar pacote agora" também fica em `app/admin/sources` (é lá que se olha
+  quando o painel está vazio, então é lá que o gatilho precisa estar).
+- **O painel lê ESTA tabela.** A carga grava em `propostas` — a mesma tabela
+  canônica que `services/propostas.listar` serve à Captação, ao Meu painel e ao
+  copiloto —, não num depósito paralelo: por isso a `fonte` é a do connector e o
+  `id_externo` converge. Regressão em `test_siconv_propostas.py`, percorrendo o
+  caminho real (carga global sem tenant → leitura sob a sessão RLS do gestor,
+  com ordem por `data_proposta`, filtro de safra e o território de outro
+  usuário fora da lista mesmo no escopo nacional).

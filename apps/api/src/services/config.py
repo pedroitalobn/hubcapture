@@ -165,6 +165,25 @@ CATALOGO: list[dict] = [
         "fonte",
         False,
     ),
+    _c(
+        "siconv_convenio_arquivo",
+        "SIconv — nome do ZIP de convênios (vazio = tenta siconv_convenio.zip / convenio.zip)",
+        "fonte",
+        False,
+    ),
+    _c(
+        "siconv_empenho_arquivo",
+        "SIconv — nome do ZIP de empenhos (vazio = tenta siconv_empenho.zip / empenho.zip)",
+        "fonte",
+        False,
+    ),
+    _c(
+        "siconv_propostas_escopo",
+        "SIconv — escopo da carga de propostas: `territorio` (padrão, só os "
+        "municípios monitorados) ou `nacional` (o país inteiro — milhões de linhas)",
+        "fonte",
+        False,
+    ),
     _c("transferegov_esp_base_url", "TransfereGov Especiais base URL", "fonte", False),
     _c(
         "transferegov_esp_endpoint",
