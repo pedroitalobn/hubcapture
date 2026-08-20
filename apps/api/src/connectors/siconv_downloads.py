@@ -18,6 +18,20 @@ RESOLVIDO em runtime, testando candidatos, com override no painel admin — §27
 
 Tudo em DISCO, nunca em memória: `proposta.csv` passa de 1 GB descompactado e
 carregá-lo em RAM derrubaria o worker.
+
+DUAS ORIGENS, nesta ordem (§27). A oficial do TransfereGov é a mais FRESCA, mas
+responde **403 com desafio da Cloudflare** para o IP deste servidor (ver
+`_egress`) — e desafio não se resolve com header nem com browser: o egresso
+alternativo serve JSON de API, não ZIP de centenas de MB. O mesmo pacote está
+espelhado em `repositorio.dados.gov.br/seges/detru/`, que responde 200 direto
+daqui. Por isso a origem oficial continua sendo tentada primeiro (quando o
+bloqueio cair, volta sozinha) e o espelho entra como retaguarda.
+
+Os dois publicam com NOMES DIFERENTES para o mesmo arquivo — origem
+`siconv_emenda.zip`, espelho `siconv_emenda.csv.zip` — daí a lista de
+candidatos por tabela. O espelho carrega `data_carga_siconv.txt` com a data do
+dump: é ela que o painel mostra, para ninguém ler dado de um mês atrás como se
+fosse de hoje.
 """
 
 from __future__ import annotations
@@ -37,6 +51,10 @@ log = logging.getLogger(__name__)
 SOURCE_ID = "siconv"
 
 BASE_PADRAO = "https://api-publica.transferegov.gestao.gov.br/downloads/dadosgov/"
+#: espelho oficial no repositório de dados abertos — não passa por Cloudflare
+BASE_ESPELHO = "https://repositorio.dados.gov.br/seges/detru/"
+#: arquivo de metadado do espelho com a data do dump (dd/mm/aaaa hh:mm:ss)
+ARQUIVO_DATA_CARGA = "data_carga_siconv.txt"
 
 # Timeout generoso: são centenas de MB por arquivo. `connect` curto para falha
 # de rede aparecer rápido; `read` alto porque o corpo demora mesmo.
@@ -59,7 +77,14 @@ class Arquivo:
     carrega: bool = False
 
     def nomes(self) -> tuple[str, ...]:
-        return self.candidatos or (f"siconv_{self.tabela}.zip", f"{self.tabela}.zip")
+        # `*.csv.zip` primeiro: é como o espelho publica, e a origem responde
+        # 404 rápido no que não existe — 404 custa menos que um download errado.
+        return self.candidatos or (
+            f"siconv_{self.tabela}.csv.zip",
+            f"siconv_{self.tabela}.zip",
+            f"{self.tabela}.csv.zip",
+            f"{self.tabela}.zip",
+        )
 
 
 # Catálogo do pacote. Ligar uma tabela nova = mais uma entrada aqui; o
@@ -135,9 +160,44 @@ class DownloadError(RuntimeError):
     """Falha de download/extração — vira incidente em `sync_runs`, nunca silêncio."""
 
 
+class _Bloqueado(RuntimeError):
+    """A base recusou o IP deste servidor (desafio de bot) — tenta a próxima."""
+
+
 async def base_url() -> str:
-    """Base dos downloads: painel admin sobrescreve o padrão (§16)."""
+    """A base PREFERIDA — painel admin sobrescreve o padrão (§16)."""
     return (await config_service.resolver("siconv_downloads_url")) or BASE_PADRAO
+
+
+async def bases() -> tuple[str, ...]:
+    """Bases a tentar, em ordem. Override do painel VENCE e vira a única.
+
+    Deixar o espelho como retaguarda automática de um override manual mascararia
+    o override: o admin apontou para um lugar e receberia dado de outro.
+    """
+    override = await config_service.resolver("siconv_downloads_url")
+    if override:
+        return (override,)
+    return (BASE_PADRAO, BASE_ESPELHO)
+
+
+async def data_carga(base: str | None = None) -> str | None:
+    """Data do dump publicada pela fonte (`data_carga_siconv.txt`), se houver.
+
+    Só o espelho publica. Devolve o texto cru (dd/mm/aaaa hh:mm:ss) — quem
+    exibe decide o formato; `None` = a base não informa.
+    """
+    raiz = base or BASE_ESPELHO
+    try:
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(20.0, connect=10.0), follow_redirects=True
+        ) as client:
+            resp = await client.get(_url(raiz, ARQUIVO_DATA_CARGA))
+        if resp.status_code >= 400:
+            return None
+        return resp.text.strip().lstrip("\ufeff") or None
+    except Exception:  # noqa: BLE001 — metadado ausente não derruba a carga
+        return None
 
 
 def _url(base: str, nome: str) -> str:
@@ -149,6 +209,10 @@ async def _baixar_para(client: httpx.AsyncClient, url: str, destino: Path) -> bo
     async with client.stream("GET", url) as resp:
         if resp.status_code == 404:
             return False
+        if resp.status_code in (403, 503) and (
+            resp.headers.get("cf-mitigated") or "text/html" in resp.headers.get("content-type", "")
+        ):
+            raise _Bloqueado(f"{resp.status_code} — a origem recusa o IP deste servidor")
         resp.raise_for_status()
         with destino.open("wb") as saida:
             async for pedaco in resp.aiter_bytes(CHUNK):
@@ -175,45 +239,57 @@ def _extrair_csv(zip_path: Path, destino_dir: Path) -> Path:
 async def baixar_csv(tabela: str, destino_dir: Path, base: str | None = None) -> Path:
     """Baixa o ZIP da tabela e devolve o caminho do CSV extraído.
 
-    Resolve o nome do arquivo testando os candidatos (404 → próximo) e aceita
-    override manual pelo painel (`siconv_<tabela>_arquivo`).
+    Percorre BASES × CANDIDATOS: a origem oficial primeiro, o espelho depois;
+    em cada base, os nomes possíveis do arquivo. 404 e desafio da Cloudflare
+    são respostas DEFINITIVAS (não adianta repetir) — 404 pula para o próximo
+    nome, desafio abandona a base inteira, que é onde ele vale. Override manual
+    do painel (`siconv_<tabela>_arquivo`) vence a lista de nomes.
     """
     arquivo = ARQUIVOS.get(tabela)
     if arquivo is None:
         raise DownloadError(f"tabela desconhecida no catálogo do SIconv: {tabela}")
 
     destino_dir.mkdir(parents=True, exist_ok=True)
-    raiz = base or await base_url()
+    raizes = (base,) if base else await bases()
 
     override = await config_service.resolver(f"siconv_{tabela}_arquivo")
-    candidatos = (override.strip(),) if override else arquivo.nomes()
+    candidatos_nomes = (override.strip(),) if override else arquivo.nomes()
 
     zip_path = destino_dir / f"{tabela}.zip"
     erros: list[str] = []
     async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
-        for nome in candidatos:
-            url = _url(raiz, nome)
-            for tentativa in range(1, TENTATIVAS + 1):
-                try:
-                    if await _baixar_para(client, url, zip_path):
-                        log.info(
-                            "siconv: %s baixado de %s (%d bytes)",
-                            tabela,
-                            url,
-                            zip_path.stat().st_size,
-                        )
-                        return await asyncio.to_thread(_extrair_csv, zip_path, destino_dir)
-                    erros.append(f"{nome}: 404")
-                    break  # 404 é resposta definitiva: próximo candidato
-                except httpx.HTTPError as exc:
-                    erros.append(f"{nome} (tentativa {tentativa}): {exc}")
-                    if tentativa == TENTATIVAS:
+        for raiz in raizes:
+            base_bloqueada = False
+            for nome in candidatos_nomes:
+                if base_bloqueada:
+                    break  # o bloqueio é do HOST: nenhum outro nome vai responder
+                url = _url(raiz, nome)
+                for tentativa in range(1, TENTATIVAS + 1):
+                    try:
+                        if await _baixar_para(client, url, zip_path):
+                            log.info(
+                                "siconv: %s baixado de %s (%d bytes)",
+                                tabela,
+                                url,
+                                zip_path.stat().st_size,
+                            )
+                            return await asyncio.to_thread(_extrair_csv, zip_path, destino_dir)
+                        erros.append(f"{nome}: 404")
+                        break  # 404 é resposta definitiva: próximo candidato
+                    except _Bloqueado as exc:
+                        erros.append(f"{raiz}: {exc}")
+                        base_bloqueada = True
                         break
-                    await asyncio.sleep(2**tentativa)
+                    except httpx.HTTPError as exc:
+                        erros.append(f"{nome} (tentativa {tentativa}): {exc}")
+                        if tentativa == TENTATIVAS:
+                            break
+                        await asyncio.sleep(2**tentativa)
 
     raise DownloadError(
-        f"não consegui baixar o pacote `{tabela}` de {raiz} — tentei "
-        f"{', '.join(candidatos)}. Detalhe: {'; '.join(erros[:6])}. "
+        f"não consegui baixar o pacote `{tabela}` — tentei "
+        f"{', '.join(candidatos_nomes)} em {', '.join(raizes)}. "
+        f"Detalhe: {'; '.join(erros[:6])}. "
         f"Calibre `siconv_downloads_url` / `siconv_{tabela}_arquivo` no painel admin (Fontes)."
     )
 
@@ -259,35 +335,43 @@ async def _sondar(client: httpx.AsyncClient, url: str) -> tuple[bool, int | None
 
 
 async def inspecionar(tabela: str, base: str | None = None) -> Disponibilidade:
-    """Resolve o nome do ZIP e diz se ele existe e quanto pesa — sem baixar.
+    """Resolve onde o ZIP está e quanto pesa — sem baixar.
 
     É o que dá honestidade à tela: "a fonte publica este arquivo" é diferente de
-    "tentei e deu erro", e diferente ainda de "o nome mudou". Nunca levanta:
-    falha de rede vira `erro` no próprio registro.
+    "tentei e deu erro", e diferente ainda de "o nome mudou". Varre BASES ×
+    CANDIDATOS e devolve a PRIMEIRA combinação que responde, com a URL inteira
+    — assim o admin vê de qual das duas origens aquele arquivo viria hoje.
+    Nunca levanta: falha de rede vira `erro` no próprio registro.
     """
     arquivo = ARQUIVOS[tabela]
-    raiz = base or await base_url()
+    raizes = (base,) if base else await bases()
+    primeira_url = None
     try:
         nomes = await candidatos(tabela)
         async with httpx.AsyncClient(
             timeout=httpx.Timeout(20.0, connect=10.0), follow_redirects=True
         ) as client:
-            for nome in nomes:
-                url = _url(raiz, nome)
-                existe, tamanho = await _sondar(client, url)
-                if existe:
-                    return Disponibilidade(
-                        tabela, arquivo.descricao, arquivo.carrega, nome, url, True, tamanho
-                    )
+            for raiz in raizes:
+                for nome in nomes:
+                    url = _url(raiz, nome)
+                    primeira_url = primeira_url or url
+                    try:
+                        existe, tamanho = await _sondar(client, url)
+                    except Exception:  # noqa: BLE001 — base fora/bloqueada: próxima
+                        break
+                    if existe:
+                        return Disponibilidade(
+                            tabela, arquivo.descricao, arquivo.carrega, nome, url, True, tamanho
+                        )
         return Disponibilidade(
             tabela,
             arquivo.descricao,
             arquivo.carrega,
             None,
-            _url(raiz, nomes[0]) if nomes else None,
+            primeira_url,
             False,
             None,
-            f"nenhum candidato respondeu ({', '.join(nomes)})",
+            f"nenhum candidato respondeu ({', '.join(nomes)}) em {', '.join(raizes)}",
         )
     except Exception as exc:  # noqa: BLE001 — diagnóstico não levanta
         return Disponibilidade(
@@ -298,15 +382,24 @@ async def inspecionar(tabela: str, base: str | None = None) -> Disponibilidade:
 async def inspecionar_todos(tabelas: tuple[str, ...] | None = None) -> list[Disponibilidade]:
     """Sonda o catálogo inteiro em paralelo (uma requisição por tabela)."""
     alvos = tabelas or tuple(ARQUIVOS)
-    base = await base_url()
-    return list(await asyncio.gather(*(inspecionar(t, base) for t in alvos)))
+    return list(await asyncio.gather(*(inspecionar(t) for t in alvos)))
 
 
 async def health_check() -> bool:
-    """Saudável = a base responde (não baixa nada; só confirma que está de pé)."""
-    try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(15.0), follow_redirects=True) as c:
-            resp = await c.head(await base_url())
-        return resp.status_code < 500
-    except Exception:  # noqa: BLE001 — health nunca levanta
-        return False
+    """Saudável = ALGUMA das bases responde (não baixa nada).
+
+    Origem bloqueada com espelho no ar é fonte SAUDÁVEL: a carga do dia acontece
+    do mesmo jeito. Marcar como doente aqui pintaria de vermelho um pipeline que
+    está funcionando.
+    """
+    for raiz in await bases():
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(15.0), follow_redirects=True) as c:
+                resp = await c.head(raiz)
+            if resp.status_code < 500 and not (
+                resp.status_code in (403, 503) and resp.headers.get("cf-mitigated")
+            ):
+                return True
+        except Exception:  # noqa: BLE001 — health nunca levanta
+            continue
+    return False

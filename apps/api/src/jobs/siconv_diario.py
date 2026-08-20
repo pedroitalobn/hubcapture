@@ -613,6 +613,26 @@ async def aplicar_carga(conn: AsyncConnection, arquivos: dict[str, Path]) -> dic
     return gravadas
 
 
+async def registrar_em_transacao_propria(
+    inicio: datetime, status: str, registros: int, erro: str | None
+) -> None:
+    """`sync_runs` numa transação SÓ dela — e que nunca derruba a carga.
+
+    Escrever o registro DENTRO da transação da carga custou 526 mil linhas em
+    produção: o `INSERT` em `sync_runs` bateu num deadlock com outro processo
+    (ele esperava lock nas nossas tabelas, nós no `sync_runs`), a transação
+    inteira sofreu rollback e a carga do dia — já concluída — foi descartada
+    junto. A anotação é CONTABILIDADE da carga; a carga não pode depender dela.
+
+    Por isso: conexão própria, depois do commit, e falha aqui vira log.
+    """
+    try:
+        async with engine.begin() as conn:
+            await _registrar(conn, inicio, status, registros, erro)
+    except Exception:  # noqa: BLE001 — bookkeeping não desfaz trabalho bom
+        log.warning("siconv: não consegui anotar a execução em sync_runs", exc_info=True)
+
+
 async def _registrar(
     conn: AsyncConnection, inicio: datetime, status: str, registros: int, erro: str | None
 ) -> None:
@@ -654,7 +674,8 @@ async def executar(dir_trabalho: str | None = None, tabelas: tuple[str, ...] | N
 
         async with engine.begin() as conn:
             gravadas = await aplicar_carga(conn, arquivos)
-            await _registrar(conn, inicio, "ok", sum(gravadas.values()), None)
+        # commitado: daqui para baixo nada mais pode desfazer a carga
+        await registrar_em_transacao_propria(inicio, "ok", sum(gravadas.values()), None)
 
         dur = (datetime.now(UTC) - inicio).total_seconds()
         resumo = ", ".join(f"{v} {k}" for k, v in gravadas.items()) or "nada"
@@ -663,11 +684,7 @@ async def executar(dir_trabalho: str | None = None, tabelas: tuple[str, ...] | N
 
     except Exception as exc:  # noqa: BLE001 — a falha vira registro, não silêncio
         log.exception("siconv: carga falhou")
-        try:
-            async with engine.begin() as conn:
-                await _registrar(conn, inicio, "erro", 0, f"{type(exc).__name__}: {exc}")
-        except Exception:  # noqa: BLE001 — banco fora do ar: só o log resta
-            log.warning("siconv: não consegui registrar o incidente em sync_runs")
+        await registrar_em_transacao_propria(inicio, "erro", 0, f"{type(exc).__name__}: {exc}")
         return {"status": "erro", "erro": str(exc)}
     finally:
         if tmp is not None:

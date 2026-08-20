@@ -23,16 +23,9 @@ from __future__ import annotations
 
 from datetime import date
 
-import httpx
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
-
 from ..core.config import settings
 from ..services import config as config_service
+from ._http import ConnectorClientError, get_json
 from .base import RawRecord, register
 
 # ── Autocalibração da coluna de IBGE do RECEBEDOR em plano_acao ──────────────
@@ -49,7 +42,6 @@ IBGE_CANDIDATES = (
 PROGRAMA_ID = "id_programa"
 PLANO_ID = "id_plano_acao"
 PAGE_LIMIT = 1000
-TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 
 # cache do campo IBGE descoberto, por base_url
 _ibge_field_cache: dict[str, str] = {}
@@ -80,27 +72,23 @@ class TransferegovFFConnector:
     def __init__(self, base_url: str | None = None) -> None:
         self.base_url = base_url or settings.transferegov_ff_base_url
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=8),
-        retry=retry_if_exception_type((httpx.TransportError, httpx.HTTPStatusError)),
-        reraise=True,
-    )
     async def _get(self, endpoint: str, params: dict[str, str]) -> list[dict]:
-        async with httpx.AsyncClient(base_url=self.base_url, timeout=TIMEOUT) as client:
-            resp = await client.get(endpoint, params=params, headers={"Accept": "application/json"})
-            if 400 <= resp.status_code < 500:
-                raise ConnectorClientError(f"{endpoint} {resp.status_code}: {resp.text[:200]}")
-            resp.raise_for_status()  # 5xx → HTTPStatusError → retry
-            return resp.json()
+        """Consulta pelo helper compartilhado — retry, 4xx e, quando a fonte
+        bloqueia o IP deste servidor, o egresso alternativo (§`_egress`)."""
+        dados = await get_json(self.base_url, endpoint, params)
+        return dados if isinstance(dados, list) else []
 
     async def _descobrir_ibge_field(self) -> str | None:
-        """Lê o OpenAPI do PostgREST e acha a coluna de IBGE de plano_acao."""
+        """Lê o OpenAPI do PostgREST e acha a coluna de IBGE de plano_acao.
+
+        Passa pelo mesmo helper da consulta: o spec vem do MESMO host, e um 403
+        de desafio aqui deixava a descoberta muda — o connector caía no chute de
+        candidatos e terminava com "não achei a coluna de IBGE" numa fonte no ar.
+        """
         try:
-            async with httpx.AsyncClient(base_url=self.base_url, timeout=TIMEOUT) as client:
-                resp = await client.get("", headers={"Accept": "application/openapi+json"})
-                resp.raise_for_status()
-                spec = resp.json()
+            spec = await get_json(self.base_url, "", {})
+            if not isinstance(spec, dict):
+                return None
             defs = spec.get("definitions") or spec.get("components", {}).get("schemas", {})
             props = defs.get(TABLE, {}).get("properties", {})
             return _escolher_coluna_ibge(list(props))
