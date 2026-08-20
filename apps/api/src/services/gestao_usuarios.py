@@ -11,6 +11,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException, status
+from fastapi_users.exceptions import UserAlreadyExists
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -85,15 +86,18 @@ async def aceitar_convite(
         convite.status = "expirado"
         raise HTTPException(status.HTTP_410_GONE, "CONVITE_EXPIRADO")
 
-    user = await user_manager.create(
-        UserCreate(
-            email=convite.email,
-            password=dados.senha,
-            nome=dados.nome,
-            papel=convite.papel,
-        ),
-        safe=True,
-    )
+    try:
+        user = await user_manager.create(
+            UserCreate(
+                email=convite.email,
+                password=dados.senha,
+                nome=dados.nome,
+                papel=convite.papel,
+            ),
+            safe=True,
+        )
+    except UserAlreadyExists as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "EMAIL_JA_CADASTRADO") from exc
     if convite.plano_id:
         await session.execute(
             update(Usuario).where(Usuario.id == user.id).values(plano_id=convite.plano_id)
@@ -191,15 +195,19 @@ async def revogar_convite_membro(
 async def criar_usuario(
     session: AsyncSession, user_manager: UserManager, dados: AdminUsuarioCreate
 ) -> Usuario:
-    user = await user_manager.create(
-        UserCreate(
-            email=dados.email,
-            password=dados.senha,
-            nome=dados.nome,
-            papel=dados.papel,
-        ),
-        safe=True,
-    )
+    # e-mail repetido não pode virar 500 mudo: o form do painel precisa da causa
+    try:
+        user = await user_manager.create(
+            UserCreate(
+                email=dados.email,
+                password=dados.senha,
+                nome=dados.nome,
+                papel=dados.papel,
+            ),
+            safe=True,
+        )
+    except UserAlreadyExists as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "EMAIL_JA_CADASTRADO") from exc
     # `safe=True` ignora is_superuser no input (segurança). Como aqui QUEM cria é
     # o admin, aplicamos plano/permissão explicitamente após a criação.
     valores: dict = {}
