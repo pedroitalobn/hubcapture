@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Skeleton } from "@/components/Skeleton";
-import { api, restaurarPropostas, zerarPropostas } from "@/lib/api/client";
+import Link from "next/link";
+import { api, carregarSiconv, restaurarPropostas, zerarPropostas } from "@/lib/api/client";
 
 interface UltimaColeta {
   status?: string | null;
@@ -50,6 +51,8 @@ export default function AdminFontesPage() {
   const [carregando, setCarregando] = useState(true);
   const [zerando, setZerando] = useState(false);
   const [msgLimpeza, setMsgLimpeza] = useState<string | null>(null);
+  const [carregandoPacote, setCarregandoPacote] = useState(false);
+  const [msgPacote, setMsgPacote] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -92,6 +95,22 @@ export default function AdminFontesPage() {
       setMsgLimpeza(`Falha: ${e instanceof Error ? e.message : "erro desconhecido"}`);
     } finally {
       setZerando(false);
+    }
+  }, []);
+
+  // As discricionárias e legais não têm consulta por município: a fonte publica
+  // a base inteira em ZIPs nacionais. Este é o gatilho da carga que enche o
+  // painel com elas — o mesmo que o worker roda de madrugada.
+  const carregarPacote = useCallback(async () => {
+    setCarregandoPacote(true);
+    setMsgPacote(null);
+    try {
+      const r = await carregarSiconv();
+      setMsgPacote(`✓ ${r.detalhe} — tabelas: ${r.tabelas.join(", ")}`);
+    } catch (e) {
+      setMsgPacote(`Falha: ${e instanceof Error ? e.message : "erro desconhecido"}`);
+    } finally {
+      setCarregandoPacote(false);
     }
   }, []);
 
@@ -139,6 +158,36 @@ export default function AdminFontesPage() {
           {carregando ? "Testando…" : "Testar novamente"}
         </button>
       </header>
+
+      {/* Pacote SIconv — a única via das discricionárias e legais */}
+      <section className="card anim-fade-up p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-medium">
+              Pacote SIconv — discricionárias e legais
+            </h2>
+            <p className="mt-0.5 max-w-2xl text-xs text-ink-2">
+              A fonte não publica consulta por município para este eixo: a base sai
+              inteira, um arquivo por tabela. A carga baixa o pacote e grava as
+              propostas, emendas e empenhos direto na tabela que a Captação lê.
+              Roda em segundo plano (leva minutos).
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={carregarPacote}
+              disabled={carregandoPacote}
+              className="btn btn-primary"
+            >
+              {carregandoPacote ? "Solicitando…" : "Carregar pacote agora"}
+            </button>
+            <Link href="/admin/siconv" className="btn btn-ghost">
+              Ver arquivos
+            </Link>
+          </div>
+        </div>
+        {msgPacote && <p className="mt-3 text-xs text-ink-2">{msgPacote}</p>}
+      </section>
 
       {/* Zona de manutenção — ferramenta de VALIDAÇÃO (destrutiva) */}
       <section className="card anim-fade-up border border-danger/30 bg-danger/5 p-4">

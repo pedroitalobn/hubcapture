@@ -330,3 +330,55 @@ def test_uuid_nao_vaza_para_o_id_externo():
     sql = job.sql_upsert_propostas(COLS, ibges=None)
     assert sql.index("gen_random_uuid()") < sql.index("left(p.id_proposta")
     assert str(uuid.uuid4()) not in sql
+
+
+# --------------------------------------------------------------------------
+# o painel lê ESTA tabela — a carga não é um depósito paralelo
+# --------------------------------------------------------------------------
+
+
+async def test_o_painel_do_gestor_ve_as_propostas_carregadas(tmp_path, seed_user, seed_municipio):
+    """A carga grava na tabela canônica `propostas`, que é a MESMA que a
+    Captação lê — não num depósito paralelo. Este teste percorre o caminho real:
+    carga global sem tenant → leitura sob a sessão RLS do usuário.
+    """
+    from src.db.session import rls_session
+    from src.services import propostas as prop_service
+
+    uid = await seed_user("gestor@hub.gov.br")
+    await seed_municipio(uid, "4211272")
+    await _carregar(tmp_path)
+
+    async with rls_session(uid) as s:
+        vistas = await prop_service.listar(s)
+
+    assert {p.numero_proposta for p in vistas} == {"014275/2024", "030011/2026"}
+    # a ordem do painel é a data de CRIAÇÃO na fonte (§43): a de 2026 na frente
+    assert vistas[0].numero_proposta == "030011/2026"
+    # e o filtro de safra enxerga o ano da proposta, não o da coleta
+    async with rls_session(uid) as s:
+        de_2024 = await prop_service.listar(s, ano=2024)
+    assert [p.numero_proposta for p in de_2024] == ["014275/2024"]
+
+
+async def test_proposta_de_outro_municipio_nao_vaza_para_o_painel(
+    tmp_path, seed_user, seed_municipio, monkeypatch
+):
+    """Carga nacional não pode furar o RLS: o gestor continua vendo só o seu
+    território, mesmo com o país inteiro no cache."""
+    from src.db.session import rls_session
+    from src.services import config as config_service
+    from src.services import propostas as prop_service
+
+    async def _resolver(chave: str):
+        return "nacional" if chave == "siconv_propostas_escopo" else None
+
+    monkeypatch.setattr(config_service, "resolver", _resolver)
+
+    uid = await seed_user("gestor@hub.gov.br")
+    await seed_municipio(uid, "4211272")
+    assert (await _carregar(tmp_path))["propostas"] == 3  # 4211272 e 3550308
+
+    async with rls_session(uid) as s:
+        vistas = await prop_service.listar(s)
+    assert {p.municipio_ibge for p in vistas} == {"4211272"}

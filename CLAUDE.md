@@ -2132,4 +2132,13 @@ discricionárias/legais**: a base sai inteira, um ZIP por tabela do modelo, em
   pela API seria pagar banda duas vezes.
 - **Web**: `app/admin/siconv` — cards de escopo/território/tabelas, tabela de
   arquivos com estado real, tamanho, link de download e seleção para carga, e o
-  histórico de execuções. Item "Pacote SIconv" no shell admin.
+  histórico de execuções. Item "Pacote SIconv" no shell admin. O botão
+  "Carregar pacote agora" também fica em `app/admin/sources` (é lá que se olha
+  quando o painel está vazio, então é lá que o gatilho precisa estar).
+- **O painel lê ESTA tabela.** A carga grava em `propostas` — a mesma tabela
+  canônica que `services/propostas.listar` serve à Captação, ao Meu painel e ao
+  copiloto —, não num depósito paralelo: por isso a `fonte` é a do connector e o
+  `id_externo` converge. Regressão em `test_siconv_propostas.py`, percorrendo o
+  caminho real (carga global sem tenant → leitura sob a sessão RLS do gestor,
+  com ordem por `data_proposta`, filtro de safra e o território de outro
+  usuário fora da lista mesmo no escopo nacional).
