@@ -16,7 +16,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import DateTime
 
 from ..db.base import Base
-from ._mixins import uuid_pk
+from ._mixins import updated_at_col, uuid_pk
 
 TIPOS = ("cauc", "capag")
 STATUS = ("comprovado", "a_comprovar", "desativado", "rating")
@@ -47,9 +47,7 @@ class Conformidade(Base):
     hash_conteudo: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now(), nullable=True
-    )
+    updated_at: Mapped[datetime | None] = updated_at_col()
     cache_atualizado_em: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, index=True
     )

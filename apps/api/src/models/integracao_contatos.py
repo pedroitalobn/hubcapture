@@ -12,7 +12,7 @@ contatos do outro lado (e o delete nunca propagaria).
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import (
     Boolean,
@@ -28,7 +28,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import DateTime
 
 from ..db.base import Base
-from ._mixins import uuid_pk
+from ._mixins import updated_at_col, uuid_pk
 
 PROVEDORES = ("google", "microsoft", "apple", "carddav")
 STATUS = ("conectada", "expirada", "erro", "desconectada")
@@ -58,9 +58,7 @@ class IntegracaoContatos(Base):
     ativo: Mapped[bool] = mapped_column(Boolean, default=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now(), nullable=True
-    )
+    updated_at: Mapped[datetime | None] = updated_at_col()
 
 
 class ContatoVinculo(Base):
@@ -90,6 +88,6 @@ class ContatoVinculo(Base):
     atualizado_em: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
-        onupdate=func.now(),
+        onupdate=lambda: datetime.now(UTC),
         nullable=True,
     )
