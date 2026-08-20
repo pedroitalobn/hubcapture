@@ -18,6 +18,14 @@ import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 // PÁGINA (prop `ano`), não de um seletor próprio: dois filtros de ano na mesma
 // tela mostravam recortes diferentes lado a lado — o gráfico obedecia a um, os
 // cards e o feed continuavam no outro.
+//
+// O panorama deixou de ser uma seção própria: com poucas dimensões ativas, o
+// card do nº de propostas ficava sozinho numa grade de 4 colunas e a linha
+// inteira era vão. O gráfico aprovado × desembolsado entra NA MESMA grade,
+// fechando a linha ao lado do número, e os KPIs financeiros viram uma faixa
+// de cards logo abaixo, com as cores cheias da marca (tinta, lime, aqua e o
+// gradiente) — contraste de verdade sobre o canvas claro, em vez de mais
+// quatro cards brancos.
 interface ResumoPainelData {
   cards: {
     valor_conveniado: string;
@@ -39,12 +47,16 @@ function numBR(v?: string | number | null): number {
   return Number.isNaN(n) ? 0 : n;
 }
 
-function PanoramaFinanceiro({ ano }: { ano: string }) {
+/** Busca o resumo financeiro do recorte (safra + território). `habilitado`
+ *  segura a consulta enquanto o perfil não confirmou território — sem ele, a
+ *  conta recém-criada pagaria um summary vazio a cada carga. */
+function useResumoFinanceiro(ano: string, habilitado: boolean) {
   const { selecionados } = useTerritorio();
   const [resumo, setResumo] = useState<ResumoPainelData | null>(null);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
+    if (!habilitado) return;
     setCarregando(true);
     void api
       .GET("/api/v1/proposals/summary", {
@@ -67,88 +79,112 @@ function PanoramaFinanceiro({ ano }: { ano: string }) {
         if (ok) setResumo(data as ResumoPainelData);
         setCarregando(false);
       });
-  }, [ano, selecionados]);
+  }, [ano, selecionados, habilitado]);
 
-  if (carregando && !resumo) return <SkeletonCards />;
-  if (!resumo) return null;
+  return { resumo, carregando };
+}
 
+// Quantas colunas (grade xl de 4) o gráfico ocupa ao lado dos cards de
+// dimensão: com 1–2 dimensões ele fecha a linha; com mais, desce inteiro
+// para a linha seguinte. Mapa de literais — Tailwind não enxerga classe
+// montada por template.
+const SPAN_GRAFICO: Record<number, string> = {
+  1: "xl:col-span-3",
+  2: "xl:col-span-2",
+};
+
+/** Gráfico aprovado × desembolsado, morando na MESMA grade das dimensões —
+ *  é ele que preenche o vão ao lado do nº de propostas. */
+function GraficoAprovadoDesembolsado({
+  resumo,
+  ano,
+  className = "",
+}: {
+  resumo: ResumoPainelData;
+  ano: string;
+  className?: string;
+}) {
   const porAno = resumo.por_ano ?? [];
   const maxAno = Math.max(
     1,
     ...porAno.flatMap((a) => [numBR(a.aprovado), numBR(a.desembolsado)]),
   );
-
   return (
-    <section className="anim-fade-up flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="tracking-tight">Panorama financeiro</h2>
+    <div className={`card flex flex-col justify-between p-5 ${className}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="label-mono">Aprovado × desembolsado por ano</h3>
         <span className="label-mono">
           {ano ? `safra ${ano}` : "todas as safras"}
         </span>
       </div>
-
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard
-          label="Total geral"
-          value={formatBRL(resumo.cards.valor_conveniado)}
-          context={`${resumo.cards.transferencias} transferências`}
-        />
-        <StatCard
-          label="Empenhado"
-          value={formatBRL(resumo.cards.valor_empenhado)}
-          context="reservado pelo concedente"
-        />
-        {/* "Publicado" vem da fonte ora como valor, ora como estado. Com
-            valor, mostra o valor; sem ele, a contagem de publicadas — R$ 0,00
-            leria como "nada publicado", que é outra coisa. */}
-        <StatCard
-          label="Publicado"
-          value={
-            numBR(resumo.cards.valor_publicado) > 0
-              ? formatBRL(resumo.cards.valor_publicado)
-              : String(resumo.cards.propostas_publicadas)
-          }
-          context={
-            numBR(resumo.cards.valor_publicado) > 0
-              ? "publicado pela fonte"
-              : "propostas publicadas"
-          }
-        />
-        <StatCard
-          label="Pago"
-          value={formatBRL(resumo.cards.valor_pago)}
-          context="efetivamente pago"
-        />
-      </div>
-
-      {porAno.length > 0 && (
-        <div className="card p-5">
-          <h3 className="label-mono">Aprovado × desembolsado por ano</h3>
-          <div className="mt-4 flex items-end gap-2 overflow-x-auto">
-            {porAno.map((a) => (
-              <div key={a.ano} className="flex min-w-[42px] flex-col items-center gap-1">
-                <div className="flex h-28 items-end gap-0.5">
-                  <div
-                    title={`Aprovado: ${formatBRL(a.aprovado)}`}
-                    className="w-3 rounded-t bg-ink/70"
-                    style={{ height: `${(numBR(a.aprovado) / maxAno) * 100}%` }}
-                  />
-                  <div
-                    title={`Desembolsado: ${formatBRL(a.desembolsado)}`}
-                    className="w-3 rounded-t bg-lime"
-                    style={{ height: `${(numBR(a.desembolsado) / maxAno) * 100}%` }}
-                  />
-                </div>
-                <span className="font-mono text-[10px] text-ink-3">{a.ano}</span>
-              </div>
-            ))}
+      <div className="mt-4 flex items-end gap-2 overflow-x-auto">
+        {porAno.map((a) => (
+          <div key={a.ano} className="flex min-w-[42px] flex-col items-center gap-1">
+            <div className="flex h-28 items-end gap-0.5">
+              <div
+                title={`Aprovado: ${formatBRL(a.aprovado)}`}
+                className="w-3 rounded-t bg-ink/70"
+                style={{ height: `${(numBR(a.aprovado) / maxAno) * 100}%` }}
+              />
+              <div
+                title={`Desembolsado: ${formatBRL(a.desembolsado)}`}
+                className="w-3 rounded-t bg-lime"
+                style={{ height: `${(numBR(a.desembolsado) / maxAno) * 100}%` }}
+              />
+            </div>
+            <span className="font-mono text-[10px] text-ink-3">{a.ano}</span>
           </div>
-          <p className="mt-3 font-mono text-[11px] text-ink-3">
-            <span className="mr-3">▊ aprovado</span>
-            <span className="text-lime">▊ desembolsado</span>
-          </p>
-        </div>
-      )}
+        ))}
+      </div>
+      <p className="mt-3 font-mono text-[11px] text-ink-3">
+        <span className="mr-3">▊ aprovado</span>
+        <span className="text-lime">▊ desembolsado</span>
+      </p>
+    </div>
+  );
+}
+
+/** Faixa de KPIs financeiros — cores cheias da marca, uma por card, para o
+ *  bloco contrastar com o canvas e com os cards brancos do restante. */
+function CardsFinanceiros({ resumo }: { resumo: ResumoPainelData }) {
+  const cards = resumo.cards;
+  return (
+    <section className="stagger grid grid-cols-2 gap-4 md:grid-cols-4">
+      <StatCard
+        tone="ink"
+        label="Total geral"
+        value={formatBRL(cards.valor_conveniado)}
+        context={`${cards.transferencias} transferências`}
+      />
+      <StatCard
+        tone="lime"
+        label="Empenhado"
+        value={formatBRL(cards.valor_empenhado)}
+        context="reservado pelo concedente"
+      />
+      {/* "Publicado" vem da fonte ora como valor, ora como estado. Com
+          valor, mostra o valor; sem ele, a contagem de publicadas — R$ 0,00
+          leria como "nada publicado", que é outra coisa. */}
+      <StatCard
+        tone="aqua"
+        label="Publicado"
+        value={
+          numBR(cards.valor_publicado) > 0
+            ? formatBRL(cards.valor_publicado)
+            : String(cards.propostas_publicadas)
+        }
+        context={
+          numBR(cards.valor_publicado) > 0
+            ? "publicado pela fonte"
+            : "propostas publicadas"
+        }
+      />
+      <StatCard
+        tone="grad"
+        label="Pago"
+        value={formatBRL(cards.valor_pago)}
+        context="efetivamente pago"
+      />
     </section>
   );
 }
@@ -304,6 +340,12 @@ function MeuPainel() {
   // acontece no efeito abaixo.
   const [ano, setAno] = useState("");
   const prefCarregada = useRef(false);
+  // Panorama financeiro (gráfico + faixa de KPIs) — só consulta depois que o
+  // perfil confirmou território.
+  const { resumo, carregando: carregandoResumo } = useResumoFinanceiro(
+    ano,
+    (data?.municipios.length ?? 0) > 0,
+  );
 
   // O recorte de município E a safra entram em TODA consulta do painel: trocar
   // o território no trilho lateral ou o ano no filtro refaz visão geral,
@@ -611,7 +653,24 @@ function MeuPainel() {
                 </div>
               );
             })}
+            {/* O gráfico fecha a linha ao lado do nº de propostas — é o que
+                ocupa o vão da grade quando poucas dimensões estão ativas. */}
+            {resumo && (resumo.por_ano?.length ?? 0) > 0 && (
+              <GraficoAprovadoDesembolsado
+                resumo={resumo}
+                ano={ano}
+                className={`sm:col-span-2 ${
+                  SPAN_GRAFICO[dimensoes.length] ?? "xl:col-span-4"
+                }`}
+              />
+            )}
           </section>
+
+          {carregandoResumo && !resumo ? (
+            <SkeletonCards />
+          ) : resumo ? (
+            <CardsFinanceiros resumo={resumo} />
+          ) : null}
 
           {semSafra.length > 0 && (
             <p className="text-[12px] text-ink-3">
@@ -621,8 +680,6 @@ function MeuPainel() {
               por ano.
             </p>
           )}
-
-          <PanoramaFinanceiro ano={ano} />
 
           <section className="anim-fade-up flex flex-col gap-3">
             <div className="flex items-center justify-between">

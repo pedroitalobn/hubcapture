@@ -525,6 +525,33 @@ p {
     transform: translateX(160%);
   }
 
+  /* Tons cheios do StatCard (prop `tone`): KPIs financeiros do painel em cor
+     da marca, para não se confundirem com os cards brancos do restante.
+     `ink` segue os tokens de ação (inverte sozinho no tema escuro); lime,
+     aqua e o gradiente são preenchimentos fixos da marca — a tinta é sempre
+     abyss porque o fundo não muda com o tema. O vidro do .card é vencido
+     pela ordem (mesma camada, declarado depois). */
+  .stat-ink {
+    background: var(--action-bg);
+    color: var(--action-fg);
+    border-color: transparent;
+  }
+  .stat-lime {
+    background: var(--color-lime);
+    color: var(--color-abyss);
+    border-color: transparent;
+  }
+  .stat-aqua {
+    background: var(--color-aqua);
+    color: var(--color-abyss);
+    border-color: transparent;
+  }
+  .stat-grad {
+    background: var(--grad-brand);
+    color: var(--color-abyss);
+    border-color: transparent;
+  }
+
   /* Trilho lateral spatial — painel de vidro fixo, elevado do canvas */
   .rail {
     background: var(--rail);
@@ -1665,6 +1692,24 @@ html[data-ui="v1"]::before {
 }
 [data-ui="v1"] .island-fechada:hover {
   transform: none;
+}
+/* Tons do StatCard na v1 (acento único): o flat genérico do `.card` acima
+   apagaria os quatro — o de tinta e o lime são REAFIRMADOS aqui (fazem parte
+   do porte), enquanto aqua e gradiente colapsam no card flat, a mesma regra
+   do --grad-brand no topo desta camada. A tinta volta ao token do tema,
+   senão o abyss fixo sumiria sobre o card escuro. */
+[data-ui="v1"] .stat-ink {
+  background: var(--action-bg);
+  color: var(--action-fg);
+}
+[data-ui="v1"] .stat-lime {
+  background: var(--color-lime);
+  color: var(--color-abyss);
+}
+[data-ui="v1"] .stat-aqua,
+[data-ui="v1"] .stat-grad {
+  background: var(--card);
+  color: var(--ink);
 }
 
 /* ── Resposta ao clique, por padrão ────────────────────────────
