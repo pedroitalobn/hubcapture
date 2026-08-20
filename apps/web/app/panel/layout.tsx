@@ -11,6 +11,8 @@ import { IconeNav, type NomeIcone } from "@/components/icons";
 import { api, clearTokens, getToken } from "@/lib/api/client";
 import { HelpProvider } from "@/lib/help";
 import { TerritorioProvider, useTerritorio } from "@/lib/territorio";
+import { FonteProvider, useFontes } from "@/lib/fontes";
+import { FonteFiltro } from "@/components/FonteFiltro";
 
 // A navegação NÃO é por fonte de dados — é o ciclo do recurso público, sempre
 // recortado pelo território do usuário (via RLS). Cada item é uma LENTE sobre
@@ -101,11 +103,16 @@ export default function PainelLayout({
   // painel: o provider carrega o perfil uma vez e as telas leem daqui.
   return (
     <TerritorioProvider>
-      {/* O mapa de hints (ⓘ) é estado de todo o painel, como o território:
-          carrega uma vez e os <Hint/> das telas consultam localmente. */}
-      <HelpProvider>
-        <PainelShell>{children}</PainelShell>
-      </HelpProvider>
+      {/* Recorte de FONTE — irmão do de território e pelo mesmo motivo: é
+          estado do painel inteiro. Fica DENTRO do provider de território
+          porque lê o perfil que ele já carregou (uma chamada só). */}
+      <FonteProvider>
+        {/* O mapa de hints (ⓘ) é estado de todo o painel, como o território:
+            carrega uma vez e os <Hint/> das telas consultam localmente. */}
+        <HelpProvider>
+          <PainelShell>{children}</PainelShell>
+        </HelpProvider>
+      </FonteProvider>
     </TerritorioProvider>
   );
 }
@@ -114,6 +121,7 @@ function PainelShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { perfil, municipios, selecionados } = useTerritorio();
+  const { selecionadas: fontesSelecionadas, grupos: fontesGrupos } = useFontes();
   const [admin, setAdmin] = useState(false);
 
   useEffect(() => {
@@ -174,6 +182,22 @@ function PainelShell({ children }: { children: React.ReactNode }) {
           >
             Ajustar perfil →
           </Link>
+        </div>
+
+        {/* Fontes — o segundo recorte global. A fonte segue sendo detalhe de
+            ingestão (§19): não é uma aba de plataforma no menu, é um filtro
+            sobre o mesmo território, como o de município. */}
+        <div className="border-t border-hairline pt-4 text-sm">
+          <p className="label-mono mb-1.5">
+            Fontes
+            {/* condicionado ao que JÁ veio do perfil (não só ao recorte salvo
+                no localStorage): antes do perfil chegar, servidor e cliente
+                precisam renderizar o mesmo texto — senão é erro de hidratação */}
+            {fontesSelecionadas.length > 0 && fontesGrupos.length > 1 && (
+              <span className="ml-1.5 normal-case text-ink-2">(filtrado)</span>
+            )}
+          </p>
+          <FonteFiltro />
         </div>
 
         <nav className="flex flex-col gap-1">

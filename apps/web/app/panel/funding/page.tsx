@@ -21,6 +21,7 @@ import {
   municipioSecundario,
 } from "@/lib/format";
 import { paramMunicipio, rotuloMunicipio, useTerritorio } from "@/lib/territorio";
+import { paramFonte, useFontes } from "@/lib/fontes";
 import { cx } from "@/components/ui";
 
 // mapeia a situação da proposta para o tom do badge (verde = bom andamento,
@@ -108,7 +109,6 @@ type Filtros = {
   ano: string;
   mes: string;
   tipo: "" | "cadastrada" | "disponivel";
-  fonte: string;
   area: string;
   categoria: string;
   situacao: string;
@@ -132,7 +132,6 @@ const FILTROS_VAZIOS: Filtros = {
   ano: "",
   mes: "",
   tipo: "",
-  fonte: "",
   area: "",
   categoria: "",
   situacao: "",
@@ -318,6 +317,8 @@ function CaptacaoExploracao() {
   const [pastaPropostas, setPastaPropostas] = useState<Set<string>>(new Set());
   // território ativo: quais dos municípios do perfil estão em tela agora
   const { selecionados, ativos: municipiosAtivos } = useTerritorio();
+  // recorte de fonte do trilho lateral — global, como o de território
+  const { selecionadas: fontesSelecionadas, ativas: fontesAtivas } = useFontes();
   const [abas, setAbas] = useState<Aba[]>(abasIniciais);
   const [abaAtiva, setAbaAtiva] = useState<string>(
     () => abasIniciais()[0]?.id ?? "aba-1",
@@ -352,7 +353,7 @@ function CaptacaoExploracao() {
       // desta tela — vazio quando o usuário está vendo todos os municípios.
       municipio: paramMunicipio(selecionados),
       uf: filtros.uf || undefined,
-      fonte: filtros.fonte || undefined,
+      fonte: paramFonte(fontesSelecionadas),
       area: filtros.area || undefined,
       categoria: filtros.categoria || undefined,
       situacao: filtros.situacao || undefined,
@@ -369,7 +370,10 @@ function CaptacaoExploracao() {
       valor_max: filtros.valorMax || undefined,
       tipo: filtros.tipo || undefined,
     }),
-    [filtros, selecionados],
+    // `fontesSelecionadas` entra nas deps: sem isso o recorte de fonte mudaria
+    // no trilho e a lista continuaria com os filtros antigos (o efeito de
+    // recarga depende da identidade deste callback).
+    [filtros, selecionados, fontesSelecionadas],
   );
 
   /**
@@ -786,8 +790,6 @@ function CaptacaoExploracao() {
       });
     if (filtros.ano)
       lista.push({ chave: "ano", rotulo: `Ano ${filtros.ano}`, limpar: { ano: "" } });
-    if (filtros.fonte)
-      lista.push({ chave: "fonte", rotulo: filtros.fonte, limpar: { fonte: "" } });
     if (filtros.area)
       lista.push({ chave: "area", rotulo: filtros.area.replace("_", " "), limpar: { area: "" } });
     if (filtros.valorMin)
@@ -822,7 +824,7 @@ function CaptacaoExploracao() {
           // o relatório sai no mesmo recorte da tela, território incluído
           municipio: selecionados,
           uf: filtros.uf,
-          fonte: filtros.fonte,
+          fonte: fontesSelecionadas,
           area: filtros.area,
           categoria: filtros.categoria,
           situacao: filtros.situacao,
@@ -890,8 +892,19 @@ function CaptacaoExploracao() {
             ) : (
               "todo o seu território"
             )}
-            , das fontes oficiais (API + scraping). Atualiza sozinha uma vez por
-            dia — use “Atualizar fontes” para consultar agora.
+            , das fontes oficiais (API + scraping). Atualiza sozinha uma vez
+            por dia — use “Atualizar fontes” para consultar agora.
+            {/* idem hidratação: só anuncia o recorte depois que o perfil chegou */}
+            {fontesSelecionadas.length > 0 && fontesAtivas.length > 0 && (
+              <>
+                {" "}
+                Recorte de fonte ativo:{" "}
+                <strong className="font-medium text-ink">
+                  {fontesAtivas.map((f) => f.label).join(", ")}
+                </strong>{" "}
+                (mude no menu lateral).
+              </>
+            )}
           </p>
         </div>
         <Link href="/panel/funding/summary" className="btn btn-ghost btn-sm">
@@ -961,21 +974,6 @@ function CaptacaoExploracao() {
             largura="w-24"
             aoMudar={(v) => setFiltros({ uf: v })}
           />
-          <label className="flex flex-col gap-1">
-            <span className="field-label">Fonte</span>
-            <select
-              value={filtros.fonte}
-              onChange={(e) => setFiltros({ fonte: e.target.value })}
-              className="input w-44"
-            >
-              <option value="">todas</option>
-              {(facetas.fonte ?? []).map((o) => (
-                <option key={o.valor} value={o.valor}>
-                  {o.rotulo} ({o.total})
-                </option>
-              ))}
-            </select>
-          </label>
           <label className="flex flex-col gap-1">
             <span className="field-label">Ordenar por</span>
             <select

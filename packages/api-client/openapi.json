@@ -367,6 +367,79 @@
         "title": "AnoDisponivel",
         "type": "object"
       },
+      "ArquivoSiconv": {
+        "description": "Um arquivo do pacote, com o que se sabe dele SEM baixar.",
+        "properties": {
+          "carrega": {
+            "title": "Carrega",
+            "type": "boolean"
+          },
+          "descricao": {
+            "title": "Descricao",
+            "type": "string"
+          },
+          "disponivel": {
+            "default": false,
+            "title": "Disponivel",
+            "type": "boolean"
+          },
+          "erro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erro"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "tabela": {
+            "title": "Tabela",
+            "type": "string"
+          },
+          "tamanho": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tamanho"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "tabela",
+          "descricao",
+          "carrega"
+        ],
+        "title": "ArquivoSiconv",
+        "type": "object"
+      },
       "AssessoriaContatosSet": {
         "properties": {
           "contatos": {
@@ -673,6 +746,133 @@
           "code"
         ],
         "title": "CallbackOAuth",
+        "type": "object"
+      },
+      "CargaIniciada": {
+        "properties": {
+          "detalhe": {
+            "title": "Detalhe",
+            "type": "string"
+          },
+          "iniciada": {
+            "title": "Iniciada",
+            "type": "boolean"
+          },
+          "tabelas": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tabelas",
+            "type": "array"
+          }
+        },
+        "required": [
+          "iniciada",
+          "tabelas",
+          "detalhe"
+        ],
+        "title": "CargaIniciada",
+        "type": "object"
+      },
+      "CargaSiconv": {
+        "description": "Uma execução da carga (o que `sync_runs` guardou).",
+        "properties": {
+          "erro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erro"
+          },
+          "finalizado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalizado Em"
+          },
+          "iniciado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iniciado Em"
+          },
+          "registros": {
+            "default": 0,
+            "title": "Registros",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "CargaSiconv",
+        "type": "object"
+      },
+      "CatalogoSiconv": {
+        "properties": {
+          "arquivos": {
+            "items": {
+              "$ref": "#/components/schemas/ArquivoSiconv"
+            },
+            "title": "Arquivos",
+            "type": "array"
+          },
+          "base_url": {
+            "title": "Base Url",
+            "type": "string"
+          },
+          "escopo_propostas": {
+            "title": "Escopo Propostas",
+            "type": "string"
+          },
+          "municipios_monitorados": {
+            "title": "Municipios Monitorados",
+            "type": "integer"
+          },
+          "tabelas_da_carga": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tabelas Da Carga",
+            "type": "array"
+          },
+          "ultimas_cargas": {
+            "items": {
+              "$ref": "#/components/schemas/CargaSiconv"
+            },
+            "title": "Ultimas Cargas",
+            "type": "array"
+          }
+        },
+        "required": [
+          "base_url",
+          "escopo_propostas",
+          "municipios_monitorados",
+          "tabelas_da_carga",
+          "arquivos",
+          "ultimas_cargas"
+        ],
+        "title": "CatalogoSiconv",
         "type": "object"
       },
       "CategoriaInstitucional": {
@@ -3992,6 +4192,36 @@
         "title": "FonteStatus",
         "type": "object"
       },
+      "GrupoFontePerfil": {
+        "description": "Uma fonte no vocabulário do USUÁRIO (\"TransfereGov\"), não do connector.\n\nO seletor de fonte do trilho lateral consome isto: sem ele, a tela teria de\nguardar sua própria cópia de quais connectors formam cada grupo — e essa\ncópia envelhece calada no dia em que uma fonte é ligada ou desligada\n(`services/fontes.py` é a fonte de verdade).",
+        "properties": {
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chave",
+          "label"
+        ],
+        "title": "GrupoFontePerfil",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -4959,12 +5189,16 @@
           "fonte": {
             "anyOf": [
               {
-                "type": "string"
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
+            "description": "grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
             "title": "Fonte"
           },
           "forcar": {
@@ -6899,6 +7133,20 @@
         "title": "PastaUpdate",
         "type": "object"
       },
+      "PedidoCarga": {
+        "description": "Disparo manual. Vazio = o mesmo recorte da carga agendada.",
+        "properties": {
+          "tabelas": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tabelas",
+            "type": "array"
+          }
+        },
+        "title": "PedidoCarga",
+        "type": "object"
+      },
       "PerfilRead": {
         "description": "Identidade do usuário do ponto de vista da navegação.",
         "properties": {
@@ -6916,6 +7164,14 @@
               "type": "string"
             },
             "title": "Fontes",
+            "type": "array"
+          },
+          "fontes_grupos": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/GrupoFontePerfil"
+            },
+            "title": "Fontes Grupos",
             "type": "array"
           },
           "modulos": {
@@ -11368,6 +11624,139 @@
         ]
       }
     },
+    "/api/v1/admin/siconv/files": {
+      "get": {
+        "description": "Catálogo do pacote com disponibilidade ao vivo (uma sondagem por tabela).\n\nSonda com HEAD (e um GET de 1 byte quando o CDN recusa HEAD): confirma que o\narquivo existe e quanto pesa sem baixar nada. Arquivo indisponível vem com o\n`erro` em vez de sumir da lista — \"a fonte renomeou\" e \"a fonte caiu\"\nprecisam ser distinguíveis na tela.",
+        "operationId": "listar_arquivos_api_v1_admin_siconv_files_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogoSiconv"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Arquivos",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/siconv/load": {
+      "post": {
+        "description": "Dispara a carga AGORA, sem esperar a janela agendada.\n\n`asyncio.create_task` e nunca `BackgroundTasks` (§19b): a carga leva minutos\ne o `BackgroundTasks` roda antes do teardown da sessão do request, prendendo\na conexão. O trabalho pesado é I/O (download em streaming para disco) e\ndepois `COPY`/upsert — quem sua é o Postgres, não este processo.\n\nA trava é o advisory lock do próprio `sweep`: dois disparos (ou um disparo\ne o worker agendado) não carregam a mesma tabela em paralelo — o segundo\nresponde \"ocupado\" no log e sai.",
+        "operationId": "disparar_carga_api_v1_admin_siconv_load_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PedidoCarga"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Pedido"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CargaIniciada"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Disparar Carga",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/siconv/runs": {
+      "get": {
+        "operationId": "listar_cargas_api_v1_admin_siconv_runs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limite",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "title": "Limite",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CargaSiconv"
+                  },
+                  "title": "Response Listar Cargas Api V1 Admin Siconv Runs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Cargas",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/sources": {
       "get": {
         "operationId": "diagnostico_fontes_api_v1_admin_sources_get",
@@ -15004,6 +15393,27 @@
             }
           },
           {
+            "description": "recorte de fonte: grupo ('transferegov', 'fns') ou connector id (repetível)",
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "recorte de fonte: grupo ('transferegov', 'fns') ou connector id (repetível)",
+              "title": "Fonte"
+            }
+          },
+          {
             "description": "tamanho da janela do feed",
             "in": "query",
             "name": "limite",
@@ -15144,6 +15554,27 @@
             }
           },
           {
+            "description": "recorte de fonte: grupo ('transferegov', 'fns') ou connector id (repetível)",
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "recorte de fonte: grupo ('transferegov', 'fns') ou connector id (repetível)",
+              "title": "Fonte"
+            }
+          },
+          {
             "description": "safra (ano) do recorte; omitir = todos os anos",
             "in": "query",
             "name": "ano",
@@ -15243,18 +15674,23 @@
             }
           },
           {
+            "description": "grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
             "in": "query",
             "name": "fonte",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
+              "description": "grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
               "title": "Fonte"
             }
           },
@@ -15723,18 +16159,23 @@
             }
           },
           {
+            "description": "grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
             "in": "query",
             "name": "fonte",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
+              "description": "grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
               "title": "Fonte"
             }
           },
@@ -16121,18 +16562,23 @@
             }
           },
           {
+            "description": "grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
             "in": "query",
             "name": "fonte",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
+              "description": "grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
               "title": "Fonte"
             }
           },
@@ -16490,18 +16936,23 @@
             }
           },
           {
+            "description": "grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
             "in": "query",
             "name": "fonte",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
+              "description": "grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
               "title": "Fonte"
             }
           },
@@ -17172,18 +17623,23 @@
             }
           },
           {
+            "description": "grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
             "in": "query",
             "name": "fonte",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
+              "description": "grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
               "title": "Fonte"
             }
           },
@@ -18213,18 +18669,23 @@
             }
           },
           {
+            "description": "grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
             "in": "query",
             "name": "fonte",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
+              "description": "grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
               "title": "Fonte"
             }
           },

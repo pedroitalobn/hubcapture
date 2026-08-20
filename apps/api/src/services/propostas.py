@@ -20,9 +20,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..ai import categorias as categorias_ai
 from ..models.proposta import Proposta
 from ..schemas.proposta import PropostaCanonica
+from . import fontes as fontes_service
 from ._territorio import Municipios
 from ._territorio import condicao as condicao_municipio
 from ._territorio import filtrar as filtrar_municipio
+from .fontes import Fontes
 
 # Valor de um filtro de dimensão: um valor, vários (multi-seleção) ou nenhum.
 Filtro = str | Sequence[str] | None
@@ -403,7 +405,7 @@ def _condicoes(
     *,
     municipio: Municipios,
     uf: str | None,
-    fonte: str | None,
+    fonte: Fontes,
     situacao: str | None,
     area: str | None,
     valor_min: Decimal | None,
@@ -425,8 +427,11 @@ def _condicoes(
         condicoes.append(recorte)
     if uf:
         condicoes.append(Proposta.uf == uf.upper())
-    if fonte:
-        condicoes.append(Proposta.fonte == fonte)
+    # recorte de fonte: um grupo ("transferegov"), um connector id, ou vários —
+    # o trilho lateral manda grupo, a API expande (services/fontes.py)
+    recorte_fonte = fontes_service.condicao(Proposta.fonte, fonte)
+    if recorte_fonte is not None:
+        condicoes.append(recorte_fonte)
     if situacao:
         condicoes.append(Proposta.situacao == situacao)
     if modalidade:
@@ -453,7 +458,7 @@ async def listar_pagina(
     *,
     municipio: Municipios = None,
     uf: str | None = None,
-    fonte: str | None = None,
+    fonte: Fontes = None,
     situacao: str | None = None,
     area: str | None = None,
     valor_min: Decimal | None = None,

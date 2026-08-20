@@ -10,6 +10,7 @@ import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
 import { formatBRL } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
+import { paramFonte, useFontes } from "@/lib/fontes";
 
 interface FonteResumo {
   fonte: string;
@@ -48,6 +49,7 @@ const FONTE_LABEL: Record<string, string> = {
 
 export default function RepassesPage() {
   const { selecionados } = useTerritorio();
+  const { selecionadas: fontesSelecionadas } = useFontes();
   const [preset, setPreset] = useState<RangePreset>("30d");
   const [data, setData] = useState<VisaoGeral | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,6 +65,7 @@ export default function RepassesPage() {
         query: {
           inicio: presetToInicio(preset),
           municipio: paramMunicipio(selecionados),
+          fonte: paramFonte(fontesSelecionadas),
         },
       },
     });
@@ -72,7 +75,7 @@ export default function RepassesPage() {
       setData(vg as VisaoGeral);
     }
     setLoading(false);
-  }, [preset, selecionados]);
+  }, [preset, selecionados, fontesSelecionadas]);
 
   useEffect(() => {
     void carregar();
