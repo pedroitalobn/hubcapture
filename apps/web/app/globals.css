@@ -1162,6 +1162,16 @@ html {
     transform: translateX(0);
   }
 }
+@keyframes hc-island-entra {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 @keyframes hc-ring-spin {
   to {
     transform: rotate(360deg);
@@ -1470,14 +1480,32 @@ html {
     }
   }
 
-  /* Cápsula/ilha do Copiloto — morph com mola, não corte seco */
+  /* Cápsula/ilha do Copiloto — morph de VERDADE.
+     A versão anterior transicionava `width`, mas o estado fechado era
+     `width: auto`: valor não interpolável, então a caixa PULAVA para o
+     tamanho novo e só o conteúdo fazia fade — o que se lê como "lento e
+     sem efeito". O componente agora mede o conteúdo e escreve
+     largura/altura em PIXEL; aqui só resta interpolar.
+     A curva é a de painel do iOS (saída forte, chegada macia) e a
+     duração encurta para 280ms: o morph tem que terminar ANTES de o
+     usuário procurar o campo de texto. */
   .island {
+    transition: none;
+  }
+  .island-pronta {
     transition:
-      width var(--dur-3) var(--ease-spring),
-      max-width var(--dur-3) var(--ease-spring),
-      border-radius var(--dur-3) var(--ease-spring),
-      box-shadow var(--dur-3) var(--ease-spring),
+      width 280ms cubic-bezier(0.32, 0.72, 0, 1),
+      height 280ms cubic-bezier(0.32, 0.72, 0, 1),
+      border-radius 280ms cubic-bezier(0.32, 0.72, 0, 1),
+      box-shadow var(--dur-2) var(--ease-spring),
       transform var(--dur-2) var(--ease-spring);
+    will-change: width, height;
+  }
+  /* Conteúdo entra junto com a caixa (não depois dela): 180ms, deslocamento
+     mínimo. O `anim-fade-in` genérico de 400ms terminava bem depois do
+     morph e era metade da sensação de lentidão. */
+  .island-entra {
+    animation: hc-island-entra 0.18s var(--ease-out-soft) both;
   }
   .island-fechada:hover {
     transform: translateY(1px) scale(1.03);
