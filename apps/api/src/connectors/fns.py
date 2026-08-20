@@ -221,9 +221,28 @@ def _id_externo(row: dict, ibge: str) -> str:
     if rid:
         return str(rid)
     if "coTipoProposta" in row:
-        # agregado por tipo × exercício: id determinístico (re-sync ATUALIZA a
-        # linha do ano em vez de acumular duplicata a cada coleta)
-        return f"{ibge}:{row.get('anoConsulta') or ''}:{row.get('coTipoProposta')}"
+        # O mesmo TIPO aparece em várias linhas no mesmo exercício (três
+        # INCREMENTO PAP = três emendas distintas): só tipo×ano colapsava as
+        # três numa linha e o upsert guardava a última — dado sumindo. O
+        # desempate é o conteúdo ESTÁVEL da linha: teto da proposta e autores.
+        # `vlPago` fica DE FORA do id de propósito — muda a cada pagamento e
+        # geraria linha nova onde é a MESMA proposta paga um pouco mais.
+        autores = ",".join(
+            sorted(
+                str(a.get("noParlamentar") or a.get("nome") or a)
+                for a in (row.get("parlamentares") or [])
+                if a
+            )
+        )
+        estavel = json.dumps(
+            [row.get("vlProposta"), row.get("nuProposta"), autores],
+            sort_keys=True,
+            default=str,
+        )
+        sufixo = hashlib.sha256(estavel.encode()).hexdigest()[:10]
+        return (
+            f"{ibge}:{row.get('anoConsulta') or ''}:{row.get('coTipoProposta')}:{sufixo}"
+        )
     payload = json.dumps(row, sort_keys=True, default=str, ensure_ascii=False)
     return f"{ibge}:{hashlib.sha256(payload.encode()).hexdigest()[:16]}"
 
