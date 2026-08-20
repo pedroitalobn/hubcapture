@@ -5678,11 +5678,6 @@ export interface components {
         };
         /** UiRead */
         UiRead: {
-            /**
-             * Demo
-             * @default false
-             */
-            demo: boolean;
             /** Versao */
             versao: string;
         };

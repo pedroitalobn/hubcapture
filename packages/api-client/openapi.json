@@ -9132,11 +9132,6 @@
       },
       "UiRead": {
         "properties": {
-          "demo": {
-            "default": false,
-            "title": "Demo",
-            "type": "boolean"
-          },
           "versao": {
             "title": "Versao",
             "type": "string"
