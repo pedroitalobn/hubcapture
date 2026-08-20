@@ -748,7 +748,7 @@ export interface paths {
          * Catalogo Criterios
          * @description Catálogo dos critérios de alerta — é ele que alimenta o multi-select.
          *
-         *     Critério novo aparece na tela sem alteração no front (§51).
+         *     Critério novo aparece na tela sem alteração no front (§52).
          */
         get: operations["catalogo_criterios_api_v1_alerts_criteria_get"];
         put?: never;
@@ -3655,6 +3655,11 @@ export interface components {
             fonte: string;
             /** Municipio Ibge */
             municipio_ibge: string;
+            /**
+             * Registros
+             * @description linhas trazidas pela fonte nesta rodada (null quando 'cache')
+             */
+            registros?: number | null;
             /** Status */
             status: string;
         };
@@ -4058,6 +4063,12 @@ export interface components {
             categoria?: string | null;
             /** Fonte */
             fonte?: string | null;
+            /**
+             * Forcar
+             * @description ignora o cache e consulta as fontes agora (ação explícita)
+             * @default false
+             */
+            forcar: boolean;
             /**
              * Limite
              * @description itens da página devolvida (sem limite: tudo)
@@ -5063,6 +5074,8 @@ export interface components {
          *     ainda há próxima página, não o tamanho de `itens`.
          */
         PropostasPagina: {
+            /** Atualizado Em */
+            atualizado_em?: string | null;
             /** Itens */
             itens: components["schemas"]["PropostaRead"][];
             /** Limite */

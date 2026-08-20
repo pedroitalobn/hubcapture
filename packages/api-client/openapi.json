@@ -3967,6 +3967,18 @@
             "title": "Municipio Ibge",
             "type": "string"
           },
+          "registros": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "linhas trazidas pela fonte nesta rodada (null quando 'cache')",
+            "title": "Registros"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -4954,6 +4966,12 @@
               }
             ],
             "title": "Fonte"
+          },
+          "forcar": {
+            "default": false,
+            "description": "ignora o cache e consulta as fontes agora (ação explícita)",
+            "title": "Forcar",
+            "type": "boolean"
           },
           "limite": {
             "anyOf": [
@@ -7895,6 +7913,18 @@
       "PropostasPagina": {
         "description": "Uma página da listagem + o total do recorte (o 'carregar mais' do painel).\n\n`total` é do recorte inteiro, já com os filtros aplicados — é ele que diz se\nainda há próxima página, não o tamanho de `itens`.",
         "properties": {
+          "atualizado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atualizado Em"
+          },
           "itens": {
             "items": {
               "$ref": "#/components/schemas/PropostaRead"
@@ -11867,7 +11897,7 @@
     },
     "/api/v1/alerts/criteria": {
       "get": {
-        "description": "Catálogo dos critérios de alerta — é ele que alimenta o multi-select.\n\nCritério novo aparece na tela sem alteração no front (§51).",
+        "description": "Catálogo dos critérios de alerta — é ele que alimenta o multi-select.\n\nCritério novo aparece na tela sem alteração no front (§52).",
         "operationId": "catalogo_criterios_api_v1_alerts_criteria_get",
         "parameters": [
           {

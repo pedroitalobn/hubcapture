@@ -7,7 +7,7 @@ import {
 } from "@/lib/alertas";
 
 /**
- * Multi-select dos CRITÉRIOS de alerta (§51) — "quais alterações eu quero
+ * Multi-select dos CRITÉRIOS de alerta (§52) — "quais alterações eu quero
  * receber". As opções vêm do catálogo da API, então critério novo no backend
  * aparece aqui sem tocar nesta tela.
  *

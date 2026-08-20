@@ -11,7 +11,7 @@ from ..services import criterios_alerta
 
 
 def _valida(escopo: str):
-    """Valida a escolha contra o registro (§51) — chave inventada vira 422."""
+    """Valida a escolha contra o registro (§52) — chave inventada vira 422."""
 
     def _v(valor: list[str] | None) -> list[str] | None:
         try:

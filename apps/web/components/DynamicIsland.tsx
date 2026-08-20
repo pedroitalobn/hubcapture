@@ -79,7 +79,7 @@ const TOOL_CHIP: Record<string, string> = {
   pesquisar_propostas: "pesquisa",
 };
 
-// Rótulo curto do morph. As chaves são os CRITÉRIOS de alerta (§51) — critério
+// Rótulo curto do morph. As chaves são os CRITÉRIOS de alerta (§52) — critério
 // novo sem entrada aqui cai em "atualização", nunca em chave crua na tela.
 const TIPO_ALERTA: Record<string, string> = {
   status: "situação mudou", // legado (alertas anteriores ao registro)
@@ -354,18 +354,18 @@ export default function DynamicIsland() {
   return (
     <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center px-3">
       <div
-        className={`pointer-events-auto overflow-hidden bg-abyss text-white shadow-2xl ring-1 transition-all duration-300 ease-out ${
+        className={`island pointer-events-auto relative overflow-hidden bg-abyss text-white shadow-2xl ring-1 ${
           temAtualizacao && !aberta ? "ring-amber-300/40" : "ring-white/10"
         } ${
           aberta
             ? "w-full max-w-md rounded-3xl"
-            : "w-auto cursor-pointer rounded-full hover:ring-white/25"
+            : "island-fechada w-auto cursor-pointer rounded-full hover:ring-white/25"
         }`}
       >
         {!aberta ? (
           <button
             onClick={abrir}
-            className="flex items-center gap-2.5 px-4 py-2 text-sm"
+            className="anim-fade-in flex items-center gap-2.5 px-4 py-2 text-sm"
             aria-label={
               temAtualizacao
                 ? `Abrir Copiloto — ${alertas.length} atualização(ões) de proposta`
@@ -399,7 +399,7 @@ export default function DynamicIsland() {
             )}
           </button>
         ) : (
-          <div className="flex max-h-[70vh] flex-col">
+          <div className="anim-fade-in flex max-h-[70vh] flex-col">
             <div className="flex items-center justify-between px-4 py-2.5">
               <div className="flex items-center gap-2.5">
                 <span className="relative flex h-2 w-2">
@@ -421,7 +421,7 @@ export default function DynamicIsland() {
                   disabled={varrendo}
                   title="Atualizar — varrer novidades das propostas"
                   aria-label="Atualizar alertas"
-                  className={`rounded-full px-2 py-0.5 text-white/60 hover:bg-white/10 hover:text-white ${
+                  className={`pressable rounded-full px-2 py-0.5 text-white/60 hover:bg-white/10 hover:text-white ${
                     varrendo ? "animate-spin" : ""
                   }`}
                 >
@@ -431,7 +431,7 @@ export default function DynamicIsland() {
                   onClick={alternarVoz}
                   title={vozAtiva ? "Desligar leitura em voz alta" : "Ler respostas em voz alta"}
                   aria-label="Alternar voz"
-                  className={`rounded-full px-2 py-0.5 hover:bg-white/10 ${
+                  className={`pressable rounded-full px-2 py-0.5 hover:bg-white/10 ${
                     vozAtiva ? "text-lime" : "text-white/40 hover:text-white"
                   }`}
                 >
@@ -439,7 +439,7 @@ export default function DynamicIsland() {
                 </button>
                 <button
                   onClick={() => setAberta(false)}
-                  className="rounded-full px-2 py-0.5 text-white/60 hover:bg-white/10 hover:text-white"
+                  className="pressable rounded-full px-2 py-0.5 text-white/60 hover:bg-white/10 hover:text-white"
                   aria-label="Recolher Copiloto"
                 >
                   —
@@ -496,7 +496,7 @@ export default function DynamicIsland() {
                       <button
                         key={s}
                         onClick={() => void perguntar(s)}
-                        className="rounded-full border border-white/15 px-2.5 py-1 text-xs text-white/80 hover:bg-white/10"
+                        className="pressable rounded-full border border-white/15 px-2.5 py-1 text-xs text-white/80 hover:border-lime/40 hover:bg-white/10"
                       >
                         {s}
                       </button>
@@ -507,7 +507,7 @@ export default function DynamicIsland() {
               {mensagens.map((m, i) => (
                 <div
                   key={i}
-                  className={`max-w-[90%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                  className={`anim-pop max-w-[90%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm leading-relaxed ${
                     m.autor === "user"
                       ? "ml-auto rounded-br-md bg-lime text-abyss"
                       : "rounded-bl-md bg-white/10"
@@ -529,14 +529,19 @@ export default function DynamicIsland() {
                 </div>
               ))}
               {pensando && (
-                <div className="max-w-[90%] whitespace-pre-wrap rounded-2xl rounded-bl-md bg-white/10 px-3 py-2 text-sm leading-relaxed">
+                <div className="anim-pop max-w-[90%] whitespace-pre-wrap rounded-2xl rounded-bl-md bg-white/10 px-3 py-2 text-sm leading-relaxed">
                   {parcial ? (
                     <>
                       {parcial}
                       <span className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-lime align-baseline" />
                     </>
                   ) : (
-                    <span className="text-white/60">
+                    <span className="flex items-center gap-2 text-white/60">
+                      <span className="flex items-center gap-1" aria-hidden>
+                        <span className="typing-dot" />
+                        <span className="typing-dot" />
+                        <span className="typing-dot" />
+                      </span>
                       {statusTool
                         ? TOOL_LABEL[statusTool] ?? "consultando…"
                         : "pensando…"}
@@ -560,7 +565,7 @@ export default function DynamicIsland() {
                   onClick={alternarDitado}
                   title={ouvindo ? "Parar de ouvir" : "Ditar pergunta"}
                   aria-label={ouvindo ? "Parar ditado" : "Ditar pergunta"}
-                  className={`rounded-full px-2 py-1 text-sm ${
+                  className={`pressable rounded-full px-2 py-1 text-sm ${
                     ouvindo
                       ? "animate-pulse bg-lime text-abyss"
                       : "text-white/50 hover:bg-white/10 hover:text-white"
@@ -573,13 +578,13 @@ export default function DynamicIsland() {
                 value={pergunta}
                 onChange={(e) => setPergunta(e.target.value)}
                 placeholder={ouvindo ? "ouvindo…" : "Pergunte ao Copiloto…"}
-                className="flex-1 bg-transparent text-sm text-white placeholder-white/40 outline-none"
+                className="flex-1 rounded-full bg-white/[0.06] px-3 py-1.5 text-sm text-white placeholder-white/40 outline-none ring-1 ring-white/10 transition-all duration-200 focus:bg-white/[0.1] focus:ring-lime/40"
                 autoFocus
               />
               <button
                 type="submit"
                 disabled={pensando || !pergunta.trim()}
-                className="rounded-full bg-lime px-3 py-1 text-sm font-medium text-abyss disabled:opacity-40"
+                className="pressable rounded-full bg-[image:var(--grad-brand)] px-3 py-1 text-sm font-medium text-abyss shadow-[0_2px_12px_color-mix(in_srgb,var(--color-lime)_35%,transparent)] disabled:opacity-40 disabled:shadow-none"
               >
                 →
               </button>

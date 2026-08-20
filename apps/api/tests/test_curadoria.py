@@ -97,7 +97,7 @@ async def test_alerta_gerado_apenas_se_monitorado(seed_user, seed_municipio, see
 
 
 def test_detect_changes_puro() -> None:
-    """A detecção é por CRITÉRIO: o que mudou decide o tipo do alerta (§51)."""
+    """A detecção é por CRITÉRIO: o que mudou decide o tipo do alerta (§52)."""
     antes = {"situacao": "Em análise", "movimentacao": None}
     depois = {"situacao": "Aprovada", "movimentacao": None}
     (mudanca,) = detect_changes.avaliar(antes, depois, {"situacao"})

@@ -21,6 +21,7 @@ from datetime import date
 
 from ..services import config as config_service
 from ..services import municipios as municipios_service
+from . import _identidade
 from ._http import get_json
 from .base import RawRecord, register
 
@@ -72,7 +73,15 @@ class TransferegovEspConnector:
             registros.append(
                 RawRecord(
                     source_id=self.source_id,
-                    id_externo=str(row.get(ID_FIELD) or row.get("id")),
+                    # `str(None)` viraria o id literal "None" — o MESMO para
+                    # toda linha e todo município, colapsando o cache inteiro
+                    # numa proposta que muda de território a cada coleta
+                    id_externo=_identidade.id_externo(
+                        row,
+                        municipio_ibge,
+                        candidatos=(ID_FIELD.lower(), "id"),
+                        prefixo="esp:",
+                    ),
                     municipio_ibge=municipio_ibge,
                     endpoint=TABLE,
                     raw={"plano_acao": row, "modalidade": "Especial"},

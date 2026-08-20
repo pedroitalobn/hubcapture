@@ -236,6 +236,7 @@ async def live_search(
     municipio: Municipios = None,
     fonte: str | None = None,
     area: str | None = None,
+    forcar: bool = False,
     **filtros,
 ):
     """Coleta ao vivo nas fontes e devolve (página, total do recorte, status).
@@ -251,6 +252,13 @@ async def live_search(
 
     `municipio` é o recorte do painel: um código, vários (subconjunto do
     território escolhido na tela) ou nenhum — aí vale o território inteiro.
+
+    `forcar` é o "Atualizar fontes" do painel: consulta as fontes AGORA, sem
+    consultar o cache de dados nem o de tentativa. Sem ele, o botão herdava o
+    TTL de 6h e ficava mudo — o gestor clicava, a tela dizia "consultando as
+    fontes" e nenhuma fonte era consultada. Pedido explícito de atualização não
+    pode devolver cache em silêncio; o cache-first continua valendo para toda
+    leitura automática (que é onde ele economiza a coleta cara).
     """
     from ..models.preferencias import PreferenciasUsuario
 
@@ -288,10 +296,11 @@ async def live_search(
         await _garantir_municipio_avulso(session, usuario_id, ibge)
     for ibge, f in pares:
         session.add(AuditLog(usuario_id=usuario_id, acao="consulta_avulsa", entidade=f"{f}:{ibge}"))
-        if await _cache_fresco(session, ibge, f):
-            continue
-        if _tentativa_fresca(f, ibge):
-            continue
+        if not forcar:
+            if await _cache_fresco(session, ibge, f):
+                continue
+            if _tentativa_fresca(f, ibge):
+                continue
         a_coletar.append((ibge, f))
 
     # 2) coletas em paralelo — só I/O externo, nenhuma conexão de banco envolvida
@@ -311,6 +320,7 @@ async def live_search(
 
     # 3) ingestão sequencial na sessão do request + bookkeeping
     erros: dict[tuple[str, str], str] = {}
+    coletados: dict[tuple[str, str], int] = {}
     ingeriu = False
     for par, inicio, registros, exc in resultados:
         ibge, f = par
@@ -325,6 +335,8 @@ async def live_search(
         erro_txt = None if exc is None else f"{type(exc).__name__}: {exc}"[:2000]
         if exc is not None:
             erros[par] = type(exc).__name__
+        else:
+            coletados[par] = n
         await _registrar_sync(
             usuario_id=usuario_id,
             fonte=f,
@@ -339,14 +351,42 @@ async def live_search(
         # pílulas de categoria do que acabou de entrar (determinístico, sem rede)
         await curadoria_job.classificar_pendentes(session)
 
+    # status por par: 'ok' só para o que foi REALMENTE consultado nesta rodada.
+    # O par que nem entrou em `a_coletar` sai como 'cache' — antes ele também
+    # vinha como "ok", e a tela anunciava consulta que não aconteceu.
     status_fontes: list[dict] = []
     for ibge, f in pares:
-        if (ibge, f) in erros:
+        par = (ibge, f)
+        if par in erros:
             status_fontes.append(
-                {"fonte": f, "municipio_ibge": ibge, "status": "erro", "erro": erros[(ibge, f)]}
+                {
+                    "fonte": f,
+                    "municipio_ibge": ibge,
+                    "status": "erro",
+                    "erro": erros[par],
+                    "registros": None,
+                }
+            )
+        elif par in coletados:
+            status_fontes.append(
+                {
+                    "fonte": f,
+                    "municipio_ibge": ibge,
+                    "status": "ok",
+                    "erro": None,
+                    "registros": coletados[par],
+                }
             )
         else:
-            status_fontes.append({"fonte": f, "municipio_ibge": ibge, "status": "ok"})
+            status_fontes.append(
+                {
+                    "fonte": f,
+                    "municipio_ibge": ibge,
+                    "status": "cache",
+                    "erro": None,
+                    "registros": None,
+                }
+            )
 
     rows, total = await propostas_service.listar_pagina(
         session, municipio=municipio, fonte=fonte, area=area, **filtros

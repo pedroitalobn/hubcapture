@@ -209,7 +209,7 @@ export default function AdminUsuariosPage() {
             {usuarios.map((u) => (
               <tr
                 key={u.id}
-                className="border-b border-hairline last:border-0 hover:bg-surface-2"
+                className="border-b border-hairline last:border-0 row-interactive"
               >
                 <td className="px-5 py-3">
                   <span className="block tracking-tight">

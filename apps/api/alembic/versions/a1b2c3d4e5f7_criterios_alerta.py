@@ -1,7 +1,7 @@
 """critérios de alerta nos monitoramentos (+ snapshot da proposta monitorada)
 
 Revision ID: a1b2c3d4e5f7
-Revises: e2f3a4b5c6d7
+Revises: a4b5c6d7e8f9
 Create Date: 2026-08-19
 
 Monitorar era tudo-ou-nada: qualquer alteração virava alerta. `criterios`
@@ -18,7 +18,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "a1b2c3d4e5f7"
-down_revision: str | None = "e2f3a4b5c6d7"
+down_revision: str | None = "a4b5c6d7e8f9"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, baixarCsv } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
+import { Favorito } from "@/components/Favorito";
 import { Hint } from "@/components/Hint";
 import { ModuloGate } from "@/components/ModuloGate";
 import { NumeroProposta } from "@/components/NumeroProposta";
@@ -13,6 +14,8 @@ import { TextoLimitado } from "@/components/TextoLimitado";
 import {
   formatBRL,
   formatDate,
+  formatDateTime,
+  haQuantoTempo,
   humanizarCaixa,
   municipioPrincipal,
   municipioSecundario,
@@ -70,8 +73,12 @@ type Proposta = {
 type FonteStatus = {
   fonte: string;
   municipio_ibge: string;
+  // "ok" = consultada agora · "erro" = fonte falhou · "cache" = não foi
+  // consultada (o dado ainda estava fresco). O terceiro estado existe para a
+  // tela não anunciar consulta que não houve.
   status: string;
   erro?: string | null;
+  registros?: number | null;
 };
 
 type Opcao = { valor: string; rotulo: string; total: number };
@@ -298,6 +305,9 @@ function CaptacaoExploracao() {
   const prefCarregada = useRef(false);
   const sentinela = useRef<HTMLDivElement | null>(null);
   const [fontesStatus, setFontesStatus] = useState<FonteStatus[]>([]);
+  // quando a última coleta tocou este recorte — a lista vem do banco (o sweep
+  // diário é quem alimenta), então a idade do dado precisa estar na tela
+  const [atualizadoEm, setAtualizadoEm] = useState<string | null>(null);
   const [facetas, setFacetas] = useState<Facetas>({});
   const [buscando, setBuscando] = useState(true);
   const [mostrarAvancados, setMostrarAvancados] = useState(false);
@@ -387,7 +397,12 @@ function CaptacaoExploracao() {
       if (lista.error) {
         setMsg("Não consegui carregar as propostas. Tente novamente.");
       } else if (lista.data) {
-        const pagina = lista.data as { itens: Proposta[]; total: number };
+        const pagina = lista.data as {
+          itens: Proposta[];
+          total: number;
+          atualizado_em?: string | null;
+        };
+        if (offset === 0) setAtualizadoEm(pagina.atualizado_em ?? null);
         setPropostas((prev) =>
           offset === 0 ? (pagina.itens ?? []) : [...prev, ...(pagina.itens ?? [])],
         );
@@ -482,6 +497,10 @@ function CaptacaoExploracao() {
         tipo: f.tipo ?? null,
         limite: porPagina,
         offset: 0,
+        // pedido EXPLÍCITO: ignora o TTL do cache-first e consulta agora. Sem
+        // isto o botão herdava as 6h do cache e não consultava nada — a tela
+        // dizia "consultando as fontes…" e devolvia o mesmo dado de antes.
+        forcar: true,
       } as never,
     });
     setAtualizando(false);
@@ -846,6 +865,10 @@ function CaptacaoExploracao() {
   }, [visiveis]);
 
   const fontesOk = fontesStatus.filter((f) => f.status === "ok").length;
+  // linhas que a rodada trouxe (soma do que cada fonte devolveu): é o número que
+  // explica uma contagem que mudou — sem ele, "atualizei e agora são outras 5"
+  // não tem como ser conferido na tela.
+  const linhasColetadas = fontesStatus.reduce((t, f) => t + (f.registros ?? 0), 0);
   const fontesErro = Array.from(
     new Set(fontesStatus.filter((f) => f.status === "erro").map((f) => f.fonte)),
   );
@@ -881,8 +904,13 @@ function CaptacaoExploracao() {
         {abas.map((a) => (
           <span
             key={a.id}
-            className={`inline-flex items-center overflow-hidden rounded-t-lg border border-b-0 border-hairline text-sm ${
-              a.id === abaAtiva ? "bg-surface-2 font-medium" : "text-ink-2"
+            /* a aba ativa carrega o fio de gradiente da marca (mesma
+               assinatura do card); a inativa reage ao ponteiro em vez de
+               ficar parada — era o único controle da tela sem hover. */
+            className={`relative inline-flex items-center overflow-hidden rounded-t-lg border border-b-0 border-hairline text-sm transition-colors duration-200 ${
+              a.id === abaAtiva
+                ? "bg-surface-2 font-medium before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-[image:var(--grad-brand)]"
+                : "text-ink-2 hover:border-ink-2 hover:bg-surface-2/60 hover:text-ink"
             }`}
           >
             <button
@@ -896,7 +924,7 @@ function CaptacaoExploracao() {
             {abas.length > 1 && (
               <button
                 onClick={() => fecharAba(a.id)}
-                className="pr-2 text-ink-3 hover:text-ink"
+                className="pressable pr-2 text-ink-3 hover:text-danger"
                 aria-label={`Fechar aba ${a.nome}`}
               >
                 ×
@@ -1205,7 +1233,10 @@ function CaptacaoExploracao() {
       {!acompanhando && (
       <div className="flex flex-wrap items-center gap-2 text-sm text-ink-2">
         {buscando ? (
-          <span className="label-mono animate-pulse">Carregando propostas…</span>
+          <span className="label-mono flex items-center gap-2">
+            <span className="spinner" aria-hidden />
+            Carregando propostas…
+          </span>
         ) : curadoriaAtiva ? (
           <span className="label-mono">
             {visiveis.length} de {propostas.length} carregada
@@ -1239,14 +1270,33 @@ function CaptacaoExploracao() {
           className="btn btn-ghost btn-sm disabled:opacity-50"
           title="Consulta as fontes oficiais agora e grava o que houver de novo. A lista já é atualizada sozinha uma vez por dia."
         >
-          {atualizando ? "Consultando fontes…" : "↻ Atualizar fontes"}
+          {atualizando ? (
+            <>
+              <span className="spinner" aria-hidden />
+              Consultando fontes…
+            </>
+          ) : (
+            "↻ Atualizar fontes"
+          )}
         </button>
+
+        {/* idade do dado: a lista vem do banco, alimentado pelo sweep diário —
+            sem o carimbo, "o número mudou" não tem como ser explicado */}
+        {atualizadoEm && !atualizando && (
+          <span
+            className="label-mono"
+            title={`Coleta mais recente deste recorte: ${formatDateTime(atualizadoEm)}`}
+          >
+            dados de {haQuantoTempo(atualizadoEm)}
+          </span>
+        )}
 
         {/* só faz sentido depois de uma atualização — é dela que vem o status */}
         {fontesStatus.length > 0 && !atualizando && (
           <>
             <span className="label-mono">
-              {fontesOk} consulta{fontesOk === 1 ? "" : "s"} ok
+              {fontesOk} consulta{fontesOk === 1 ? "" : "s"} ok · {linhasColetadas}{" "}
+              registro{linhasColetadas === 1 ? "" : "s"}
             </span>
             {fontesErro.length > 0 && (
               <span className="rounded-full bg-warn/10 px-2 py-0.5 font-mono text-[11px] text-warn">
@@ -1332,20 +1382,14 @@ function CaptacaoExploracao() {
                 {visiveis.map((p) => (
                   <tr
                     key={p.id}
-                    className="border-b border-hairline last:border-0 hover:bg-surface-2"
+                    className="border-b border-hairline last:border-0 row-interactive"
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => alternarFavorito(p)}
-                          aria-label="Favoritar"
-                          title={favoritos.has(p.id) ? "Desfavoritar" : "Favoritar"}
-                          className={
-                            favoritos.has(p.id) ? "text-warn" : "text-ink-3 hover:text-warn"
-                          }
-                        >
-                          {favoritos.has(p.id) ? "★" : "☆"}
-                        </button>
+                        <Favorito
+                          ativo={favoritos.has(p.id)}
+                          onToggle={() => alternarFavorito(p)}
+                        />
                         <button
                           onClick={() => alternarAlerta(p)}
                           aria-label="Alerta"
@@ -1354,12 +1398,7 @@ function CaptacaoExploracao() {
                               ? "Alerta ligado — avisa quando mudar situação/prazo"
                               : "Ligar alerta desta proposta"
                           }
-                          className={cx(
-                            "transition-colors",
-                            alertas.has(p.id)
-                              ? "tone-ok"
-                              : "text-ink-3 hover:text-ink",
-                          )}
+                          className={cx("icon-btn", alertas.has(p.id) && "tone-ok")}
                         >
                           {/* o emoji 🔕 renderizava como pictograma vermelho
                               cortado e lia como estado de ERRO; o glifo abaixo
@@ -1550,9 +1589,14 @@ function CaptacaoExploracao() {
                   disabled={carregandoMais}
                   className="btn btn-ghost btn-sm disabled:opacity-50"
                 >
-                  {carregandoMais
-                    ? "Carregando…"
-                    : `Carregar mais (${total - propostas.length} restantes)`}
+                  {carregandoMais ? (
+                    <>
+                      <span className="spinner" aria-hidden />
+                      Carregando…
+                    </>
+                  ) : (
+                    `Carregar mais (${total - propostas.length} restantes)`
+                  )}
                 </button>
                 <span className="label-mono text-ink-3">
                   {propostas.length} de {total}

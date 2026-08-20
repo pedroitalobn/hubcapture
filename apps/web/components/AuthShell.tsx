@@ -23,7 +23,7 @@ export function BrandMark({ size = "base" }: { size?: "base" | "lg" }) {
 function ImagePanel() {
   return (
     <div
-      className="relative hidden overflow-hidden rounded-[20px] border border-hairline bg-abyss bg-cover bg-center lg:block"
+      className="anim-page-delayed relative hidden overflow-hidden rounded-[20px] border border-hairline bg-abyss bg-cover bg-center lg:block"
       style={{
         // tenta o asset gerado (Magnific); sem ele, cai no SVG topográfico
         backgroundImage: "url('/login-hero.jpg'), url('/login-hero.svg')",
@@ -49,7 +49,7 @@ function ImagePanel() {
  */
 function LabPanel() {
   return (
-    <div className="relative hidden flex-col justify-between overflow-hidden rounded-[20px] bg-abyss p-10 lg:flex">
+    <div className="anim-page-delayed relative hidden flex-col justify-between overflow-hidden rounded-[20px] bg-abyss p-10 lg:flex">
       <div className="flex items-center justify-between">
         <span className="inline-flex items-center rounded-full border border-graphite px-3 py-1 font-mono text-[13px] tracking-[-0.02em] text-graphite">
           01 / 04
@@ -124,7 +124,7 @@ export function AuthShell({
   image?: boolean;
 }) {
   const form = (
-    <div className="flex flex-col justify-between py-4 sm:px-6">
+    <div className="anim-page flex flex-col justify-between py-4 sm:px-6">
       <Link href="/" className="self-start">
         <BrandMark size="lg" />
       </Link>

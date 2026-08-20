@@ -67,7 +67,7 @@ export function TerritorioFiltro() {
         onClick={() => setAberto((v) => !v)}
         aria-expanded={aberto}
         aria-haspopup="listbox"
-        className="flex w-full items-center justify-between gap-2 rounded-lg border border-hairline px-2.5 py-1.5 text-left text-sm text-ink-2 transition-colors hover:border-ink-2 hover:text-ink"
+        className="pressable flex w-full items-center justify-between gap-2 rounded-lg border border-hairline px-2.5 py-1.5 text-left text-sm text-ink-2 hover:border-ink-2 hover:text-ink"
       >
         <span className="truncate">{resumo}</span>
         <span aria-hidden className="text-[10px] text-ink-3">
@@ -97,7 +97,7 @@ export function TerritorioFiltro() {
               setAberto(false);
             }}
             className={cx(
-              "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-surface-3",
+              "pressable flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-surface-3",
               tudo && "font-medium text-ink",
             )}
           >
@@ -119,7 +119,7 @@ export function TerritorioFiltro() {
                     role="option"
                     aria-selected={marcado}
                     className={cx(
-                      "flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-surface-3",
+                      "pressable flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-surface-3",
                       marcado ? "text-ink" : "text-ink-2",
                     )}
                   >

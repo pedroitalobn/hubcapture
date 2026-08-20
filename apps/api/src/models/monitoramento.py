@@ -29,7 +29,7 @@ class Monitoramento(Base):
     )
     ativo: Mapped[bool] = mapped_column(default=True)
     canais: Mapped[list[str] | None] = mapped_column(ARRAY(TEXT), nullable=True)
-    # QUAIS mudanças alertar (§51). NULL = os padrões do registro de critérios —
+    # QUAIS mudanças alertar (§52). NULL = os padrões do registro de critérios —
     # é o que vale para os monitoramentos criados antes da escolha existir.
     criterios: Mapped[list[str] | None] = mapped_column(ARRAY(TEXT), nullable=True)
     # última fotografia da proposta (services/detect_changes.snapshot): é contra

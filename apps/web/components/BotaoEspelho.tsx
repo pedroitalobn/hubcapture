@@ -114,16 +114,12 @@ export function BotaoEspelho({
         title={titulo}
         aria-label="Exportar espelho em PDF"
         className={cx(
-          "transition-colors disabled:opacity-50",
-          estado === "erro" ? "tone-danger" : "text-ink-3 hover:text-ink",
+          "icon-btn",
+          estado === "erro" && "tone-danger",
           className,
         )}
       >
-        {estado === "gerando" ? (
-          <span className="block h-[14px] w-[14px] animate-pulse rounded-sm bg-current" />
-        ) : (
-          <Icone />
-        )}
+        {estado === "gerando" ? <span className="spinner" /> : <Icone />}
       </button>
     );
   }

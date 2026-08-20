@@ -65,7 +65,7 @@ function descricao(a: Alerta): string {
     return `${recortarTexto(p.titulo, 80).trecho || "Nova proposta na fonte"} (${p.fonte ?? ""}) em ${municipio}`;
   if (a.tipo === "oportunidade")
     return `Recursos da fonte ${p.fonte ?? "?"} recebidos em ${municipio} sem proposta de captação cadastrada`;
-  // alerta de mudança (§51): o backend manda a frase pronta do critério
+  // alerta de mudança (§52): o backend manda a frase pronta do critério
   const titulo = recortarTexto(p.titulo, 80).trecho || p.numero_proposta || "";
   const alvo = [titulo, municipio].filter(Boolean).join(" · ");
   return `${descreverAlerta(a)}${alvo ? ` — ${alvo}` : ""}`;

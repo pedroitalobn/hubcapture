@@ -2,7 +2,7 @@
 
 O `hash_conteudo` diz QUE algo mudou, nunca O QUE mudou — e era só isso que
 existia aqui, então o alerta saía do mesmo jeito para qualquer alteração. Agora
-a comparação é por CRITÉRIO (§51): `snapshot()` fotografa o estado material da
+a comparação é por CRITÉRIO (§52): `snapshot()` fotografa o estado material da
 proposta (situação, publicação, empenho, pagamento, vigência, pareceres) e
 `avaliar()` devolve uma mudança por critério LIGADO no monitoramento.
 

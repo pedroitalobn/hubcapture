@@ -170,7 +170,7 @@ function PainelShell({ children }: { children: React.ReactNode }) {
           )}
           <Link
             href="/onboarding"
-            className="mt-3 inline-block font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 hover:text-ink"
+            className="link-soft mt-3 inline-block font-mono text-[11px] uppercase tracking-[0.04em]"
           >
             Ajustar perfil →
           </Link>
@@ -209,7 +209,7 @@ function PainelShell({ children }: { children: React.ReactNode }) {
           <ThemeToggle />
           <button
             onClick={sair}
-            className="self-start font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3 transition-colors hover:text-ink"
+            className="link-soft self-start font-mono text-[11px] uppercase tracking-[0.04em]"
           >
             Sair da conta
           </button>
@@ -220,10 +220,14 @@ function PainelShell({ children }: { children: React.ReactNode }) {
         {/* `key={pathname}` remonta o wrapper a cada navegação, então a
             animação de entrada REEXECUTA — sem isso o layout persiste no App
             Router e a transição só aconteceria no primeiro carregamento.
-            Uma linha aqui cobre todas as telas do painel. */}
+            Uma linha aqui cobre todas as telas do painel.
+            `stagger` faz as SEÇÕES da tela entrarem em cascata em vez de o
+            conteúdo aparecer de bloco — 35 das 39 páginas não tinham nenhuma
+            animação própria, e resolver no shell evita repetir a classe em
+            cada uma delas. */}
         <div
           key={pathname}
-          className="anim-page flex min-w-0 flex-1 flex-col gap-6"
+          className="anim-page stagger flex min-w-0 flex-1 flex-col gap-6"
         >
           {children}
         </div>

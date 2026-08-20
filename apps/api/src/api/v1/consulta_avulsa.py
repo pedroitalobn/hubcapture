@@ -61,13 +61,26 @@ class LiveSearchRequest(BaseModel):
         default=None, ge=1, le=200, description="itens da página devolvida (sem limite: tudo)"
     )
     offset: int = Field(default=0, ge=0)
+    # "Atualizar fontes" no painel: consulta agora, ignorando o TTL do cache.
+    # Sem isto o botão herdava as 6h do cache-first e não consultava nada —
+    # o gestor via "consultando as fontes…" e recebia o mesmo dado de antes.
+    forcar: bool = Field(
+        default=False, description="ignora o cache e consulta as fontes agora (ação explícita)"
+    )
 
 
 class FonteStatus(BaseModel):
     fonte: str
     municipio_ibge: str
-    status: str  # 'ok' | 'erro'
+    # 'ok' (consultada agora) | 'erro' (fonte falhou) | 'cache' (não foi
+    # consultada: o dado ainda estava fresco). Distinguir 'ok' de 'cache' é o
+    # que permite a tela dizer a VERDADE sobre a rodada em vez de anunciar
+    # consulta que não houve.
+    status: str
     erro: str | None = None
+    registros: int | None = Field(
+        default=None, description="linhas trazidas pela fonte nesta rodada (null quando 'cache')"
+    )
 
 
 class LiveSearchResponse(BaseModel):
@@ -95,7 +108,7 @@ async def live_search_endpoint(
     facetas = await propostas_service.facetas(
         session,
         municipio=body.municipios_ibge,
-        **body.model_dump(exclude={"municipios_ibge", "ordenar", "limite", "offset"}),
+        **body.model_dump(exclude={"municipios_ibge", "ordenar", "limite", "offset", "forcar"}),
     )
     return LiveSearchResponse(
         propostas=[PropostaRead.model_validate(r) for r in rows],

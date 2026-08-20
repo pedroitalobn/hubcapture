@@ -20,7 +20,7 @@ from datetime import date
 from ..core.config import settings
 from ..scraping.scraper import get_scraper
 from ..services import config as config_service
-from . import _postgrest
+from . import _identidade, _postgrest
 from ._http import ConnectorClientError, get_json
 from .base import RawRecord, register
 
@@ -81,12 +81,17 @@ class TransferegovVoluntariasConnector:
             return [
                 RawRecord(
                     source_id=self.source_id,
-                    id_externo=str(row.get(ID_FIELD) or row.get("id") or i),
+                    id_externo=_identidade.id_externo(
+                        row,
+                        municipio_ibge,
+                        candidatos=(ID_FIELD.lower(), "id"),
+                        prefixo="conv:",
+                    ),
                     municipio_ibge=municipio_ibge,
                     endpoint=ENDPOINT,
                     raw={"plano_acao": row, "modalidade": "Convênio"},
                 )
-                for i, row in enumerate(linhas)
+                for row in linhas
             ]
         except Exception:
             # fallback: scraping da consulta pública (quando algum scraper está ligado)
@@ -97,7 +102,11 @@ class TransferegovVoluntariasConnector:
             return [
                 RawRecord(
                     source_id=self.source_id,
-                    id_externo=f"scrape-{municipio_ibge}",
+                    # um registro por PÁGINA coletada: o id sai do conteúdo, senão
+                    # duas coletas com conteúdos diferentes seriam a mesma linha
+                    id_externo=_identidade.hash_conteudo(
+                        {"scrape": dados}, municipio_ibge, prefixo="scrape:"
+                    ),
                     municipio_ibge=municipio_ibge,
                     endpoint="scrape",
                     raw={"scrape": dados, "modalidade": "Convênio"},

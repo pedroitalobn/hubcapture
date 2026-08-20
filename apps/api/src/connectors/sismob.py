@@ -13,6 +13,7 @@ from datetime import date
 
 from ..core.config import settings
 from ..services import config as config_service
+from . import _identidade
 from ._http import get_json
 from .base import RawRecord, register
 
@@ -41,7 +42,9 @@ class SismobConnector:
         linhas = data.get("items", data) if isinstance(data, dict) else data
         records: list[RawRecord] = []
         for row in linhas:
-            ext = str(row.get(COL_ID) or f"{municipio_ibge}-{len(records)}")
+            # sem id na fonte, a identidade sai do CONTEÚDO (estável entre
+            # coletas) — a posição na lista mudava a cada rodada
+            ext = _identidade.id_externo(row, municipio_ibge, candidatos=(COL_ID.lower(),))
             records.append(
                 RawRecord(
                     source_id=self.source_id,

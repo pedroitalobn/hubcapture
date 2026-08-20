@@ -33,7 +33,7 @@ def _formatar(alertas: list, propostas: dict) -> str:
         p = propostas.get(a.proposta_id)
         municipio = rotulo(p.municipio_nome, p.uf, p.municipio_ibge) if p else "Seu território"
         objeto = (p.titulo if p and p.titulo else None) or "proposta acompanhada"
-        # o critério em português e, quando há, O QUE mudou (§51) — "vencimento"
+        # o critério em português e, quando há, O QUE mudou (§52) — "vencimento"
         # cru não diz ao gestor que o convênio está a 10 dias de vencer
         payload = getattr(a, "payload", None)
         detalhe = payload.get("resumo") if isinstance(payload, dict) else None
