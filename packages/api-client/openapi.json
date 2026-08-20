@@ -2286,6 +2286,40 @@
         "title": "ConviteRead",
         "type": "object"
       },
+      "CriterioAlertaRead": {
+        "description": "Item do catálogo que alimenta o multi-select de critérios.",
+        "properties": {
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "descricao": {
+            "title": "Descricao",
+            "type": "string"
+          },
+          "escopo": {
+            "title": "Escopo",
+            "type": "string"
+          },
+          "padrao": {
+            "title": "Padrao",
+            "type": "boolean"
+          },
+          "rotulo": {
+            "title": "Rotulo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chave",
+          "rotulo",
+          "descricao",
+          "escopo",
+          "padrao"
+        ],
+        "title": "CriterioAlertaRead",
+        "type": "object"
+      },
       "DemandaComentario": {
         "description": "Mensagem nova na demanda; `situacao` só quando ela muda de estado.",
         "properties": {
@@ -5490,6 +5524,20 @@
             "title": "Canais",
             "type": "array"
           },
+          "criterios": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Criterios"
+          },
           "fonte": {
             "anyOf": [
               {
@@ -5550,6 +5598,20 @@
             "title": "Created At",
             "type": "string"
           },
+          "criterios": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Criterios"
+          },
           "fonte": {
             "anyOf": [
               {
@@ -5604,6 +5666,20 @@
             "title": "Canais",
             "type": "array"
           },
+          "criterios": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Criterios"
+          },
           "proposta_id": {
             "format": "uuid",
             "title": "Proposta Id",
@@ -5641,6 +5717,20 @@
             "title": "Created At",
             "type": "string"
           },
+          "criterios": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Criterios"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -5650,6 +5740,18 @@
             "format": "uuid",
             "title": "Proposta Id",
             "type": "string"
+          },
+          "ultimo_alerta_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ultimo Alerta Em"
           }
         },
         "required": [
@@ -11788,6 +11890,67 @@
           }
         ],
         "summary": "Listar Alertas",
+        "tags": [
+          "alertas"
+        ]
+      }
+    },
+    "/api/v1/alerts/criteria": {
+      "get": {
+        "description": "Catálogo dos critérios de alerta — é ele que alimenta o multi-select.\n\nCritério novo aparece na tela sem alteração no front (§53).",
+        "operationId": "catalogo_criterios_api_v1_alerts_criteria_get",
+        "parameters": [
+          {
+            "description": "proposta (monitorar uma proposta) | territorio (monitorar um município)",
+            "in": "query",
+            "name": "escopo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "proposta (monitorar uma proposta) | territorio (monitorar um município)",
+              "title": "Escopo"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CriterioAlertaRead"
+                  },
+                  "title": "Response Catalogo Criterios Api V1 Alerts Criteria Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Catalogo Criterios",
         "tags": [
           "alertas"
         ]

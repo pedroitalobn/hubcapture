@@ -97,9 +97,11 @@ async def test_alerta_gerado_apenas_se_monitorado(seed_user, seed_municipio, see
 
 
 def test_detect_changes_puro() -> None:
-    assert detect_changes.hash_mudou(None, "x") is False
-    assert detect_changes.hash_mudou("a", "a") is False
-    assert detect_changes.hash_mudou("a", "b") is True
-    payload = detect_changes.montar_payload({"situacao": "Em análise"}, {"situacao": "Aprovada"})
-    assert payload["mudou"]["situacao"] == {"antes": "Em análise", "depois": "Aprovada"}
-    assert detect_changes.classificar(payload) == "status"
+    """A detecção é por CRITÉRIO: o que mudou decide o tipo do alerta (§53)."""
+    antes = {"situacao": "Em análise", "movimentacao": None}
+    depois = {"situacao": "Aprovada", "movimentacao": None}
+    (mudanca,) = detect_changes.avaliar(antes, depois, {"situacao"})
+    assert mudanca.criterio == "situacao"
+    assert mudanca.payload["mudou"]["situacao"] == {"antes": "Em análise", "depois": "Aprovada"}
+    # critério desligado não vira alerta, mesmo com o campo tendo mudado
+    assert detect_changes.avaliar(antes, depois, {"empenho"}) == []

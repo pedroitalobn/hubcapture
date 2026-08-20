@@ -11,10 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.monitoramento import Monitoramento, MonitoramentoBusca
 
 
-async def listar(session: AsyncSession, usuario_id: uuid.UUID) -> list[Monitoramento]:
-    result = await session.execute(
-        select(Monitoramento).where(Monitoramento.usuario_id == usuario_id)
-    )
+async def listar(
+    session: AsyncSession, usuario_id: uuid.UUID, apenas_ativos: bool = False
+) -> list[Monitoramento]:
+    stmt = select(Monitoramento).where(Monitoramento.usuario_id == usuario_id)
+    if apenas_ativos:
+        stmt = stmt.where(Monitoramento.ativo.is_(True))
+    result = await session.execute(stmt)
     return list(result.scalars().all())
 
 
@@ -23,13 +26,22 @@ async def criar(
     usuario_id: uuid.UUID,
     proposta_id: uuid.UUID,
     canais: list[str],
+    criterios: list[str] | None = None,
 ) -> Monitoramento:
+    """Cria OU reconfigura o monitoramento (o POST é upsert: reenviar com
+    outros critérios é como o usuário edita a escolha do multi-select)."""
     stmt = (
         pg_insert(Monitoramento)
-        .values(usuario_id=usuario_id, proposta_id=proposta_id, ativo=True, canais=canais)
+        .values(
+            usuario_id=usuario_id,
+            proposta_id=proposta_id,
+            ativo=True,
+            canais=canais,
+            criterios=criterios,
+        )
         .on_conflict_do_update(
             constraint="uq_monitoramentos_usuario_proposta",
-            set_={"ativo": True, "canais": canais},
+            set_={"ativo": True, "canais": canais, "criterios": criterios},
         )
         .returning(Monitoramento)
     )
@@ -66,6 +78,7 @@ async def criar_busca(
     area: str | None,
     fonte: str | None,
     canais: list[str],
+    criterios: list[str] | None = None,
 ) -> MonitoramentoBusca:
     stmt = (
         pg_insert(MonitoramentoBusca)
@@ -76,10 +89,11 @@ async def criar_busca(
             fonte=fonte,
             ativo=True,
             canais=canais,
+            criterios=criterios,
         )
         .on_conflict_do_update(
             constraint="uq_monitoramentos_busca_escopo",
-            set_={"ativo": True, "canais": canais},
+            set_={"ativo": True, "canais": canais, "criterios": criterios},
         )
         .returning(MonitoramentoBusca)
     )
