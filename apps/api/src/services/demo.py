@@ -103,15 +103,6 @@ async def usuario_demo(session: AsyncSession) -> Usuario | None:
     ).scalar_one_or_none()
 
 
-async def demo_disponivel() -> bool:
-    """O botão 'Ver demonstração' só aparece com a flag on E a conta de pé."""
-    if not await esta_ativo():
-        return False
-    async with SessionLocal() as s:
-        user = await usuario_demo(s)
-    return user is not None and bool(user.is_active)
-
-
 # ── Bootstrap (idempotente; roda no lifespan e a cada /auth/demo) ───────────
 
 

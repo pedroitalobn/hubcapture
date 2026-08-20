@@ -119,11 +119,12 @@ async def test_auth_demo_emite_tokens_e_respeita_flag() -> None:
     assert exc.value.status_code == 404
 
 
-async def test_demo_disponivel_no_ui() -> None:
-    # sem conta demo ainda → o /login não mostra o botão
-    assert await demo_service.demo_disponivel() is False
-    await demo_service.ensure_demo()
-    assert await demo_service.demo_disponivel() is True
+def test_ui_nao_anuncia_o_demo() -> None:
+    """O /ui é público e o demo é link RESERVADO: a resposta não pode carregar
+    nenhuma flag que denuncie a existência da conta de demonstração."""
+    from src.api.v1.ui import UiRead
+
+    assert "demo" not in UiRead.model_fields
 
 
 async def test_bloqueio_de_escrita_da_conta_demo() -> None:
