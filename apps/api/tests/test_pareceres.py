@@ -103,11 +103,11 @@ def test_proposta_carrega_o_numero_do_plano_de_trabalho() -> None:
     assert p.numero_proposta == "14275/2026"
 
 
-# ── Calibração contra o spec real de /planos_trabalho_analises_especiais ─────
+# ── Calibração contra o spec real de /plano_trabalho_analise_especial ─────
 # A rota devolve o veredito da análise, o texto e o valor reprovado, com id
 # próprio — e filtra por id_plano_trabalho INTEIRO (não pelo nº da proposta).
 
-# Payload com os nomes REAIS das colunas de /planos_trabalho_analises_especiais
+# Payload com os nomes REAIS das colunas de /plano_trabalho_analise_especial
 # (spec oficial do módulo especiais — API nova).
 API = {
     "id_plano_trabalho_analise_pt": 55123,
@@ -239,7 +239,7 @@ async def test_consulta_usa_a_rota_e_a_paginacao_da_api_nova(monkeypatch) -> Non
     monkeypatch.setattr(mod, "descobrir", _sem_descoberta)
     await mod.ParecerConnector()._via_api("988776")
 
-    assert capturado["endpoint"] == "planos_trabalho_analises_especiais"
+    assert capturado["endpoint"] == "plano_trabalho_analise_especial"
     assert capturado["params"]["id_plano_trabalho"] == "988776"  # sem `eq.`
     assert capturado["params"]["pagina"] == "1"
     assert capturado["params"]["tamanho_da_pagina"] == "50"

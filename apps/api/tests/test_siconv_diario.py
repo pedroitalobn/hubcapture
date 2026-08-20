@@ -95,7 +95,14 @@ def test_catalogo_carrega_apenas_o_que_tem_destino():
 
 
 def test_candidatos_de_nome_do_zip():
-    assert siconv_downloads.ARQUIVOS["emenda"].nomes() == ("siconv_emenda.zip", "emenda.zip")
+    # `.csv.zip` primeiro: é o padrão do espelho (repositorio.dados.gov.br), a
+    # única origem que responde deste servidor; a oficial mantém `.zip`
+    assert siconv_downloads.ARQUIVOS["emenda"].nomes() == (
+        "siconv_emenda.csv.zip",
+        "siconv_emenda.zip",
+        "emenda.csv.zip",
+        "emenda.zip",
+    )
 
 
 def test_proxima_execucao_nunca_e_agora():
