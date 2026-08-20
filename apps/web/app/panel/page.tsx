@@ -261,7 +261,15 @@ function dataBr(iso: string | null | undefined): string | null {
 // não apaga as outras safras do seletor; o recorte é do SERVIDOR, então uma
 // safra antiga traz os itens daquele ano em vez de garimpar o que sobrou na
 // janela. A escolha persiste entre visitas.
+//
+// A forma é uma LINHA DE CHIPS à esquerda, sob o título — não um <select>
+// no canto direito do cabeçalho: escondido lá, o filtro passava despercebido
+// e o ano escolhido não se via sem abrir o dropdown. O chip ativo usa o
+// acento da marca (`.chip-active`), então a safra em vigor está sempre à
+// vista; as mais antigas colapsam num dropdown para o território com muitas
+// safras não virar uma parede de chips.
 const ANO_KEY = "hub_painel_ano";
+const ANOS_EM_CHIP = 6;
 // Janela do feed: quantos itens da safra escolhida (ou das mais recentes,
 // quando "todos os anos") cabem na lista.
 const FEED_LIMITE = 60;
@@ -429,48 +437,84 @@ function MeuPainel() {
   const semSafra = ano
     ? dimensoes.filter((d) => d.recorte_ano === false).map((d) => d.titulo)
     : [];
+  // Safras em chip (as mais recentes) × safras antigas (dropdown compacto).
+  const anosChip = anosDisponiveis.slice(0, ANOS_EM_CHIP);
+  const anosAntigos = anosDisponiveis.slice(ANOS_EM_CHIP);
+  const anoAntigo = anosAntigos.some((a) => a.ano === ano);
   const falhas = (novidades?.sync_runs ?? []).filter((r) => r.status === "erro");
   const aguardandoDados =
     sincronizando && itens.length === 0 && tentativas.current < 15;
 
   return (
     <>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="page-title">Meu painel</h1>
-          <p className="mt-1 text-sm text-ink-2">
-            Tudo do seu território, por etapa do ciclo do recurso público.
-          </p>
-        </div>
+      <header>
+        <h1 className="page-title">Meu painel</h1>
+        <p className="mt-1 text-sm text-ink-2">
+          Tudo do seu território, por etapa do ciclo do recurso público.
+        </p>
         {/* Filtro de ano da PÁGINA: cards, panorama e novidades no mesmo
-            recorte. Só aparece quando o território tem mais de uma safra —
-            filtro que não muda nada parece quebrado. */}
+            recorte. Chips à esquerda, sob o título — o ativo leva o acento da
+            marca, então a safra em vigor está sempre à vista. Só aparece
+            quando o território tem alguma safra — filtro que não muda nada
+            parece quebrado. */}
         {!semTerritorio && anosDisponiveis.length > 0 && (
-          <label className="flex items-center gap-2 text-sm text-ink-2">
-            <span className="label-mono">Ano</span>
+          <nav
+            aria-label="Filtrar o painel por safra (ano)"
+            className="mt-4 flex flex-wrap items-center gap-2"
+          >
+            <span className="label-mono">Safra</span>
             {anosDisponiveis.length === 1 ? (
               <span
-                className="input flex w-44 items-center text-ink-2"
+                className="chip chip-active cursor-default"
                 title="O território tem uma única safra — não há o que recortar"
               >
-                safra única: {anosDisponiveis[0]?.ano}
+                {anosDisponiveis[0]?.ano}
+                <span className="tabular-nums opacity-60">
+                  {anosDisponiveis[0]?.total}
+                </span>
               </span>
             ) : (
-              <select
-                value={ano}
-                onChange={(e) => setAno(e.target.value)}
-                className="input w-44"
-                title="Recorta o painel inteiro por safra (ano)"
-              >
-                <option value="">Todos os anos</option>
-                {anosDisponiveis.map((a) => (
-                  <option key={a.ano} value={a.ano}>
-                    {a.ano} ({a.total})
-                  </option>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setAno("")}
+                  className={`chip ${!ano ? "chip-active" : ""}`}
+                  aria-pressed={!ano}
+                  title="Painel inteiro, sem recorte de safra"
+                >
+                  Todos os anos
+                </button>
+                {anosChip.map((a) => (
+                  <button
+                    key={a.ano}
+                    type="button"
+                    onClick={() => setAno(a.ano)}
+                    className={`chip ${ano === a.ano ? "chip-active" : ""}`}
+                    aria-pressed={ano === a.ano}
+                    title={`Recorta o painel inteiro pela safra ${a.ano}`}
+                  >
+                    {a.ano}
+                    <span className="tabular-nums opacity-60">{a.total}</span>
+                  </button>
                 ))}
-              </select>
+                {anosAntigos.length > 0 && (
+                  <select
+                    value={anoAntigo ? ano : ""}
+                    onChange={(e) => e.target.value && setAno(e.target.value)}
+                    className={`chip ${anoAntigo ? "chip-active" : ""}`}
+                    title="Safras mais antigas do território"
+                  >
+                    <option value="">anteriores…</option>
+                    {anosAntigos.map((a) => (
+                      <option key={a.ano} value={a.ano}>
+                        {a.ano} ({a.total})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </>
             )}
-          </label>
+          </nav>
         )}
       </header>
 
