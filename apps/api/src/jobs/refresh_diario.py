@@ -159,4 +159,13 @@ if __name__ == "__main__":
     if os.getenv("RODAR_AGORA") == "1":
         asyncio.run(sweep())
     else:
-        asyncio.run(loop())
+        # O worker é UM processo para os dois relógios diários: o refresh das
+        # propostas (06:00) e o enriquecimento de pareceres/empenhos (08:00,
+        # `enriquecimento_diario`). Um container a mais só para o segundo
+        # relógio custaria memória que este host não tem.
+        from . import enriquecimento_diario
+
+        async def _loops() -> None:
+            await asyncio.gather(loop(), enriquecimento_diario.loop())
+
+        asyncio.run(_loops())

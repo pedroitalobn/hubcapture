@@ -559,6 +559,49 @@ def sql_upsert_empenhos(
 # --------------------------------------------------------------------------
 
 
+def sql_carimbar_convenio(cols_conv: list[str]) -> str:
+    """`stg_convenio` → `propostas.execucao` — publicação, empenho e pago no header.
+
+    O gestor pergunta três coisas no topo da proposta: empenhou? publicou?
+    pagou? As três moram no CONVÊNIO do pacote (`SITUACAO_PUBLICACAO`/
+    `DIA_PUBL_CONV`, `VL_EMPENHADO_CONV`, `VL_DESEMBOLSADO_CONV` — desembolso é
+    o que efetivamente saiu para o convenente). Este UPDATE funde tudo em
+    `execucao`, que é de onde a faixa de destaque do detalhe já lê: os
+    agregados entram nas chaves que a tela conhece (`valor_empenhado`,
+    `valor_pago`) e o resto sob `convenio`, sem coluna nova.
+
+    `DISTINCT ON (id_proposta)` com a assinatura mais recente primeiro: uma
+    proposta pode acumular convênios (raro, mas o arquivo tem) e dois UPDATEs na
+    mesma linha derrubariam o comando inteiro.
+    """
+    c = lambda n: col(cols_conv, "c", n)  # noqa: E731
+    return f"""
+    UPDATE propostas p SET execucao = coalesce(p.execucao, '{{}}'::jsonb) || jsonb_strip_nulls(
+        jsonb_build_object(
+            'valor_empenhado', {numero_br(c("vl_empenhado_conv"))},
+            'valor_pago',      {numero_br(c("vl_desembolsado_conv"))},
+            'situacao_publicacao', {c("situacao_publicacao")},
+            'convenio', jsonb_strip_nulls(jsonb_build_object(
+                'numero',              {c("nr_convenio")},
+                'situacao',            {c("sit_convenio")},
+                'situacao_publicacao', {c("situacao_publicacao")},
+                'publicado_em',        {c("dia_publ_conv")},
+                'assinado_em',         {c("dia_assin_conv")},
+                'fim_vigencia',        {c("dia_fim_vigenc_conv")},
+                'valor_empenhado',     {numero_br(c("vl_empenhado_conv"))},
+                'valor_desembolsado',  {numero_br(c("vl_desembolsado_conv"))}
+            ))
+        ))
+    FROM (
+        SELECT DISTINCT ON (c.id_proposta) *
+        FROM stg_convenio c
+        WHERE c.id_proposta IS NOT NULL
+        ORDER BY c.id_proposta, {c("dia_assin_conv")} DESC NULLS LAST
+    ) c
+    WHERE p.fonte = '{FONTE_PROPOSTA}' AND p.id_externo = c.id_proposta
+    """
+
+
 async def aplicar_carga(conn: AsyncConnection, arquivos: dict[str, Path]) -> dict[str, int]:
     """Staging + upserts numa transação. Devolve o que foi gravado por entidade.
 
@@ -609,6 +652,10 @@ async def aplicar_carga(conn: AsyncConnection, arquivos: dict[str, Path]) -> dic
             text(sql_upsert_empenhos(colunas["empenho"], colunas["convenio"], colunas["proposta"]))
         )
         gravadas["empenhos"] = resultado.rowcount or 0
+
+    if "convenio" in colunas:
+        resultado = await conn.execute(text(sql_carimbar_convenio(colunas["convenio"])))
+        gravadas["convenios_carimbados"] = resultado.rowcount or 0
 
     return gravadas
 

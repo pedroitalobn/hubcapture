@@ -225,6 +225,106 @@ class ParecerSiconvConnector:
                 await browser.close()
         return saida
 
+    async def coletar_lote(
+        self, ids_proposta: list[str], *, incluir_empenhos: bool = True
+    ) -> dict[str, dict]:
+        """Pareceres (e empenhos) de VÁRIAS propostas numa sessão de browser só.
+
+        O rito de sessão (entrada guest + SSO) custa ~5 s; pagá-lo por proposta
+        transformaria o sweep noturno em horas de browser. Aqui a entrada
+        acontece UMA vez e as propostas passam em série pela mesma sessão —
+        o webapp guarda "a proposta corrente" por sessão, então o detalhe de
+        cada uma é visitado antes das suas abas, como no caminho unitário.
+
+        Falha em uma proposta não derruba o lote: o item sai do resultado com
+        `erro` preenchido e o chamador decide (registrar e seguir).
+        """
+        from playwright.async_api import async_playwright
+
+        resultado: dict[str, dict] = {}
+        alvos = [str(i).strip() for i in ids_proposta if str(i).strip().isdigit()]
+        if not alvos:
+            return resultado
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(
+                args=["--no-sandbox", "--disable-dev-shm-usage"]
+            )
+            try:
+                pg = await (await browser.new_context(locale="pt-BR")).new_page()
+                await pg.goto(ENTRADA, wait_until="networkidle", timeout=TIMEOUT_MS)
+                for id_proposta in alvos:
+                    item: dict = {"pareceres": [], "empenhos": [], "erro": None}
+                    resultado[id_proposta] = item
+                    try:
+                        await pg.goto(
+                            f"{DETALHE}?idProposta={id_proposta}&destino=&idConvenio=",
+                            wait_until="networkidle",
+                            timeout=TIMEOUT_MS,
+                        )
+                        if "Login" in (await pg.title()):
+                            raise RuntimeError("sessão de acesso livre caiu no login")
+                        await pg.goto(
+                            ABA_PARECERES, wait_until="networkidle", timeout=TIMEOUT_MS
+                        )
+                        ids = sorted(
+                            set(
+                                re.findall(
+                                    r"idParecer=(\d+)",
+                                    html_.unescape(await pg.content()),
+                                )
+                            )
+                        )[:MAX_PARECERES]
+                        for idp in ids:
+                            await pg.goto(
+                                f"{VISUALIZAR}?idProposta={id_proposta}&idParecer={idp}",
+                                wait_until="networkidle",
+                                timeout=TIMEOUT_MS,
+                            )
+                            try:
+                                texto = await pg.eval_on_selector(
+                                    "textarea[name=parecer]", "el => el.value"
+                                )
+                            except Exception:  # noqa: BLE001
+                                texto = ""
+                            parecer = _parse_parecer(
+                                await pg.inner_text("body"), texto, id_proposta, idp
+                            )
+                            if parecer:
+                                item["pareceres"].append(parecer)
+                        if incluir_empenhos:
+                            # volta ao contexto da proposta antes da outra aba
+                            await pg.goto(
+                                f"{DETALHE}?idProposta={id_proposta}&destino=&idConvenio=",
+                                wait_until="networkidle",
+                                timeout=TIMEOUT_MS,
+                            )
+                            await pg.goto(
+                                ABA_EMPENHOS, wait_until="networkidle", timeout=TIMEOUT_MS
+                            )
+                            corpo = re.sub(r"\s+", " ", await pg.inner_text("body"))
+                            for m in _RE_EMPENHO.finditer(corpo):
+                                c = m.groupdict()
+                                item["empenhos"].append(
+                                    {
+                                        "id_empenho": f"{id_proposta}:{c['numero']}",
+                                        "numero_empenho": c["numero"],
+                                        "numero_minuta": c["minuta"],
+                                        "valor_empenho": c["valor"],
+                                        "valor_empenho_siafi": c["valor_siafi"],
+                                        "situacao": c["situacao"],
+                                        "data_emissao": c["data"],
+                                        "_scraper": "playwright",
+                                    }
+                                )
+                    except Exception as exc:  # noqa: BLE001 — uma proposta não derruba o lote
+                        item["erro"] = f"{type(exc).__name__}: {exc}"
+                        log.warning(
+                            "siconv lote: proposta %s falhou: %s", id_proposta, item["erro"]
+                        )
+            finally:
+                await browser.close()
+        return resultado
+
     async def health_check(self) -> bool:
         """Saudável = a entrada anônima responde fora da tela de login."""
         try:
