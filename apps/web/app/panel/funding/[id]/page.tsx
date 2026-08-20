@@ -8,6 +8,7 @@ import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { Hint } from "@/components/Hint";
 import { AndamentoProposta } from "@/components/AndamentoProposta";
 import { EmendasProposta } from "@/components/EmendasProposta";
+import { Favorito } from "@/components/Favorito";
 import { EmpenhosProposta } from "@/components/EmpenhosProposta";
 import { NumeroProposta } from "@/components/NumeroProposta";
 import { Skeleton } from "@/components/Skeleton";
@@ -112,7 +113,10 @@ function Secao({
   className?: string;
 }) {
   return (
-    <section className={cx("card p-5", className)}>
+    /* `reveal` (§camada de fluidez): a página do detalhe é a de rolagem mais
+       longa do app — cada bloco entra quando chega à viewport, pelo timeline
+       de view do navegador (sem JS). Quem não suporta vê o conteúdo direto. */
+    <section className={cx("card reveal p-5", className)}>
       <div className="mb-3.5 flex items-center justify-between gap-3 border-b border-hairline pb-2">
         <h2 className="label-mono">{titulo}</h2>
         {acao}
@@ -140,7 +144,18 @@ export default function PropostaDetalhePage() {
   const params = useParams<{ id: string }>();
   // módulos efetivos do perfil — decide se a seção de pareceres (exploração
   // ao vivo do módulo captação) aparece; o detalhe em si é panel-core (§40)
-  const { perfil } = useTerritorio();
+  const { perfil, carregando: perfilCarregando } = useTerritorio();
+  // §40: o detalhe é panel-core; o módulo captação governa só a consulta ATIVA
+  // às fontes (o botão "Consultar fonte" das seções de andamento e emenda).
+  const podeExplorar = (perfil?.modulos ?? []).includes("captacao");
+  // VOLTAR: com o módulo captação desligado, a lista de propostas não existe
+  // para este usuário — devolvê-lo a ela é jogá-lo no ModuloGate ("este módulo
+  // está desativado"), um beco. O retorno natural passa a ser o Meu painel, que
+  // é panel-core como o próprio detalhe. Enquanto o perfil carrega mantemos a
+  // captação: é de onde a maioria chega, e o gate ainda cobre o caso raro.
+  const voltarParaPainel = !perfilCarregando && !podeExplorar;
+  const voltarHref = voltarParaPainel ? "/panel" : "/panel/funding";
+  const voltarRotulo = voltarParaPainel ? "Meu painel" : "Propostas";
   const [p, setP] = useState<Proposta | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [favorita, setFavorita] = useState(false);
@@ -219,8 +234,8 @@ export default function PropostaDetalhePage() {
     return (
       <div className="flex flex-col items-start gap-4">
         <Aviso tom="erro">{erro}</Aviso>
-        <Link href="/panel/funding" className="btn btn-ghost btn-sm">
-          ← Voltar à captação
+        <Link href={voltarHref} className="btn btn-ghost btn-sm">
+          {voltarParaPainel ? "← Voltar ao meu painel" : "← Voltar à captação"}
         </Link>
       </div>
     );
@@ -231,9 +246,6 @@ export default function PropostaDetalhePage() {
   // retaguarda no ano da data de criação já ingerida.
   const anoProposta = p.ano ?? (p.data_proposta ? p.data_proposta.slice(0, 4) : null);
   const disponivel = p.tipo === "disponivel";
-  // §40: o detalhe é panel-core; o módulo captação governa só a consulta ATIVA
-  // às fontes (o botão "Consultar fonte" das seções de andamento e emenda).
-  const podeExplorar = (perfil?.modulos ?? []).includes("captacao");
   // EMPENHO na faixa de destaque = VL_GLOBAL_PROP, o valor global que a fonte
   // publica para a proposta (a API resolve o campo cru e devolve em
   // `valor_global`). A conta derivada "empenhado − pago" saiu da tela: nas
@@ -255,10 +267,10 @@ export default function PropostaDetalhePage() {
             código IBGE desce para linha de apoio e o id da fonte sai daqui. */}
         <div className="min-w-0">
           <Link
-            href="/panel/funding"
+            href={voltarHref}
             className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 transition-colors hover:text-ink"
           >
-            ← Propostas
+            ← {voltarRotulo}
           </Link>
           {/* Ponto 14: o código IBGE saiu daqui — é desambiguador, não
               identidade, e segue rotulado em "Dados gerais". */}
@@ -335,13 +347,13 @@ export default function PropostaDetalhePage() {
         </div>
         {/* Ações agrupadas — nunca um botão grande solto no canto */}
         <div className="flex shrink-0 items-center gap-2">
-          <button
-            onClick={alternarFavorito}
-            aria-pressed={favorita}
-            className={cx("btn btn-sm", favorita ? "btn-accent" : "btn-ghost")}
-          >
-            {favorita ? "★ Favorita" : "☆ Favoritar"}
-          </button>
+          <Favorito
+            ativo={favorita}
+            onToggle={alternarFavorito}
+            comRotulo
+            tamanho={15}
+            className="h-8 border border-hairline"
+          />
           {/* O quadro "Acompanhar e ser avisado" saiu (ponto 17), mas monitorar
               não podia sair com ele: vira ação do cabeçalho, no canal painel.
               Os demais canais seguem na central de Alertas. */}

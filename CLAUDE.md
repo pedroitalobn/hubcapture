@@ -2067,7 +2067,39 @@ atualização não pode devolver cache em silêncio.
   diário (`jobs/refresh_diario`) — sem o carimbo, "o número mudou" não tem como
   ser explicado ao gestor.
 
-## 52. Pacote SIconv como fonte das PROPOSTAS (discricionárias e legais) + rota de operação
+## 52. `updated_at` carimbado em Python — salvar não podia "salvar para sempre"
+
+Relato do gestor: "ao salvar uma aula do Class fica salvando eternamente e nada
+acontece". Não era o editor nem a rede: **todo** `PATCH /admin/class/articles/{id}`
+devolvia 500 e a transação era revertida — o botão nunca gravava nada.
+
+- **A causa** era `updated_at` com `onupdate=func.now()` (expressão SQL): o valor
+  é gerado pelo BANCO, então o SQLAlchemy EXPIRA o atributo depois do UPDATE e a
+  próxima leitura vira I/O. `editar_artigo` serializa o objeto logo após o
+  `flush()` — e ler um atributo expirado dentro de uma corrotina, fora do
+  greenlet, é `MissingGreenlet`. Quem re-SELECIONA depois do flush escapava
+  (`editar_modulo` via `modulo_por_slug`); quem devolve o objeto direto, não.
+- **A correção mora no MODELO, não no router**: `models/_mixins.updated_at_col()`
+  carimba em Python (`onupdate=lambda: datetime.now(UTC)`). O valor fica conhecido
+  no cliente — nada expira, nada faz roundtrip extra e o UPDATE não precisa de
+  RETURNING (que, sob RLS, ainda leria pela policy de SELECT — §50). Aplicado nos
+  14 modelos com a coluna; fecha a mesma falha em
+  `POST /assessoria/demands/{id}/comments` (comentar demanda), que quebrava igual.
+- **Relacionamento não acompanha a FK**: trocar `categoria_id`/`modulo_id` NÃO
+  atualiza `artigo.categoria`/`artigo.modulo` já carregados — a resposta saía com
+  o módulo ANTIGO e o editor, que se repinta com ela, mostrava que nada mudou.
+  `editar_artigo` faz `session.refresh(artigo)` antes de serializar.
+- **A tela nunca mais fica presa**: `salvar()` em `app/admin/class/[id]` ganhou
+  `try/finally` (promessa REJEITADA deixava `salvando=true` para sempre, sem
+  mensagem alguma) e timeout de 60s. `lib/api/client.mensagemDaFalha()` extrai o
+  `detail` do FastAPI (inclusive a lista do 422) e serve para os dois casos —
+  erro retornado e erro lançado. **Handler async que liga um estado de "…ando"
+  desliga no `finally`**, sempre.
+- **Regressão**: `tests/test_helpdesk.py` passou a exercitar os endpoints de
+  ESCRITA do admin (salvar, publicar, renomear, virar aula, mídia, hint) — antes
+  só o serviço era testado e o router inteiro não tinha cobertura.
+
+## 53. Pacote SIconv como fonte das PROPOSTAS (discricionárias e legais) + rota de operação
 
 A §50 trouxe o pacote nacional do SIconv para o banco, mas só as **emendas**: o
 `proposta.csv` era baixado apenas como JOIN, para carimbar o município. Quem

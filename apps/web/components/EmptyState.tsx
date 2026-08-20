@@ -14,9 +14,9 @@ export function EmptyState({
   acao?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-start gap-3 rounded-xl border border-dashed border-line-strong bg-surface px-6 py-8">
-      <p className="font-medium text-ink">{titulo}</p>
-      {descricao && <p className="max-w-prose text-sm text-muted">{descricao}</p>}
+    <div className="anim-fade-up flex flex-col items-start gap-3 rounded-2xl border border-dashed border-hairline bg-[image:var(--wash)] px-6 py-8">
+      <p className="text-display text-ink">{titulo}</p>
+      {descricao && <p className="max-w-prose text-sm text-ink-2">{descricao}</p>}
       {acao}
     </div>
   );

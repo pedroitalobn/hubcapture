@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
+import { Favorito } from "@/components/Favorito";
 import { NumeroProposta } from "@/components/NumeroProposta";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
@@ -640,28 +641,17 @@ function MeuPainel() {
                 {itens.map((n, i) => (
                   <li
                     key={i}
-                    className="flex items-center gap-2 pr-3 transition-colors hover:bg-surface-2"
+                    className="flex items-center gap-2 pr-3 row-interactive"
                   >
                     {/* favoritar e exportar direto do painel (só propostas de
                         captação — repasse não tem espelho) */}
                     {n.proposta_id && (
                       <span className="flex shrink-0 items-center gap-2 pl-4">
-                        <button
-                          onClick={() => void alternarFavorita(n.proposta_id!)}
-                          aria-label="Favoritar"
-                          title={
-                            favoritas.has(n.proposta_id)
-                              ? "Desfavoritar"
-                              : "Favoritar esta proposta"
-                          }
-                          className={`text-lg ${
-                            favoritas.has(n.proposta_id)
-                              ? "text-warn"
-                              : "text-ink-3 hover:text-warn"
-                          }`}
-                        >
-                          {favoritas.has(n.proposta_id) ? "★" : "☆"}
-                        </button>
+                        <Favorito
+                          ativo={favoritas.has(n.proposta_id)}
+                          onToggle={() => alternarFavorita(n.proposta_id!)}
+                          rotuloOff="Favoritar esta proposta"
+                        />
                         <BotaoEspelho propostaId={n.proposta_id} formato="icone" />
                       </span>
                     )}
@@ -735,7 +725,7 @@ function MeuPainel() {
                       href={n.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex flex-col gap-0.5 px-5 py-3.5 transition-colors hover:bg-surface-2"
+                      className="flex flex-col gap-0.5 px-5 py-3.5 row-interactive"
                     >
                       <p className="text-sm text-ink">{n.titulo} ↗</p>
                       {n.resumo && (

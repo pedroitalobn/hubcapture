@@ -561,6 +561,30 @@ export async function atualizarPerfil(patch: {
   }
 }
 
+/**
+ * Mensagem legível de um erro de API — serve tanto para o `error` do client
+ * tipado (corpo JSON do FastAPI, normalmente `{detail}`) quanto para o que a
+ * chamada REJEITA (queda de rede, request abortado). Sem isso cada tela
+ * inventa um "Falha ao salvar" que não diz o que houve — e, quando a promessa
+ * rejeita em vez de resolver, a tela nem chega a mostrar erro nenhum.
+ */
+export function mensagemDaFalha(erro: unknown, fallback: string): string {
+  if (erro instanceof Error) {
+    return erro.name === "AbortError" ? `${fallback} — a API não respondeu.` : `${fallback} — ${erro.message}`;
+  }
+  const detail = (erro as { detail?: unknown } | null)?.detail;
+  if (typeof detail === "string" && detail.trim()) return `${fallback} — ${detail}`;
+  // 422 do FastAPI: detail é uma lista de erros de validação
+  if (Array.isArray(detail)) {
+    const msg = detail
+      .map((d) => (typeof d === "object" && d && "msg" in d ? String((d as { msg: unknown }).msg) : ""))
+      .filter(Boolean)
+      .join("; ");
+    if (msg) return `${fallback} — ${msg}`;
+  }
+  return fallback;
+}
+
 /** Evento do agente do Dynamic Island: ferramenta em uso ou texto da resposta. */
 export type IslandEvento = { tool?: string; delta?: string };
 

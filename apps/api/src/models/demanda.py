@@ -15,14 +15,14 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, String, Text, func
+from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import DateTime
 
 from ..db.base import Base
-from ._mixins import created_at_col, uuid_pk
+from ._mixins import created_at_col, updated_at_col, uuid_pk
 
 # Ciclo de vida da demanda. "aberta" nasce com o pedido; "resolvida" é o fim.
 SITUACOES = ("aberta", "em_andamento", "resolvida", "cancelada")
@@ -58,6 +58,4 @@ class Demanda(Base):
     )
 
     created_at: Mapped[datetime] = created_at_col()
-    updated_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now(), nullable=True
-    )
+    updated_at: Mapped[datetime | None] = updated_at_col()

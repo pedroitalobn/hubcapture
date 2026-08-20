@@ -69,7 +69,7 @@ export default function AdminLayout({
         </div>
         <Link
           href="/panel"
-          className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 hover:text-ink"
+          className="link-soft font-mono text-[11px] uppercase tracking-[0.04em]"
         >
           ← Meu painel
         </Link>
@@ -91,7 +91,7 @@ export default function AdminLayout({
       </nav>
 
       {/* mesma mecânica do painel: chave por rota reexecuta a entrada */}
-      <div key={pathname} className="anim-page flex flex-1 flex-col gap-6">
+      <div key={pathname} className="anim-page stagger flex flex-1 flex-col gap-6">
         {children}
       </div>
     </div>

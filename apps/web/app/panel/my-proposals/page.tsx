@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
+import { Favorito } from "@/components/Favorito";
 import { NumeroProposta } from "@/components/NumeroProposta";
 import { TextoLimitado } from "@/components/TextoLimitado";
 import { municipioPrincipal, municipioSecundario } from "@/lib/format";
@@ -32,7 +33,10 @@ function brl(v?: string | null): string {
 }
 
 export default function MinhasPropostasPage() {
-  const { selecionados } = useTerritorio();
+  const { selecionados, perfil } = useTerritorio();
+  // A exploração da captação pode estar desligada (§29/§40): sem o módulo, a
+  // lista de propostas responde com o ModuloGate — CTA para um beco não ajuda.
+  const podeExplorar = (perfil?.modulos ?? []).includes("captacao");
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -97,9 +101,11 @@ export default function MinhasPropostasPage() {
               ? "Você ainda não favoritou nenhuma proposta."
               : "Nenhuma proposta favoritada nos municípios filtrados — ajuste o território no menu lateral."}
           </p>
-          <Link href="/panel/funding" className="btn btn-primary mt-4 inline-flex">
-            Ir para as Propostas
-          </Link>
+          {podeExplorar && (
+            <Link href="/panel/funding" className="btn btn-primary mt-4 inline-flex">
+              Ir para as Propostas
+            </Link>
+          )}
         </div>
       ) : (
         <div className="card overflow-x-auto">
@@ -115,17 +121,14 @@ export default function MinhasPropostasPage() {
             </thead>
             <tbody>
               {visiveis.map((p) => (
-                <tr key={p.id} className="border-b border-hairline last:border-0 hover:bg-surface-2">
+                <tr key={p.id} className="border-b border-hairline last:border-0 row-interactive">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => void desfavoritar(p.id)}
-                        aria-label="Desfavoritar"
-                        title="Remover das minhas propostas"
-                        className="text-warn"
-                      >
-                        ★
-                      </button>
+                      <Favorito
+                        ativo
+                        onToggle={() => desfavoritar(p.id)}
+                        rotuloOn="Remover das minhas propostas"
+                      />
                       <BotaoEspelho propostaId={p.id} formato="icone" />
                     </div>
                   </td>

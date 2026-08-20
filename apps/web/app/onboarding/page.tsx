@@ -401,7 +401,7 @@ export default function OnboardingPage() {
                   <button
                     key={s.ibge}
                     onClick={() => adicionarMunicipio(s)}
-                    className="rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-2"
+                    className="rounded-lg px-3 py-2 text-left text-sm row-interactive"
                   >
                     {s.nome}
                     {s.uf ? `/${s.uf}` : ""}{" "}
