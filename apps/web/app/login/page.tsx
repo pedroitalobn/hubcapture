@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AuthShell } from "@/components/AuthShell";
-import { api, login } from "@/lib/api/client";
+import { api, entrarDemo, login, uiInfo } from "@/lib/api/client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,6 +13,29 @@ export default function LoginPage() {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+  // Acesso demo (apresentação/vendas): o botão só aparece quando a plataforma
+  // diz que a conta demo está de pé (flag pública em GET /ui).
+  const [demoDisponivel, setDemoDisponivel] = useState(false);
+  const [entrandoDemo, setEntrandoDemo] = useState(false);
+
+  useEffect(() => {
+    void uiInfo().then((info) => setDemoDisponivel(Boolean(info?.demo)));
+  }, []);
+
+  async function verDemonstracao() {
+    setErro(null);
+    setEntrandoDemo(true);
+    try {
+      await entrarDemo();
+      router.push("/panel");
+    } catch (err) {
+      setErro(
+        err instanceof Error ? err.message : "A demonstração está indisponível",
+      );
+    } finally {
+      setEntrandoDemo(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -125,6 +148,16 @@ export default function LoginPage() {
         <button type="submit" disabled={carregando} className="btn btn-primary mt-2">
           {carregando ? "Entrando…" : "Entrar"}
         </button>
+        {demoDisponivel && (
+          <button
+            type="button"
+            onClick={verDemonstracao}
+            disabled={entrandoDemo || carregando}
+            className="btn btn-ghost"
+          >
+            {entrandoDemo ? "Preparando a demonstração…" : "Ver demonstração"}
+          </button>
+        )}
       </form>
     </AuthShell>
   );

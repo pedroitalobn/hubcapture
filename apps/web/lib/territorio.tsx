@@ -36,6 +36,9 @@ export interface Perfil {
   areas: string[];
   fontes?: string[];
   modulos?: string[];
+  /** Conta de demonstração (sandbox) — o painel mostra a faixa e esconde
+   *  as ações que o backend bloqueia (zerar perfil, onboarding, senha). */
+  demo?: boolean;
 }
 
 const CHAVE = "hub_territorio_ativo";

@@ -491,6 +491,39 @@ export async function login(email: string, senha: string): Promise<void> {
   setTokens(data.access_token, data.refresh_token);
 }
 
+/** Flags públicas da plataforma (GET /ui): versão da UI + acesso demo. */
+export interface UiInfo {
+  versao: string;
+  demo?: boolean;
+}
+
+/** Lê as flags públicas (no-store — o cache heurístico serviria flag velha). */
+export async function uiInfo(): Promise<UiInfo | null> {
+  try {
+    const resp = await fetch(`${API_ORIGIN}/api/v1/ui`, { cache: "no-store" });
+    if (!resp.ok) return null;
+    return (await resp.json()) as UiInfo;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Entra na conta de DEMONSTRAÇÃO (sandbox de apresentação, sem credencial).
+ * O backend garante território/curadoria semeados a cada entrada.
+ */
+export async function entrarDemo(): Promise<void> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/auth/demo`, { method: "POST" });
+  if (!resp.ok) {
+    throw new Error("A demonstração está indisponível no momento");
+  }
+  const data = (await resp.json()) as {
+    access_token: string;
+    refresh_token: string;
+  };
+  setTokens(data.access_token, data.refresh_token);
+}
+
 /** Cadastro (self-signup). Cria a conta e já autentica. */
 export async function registrar(
   email: string,

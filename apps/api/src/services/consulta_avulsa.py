@@ -237,6 +237,7 @@ async def live_search(
     fonte: str | None = None,
     area: str | None = None,
     forcar: bool = False,
+    somente_cache: bool = False,
     **filtros,
 ):
     """Coleta ao vivo nas fontes e devolve (página, total do recorte, status).
@@ -259,6 +260,11 @@ async def live_search(
     fontes" e nenhuma fonte era consultada. Pedido explícito de atualização não
     pode devolver cache em silêncio; o cache-first continua valendo para toda
     leitura automática (que é onde ele economiza a coleta cara).
+
+    `somente_cache` é o modo da conta DEMO (services/demo.py): nenhuma fonte é
+    consultada nesta rodada — todo par sai como status 'cache' e a resposta é
+    o que o território já tem no banco. É o que garante que uma fonte fora do
+    ar nunca vira mensagem de erro numa apresentação; vence o `forcar`.
     """
     from ..models.preferencias import PreferenciasUsuario
 
@@ -296,6 +302,8 @@ async def live_search(
         await _garantir_municipio_avulso(session, usuario_id, ibge)
     for ibge, f in pares:
         session.add(AuditLog(usuario_id=usuario_id, acao="consulta_avulsa", entidade=f"{f}:{ibge}"))
+        if somente_cache:
+            continue  # demo: nunca vai à fonte — tudo responde do cache
         if not forcar:
             if await _cache_fresco(session, ibge, f):
                 continue

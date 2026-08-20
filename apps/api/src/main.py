@@ -33,6 +33,12 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         await ensure_planos()  # 4 planos padrão (free/start/pro/business)
     except Exception:  # noqa: BLE001
         logging.getLogger("hubcapture").warning("bootstrap do admin falhou", exc_info=True)
+
+    # Acesso demo (apresentação/vendas): conta + território + pacote do Class.
+    # Best-effort próprio — o demo é acessório e nunca segura o boot.
+    from .services import demo as demo_service
+
+    await demo_service.bootstrap()
     yield
 
 

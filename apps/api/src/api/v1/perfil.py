@@ -19,6 +19,7 @@ from ...schemas.perfil import (
     ResetPerfilResultado,
     VisaoGeralPerfil,
 )
+from ...services import demo as demo_service
 from ...services import perfil as service
 from ..deps import get_rls_db
 
@@ -45,6 +46,7 @@ async def zerar_perfil(
     próxima coleta recomeçar do zero. A conta continua existindo — o usuário
     cai no onboarding de novo.
     """
+    demo_service.bloquear_escrita(user)  # sandbox compartilhado: nunca zerar
     return await service.zerar(session, user)
 
 
@@ -62,6 +64,7 @@ async def remover_municipio(
     cache (propostas, repasses, obras) não é apagado: é global e compartilhado
     com outros clientes — sair do território já esconde tudo pelo RLS.
     """
+    demo_service.bloquear_escrita(user)  # o território demo é o palco da venda
     try:
         return await service.remover_municipio(session, user, ibge)
     except service.MunicipioNaoEncontrado:
