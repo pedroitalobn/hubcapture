@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import ARRAY, TEXT
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TEXT
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -29,6 +29,15 @@ class Monitoramento(Base):
     )
     ativo: Mapped[bool] = mapped_column(default=True)
     canais: Mapped[list[str] | None] = mapped_column(ARRAY(TEXT), nullable=True)
+    # QUAIS mudanças alertar (§53). NULL = os padrões do registro de critérios —
+    # é o que vale para os monitoramentos criados antes da escolha existir.
+    criterios: Mapped[list[str] | None] = mapped_column(ARRAY(TEXT), nullable=True)
+    # última fotografia da proposta (services/detect_changes.snapshot): é contra
+    # ela que a varredura compara para saber O QUE mudou, não só QUE mudou
+    snapshot: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    ultimo_alerta_em: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = created_at_col()
 
 
@@ -57,6 +66,8 @@ class MonitoramentoBusca(Base):
     fonte: Mapped[str | None] = mapped_column(String(32), nullable=True)
     ativo: Mapped[bool] = mapped_column(default=True)
     canais: Mapped[list[str] | None] = mapped_column(ARRAY(TEXT), nullable=True)
+    # critérios de escopo `territorio` (nova_proposta / oportunidade)
+    criterios: Mapped[list[str] | None] = mapped_column(ARRAY(TEXT), nullable=True)
     ultimo_alerta_em: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

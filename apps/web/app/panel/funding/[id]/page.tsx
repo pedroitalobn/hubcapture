@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
+import { CriteriosAlerta } from "@/components/CriteriosAlerta";
 import { Hint } from "@/components/Hint";
 import { AndamentoProposta } from "@/components/AndamentoProposta";
 import { EmendasProposta } from "@/components/EmendasProposta";
@@ -159,7 +160,13 @@ export default function PropostaDetalhePage() {
   const [p, setP] = useState<Proposta | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [favorita, setFavorita] = useState(false);
-  const [monitorando, setMonitorando] = useState(false);
+  // monitoramento da proposta: guarda o id e os CRITÉRIOS escolhidos (§53) —
+  // é por eles que o usuário decide o que quer ser avisado
+  const [monitor, setMonitor] = useState<{
+    id: string;
+    criterios: string[] | null;
+  } | null>(null);
+  const [configurando, setConfigurando] = useState(false);
   // Aviso da tela com TOM: os erros (favorita que não salvou, PDF que falhou)
   // não podem sair pintados de verde como se fossem sucesso.
   const [msg, setMsg] = useState<{ tom: "ok" | "erro"; texto: string } | null>(
@@ -186,12 +193,17 @@ export default function PropostaDetalhePage() {
             (f) => f.proposta_id === params.id,
           ),
         );
-      if (mon.data)
-        setMonitorando(
-          (mon.data as { proposta_id: string; ativo: boolean }[]).some(
-            (m) => m.proposta_id === params.id && m.ativo,
-          ),
-        );
+      if (mon.data) {
+        const meu = (
+          mon.data as {
+            id: string;
+            proposta_id: string;
+            ativo: boolean;
+            criterios?: string[] | null;
+          }[]
+        ).find((m) => m.proposta_id === params.id && m.ativo);
+        setMonitor(meu ? { id: meu.id, criterios: meu.criterios ?? null } : null);
+      }
     })();
   }, [params.id]);
 
@@ -216,17 +228,47 @@ export default function PropostaDetalhePage() {
   }
 
   async function monitorar() {
-    const { error } = await api.POST("/api/v1/monitors", {
+    const { data, error } = await api.POST("/api/v1/monitors", {
       // canal painel: os demais (e-mail/WhatsApp) são escolhidos na central
-      // de Alertas, onde o usuário configura o monitoramento por município
+      // de Alertas, onde o usuário configura o monitoramento por município.
+      // criterios ausente = padrões do catálogo (avisa tudo) — o multi-select
+      // logo abaixo é que apara o que não interessa.
       body: { proposta_id: params.id, canais: ["painel"] },
     });
     if (!error) {
-      setMonitorando(true);
+      const criado = data as { id?: string } | undefined;
+      if (criado?.id) setMonitor({ id: criado.id, criterios: null });
+      setConfigurando(true);
       setMsg({
         tom: "ok",
-        texto: "Monitorando: você recebe aviso quando a situação ou o prazo mudar.",
+        texto:
+          "Monitorando. Escolha abaixo quais alterações devem virar alerta.",
       });
+    }
+  }
+
+  /** Reconfigura os critérios (o POST é upsert — não há PATCH de monitoramento). */
+  async function salvarCriterios(criterios: string[]) {
+    setMonitor((prev) => (prev ? { ...prev, criterios } : prev));
+    const { error } = await api.POST("/api/v1/monitors", {
+      body: { proposta_id: params.id, canais: ["painel"], criterios },
+    });
+    if (error)
+      setMsg({
+        tom: "erro",
+        texto: "Não foi possível salvar os critérios agora — tente novamente.",
+      });
+  }
+
+  async function pararMonitoramento() {
+    if (!monitor) return;
+    const { error } = await api.DELETE("/api/v1/monitors/{monitoramento_id}", {
+      params: { path: { monitoramento_id: monitor.id } },
+    });
+    if (!error) {
+      setMonitor(null);
+      setConfigurando(false);
+      setMsg({ tom: "ok", texto: "Monitoramento encerrado." });
     }
   }
 
@@ -358,20 +400,16 @@ export default function PropostaDetalhePage() {
               não podia sair com ele: vira ação do cabeçalho, no canal painel.
               Os demais canais seguem na central de Alertas. */}
           <button
-            onClick={monitorar}
-            disabled={monitorando}
-            aria-pressed={monitorando}
+            onClick={monitor ? () => setConfigurando((v) => !v) : monitorar}
+            aria-pressed={Boolean(monitor)}
             title={
-              monitorando
-                ? "Você recebe aviso quando a situação ou o prazo mudar"
-                : "Avisar quando a situação ou o prazo mudar"
+              monitor
+                ? "Escolher quais alterações devem virar alerta"
+                : "Avisar quando algo mudar nesta proposta"
             }
-            className={cx(
-              "btn btn-sm",
-              monitorando ? "btn-accent" : "btn-ghost",
-            )}
+            className={cx("btn btn-sm", monitor ? "btn-accent" : "btn-ghost")}
           >
-            {monitorando ? "🔔 Monitorando" : "🔔 Monitorar"}
+            {monitor ? "🔔 Monitorando" : "🔔 Monitorar"}
           </button>
           {/* atalho "P": o gestor exporta sem tirar a mão do teclado */}
           <BotaoEspelho
@@ -393,6 +431,23 @@ export default function PropostaDetalhePage() {
       </header>
 
       {msg && <Aviso tom={msg.tom}>{msg.texto}</Aviso>}
+
+      {/* Critérios do alerta: monitorar deixou de ser tudo-ou-nada (§53) */}
+      {monitor && configurando && (
+        <section className="card flex flex-col gap-3 p-4">
+          <CriteriosAlerta
+            escopo="proposta"
+            valor={monitor.criterios}
+            onChange={salvarCriterios}
+            descricao="Só o que estiver marcado vira alerta desta proposta. A escolha vale para painel, e-mail e WhatsApp."
+          />
+          <div className="flex justify-end">
+            <button onClick={pararMonitoramento} className="btn btn-ghost btn-sm">
+              Parar de monitorar
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* ── FAIXA DE DESTAQUE ────────────────────────────────────────
           O topo da hierarquia: valor, empenho e a SAFRA da proposta

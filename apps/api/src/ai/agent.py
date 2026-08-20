@@ -40,9 +40,9 @@ from ..models.usuario import Usuario
 from ..services import alertas as alertas_service
 from ..services import conformidade as conformidade_service
 from ..services import contatos as contatos_service
+from ..services import criterios_alerta, llm_providers, rag
 from ..services import favoritos as favoritos_service
 from ..services import helpdesk as helpdesk_service
-from ..services import llm_providers, rag
 from ..services import modulos as modulos_service
 from ..services import monitoramentos as monitoramentos_service
 from ..services import municipios as municipios_service
@@ -837,7 +837,8 @@ def _formatar_fallback(nome: str, dado: dict[str, Any]) -> str:
     if nome in ("alertas_atualizacoes", "alertas_varredura"):
         alertas = dado.get("alertas", [])
         linhas = [
-            f"• [{a.get('tipo') or 'alerta'}] {a.get('titulo') or a.get('municipio') or ''}"
+            f"• [{criterios_alerta.rotulo(a.get('tipo'))}] "
+            f"{a.get('titulo') or a.get('municipio') or ''}"
             for a in alertas[:8]
         ]
         cab = (
