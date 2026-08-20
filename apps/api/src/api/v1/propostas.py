@@ -74,7 +74,11 @@ class FiltrosProposta(BaseModel):
     categoria: str | None = Field(
         default=None, description="pílula de categoria (saude, infraestrutura, cultura…)"
     )
-    ano: str | None = Field(default=None, max_length=4)
+    # Multi-seleção como o município: repetir o parâmetro soma safras
+    # (`?ano=2024&ano=2025`); um valor só continua valendo.
+    ano: list[str] | None = Field(
+        default=None, description="safra(s) — repita o parâmetro para várias"
+    )
     mes: str | None = Field(
         default=None,
         pattern="^(0[1-9]|1[0-2])$",

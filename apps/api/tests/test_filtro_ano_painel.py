@@ -176,3 +176,29 @@ async def test_feed_usa_ano_prop_quando_nao_ha_data_da_proposta(
         nov = await service.novidades(s, _FakeUser(u), ano="2023")
 
     assert [i.ano for i in nov.itens] == ["2023"]
+
+
+async def test_painel_soma_varias_safras(
+    seed_user, seed_municipio, seed_proposta, seed_repasse
+) -> None:
+    """Multi-seleção de safra: escolher 2024 E 2026 soma os recortes — o feed
+    traz os itens dos dois anos e os cards contam os dois, deixando 2025 fora."""
+    u = await seed_user("multisafra@a.com")
+    await seed_municipio(u, "3550308")
+    await _ligar_recebidos()
+    await seed_proposta("transferegov_ff", "p2024", "3550308", data_proposta=date(2024, 8, 1))
+    await seed_proposta("transferegov_ff", "p2025", "3550308", data_proposta=date(2025, 4, 2))
+    await seed_proposta("transferegov_ff", "p2026", "3550308", data_proposta=date(2026, 1, 9))
+    await seed_repasse("fpm", "r2024", "3550308", data_repasse="2024-02-10")
+    await seed_repasse("fpm", "r2025", "3550308", data_repasse="2025-02-10")
+
+    async with rls_session(u) as s:
+        nov = await service.novidades(s, _FakeUser(u), ano=["2024", "2026"])
+        vg = await service.visao_geral(s, _FakeUser(u), ano=["2024", "2026"])
+
+    assert {i.ano for i in nov.itens} == {"2024", "2026"}
+    assert {d.chave: d.total for d in vg.dimensoes} == {"captacao": 2, "recebidos": 1}
+    # as safras viajam para a exploração como parâmetro repetido (§33)
+    dims = {d.chave: d for d in vg.dimensoes}
+    assert dims["captacao"].href == "/panel/funding?ano=2024&ano=2026"
+    assert all(q.href.endswith("&ano=2024&ano=2026") for q in dims["captacao"].quebras)

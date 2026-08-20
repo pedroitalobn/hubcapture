@@ -10,6 +10,7 @@ Nenhuma consulta é feita "por fonte": o recorte é sempre o perfil.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Sequence
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
@@ -216,9 +217,7 @@ async def remover_municipio(
     session.add(
         AuditLog(usuario_id=usuario.id, acao="remover_municipio", entidade=f"municipio:{alvo}")
     )
-    return RemocaoMunicipioResultado(
-        ibge=alvo, buscas_monitoradas=int(buscas.rowcount or 0)
-    )
+    return RemocaoMunicipioResultado(ibge=alvo, buscas_monitoradas=int(buscas.rowcount or 0))
 
 
 async def zerar(session: AsyncSession, usuario: Usuario) -> ResetPerfilResultado:
@@ -302,21 +301,44 @@ async def zerar(session: AsyncSession, usuario: Usuario) -> ResetPerfilResultado
     )
 
 
+def _safras(ano: str | Sequence[str] | None) -> list[str]:
+    """Normaliza o filtro de safra: um ano, vários ou nenhum → lista limpa.
+
+    Multi-seleção como o município (§33): o painel soma safras repetindo o
+    parâmetro. Valor que não é AAAA é descartado aqui — a validação fina saiu
+    do router quando o parâmetro virou lista.
+    """
+    brutos = [ano] if isinstance(ano, str) else list(ano or [])
+    vistos: list[str] = []
+    for a in brutos:
+        valor = str(a).strip()
+        if len(valor) == 4 and valor.isdigit() and valor not in vistos:
+            vistos.append(valor)
+    return vistos
+
+
+def _qs_anos(anos: list[str]) -> str:
+    """Sufixo `&ano=…` repetido — a safra viaja para os links da captação."""
+    return "".join(f"&ano={a}" for a in anos)
+
+
 async def visao_geral(
     session: AsyncSession,
     usuario: Usuario,
     *,
     municipios_filtro: Municipios = None,
-    ano: str | None = None,
+    ano: str | Sequence[str] | None = None,
 ) -> VisaoGeralPerfil:
     """'Meu painel' por dimensão. `municipios_filtro` recorta o território para
     os municípios que o usuário escolheu ver AGORA (subconjunto do onboarding).
 
     `ano` recorta a safra nas dimensões que TÊM safra — captação (ano da
-    proposta) e recebidos (ano do repasse). Conformidade e obras são estado
-    ATUAL do município, não fluxo anual: continuam inteiras e se anunciam assim
+    proposta) e recebidos (ano do repasse) — e aceita VÁRIAS safras (parâmetro
+    repetido), somando os recortes. Conformidade e obras são estado ATUAL do
+    município, não fluxo anual: continuam inteiras e se anunciam assim
     (`recorte_ano=False`), em vez de fingir um recorte que não existe.
     """
+    anos = _safras(ano)
     pref = await _preferencias(session, usuario.id)
     municipios = await _municipios(session, municipios_filtro)
     # O Meu painel é INDEPENDENTE dos módulos (§40): os módulos ligam/desligam
@@ -365,8 +387,8 @@ async def visao_geral(
     # jsonb, data da proposta, nº da proposta), então quem sabe filtrar é o
     # serviço de propostas — o MESMO critério da lista e do resumo da captação.
     propostas: list[Proposta] = []
-    if ano:
-        propostas = await propostas_service.listar(session, municipio=municipios_filtro, ano=ano)
+    if anos:
+        propostas = await propostas_service.listar(session, municipio=municipios_filtro, ano=anos)
         prop_n = len(propostas)
         prop_valor = sum((p.valor_total or Decimal(0) for p in propostas), Decimal(0))
     else:
@@ -407,7 +429,7 @@ async def visao_geral(
                 total=contagem.get(slug, 0),
                 # a safra viaja junto: o card e a lista da captação mostram o
                 # mesmo recorte quando o usuário clica na quebra
-                href=f"/panel/funding?natureza_grupo={slug}" + (f"&ano={ano}" if ano else ""),
+                href=f"/panel/funding?natureza_grupo={slug}" + _qs_anos(anos),
             )
             for slug, rotulo in propostas_service.GRUPOS_NATUREZA
         ]
@@ -420,7 +442,7 @@ async def visao_geral(
         # (soma de propostas em estágios diferentes) e competia com o Panorama
         # financeiro logo abaixo, que é onde o dinheiro é lido.
         "" if prop_n else "sem propostas ainda",
-        "/panel/funding" + (f"?ano={ano}" if ano else ""),
+        "/panel/funding" + (f"?{_qs_anos(anos)[1:]}" if anos else ""),
         quebras_captacao,
     )
 
@@ -429,13 +451,13 @@ async def visao_geral(
         select(func.count(Repasse.id), func.coalesce(func.sum(Repasse.valor), 0)),
         Repasse.municipio_ibge,
     )
-    if ano:
+    if anos:
         stmt_rep = stmt_rep.where(
             or_(
-                func.extract("year", Repasse.data_repasse) == int(ano),
+                func.extract("year", Repasse.data_repasse).in_([int(a) for a in anos]),
                 and_(
                     Repasse.data_repasse.is_(None),
-                    Repasse.competencia.like(f"{ano}%"),
+                    or_(*[Repasse.competencia.like(f"{a}%") for a in anos]),
                 ),
             )
         )
@@ -543,7 +565,7 @@ async def novidades(
     *,
     limite: int = 20,
     municipios_filtro: Municipios = None,
-    ano: str | None = None,
+    ano: str | Sequence[str] | None = None,
 ) -> NovidadesPerfil:
     """Últimas novidades do território: propostas (captação) e verbas (recebidos).
 
@@ -554,12 +576,14 @@ async def novidades(
     primeiro.
 
     `ano` filtra pela safra do item — a mesma do resto do app (`ano_de` na
-    captação, ano do pagamento nos recebidos). O filtro é aplicado ANTES da
+    captação, ano do pagamento nos recebidos) — e aceita VÁRIAS safras
+    (parâmetro repetido), somando os recortes. O filtro é aplicado ANTES da
     janela (`limite`): filtrar só o que coube na janela deixava anos anteriores
     permanentemente vazios, porque a janela nunca alcançava esses itens. `anos`
     volta sempre com o território inteiro, para o filtro não perder as opções
     que ele mesmo escondeu.
     """
+    safras = set(_safras(ano))
     pref = await _preferencias(session, usuario.id)
     fontes = _fontes_do_perfil(pref)
 
@@ -592,9 +616,9 @@ async def novidades(
         if safra:
             anos_conta[safra] += 1
 
-    if ano:
-        propostas = [p for p in propostas if propostas_service.ano_de(p) == ano]
-        repasses = [r for r in repasses if _ano_do_repasse(r) == ano]
+    if safras:
+        propostas = [p for p in propostas if propostas_service.ano_de(p) in safras]
+        repasses = [r for r in repasses if _ano_do_repasse(r) in safras]
 
     itens = [
         NovidadeItem(

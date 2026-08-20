@@ -23,7 +23,12 @@ export function StatCard({ label, value, context, icon, tone }: StatCardProps) {
           {label}
         </span>
       </div>
-      <div className="mt-3 text-[28px] leading-none tracking-[-0.02em] tabular-nums">
+      {/* key = valor: quando o recorte muda (ano, município), o número
+          remonta e o anim-swap suaviza a troca em vez do corte seco */}
+      <div
+        key={value}
+        className="anim-swap mt-3 text-[28px] leading-none tracking-[-0.02em] tabular-nums"
+      >
         {value}
       </div>
       {context && (

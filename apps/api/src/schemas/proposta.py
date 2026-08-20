@@ -229,6 +229,15 @@ class ResumoAno(BaseModel):
     desembolsado: Decimal
 
 
+class ResumoMes(BaseModel):
+    """Barra do gráfico aprovado × desembolsado mês a mês (recorte de UMA safra)."""
+
+    mes: str  # "01"…"12"
+    rotulo: str  # "Janeiro"…
+    aprovado: Decimal
+    desembolsado: Decimal
+
+
 class PipelineItem(BaseModel):
     """Etapa do pipeline de propostas (agrupado por situação da fonte)."""
 
@@ -256,5 +265,7 @@ class ResumoCaptacao(BaseModel):
 
     cards: ResumoCards
     por_ano: list[ResumoAno]
+    # vazia quando o recorte não é de uma safra única — ver `propostas.resumo`
+    por_mes: list[ResumoMes] = []
     pipeline: list[PipelineItem]
     convenios_vigentes: list[ConvenioVigente]

@@ -362,6 +362,19 @@ p {
     transform: translateY(-6px);
   }
 }
+/* Troca de DADO no mesmo lugar (número de card ao mudar safra/município):
+   mais curto e mais sutil que o fade-up de entrada — o card não se move,
+   só o valor respira ao trocar. */
+@keyframes hc-swap {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 @layer components {
   /* Título de página — 500, tracking negativo, leve gradiente de tinta */
@@ -407,6 +420,10 @@ p {
   }
   .anim-pop {
     animation: hc-pop 0.35s var(--ease-spring) both;
+  }
+  /* Aplicar com `key={valor}`: o remount dispara a animação a cada troca */
+  .anim-swap {
+    animation: hc-swap 0.3s ease-out both;
   }
   /* Stagger: filhos entram em cascata (listas, grids, chips) */
   .stagger > * {
@@ -1619,6 +1636,7 @@ html[data-ui="v1"]::before {
 [data-ui="v1"] .anim-fade-up,
 [data-ui="v1"] .anim-fade-in,
 [data-ui="v1"] .anim-pop,
+[data-ui="v1"] .anim-swap,
 [data-ui="v1"] .stagger > * {
   animation: none;
 }
