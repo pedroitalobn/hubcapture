@@ -48,9 +48,7 @@ async def zerar_perfil(
     return await service.zerar(session, user)
 
 
-@router.delete(
-    "/profile/municipalities/{ibge}", response_model=RemocaoMunicipioResultado
-)
+@router.delete("/profile/municipalities/{ibge}", response_model=RemocaoMunicipioResultado)
 async def remover_municipio(
     ibge: str,
     user: Usuario = Depends(current_active_user),
@@ -79,18 +77,18 @@ _MUNICIPIO_QUERY = Query(
 
 # O filtro de ano do Meu painel vale para a página inteira (cards, gráfico e
 # feed): é a MESMA safra em todas as consultas, senão o painel mostra recortes
-# diferentes lado a lado.
+# diferentes lado a lado. Multi-seleção como o município: repetir o parâmetro
+# soma safras (`?ano=2024&ano=2025`); omitir vale todos os anos.
 _ANO_QUERY = Query(
     default=None,
-    pattern=r"^\d{4}$",
-    description="safra (ano) do recorte; omitir = todos os anos",
+    description="safra(s) do recorte — repita o parâmetro para várias; omitir = todos os anos",
 )
 
 
 @router.get("/profile/overview", response_model=VisaoGeralPerfil)
 async def visao_geral_perfil(
     municipio: list[str] | None = _MUNICIPIO_QUERY,
-    ano: str | None = _ANO_QUERY,
+    ano: list[str] | None = _ANO_QUERY,
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> VisaoGeralPerfil:
@@ -101,7 +99,7 @@ async def visao_geral_perfil(
 async def novidades_perfil(
     municipio: list[str] | None = _MUNICIPIO_QUERY,
     limite: int = Query(default=20, ge=1, le=200, description="tamanho da janela do feed"),
-    ano: str | None = _ANO_QUERY,
+    ano: list[str] | None = _ANO_QUERY,
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> NovidadesPerfil:

@@ -591,6 +591,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/siconv/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Arquivos
+         * @description Catálogo do pacote com disponibilidade ao vivo (uma sondagem por tabela).
+         *
+         *     Sonda com HEAD (e um GET de 1 byte quando o CDN recusa HEAD): confirma que o
+         *     arquivo existe e quanto pesa sem baixar nada. Arquivo indisponível vem com o
+         *     `erro` em vez de sumir da lista — "a fonte renomeou" e "a fonte caiu"
+         *     precisam ser distinguíveis na tela.
+         */
+        get: operations["listar_arquivos_api_v1_admin_siconv_files_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/siconv/load": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disparar Carga
+         * @description Dispara a carga AGORA, sem esperar a janela agendada.
+         *
+         *     `asyncio.create_task` e nunca `BackgroundTasks` (§19b): a carga leva minutos
+         *     e o `BackgroundTasks` roda antes do teardown da sessão do request, prendendo
+         *     a conexão. O trabalho pesado é I/O (download em streaming para disco) e
+         *     depois `COPY`/upsert — quem sua é o Postgres, não este processo.
+         *
+         *     A trava é o advisory lock do próprio `sweep`: dois disparos (ou um disparo
+         *     e o worker agendado) não carregam a mesma tabela em paralelo — o segundo
+         *     responde "ocupado" no log e sai.
+         */
+        post: operations["disparar_carga_api_v1_admin_siconv_load_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/siconv/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Cargas */
+        get: operations["listar_cargas_api_v1_admin_siconv_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/sources": {
         parameters: {
             query?: never;
@@ -2437,6 +2508,31 @@ export interface components {
              */
             total: number;
         };
+        /**
+         * ArquivoSiconv
+         * @description Um arquivo do pacote, com o que se sabe dele SEM baixar.
+         */
+        ArquivoSiconv: {
+            /** Carrega */
+            carrega: boolean;
+            /** Descricao */
+            descricao: string;
+            /**
+             * Disponivel
+             * @default false
+             */
+            disponivel: boolean;
+            /** Erro */
+            erro?: string | null;
+            /** Nome */
+            nome?: string | null;
+            /** Tabela */
+            tabela: string;
+            /** Tamanho */
+            tamanho?: number | null;
+            /** Url */
+            url?: string | null;
+        };
         /** AssessoriaContatosSet */
         AssessoriaContatosSet: {
             /** Contatos */
@@ -2572,6 +2668,49 @@ export interface components {
             redirect_uri?: string | null;
             /** State */
             state?: string | null;
+        };
+        /** CargaIniciada */
+        CargaIniciada: {
+            /** Detalhe */
+            detalhe: string;
+            /** Iniciada */
+            iniciada: boolean;
+            /** Tabelas */
+            tabelas: string[];
+        };
+        /**
+         * CargaSiconv
+         * @description Uma execução da carga (o que `sync_runs` guardou).
+         */
+        CargaSiconv: {
+            /** Erro */
+            erro?: string | null;
+            /** Finalizado Em */
+            finalizado_em?: string | null;
+            /** Iniciado Em */
+            iniciado_em?: string | null;
+            /**
+             * Registros
+             * @default 0
+             */
+            registros: number;
+            /** Status */
+            status: string;
+        };
+        /** CatalogoSiconv */
+        CatalogoSiconv: {
+            /** Arquivos */
+            arquivos: components["schemas"]["ArquivoSiconv"][];
+            /** Base Url */
+            base_url: string;
+            /** Escopo Propostas */
+            escopo_propostas: string;
+            /** Municipios Monitorados */
+            municipios_monitorados: number;
+            /** Tabelas Da Carga */
+            tabelas_da_carga: string[];
+            /** Ultimas Cargas */
+            ultimas_cargas: components["schemas"]["CargaSiconv"][];
         };
         /**
          * CategoriaInstitucional
@@ -4709,6 +4848,14 @@ export interface components {
             nome?: string | null;
         };
         /**
+         * PedidoCarga
+         * @description Disparo manual. Vazio = o mesmo recorte da carga agendada.
+         */
+        PedidoCarga: {
+            /** Tabelas */
+            tabelas?: string[];
+        };
+        /**
          * PerfilRead
          * @description Identidade do usuário do ponto de vista da navegação.
          */
@@ -5293,6 +5440,11 @@ export interface components {
             pipeline: components["schemas"]["PipelineItem"][];
             /** Por Ano */
             por_ano: components["schemas"]["ResumoAno"][];
+            /**
+             * Por Mes
+             * @default []
+             */
+            por_mes: components["schemas"]["ResumoMes"][];
         };
         /**
          * ResumoCards
@@ -5346,6 +5498,20 @@ export interface components {
             por_modalidade: components["schemas"]["DistribuicaoItem"][];
             /** Ranking Parlamentares */
             ranking_parlamentares: components["schemas"]["RankingParlamentar"][];
+        };
+        /**
+         * ResumoMes
+         * @description Barra do gráfico aprovado × desembolsado mês a mês (recorte de UMA safra).
+         */
+        ResumoMes: {
+            /** Aprovado */
+            aprovado: string;
+            /** Desembolsado */
+            desembolsado: string;
+            /** Mes */
+            mes: string;
+            /** Rotulo */
+            rotulo: string;
         };
         /** SecaoResumo */
         SecaoResumo: {
@@ -6954,6 +7120,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResultadoLimpeza"];
+                };
+            };
+        };
+    };
+    listar_arquivos_api_v1_admin_siconv_files_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogoSiconv"];
+                };
+            };
+        };
+    };
+    disparar_carga_api_v1_admin_siconv_load_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PedidoCarga"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CargaIniciada"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_cargas_api_v1_admin_siconv_runs_get: {
+        parameters: {
+            query?: {
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CargaSiconv"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -9276,8 +9526,8 @@ export interface operations {
                 municipio?: string[] | null;
                 /** @description tamanho da janela do feed */
                 limite?: number;
-                /** @description safra (ano) do recorte; omitir = todos os anos */
-                ano?: string | null;
+                /** @description safra(s) do recorte — repita o parâmetro para várias; omitir = todos os anos */
+                ano?: string[] | null;
             };
             header?: never;
             path?: never;
@@ -9341,8 +9591,8 @@ export interface operations {
             query?: {
                 /** @description códigos IBGE (repita o parâmetro para vários municípios) */
                 municipio?: string[] | null;
-                /** @description safra (ano) do recorte; omitir = todos os anos */
-                ano?: string | null;
+                /** @description safra(s) do recorte — repita o parâmetro para várias; omitir = todos os anos */
+                ano?: string[] | null;
             };
             header?: never;
             path?: never;
@@ -9393,7 +9643,8 @@ export interface operations {
                 qualificacao?: string | null;
                 /** @description pílula de categoria (saude, infraestrutura, cultura…) */
                 categoria?: string | null;
-                ano?: string | null;
+                /** @description safra(s) — repita o parâmetro para várias */
+                ano?: string[] | null;
                 /** @description mês do prazo final (ou da atualização na fonte) */
                 mes?: string | null;
                 /** @description busca por programa, órgão ou código */
@@ -9490,7 +9741,8 @@ export interface operations {
                 qualificacao?: string | null;
                 /** @description pílula de categoria (saude, infraestrutura, cultura…) */
                 categoria?: string | null;
-                ano?: string | null;
+                /** @description safra(s) — repita o parâmetro para várias */
+                ano?: string[] | null;
                 /** @description mês do prazo final (ou da atualização na fonte) */
                 mes?: string | null;
                 /** @description busca por programa, órgão ou código */
@@ -9581,7 +9833,8 @@ export interface operations {
                 qualificacao?: string | null;
                 /** @description pílula de categoria (saude, infraestrutura, cultura…) */
                 categoria?: string | null;
-                ano?: string | null;
+                /** @description safra(s) — repita o parâmetro para várias */
+                ano?: string[] | null;
                 /** @description mês do prazo final (ou da atualização na fonte) */
                 mes?: string | null;
                 /** @description busca por programa, órgão ou código */
@@ -9641,7 +9894,8 @@ export interface operations {
                 qualificacao?: string | null;
                 /** @description pílula de categoria (saude, infraestrutura, cultura…) */
                 categoria?: string | null;
-                ano?: string | null;
+                /** @description safra(s) — repita o parâmetro para várias */
+                ano?: string[] | null;
                 /** @description mês do prazo final (ou da atualização na fonte) */
                 mes?: string | null;
                 /** @description busca por programa, órgão ou código */
