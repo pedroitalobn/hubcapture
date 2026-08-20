@@ -32,6 +32,7 @@ interface PlanoDoPerfil {
 const CONFIRMACAO = "ZERAR";
 
 export default function ContaPage() {
+  const { perfil } = useTerritorio();
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [optin, setOptin] = useState(false);
@@ -112,6 +113,36 @@ export default function ContaPage() {
       setErroZerar(err instanceof Error ? err.message : "Erro ao zerar o perfil");
       setZerando(false);
     }
+  }
+
+  // Conta de DEMONSTRAÇÃO: é compartilhada — o backend bloqueia edição de
+  // perfil, senha, membros e a zona de perigo. Em vez de formulários que
+  // devolveriam 403, a tela explica o sandbox e aponta o caminho da conta real.
+  if (perfil?.demo) {
+    return (
+      <>
+        <header>
+          <h1 className="page-title">Minha conta</h1>
+          <p className="mt-1 text-sm text-ink-2">{email}</p>
+        </header>
+        <section className="card flex max-w-xl flex-col gap-3 p-6 text-sm text-ink-2">
+          <h2 className="label-mono">Ambiente de demonstração</h2>
+          <p>
+            Você está numa <strong className="text-ink">conta de demonstração</strong>{" "}
+            compartilhada: os dados de propostas, pareceres e empenhos são reais
+            (coletados das fontes oficiais), e as alterações de conta — perfil,
+            senha, membros e zeragem — ficam desativadas.
+          </p>
+          <p>
+            Para acompanhar o seu próprio território, crie a sua conta — o
+            onboarding leva menos de dois minutos.
+          </p>
+          <a href="/signup" className="btn btn-primary self-start">
+            Criar minha conta
+          </a>
+        </section>
+      </>
+    );
   }
 
   return (

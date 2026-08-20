@@ -100,7 +100,13 @@ async def live_search_endpoint(
 ) -> LiveSearchResponse:
     filtros = body.model_dump(exclude={"municipios_ibge"})
     rows, total, status_fontes = await service.live_search(
-        session, usuario_id=user.id, municipio=body.municipios_ibge, **filtros
+        session,
+        usuario_id=user.id,
+        municipio=body.municipios_ibge,
+        # conta demo: rodada 100% cache — fonte fora do ar nunca vira erro
+        # na apresentação, e o "Atualizar fontes" também responde do cache
+        somente_cache=bool(getattr(user, "is_demo", False)),
+        **filtros,
     )
     # mesmas dimensões da listagem, sem repetir a lista de filtros à mão (a
     # versão anterior esquecia toda dimensão nova até alguém notar na tela).

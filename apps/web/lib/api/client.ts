@@ -491,6 +491,23 @@ export async function login(email: string, senha: string): Promise<void> {
   setTokens(data.access_token, data.refresh_token);
 }
 
+/**
+ * Entra na conta de DEMONSTRAÇÃO (sandbox de apresentação, sem credencial).
+ * O backend garante território/curadoria semeados a cada entrada.
+ * Usada SÓ pela rota reservada /demo — o /login não oferece nem anuncia demo.
+ */
+export async function entrarDemo(): Promise<void> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/auth/demo`, { method: "POST" });
+  if (!resp.ok) {
+    throw new Error("A demonstração está indisponível no momento");
+  }
+  const data = (await resp.json()) as {
+    access_token: string;
+    refresh_token: string;
+  };
+  setTokens(data.access_token, data.refresh_token);
+}
+
 /** Cadastro (self-signup). Cria a conta e já autentica. */
 export async function registrar(
   email: string,

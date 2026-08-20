@@ -151,6 +151,7 @@ async def get_perfil(session: AsyncSession, usuario: Usuario) -> PerfilRead:
             chave for chave, on in ativos.items() if on and plano_gates.modulo_liberado(cfg, chave)
         ],
         plano=plano,
+        demo=bool(getattr(usuario, "is_demo", False)),
     )
 
 

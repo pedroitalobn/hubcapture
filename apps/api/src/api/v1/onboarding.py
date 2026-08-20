@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...core.users import current_active_user
 from ...models.usuario import Usuario
 from ...schemas.curadoria import OnboardingRequest, OnboardingResponse
+from ...services import demo as demo_service
 from ...services import onboarding as service
 from ...services import primeiro_sync
 from ...services.onboarding import LimitePlanoExcedido
@@ -28,6 +29,9 @@ async def onboarding(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> OnboardingResponse:
+    # conta demo: o território é semeado pela plataforma e compartilhado —
+    # refazer o onboarding trocaria o palco da apresentação de todo mundo
+    demo_service.bloquear_escrita(user)
     try:
         resp = await service.onboarding(session, usuario_id=user.id, req=body)
     except LimitePlanoExcedido as exc:

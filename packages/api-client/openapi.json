@@ -7124,6 +7124,11 @@
             "title": "Areas",
             "type": "array"
           },
+          "demo": {
+            "default": false,
+            "title": "Demo",
+            "type": "boolean"
+          },
           "fontes": {
             "default": [],
             "items": {
@@ -9336,6 +9341,11 @@
           "is_active": {
             "default": true,
             "title": "Is Active",
+            "type": "boolean"
+          },
+          "is_demo": {
+            "default": false,
+            "title": "Is Demo",
             "type": "boolean"
           },
           "is_superuser": {
@@ -12450,6 +12460,28 @@
         "summary": "Aceitar Convite",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/api/v1/auth/demo": {
+      "post": {
+        "description": "Entra na conta de DEMONSTRAÇÃO sem credencial (apresentação/vendas).\n\nA conta é criada/semeada no boot (`services/demo.ensure_demo`); aqui o\nseed roda de novo (idempotente) — se o cache ganhou dados depois do boot,\no território do demo se completa sozinho no próximo clique. Desligável em\nruntime pela chave `demo_ativo` do painel admin.",
+        "operationId": "login_demo_api_v1_auth_demo_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPair"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Login Demo",
+        "tags": [
+          "auth"
         ]
       }
     },

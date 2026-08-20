@@ -177,12 +177,16 @@ function PainelShell({ children }: { children: React.ReactNode }) {
               ))}
             </div>
           )}
-          <Link
-            href="/onboarding"
-            className="link-soft mt-3 inline-block font-mono text-[11px] uppercase tracking-[0.04em]"
-          >
-            Ajustar perfil →
-          </Link>
+          {/* Conta demo: o território é semeado pela plataforma e o backend
+              bloqueia o onboarding — sem o link, sem beco sem saída. */}
+          {!perfil?.demo && (
+            <Link
+              href="/onboarding"
+              className="link-soft mt-3 inline-block font-mono text-[11px] uppercase tracking-[0.04em]"
+            >
+              Ajustar perfil →
+            </Link>
+          )}
         </div>
 
         <nav className="flex flex-col gap-1">
@@ -226,6 +230,19 @@ function PainelShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="mx-auto flex w-full min-w-0 max-w-[1600px] flex-1 flex-col py-2">
+        {/* Faixa do sandbox: dados são REAIS (cache de captação); o que é
+            simulado são as ações de conta — o backend bloqueia o destrutivo. */}
+        {perfil?.demo && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-hairline px-4 py-2.5 text-sm text-ink-2">
+            <span>
+              <strong className="text-ink">Ambiente de demonstração</strong> —
+              dados reais de captação; alterações de conta ficam desativadas.
+            </span>
+            <Link href="/signup" className="link-soft font-mono text-[11px] uppercase tracking-[0.04em]">
+              Criar minha conta →
+            </Link>
+          </div>
+        )}
         {/* `key={pathname}` remonta o wrapper a cada navegação, então a
             animação de entrada REEXECUTA — sem isso o layout persiste no App
             Router e a transição só aconteceria no primeiro carregamento.

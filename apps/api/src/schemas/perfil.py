@@ -55,6 +55,9 @@ class PerfilRead(BaseModel):
     # módulos EFETIVOS: ativos na plataforma (§29) ∩ incluídos no plano (§39)
     modulos: list[str] = []
     plano: PlanoPerfil | None = None  # None = sem plano atribuído (sem restrição)
+    # conta de DEMONSTRAÇÃO: o painel mostra a faixa de sandbox e esconde as
+    # ações bloqueadas (zerar perfil, refazer onboarding, trocar senha)
+    demo: bool = False
 
 
 class ResetPerfilResultado(BaseModel):
