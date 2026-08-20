@@ -14,12 +14,15 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { api, enviarMidiaAjuda } from "@/lib/api/client";
+import { api, enviarMidiaAjuda, mensagemDaFalha } from "@/lib/api/client";
 import { corpoEhHtml, markdownLeveParaHtml } from "@/components/CorpoConteudo";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Skeleton } from "@/components/Skeleton";
 import { Aviso } from "@/components/ui";
+
+/** Teto do PATCH de salvar: request que pendura vira erro, não espera infinita. */
+const TIMEOUT_SALVAR_MS = 60_000;
 
 interface Categoria {
   id: string;
@@ -168,34 +171,52 @@ export default function AdminHelpdeskEditorPage() {
     return [...grupos.entries()];
   }, [catalogo]);
 
+  /**
+   * Salva o conteúdo (e, opcionalmente, publica/despublica).
+   *
+   * O `finally` NÃO é decoração: sem ele, uma promessa REJEITADA (API fora do
+   * ar, request abortado, resposta que não completa) deixava o botão preso em
+   * "Salvando…" para sempre, sem mensagem nenhuma — o "salva eternamente e
+   * nada acontece". O timeout fecha o outro lado do mesmo buraco: request que
+   * pendura vira erro visível em vez de espera infinita.
+   */
   async function salvar(publicado?: boolean) {
     setSalvando(true);
     setMsg(null);
-    const { data, error } = await api.PATCH("/api/v1/admin/class/articles/{artigo_id}", {
-      params: { path: { artigo_id: params.id } },
-      body: {
-        titulo,
-        resumo: resumo || null,
-        corpo: corpo ?? "",
-        categoria_id: categoriaId || null,
-        modulo_id: moduloId || null,
-        ordem,
-        ...(publicado === undefined ? {} : { publicado }),
-      },
-    });
-    setSalvando(false);
-    if (error || !data) {
-      setMsg("Falha ao salvar.");
-      return;
+    const abortar = new AbortController();
+    const relogio = setTimeout(() => abortar.abort(), TIMEOUT_SALVAR_MS);
+    try {
+      const { data, error } = await api.PATCH("/api/v1/admin/class/articles/{artigo_id}", {
+        params: { path: { artigo_id: params.id } },
+        signal: abortar.signal,
+        body: {
+          titulo,
+          resumo: resumo || null,
+          corpo: corpo ?? "",
+          categoria_id: categoriaId || null,
+          modulo_id: moduloId || null,
+          ordem,
+          ...(publicado === undefined ? {} : { publicado }),
+        },
+      });
+      if (error || !data) {
+        setMsg(mensagemDaFalha(error, "Falha ao salvar"));
+        return;
+      }
+      setArtigo(data as Artigo);
+      setMsg(
+        publicado === true
+          ? "Publicado — o artigo (e os hints dele) já aparecem no painel."
+          : publicado === false
+            ? "Despublicado — voltou a rascunho."
+            : "Salvo.",
+      );
+    } catch (err) {
+      setMsg(mensagemDaFalha(err, "Falha ao salvar"));
+    } finally {
+      clearTimeout(relogio);
+      setSalvando(false);
     }
-    setArtigo(data as Artigo);
-    setMsg(
-      publicado === true
-        ? "Publicado — o artigo (e os hints dele) já aparecem no painel."
-        : publicado === false
-          ? "Despublicado — voltou a rascunho."
-          : "Salvo.",
-    );
   }
 
   async function excluirArtigo() {
@@ -209,23 +230,27 @@ export default function AdminHelpdeskEditorPage() {
   async function adicionarVideoUrl(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
-    const { error } = await api.POST("/api/v1/admin/class/articles/{artigo_id}/media", {
-      params: { path: { artigo_id: params.id } },
-      body: {
-        tipo: "video",
-        url: urlVideo,
-        titulo: tituloVideo || null,
-        orientacao: orientacaoUrl,
-        ordem: 0,
-      },
-    });
-    if (error) {
-      setMsg("Falha ao adicionar o vídeo.");
-      return;
+    try {
+      const { error } = await api.POST("/api/v1/admin/class/articles/{artigo_id}/media", {
+        params: { path: { artigo_id: params.id } },
+        body: {
+          tipo: "video",
+          url: urlVideo,
+          titulo: tituloVideo || null,
+          orientacao: orientacaoUrl,
+          ordem: 0,
+        },
+      });
+      if (error) {
+        setMsg(mensagemDaFalha(error, "Falha ao adicionar o vídeo"));
+        return;
+      }
+      setUrlVideo("");
+      setTituloVideo("");
+      await carregar();
+    } catch (err) {
+      setMsg(mensagemDaFalha(err, "Falha ao adicionar o vídeo"));
     }
-    setUrlVideo("");
-    setTituloVideo("");
-    await carregar();
   }
 
   async function enviarArquivo(e: React.FormEvent) {
@@ -258,15 +283,19 @@ export default function AdminHelpdeskEditorPage() {
     e.preventDefault();
     if (!chaveNova) return;
     setMsg(null);
-    const { error } = await api.PUT("/api/v1/admin/class/hints", {
-      body: { chave: chaveNova, artigo_id: params.id, ativo: true },
-    });
-    if (error) {
-      setMsg("Falha ao plantar o hint.");
-      return;
+    try {
+      const { error } = await api.PUT("/api/v1/admin/class/hints", {
+        body: { chave: chaveNova, artigo_id: params.id, ativo: true },
+      });
+      if (error) {
+        setMsg(mensagemDaFalha(error, "Falha ao plantar o hint"));
+        return;
+      }
+      setChaveNova("");
+      await carregar();
+    } catch (err) {
+      setMsg(mensagemDaFalha(err, "Falha ao plantar o hint"));
     }
-    setChaveNova("");
-    await carregar();
   }
 
   async function alternarHint(h: HintAdmin) {

@@ -748,7 +748,7 @@ export interface paths {
          * Catalogo Criterios
          * @description Catálogo dos critérios de alerta — é ele que alimenta o multi-select.
          *
-         *     Critério novo aparece na tela sem alteração no front (§52).
+         *     Critério novo aparece na tela sem alteração no front (§53).
          */
         get: operations["catalogo_criterios_api_v1_alerts_criteria_get"];
         put?: never;

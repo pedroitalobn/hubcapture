@@ -1,4 +1,4 @@
-"""Critérios de alerta (§52): o usuário escolhe QUAIS mudanças quer receber.
+"""Critérios de alerta (§53): o usuário escolhe QUAIS mudanças quer receber.
 
 Antes, monitorar era tudo-ou-nada. Aqui se garante o contrário: cada critério
 só alerta quando há fato novo DELE, e critério desligado não emite nada.

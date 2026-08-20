@@ -1,7 +1,7 @@
 """Varredura do usuário: mudanças monitoradas + futuras propostas + oportunidades.
 
 Três detecções, todas na sessão RLS do próprio usuário e todas recortadas pelos
-CRITÉRIOS que o usuário escolheu ao configurar o monitoramento (§52) — sem isso
+CRITÉRIOS que o usuário escolheu ao configurar o monitoramento (§53) — sem isso
 o painel alertava toda e qualquer alteração:
 
 0. **mudança na proposta monitorada** — para cada `monitoramentos` ativo,

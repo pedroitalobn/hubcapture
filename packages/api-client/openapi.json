@@ -11897,7 +11897,7 @@
     },
     "/api/v1/alerts/criteria": {
       "get": {
-        "description": "Catálogo dos critérios de alerta — é ele que alimenta o multi-select.\n\nCritério novo aparece na tela sem alteração no front (§52).",
+        "description": "Catálogo dos critérios de alerta — é ele que alimenta o multi-select.\n\nCritério novo aparece na tela sem alteração no front (§53).",
         "operationId": "catalogo_criterios_api_v1_alerts_criteria_get",
         "parameters": [
           {

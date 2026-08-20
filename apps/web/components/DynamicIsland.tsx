@@ -79,7 +79,7 @@ const TOOL_CHIP: Record<string, string> = {
   pesquisar_propostas: "pesquisa",
 };
 
-// Rótulo curto do morph. As chaves são os CRITÉRIOS de alerta (§52) — critério
+// Rótulo curto do morph. As chaves são os CRITÉRIOS de alerta (§53) — critério
 // novo sem entrada aqui cai em "atualização", nunca em chave crua na tela.
 const TIPO_ALERTA: Record<string, string> = {
   status: "situação mudou", // legado (alertas anteriores ao registro)

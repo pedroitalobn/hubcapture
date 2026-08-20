@@ -25,7 +25,7 @@ export interface CriterioAlerta {
 
 /**
  * Rótulos de retaguarda. O catálogo de verdade vem de `GET /alerts/criteria`
- * (registro do backend, §52) — este mapa só evita chip sem nome enquanto a
+ * (registro do backend, §53) — este mapa só evita chip sem nome enquanto a
  * chamada não voltou, e cobre o tipo LEGADO `status` dos alertas antigos.
  */
 export const ALERTA_TIPO_LABEL: Record<string, string> = {

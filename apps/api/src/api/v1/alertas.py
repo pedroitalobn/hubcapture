@@ -40,7 +40,7 @@ async def catalogo_criterios(
 ) -> list[CriterioAlertaRead]:
     """Catálogo dos critérios de alerta — é ele que alimenta o multi-select.
 
-    Critério novo aparece na tela sem alteração no front (§52)."""
+    Critério novo aparece na tela sem alteração no front (§53)."""
     if escopo is not None and escopo not in criterios_service.ESCOPOS:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
