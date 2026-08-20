@@ -8,14 +8,22 @@ gestor tem em mãos (id do plano de ação, nº da proposta, id do plano de
 trabalho). Mesmo eixo do `pareceres.py`: coleta POR PROPOSTA, não por município,
 então não implementa o Protocol de `base.py`.
 
-Duas maneiras de responder, nesta ordem:
+Três maneiras de responder, nesta ordem:
 
 1. **rota do módulo** (`_especiais.descobrir`) — a emenda completa: número,
    ano, tipo, autor com partido/UF e os valores empenhado/pago;
-2. **registro-fonte que já temos** (`emendas_do_registro_fonte`) — o plano de
-   ação do módulo especiais carrega `nome_parlamentar_emenda_plano_acao` e o
-   valor do repasse. É menos, mas é offline e instantâneo: sem rota calibrada o
-   painel ainda mostra de quem é a emenda, em vez de uma seção vazia.
+2. **o próprio plano de ação na fonte** (`_emenda_do_plano_acao`) — o módulo
+   `transferenciasespeciais` NÃO publica tabela de emenda: das suas 14 tabelas,
+   nenhuma tem o assunto. E não precisa — na transferência especial a emenda é
+   atributo do plano de ação, que traz autor, ano, código formatado, número e
+   sequencial (`*_emenda_parlamentar_plano_acao`). Buscar a linha por
+   `id_plano_acao` devolve a emenda OFICIAL, não um resumo;
+3. **registro-fonte que já temos** (`emendas_do_registro_fonte`) — os mesmos
+   campos, quando o plano de ação já está salvo com a proposta. É offline e
+   instantâneo: serve quando a fonte está fora do ar.
+
+Só levanta erro se as três falharem — seção vazia com dado disponível é pior
+que lenta.
 
 A rota NÃO é constante (§27): nome de rota chutado foi o que quebrou em
 produção. Overrides manuais no painel admin (`emendas_esp_endpoint` /
@@ -32,7 +40,7 @@ from ._http import ConnectorClientError, get_json
 
 SOURCE_ID = "transferegov_emenda"
 
-BASE_PADRAO = "https://api-publica.transferegov.gestao.gov.br/especiais/"
+BASE_PADRAO = "https://api.transferegov.gestao.gov.br/transferenciasespeciais/"
 
 # assunto da rota — o nome tem que falar de emenda
 PALAVRAS_ROTA = ("emenda",)
@@ -40,6 +48,9 @@ PALAVRAS_ROTA = ("emenda",)
 # Chaves de consulta em ORDEM DE ESPECIFICIDADE: o id do plano de ação é o elo
 # forte (é a entidade que a emenda financia); o nº da proposta é o que o gestor
 # tem em mãos e serve de retaguarda.
+#: tabela do plano de ação — onde a emenda realmente mora neste módulo
+ENDPOINT_PLANO_ACAO = "plano_acao_especial"
+
 CHAVES = (
     "id_plano_acao",
     "numero_plano_acao",
@@ -131,10 +142,15 @@ class EmendaEspecialConnector:
 
         rota = await self.rota()
         if rota is None:
+            # Sem rota dedicada: a emenda é atributo do plano de ação. Só é erro
+            # se nem o plano de ação responder.
+            do_plano = await self._emenda_do_plano_acao(disponiveis)
+            if do_plano:
+                return do_plano
             raise ConnectorClientError(
-                "não achei no módulo especiais uma rota de emenda que filtre por "
-                f"{', '.join(disponiveis)} — calibre `emendas_esp_endpoint` e "
-                "`emendas_esp_chave` no painel admin (Fontes)"
+                "não achei no módulo especiais rota de emenda nem plano de ação que "
+                f"filtre por {', '.join(disponiveis)} — calibre `emendas_esp_endpoint` "
+                "e `emendas_esp_chave` no painel admin (Fontes)"
             )
 
         valor = disponiveis.get(rota.chave)
@@ -161,10 +177,43 @@ class EmendaEspecialConnector:
                 break
         return coletados
 
-    async def health_check(self) -> bool:
-        """Saudável = consigo descobrir (ou já tenho calibrada) a rota da emenda."""
+    async def _emenda_do_plano_acao(self, disponiveis: dict[str, str]) -> list[dict]:
+        """A emenda lida da linha do plano de ação na fonte (`id_plano_acao`).
+
+        Devolve só os campos de emenda/parlamentar — o resto da linha é o plano
+        de ação, que o painel já mostra em outra seção; repetir tudo aqui faria
+        a tela dizer duas vezes a mesma coisa.
+        """
+        valor = disponiveis.get("id_plano_acao")
+        if not valor:
+            return []
         try:
-            return (await self.rota()) is not None
+            dados = await get_json(
+                await self.base(),
+                ENDPOINT_PLANO_ACAO,
+                {"id_plano_acao": f"eq.{valor}", "limit": "1"},
+            )
+        except Exception:  # noqa: BLE001 — fonte fora: cai no registro-fonte
+            return []
+        linhas = [d for d in dados if isinstance(d, dict)] if isinstance(dados, list) else []
+        if not linhas:
+            return []
+        emenda = emendas_do_registro_fonte(linhas[0])
+        for e in emenda:
+            e["_origem"] = "plano_acao_especial"
+        return emenda
+
+    async def health_check(self) -> bool:
+        """Saudável = a rota da emenda existe OU o plano de ação responde.
+
+        Este módulo não publica tabela de emenda; exigir rota aqui pintaria de
+        vermelho uma fonte que entrega a emenda todo dia pelo plano de ação.
+        """
+        try:
+            if (await self.rota()) is not None:
+                return True
+            dados = await get_json(await self.base(), ENDPOINT_PLANO_ACAO, {"limit": "1"})
+            return bool(dados)
         except Exception:  # noqa: BLE001
             return False
 

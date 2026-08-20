@@ -75,7 +75,9 @@ class Settings(BaseSettings):
     emendas_api_key: str = ""  # chave-api-dados (Portal da Transparência) — obrigatória
     # Demais fontes (prontas para receber as APIs — calibrar rota/campos).
     # API pública do TransfereGov (docs por módulo em <base>/<modulo>/docs).
-    transferegov_esp_base_url: str = "https://api-publica.transferegov.gestao.gov.br/especiais/"
+    transferegov_esp_base_url: str = (
+        "https://api.transferegov.gestao.gov.br/transferenciasespeciais/"
+    )
     transferegov_esp_endpoint: str = ""  # vazio = autodescoberta (OpenAPI)
     transferegov_esp_ibge_field: str = ""
     transferegov_voluntarias_base_url: str = (
@@ -83,7 +85,7 @@ class Settings(BaseSettings):
     )
     transferegov_voluntarias_endpoint: str = ""  # vazio = autodescoberta (OpenAPI)
     transferegov_voluntarias_ibge_field: str = ""
-    transferegov_disc_csv_url: str = "http://repositorio.dados.gov.br/seges/detru/"
+    transferegov_disc_csv_url: str = "https://repositorio.dados.gov.br/seges/detru/"
     fns_consulta_url: str = "https://consultafns.saude.gov.br/"
     # Backend REST do ConsultaFNS (fonte primária; scraping segue como 2ª fonte)
     fns_api_url: str = "https://consultafns.saude.gov.br/recursos/"

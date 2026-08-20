@@ -29,11 +29,11 @@ from ._http import ConnectorClientError, get_json
 
 SOURCE_ID = "transferegov_empenho"
 
-BASE_PADRAO = "https://api-publica.transferegov.gestao.gov.br/especiais/"
+BASE_PADRAO = "https://api.transferegov.gestao.gov.br/transferenciasespeciais/"
 # Rota informada pela documentação do módulo. Fica como PADRÃO (e não como
 # palpite a descobrir) porque é dado real; a descoberta no spec ainda roda para
 # confirmar o nome do parâmetro de filtro.
-ENDPOINT_PADRAO = "empenhos_especiais"
+ENDPOINT_PADRAO = "empenho_especial"
 
 PALAVRAS_ROTA = ("empenho",)
 

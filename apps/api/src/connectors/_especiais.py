@@ -28,6 +28,8 @@ from dataclasses import dataclass
 
 import httpx
 
+from . import _egress
+
 TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 
 # paginação — nomes usados por cada dialeto
@@ -102,6 +104,21 @@ async def carregar_spec(base_url: str) -> dict | None:
                     break
     except Exception:  # noqa: BLE001 — fonte fora do ar: quem chama decide o fallback
         spec = None
+
+    # Sem spec pela rota direta, a causa provável não é "fonte fora do ar" e sim
+    # o bloqueio do IP deste servidor (403 de desafio da Cloudflare) — ver
+    # `_egress`. Sem esta segunda tentativa a descoberta devolveria None e TODO
+    # o enriquecimento da proposta (emenda, parecer, empenho) ficaria vazio com
+    # a fonte no ar.
+    if spec is None:
+        for caminho in ("", "openapi.json"):
+            try:
+                corpo = await _egress.get_json(base_url.rstrip("/") + "/" + caminho)
+            except Exception:  # noqa: BLE001 — sem egresso configurado, segue vazio
+                continue
+            if isinstance(corpo, dict) and (corpo.get("paths") or corpo.get("definitions")):
+                spec = corpo
+                break
 
     _spec_cache[base_url] = spec
     return spec
