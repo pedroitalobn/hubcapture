@@ -199,16 +199,6 @@ export function AndamentoProposta({ proposta, podeConsultarFonte = true }: Props
                   <TextoExpansivel texto={ev.texto} linhas={3} />
                 </div>
               )}
-              {ev.url && (
-                <a
-                  href={ev.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn btn-ghost btn-sm mt-2"
-                >
-                  Visualizar ↗
-                </a>
-              )}
             </li>
           ))}
         </ol>

@@ -53,6 +53,10 @@ ABA_EMPENHOS = (
     f"{BASE}/ForwardAction.do?modulo=proposta"
     "&path=/SelecionarObjeto/SelecionarObjeto.do?destino=ManterEmpenhoNovoSiafi"
 )
+ABA_REPASSES = (
+    f"{BASE}/ForwardAction.do?modulo=proposta"
+    "&path=/SelecionarConvenio/SelecionarConvenio.do?destino=ListarRepasses"
+)
 
 TIMEOUT_MS = 60_000
 MAX_PARECERES = 30  # trava: uma proposta não tem centenas de pareceres
@@ -109,6 +113,50 @@ _RE_EMPENHO = re.compile(
     r"(?P<situacao>.+?)\s+"
     r"(?P<data>\d{2}/\d{2}/\d{4})"
 )
+
+
+# Cabeçalho do detalhe do instrumento — os rótulos que respondem as três
+# perguntas do gestor (empenhou? publicou? pagou?) mais a referência SIAFI.
+_RE_EXECUCAO = (
+    ("situacao_instrumento", re.compile(r"Situação\s+(?!no SIAFI|de Contratação)([A-Za-zÀ-ú ]{3,40}?)\s+Empenhado\b")),
+    ("empenhado_flag", re.compile(r"Empenhado\s+(sim|não)\b", re.I)),
+    ("situacao_publicacao", re.compile(r"Publicação\s+([A-Za-zÀ-ú ]{3,40}?)\s+(?:Regime|Código|Situação|Número)")),
+    ("situacao_siafi", re.compile(r"Situação no SIAFI\s+(.{3,60}?)\s+Subtipo")),
+    ("instrumento", re.compile(r"Código do Instrumento\s+(\d+)")),
+    ("processo", re.compile(r"Número do Processo\s+(\S+)")),
+)
+
+# Resumo da "Listagem de Repasses": total, desembolsado (o PAGO de verdade),
+# a desembolsar e a data do último desembolso (ausente quando nada saiu).
+_RE_REPASSES = re.compile(
+    r"Valor Total de Repasse \(R\$\)\s*Valor Desembolsado \(R\$\)\s*"
+    r"Valor a desembolsar \(R\$\)\s*Data do último desembolso\s*"
+    r"R\$\s*(?P<total>[\d.]+,\d{2})\s*R\$\s*(?P<pago>[\d.]+,\d{2})\s*"
+    r"R\$\s*(?P<a_pagar>[\d.]+,\d{2})\s*(?P<ultimo>\d{2}/\d{2}/\d{4})?"
+)
+
+
+def _parse_execucao(corpo: str) -> dict:
+    plano = re.sub(r"\s+", " ", corpo)
+    saida = {}
+    for chave, rx in _RE_EXECUCAO:
+        m = rx.search(plano)
+        if m:
+            saida[chave] = m.group(1).strip()
+    return saida
+
+
+def _parse_repasses(corpo: str) -> dict:
+    m = _RE_REPASSES.search(re.sub(r"\s+", " ", corpo))
+    if not m:
+        return {}
+    c = m.groupdict()
+    return {
+        "valor_repasse_total": c["total"],
+        "valor_desembolsado": c["pago"],
+        "valor_a_desembolsar": c["a_pagar"],
+        "data_ultimo_desembolso": c["ultimo"],
+    }
 
 
 class ParecerSiconvConnector:
@@ -253,7 +301,13 @@ class ParecerSiconvConnector:
                 pg = await (await browser.new_context(locale="pt-BR")).new_page()
                 await pg.goto(ENTRADA, wait_until="networkidle", timeout=TIMEOUT_MS)
                 for id_proposta in alvos:
-                    item: dict = {"pareceres": [], "empenhos": [], "erro": None}
+                    item: dict = {
+                        "pareceres": [],
+                        "empenhos": [],
+                        "execucao": {},
+                        "repasses": {},
+                        "erro": None,
+                    }
                     resultado[id_proposta] = item
                     try:
                         await pg.goto(
@@ -263,6 +317,7 @@ class ParecerSiconvConnector:
                         )
                         if "Login" in (await pg.title()):
                             raise RuntimeError("sessão de acesso livre caiu no login")
+                        item["execucao"] = _parse_execucao(await pg.inner_text("body"))
                         await pg.goto(
                             ABA_PARECERES, wait_until="networkidle", timeout=TIMEOUT_MS
                         )
@@ -316,6 +371,15 @@ class ParecerSiconvConnector:
                                         "_scraper": "playwright",
                                     }
                                 )
+                            # o PAGO de verdade mora na listagem de repasses do
+                            # instrumento (desembolso ao convenente) — o pacote
+                            # público só o publica ~mensalmente
+                            await pg.goto(
+                                ABA_REPASSES, wait_until="networkidle", timeout=TIMEOUT_MS
+                            )
+                            item["repasses"] = _parse_repasses(
+                                await pg.inner_text("body")
+                            )
                     except Exception as exc:  # noqa: BLE001 — uma proposta não derruba o lote
                         item["erro"] = f"{type(exc).__name__}: {exc}"
                         log.warning(

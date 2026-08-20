@@ -76,6 +76,13 @@ type Proposta = {
     /** "Publicado" — a fonte manda ora valor, ora estado; a tela usa os dois. */
     valor_publicado?: string | null;
     situacao_publicacao?: string | null;
+    /** dados VIVOS do webapp do SIconv (enriquecimento diário) */
+    webapp?: {
+      data_ultimo_desembolso?: string | null;
+      valor_a_desembolsar?: string | null;
+      situacao_siafi?: string | null;
+      instrumento?: string | null;
+    } | null;
     saldo_conta?: string | null;
     ano?: string | number | null;
     ente_recebedor?: string | null;
@@ -563,7 +570,9 @@ export default function PropostaDetalhePage() {
               <>
                 <span className="value-hero">{formatBRL(valorPago)}</span>
                 <span className="num mt-1 text-xs text-ink-3">
-                  efetivamente pago ao ente
+                  {p.execucao?.webapp?.data_ultimo_desembolso
+                    ? `último desembolso em ${p.execucao.webapp.data_ultimo_desembolso}`
+                    : "efetivamente pago ao ente"}
                 </span>
               </>
             ) : (

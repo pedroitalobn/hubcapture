@@ -127,6 +127,52 @@ async def _carimbar(session, proposta_id, situacao: str) -> None:
     )
 
 
+def _decimal_br(v: str | None) -> str | None:
+    """"8.048.614,32" → "8048614.32" (texto pronto p/ jsonb; None passa)."""
+    if not v:
+        return None
+    return v.replace(".", "").replace(",", ".")
+
+
+async def _carimbar_execucao_webapp(session, proposta_id, item: dict) -> None:
+    """O que o webapp respondeu sobre EXECUÇÃO vai para `propostas.execucao`.
+
+    São os três dados do header do detalhe — publicou? empenhou? pagou? — na
+    versão VIVA (a listagem de repasses muda no dia do desembolso; o pacote
+    público, ~mensal). `valor_pago` aqui SOBRESCREVE o do pacote de propósito:
+    é o mesmo dado, mais novo.
+    """
+    ex = item.get("execucao") or {}
+    rep = item.get("repasses") or {}
+    payload = {
+        "valor_pago": _decimal_br(rep.get("valor_desembolsado")),
+        "situacao_publicacao": ex.get("situacao_publicacao"),
+        "webapp": {
+            "situacao_instrumento": ex.get("situacao_instrumento"),
+            "empenhado": ex.get("empenhado_flag"),
+            "situacao_siafi": ex.get("situacao_siafi"),
+            "instrumento": ex.get("instrumento"),
+            "processo": ex.get("processo"),
+            "valor_repasse_total": _decimal_br(rep.get("valor_repasse_total")),
+            "valor_a_desembolsar": _decimal_br(rep.get("valor_a_desembolsar")),
+            "data_ultimo_desembolso": rep.get("data_ultimo_desembolso"),
+        },
+    }
+    payload["webapp"] = {k: v for k, v in payload["webapp"].items() if v}
+    payload = {k: v for k, v in payload.items() if v}
+    if not payload:
+        return
+    import json
+
+    await session.execute(
+        text(
+            "UPDATE propostas SET execucao = coalesce(execucao, '{}'::jsonb) || "
+            "CAST(:novo AS jsonb) WHERE id = :id"
+        ),
+        {"novo": json.dumps(payload, ensure_ascii=False), "id": proposta_id},
+    )
+
+
 async def _enriquecer_siconv(session, fila: list[dict]) -> dict[str, int]:
     """Universo discricionárias/legais: webapp em lote (uma sessão de browser)."""
     from ..connectors import pareceres_siconv
@@ -188,6 +234,7 @@ async def _enriquecer_siconv(session, fila: list[dict]) -> dict[str, int]:
             ]
             if empenhos:
                 await upsert_empenhos(session, empenhos)
+            await _carimbar_execucao_webapp(session, p["id"], item)
             await _carimbar(session, p["id"], p["situacao"])
             await session.commit()
             totais["propostas"] += 1
