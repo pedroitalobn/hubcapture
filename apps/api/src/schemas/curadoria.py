@@ -5,7 +5,9 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from ._papel import papel_ou_none
 
 
 # ── Onboarding ──────────────────────────────────────────────────────────────
@@ -26,6 +28,8 @@ class OnboardingRequest(BaseModel):
     telefone_wpp: str | None = None
     optin_wpp: bool | None = None
     canais_alerta: list[str] = ["painel"]
+
+    _papel = field_validator("papel", mode="before")(papel_ou_none)
 
 
 class OnboardingResponse(BaseModel):
