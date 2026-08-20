@@ -29,11 +29,19 @@ def versao_ui_efetiva(valor: str | None) -> str:
 
 class UiRead(BaseModel):
     versao: str
+    # Acesso demo disponível? Decide se o /login mostra "Ver demonstração".
+    # Público como a versão da UI: precisa valer ANTES de existir sessão.
+    demo: bool = False
 
 
 @router.get("/ui", response_model=UiRead)
 async def get_ui(response: Response, session: AsyncSession = Depends(get_platform_db)) -> UiRead:
+    from ...services import demo as demo_service
+
     # sem no-store o navegador serve a versão anterior do cache heurístico e a
     # troca no painel parece não ter surtido efeito por horas
     response.headers["Cache-Control"] = "no-store"
-    return UiRead(versao=versao_ui_efetiva(await config_service.get_valor(session, "ui_versao")))
+    return UiRead(
+        versao=versao_ui_efetiva(await config_service.get_valor(session, "ui_versao")),
+        demo=await demo_service.demo_disponivel(),
+    )

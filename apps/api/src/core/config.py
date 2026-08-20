@@ -48,6 +48,22 @@ class Settings(BaseSettings):
     admin_email: str = ""
     admin_password: str = ""
 
+    # ── Acesso demo (apresentação/vendas) ───────────────────────────────────
+    # Conta compartilhada de DEMONSTRAÇÃO: sandbox sobre dados REAIS do cache.
+    # Criada no boot (services/demo.ensure_demo). `demo_password` vazio gera
+    # senha aleatória — a entrada é pelo botão "Ver demonstração" (POST
+    # /auth/demo), não por credencial digitada.
+    demo_email: str = "demo@hubcapture.app"
+    demo_password: str = ""
+    # Território do demo: CSV de códigos IBGE. Vazio = autodescoberta (os
+    # municípios com MAIS propostas no cache — sempre demo com dado na tela).
+    demo_ibges: str = ""
+    # on|off — o painel admin sobrescreve em runtime (chave `demo_ativo`).
+    demo_ativo: str = "on"
+    # Vídeo do pacote inicial do Class (YouTube/Vimeo/mp4). Vazio = os artigos
+    # semeados nascem sem vídeo; o admin pluga a URL e re-seed anexa.
+    demo_video_url: str = ""
+
     # ── Cache-first ──────────────────────────────────────────────────────────
     cache_ttl_seconds: int = 21600  # 6h
     # Coleta que não deixou linha no cache (município sem registros na fonte, ou

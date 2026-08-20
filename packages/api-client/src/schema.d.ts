@@ -885,6 +885,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Login Demo
+         * @description Entra na conta de DEMONSTRAÇÃO sem credencial (apresentação/vendas).
+         *
+         *     A conta é criada/semeada no boot (`services/demo.ensure_demo`); aqui o
+         *     seed roda de novo (idempotente) — se o cache ganhou dados depois do boot,
+         *     o território do demo se completa sozinho no próximo clique. Desligável em
+         *     runtime pela chave `demo_ativo` do painel admin.
+         */
+        post: operations["login_demo_api_v1_auth_demo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/forgot-password": {
         parameters: {
             query?: never;
@@ -4866,6 +4891,11 @@ export interface components {
              */
             areas: string[];
             /**
+             * Demo
+             * @default false
+             */
+            demo: boolean;
+            /**
              * Fontes
              * @default []
              */
@@ -5648,6 +5678,11 @@ export interface components {
         };
         /** UiRead */
         UiRead: {
+            /**
+             * Demo
+             * @default false
+             */
+            demo: boolean;
             /** Versao */
             versao: string;
         };
@@ -5726,6 +5761,11 @@ export interface components {
              * @default true
              */
             is_active: boolean;
+            /**
+             * Is Demo
+             * @default false
+             */
+            is_demo: boolean;
             /**
              * Is Superuser
              * @default false
@@ -7645,6 +7685,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    login_demo_api_v1_auth_demo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenPair"];
                 };
             };
         };

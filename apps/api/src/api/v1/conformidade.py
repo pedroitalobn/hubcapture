@@ -38,6 +38,9 @@ async def conformidade_sync(
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> dict:
+    # conta demo: coleta ativa é no-op (o cache responde; erro nunca aparece)
+    if getattr(user, "is_demo", False):
+        return {"gravados": 0, "demo": True}
     try:
         n = await service.sync_municipio(
             session, usuario_id=user.id, municipio_ibge=body.municipio_ibge

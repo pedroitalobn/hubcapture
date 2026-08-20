@@ -122,6 +122,10 @@ async def sync_repasses(
     session: AsyncSession = Depends(get_rls_db),
 ) -> dict:
     fontes = body.fontes or FONTES_PADRAO
+    # conta demo: sync ativo vira no-op de sucesso — o painel segue servindo o
+    # cache e nenhuma fonte instável aparece como erro na apresentação
+    if getattr(user, "is_demo", False):
+        return {"gravados": 0, "fontes": list(fontes), "demo": True}
     try:
         total = await service.sync_municipio(
             session,

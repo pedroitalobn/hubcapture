@@ -14,6 +14,7 @@ from ...core.security import get_jwt_strategy, get_refresh_strategy
 from ...core.users import UserManager, current_active_user, fastapi_users, get_user_manager
 from ...models.usuario import Usuario
 from ...schemas.user import UserCreate, UserRead, UserUpdate
+from ...services import demo as demo_service
 
 router = APIRouter(tags=["auth"])
 
@@ -32,10 +33,13 @@ router.include_router(
     fastapi_users.get_verify_router(UserRead),
     prefix="/auth",
 )
-# GET/PATCH /users/me (perfil + trocar senha logado) · admin em /users/{id}
+# GET/PATCH /users/me (perfil + trocar senha logado) · admin em /users/{id}.
+# A conta demo é COMPARTILHADA: trocar senha/e-mail dela quebraria o sandbox
+# para o próximo cliente — escrita bloqueada (leitura segue livre).
 router.include_router(
     fastapi_users.get_users_router(UserRead, UserUpdate),
     prefix="/users",
+    dependencies=[Depends(demo_service.negar_escrita_demo)],
 )
 
 
@@ -65,6 +69,29 @@ async def login(
     from ...core.bootstrap import promover_se_admin_env
 
     await promover_se_admin_env(user)
+    access = await get_jwt_strategy().write_token(user)
+    refresh = await get_refresh_strategy().write_token(user)
+    return TokenPair(access_token=access, refresh_token=refresh)
+
+
+@router.post("/auth/demo", response_model=TokenPair)
+async def login_demo() -> TokenPair:
+    """Entra na conta de DEMONSTRAÇÃO sem credencial (apresentação/vendas).
+
+    A conta é criada/semeada no boot (`services/demo.ensure_demo`); aqui o
+    seed roda de novo (idempotente) — se o cache ganhou dados depois do boot,
+    o território do demo se completa sozinho no próximo clique. Desligável em
+    runtime pela chave `demo_ativo` do painel admin.
+    """
+    if not await demo_service.esta_ativo():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="DEMO_INDISPONIVEL"
+        )
+    user = await demo_service.ensure_demo()
+    if user is None or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="DEMO_INDISPONIVEL"
+        )
     access = await get_jwt_strategy().write_token(user)
     refresh = await get_refresh_strategy().write_token(user)
     return TokenPair(access_token=access, refresh_token=refresh)

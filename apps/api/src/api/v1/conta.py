@@ -19,10 +19,13 @@ from ...core.users import current_active_user
 from ...models.usuario import Usuario
 from ...schemas.planos import MembroConviteCreate, MembroRead
 from ...services import gestao_usuarios as service
+from ...services.demo import negar_escrita_demo
 from ...services.gestao_usuarios import LimiteMembrosExcedido
 from ..deps import get_platform_db
 
-router = APIRouter(tags=["conta"])
+# Conta demo: listar membros passa; convidar/revogar (escrita) responde 403 —
+# ninguém convida gente de verdade para dentro da conta compartilhada.
+router = APIRouter(tags=["conta"], dependencies=[Depends(negar_escrita_demo)])
 
 
 @router.get("/account/members", response_model=list[MembroRead])

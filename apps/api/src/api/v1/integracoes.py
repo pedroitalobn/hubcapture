@@ -25,14 +25,17 @@ from ...schemas.contato import (
 )
 from ...services import contatos_sync as sync_service
 from ...services import integracoes_contatos as service
+from ...services.demo import negar_escrita_demo
 from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
 # Mesmo módulo da agenda: desligou contatos, some também a conexão de agendas.
+# Conta demo: leitura passa, escrita (conectar/sincronizar/desconectar) é 403 —
+# um visitante não pode plugar a agenda PESSOAL dele no tenant compartilhado.
 router = APIRouter(
     tags=["integracoes"],
     prefix="/integrations/contacts",
-    dependencies=[Depends(require_modulo("contatos"))],
+    dependencies=[Depends(require_modulo("contatos")), Depends(negar_escrita_demo)],
 )
 
 

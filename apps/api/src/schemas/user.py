@@ -17,6 +17,8 @@ class UserRead(schemas.BaseUser[uuid.UUID]):
     plano_id: uuid.UUID | None = None
     telefone_wpp: str | None = None
     optin_wpp: bool = False
+    # conta de demonstração (sandbox de apresentação) — services/demo.py
+    is_demo: bool = False
 
 
 class UserCreate(schemas.BaseUserCreate):
