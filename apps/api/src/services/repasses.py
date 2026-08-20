@@ -33,10 +33,12 @@ from ..schemas.repasse import (
     SerieAnoEmendas,
     VisaoGeral,
 )
+from . import fontes as fontes_service
 from . import municipios
 from ._sync import registrar_sync
 from ._territorio import Municipios
 from ._territorio import filtrar as filtrar_municipio
+from .fontes import Fontes
 
 _UPSERT_FIELDS = (
     "municipio_ibge",
@@ -68,7 +70,7 @@ async def listar(
     session: AsyncSession,
     *,
     municipio: Municipios = None,
-    fonte: str | None = None,
+    fonte: Fontes = None,
     inicio: date | None = None,
     fim: date | None = None,
     emenda: bool | None = None,
@@ -79,8 +81,7 @@ async def listar(
     stmt = select(Repasse)
     # um município, vários (recorte do painel) ou nenhum (todo o território)
     stmt = filtrar_municipio(stmt, Repasse.municipio_ibge, municipio)
-    if fonte:
-        stmt = stmt.where(Repasse.fonte == fonte)
+    stmt = fontes_service.filtrar(stmt, Repasse.fonte, fonte)
     if inicio:
         stmt = stmt.where(Repasse.data_repasse >= inicio)
     if fim:

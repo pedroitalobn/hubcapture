@@ -22,10 +22,12 @@ from ..models.audit_log import AuditLog
 from ..models.municipio_interesse import MunicipioInteresse
 from ..models.obra import Obra
 from ..schemas.obra import ObraCanonica, ObraRead, ObrasResumo, SituacaoResumo
+from . import fontes as fontes_service
 from . import municipios
 from ._sync import registrar_sync
 from ._territorio import Municipios
 from ._territorio import filtrar as filtrar_municipio
+from .fontes import Fontes
 
 FONTES_PADRAO = ("sismob", "simec", "caixa")
 
@@ -57,14 +59,13 @@ async def listar(
     session: AsyncSession,
     *,
     municipio: Municipios = None,
-    fonte: str | None = None,
+    fonte: Fontes = None,
     situacao: str | None = None,
 ) -> list[Obra]:
     stmt = select(Obra)
     # um município, vários (recorte do painel) ou nenhum (todo o território)
     stmt = filtrar_municipio(stmt, Obra.municipio_ibge, municipio)
-    if fonte:
-        stmt = stmt.where(Obra.fonte == fonte)
+    stmt = fontes_service.filtrar(stmt, Obra.fonte, fonte)
     if situacao:
         stmt = stmt.where(Obra.situacao == situacao)
     stmt = stmt.order_by(Obra.municipio_ibge, Obra.fonte, Obra.nome.nullslast())

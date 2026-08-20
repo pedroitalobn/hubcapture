@@ -87,19 +87,29 @@ _ANO_QUERY = Query(
 )
 
 
+_FONTE_QUERY = Query(
+    default=None,
+    description="recorte de fonte: grupo ('transferegov', 'fns') ou connector id (repetível)",
+)
+
+
 @router.get("/profile/overview", response_model=VisaoGeralPerfil)
 async def visao_geral_perfil(
     municipio: list[str] | None = _MUNICIPIO_QUERY,
+    fonte: list[str] | None = _FONTE_QUERY,
     ano: str | None = _ANO_QUERY,
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> VisaoGeralPerfil:
-    return await service.visao_geral(session, user, municipios_filtro=municipio, ano=ano)
+    return await service.visao_geral(
+        session, user, municipios_filtro=municipio, fontes_filtro=fonte, ano=ano
+    )
 
 
 @router.get("/profile/feed", response_model=NovidadesPerfil)
 async def novidades_perfil(
     municipio: list[str] | None = _MUNICIPIO_QUERY,
+    fonte: list[str] | None = _FONTE_QUERY,
     limite: int = Query(default=20, ge=1, le=200, description="tamanho da janela do feed"),
     ano: str | None = _ANO_QUERY,
     user: Usuario = Depends(current_active_user),
@@ -112,5 +122,5 @@ async def novidades_perfil(
     não só os que sobraram das novidades mais recentes.
     """
     return await service.novidades(
-        session, user, limite=limite, municipios_filtro=municipio, ano=ano
+        session, user, limite=limite, municipios_filtro=municipio, fontes_filtro=fonte, ano=ano
     )

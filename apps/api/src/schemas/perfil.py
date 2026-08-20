@@ -43,6 +43,20 @@ class PlanoPerfil(BaseModel):
     modulos: list[str] | None = None  # módulos incluídos no plano; None = todos
 
 
+class GrupoFontePerfil(BaseModel):
+    """Uma fonte no vocabulário do USUÁRIO ("TransfereGov"), não do connector.
+
+    O seletor de fonte do trilho lateral consome isto: sem ele, a tela teria de
+    guardar sua própria cópia de quais connectors formam cada grupo — e essa
+    cópia envelhece calada no dia em que uma fonte é ligada ou desligada
+    (`services/fontes.py` é a fonte de verdade).
+    """
+
+    chave: str  # "transferegov" | "fns"
+    label: str
+    descricao: str | None = None
+
+
 class PerfilRead(BaseModel):
     """Identidade do usuário do ponto de vista da navegação."""
 
@@ -51,6 +65,9 @@ class PerfilRead(BaseModel):
     municipios: list[MunicipioPerfil] = []
     areas: list[str] = []
     fontes: list[str] = []
+    # os mesmos `fontes` acima, agrupados como o usuário os escolheu — é o que o
+    # seletor do trilho lateral oferece
+    fontes_grupos: list[GrupoFontePerfil] = []
     monitorar_ativo: bool = True
     # módulos EFETIVOS: ativos na plataforma (§29) ∩ incluídos no plano (§39)
     modulos: list[str] = []

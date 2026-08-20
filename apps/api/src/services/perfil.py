@@ -33,6 +33,7 @@ from ..models.usuario import Usuario
 from ..schemas.perfil import (
     AnoDisponivel,
     DimensaoResumo,
+    GrupoFontePerfil,
     MunicipioPerfil,
     NovidadeItem,
     NovidadesPerfil,
@@ -50,6 +51,7 @@ from . import plano_gates
 from . import propostas as propostas_service
 from ._territorio import Municipios
 from ._territorio import filtrar as filtrar_municipio
+from .fontes import Fontes
 
 # Áreas de interesse → fontes que as servem. Usado só como RECORTE do feed de
 # novidades (a navegação continua profile-centric; fonte nunca vira aba).
@@ -132,6 +134,20 @@ async def _config_plano(
     return cfg, resumo
 
 
+def _grupos_do_perfil(fontes: list[str]) -> list[GrupoFontePerfil]:
+    """Connector ids do perfil → grupos, na ordem do catálogo (sem duplicar).
+
+    O usuário nunca precisou saber que TransfereGov são cinco connectors; o
+    seletor do painel fala a mesma língua do onboarding.
+    """
+    escolhidos = {fontes_service.grupo_de(f) for f in fontes}
+    return [
+        GrupoFontePerfil(chave=g["chave"], label=g["label"], descricao=g["descricao"])
+        for g in fontes_service.catalogo()
+        if g["chave"] in escolhidos
+    ]
+
+
 async def get_perfil(session: AsyncSession, usuario: Usuario) -> PerfilRead:
     pref = await _preferencias(session, usuario.id)
     ativos = await modulos_service.ativos(session)
@@ -145,6 +161,7 @@ async def get_perfil(session: AsyncSession, usuario: Usuario) -> PerfilRead:
         # fonte escolhida no onboarding que o plano deixou de incluir some da
         # navegação (o dado gravado fica; um upgrade a traz de volta)
         fontes=plano_gates.filtrar_fontes(cfg, fontes_pref),
+        fontes_grupos=_grupos_do_perfil(plano_gates.filtrar_fontes(cfg, fontes_pref)),
         monitorar_ativo=bool(pref.monitorar_ativo) if pref else True,
         modulos=[
             chave for chave, on in ativos.items() if on and plano_gates.modulo_liberado(cfg, chave)
@@ -216,9 +233,7 @@ async def remover_municipio(
     session.add(
         AuditLog(usuario_id=usuario.id, acao="remover_municipio", entidade=f"municipio:{alvo}")
     )
-    return RemocaoMunicipioResultado(
-        ibge=alvo, buscas_monitoradas=int(buscas.rowcount or 0)
-    )
+    return RemocaoMunicipioResultado(ibge=alvo, buscas_monitoradas=int(buscas.rowcount or 0))
 
 
 async def zerar(session: AsyncSession, usuario: Usuario) -> ResetPerfilResultado:
@@ -307,6 +322,7 @@ async def visao_geral(
     usuario: Usuario,
     *,
     municipios_filtro: Municipios = None,
+    fontes_filtro: Fontes = None,
     ano: str | None = None,
 ) -> VisaoGeralPerfil:
     """'Meu painel' por dimensão. `municipios_filtro` recorta o território para
@@ -329,9 +345,21 @@ async def visao_geral(
     cfg, _ = await _config_plano(session, usuario)
     ativos = {chave: on and plano_gates.modulo_liberado(cfg, chave) for chave, on in ativos.items()}
 
-    def _no_territorio(stmt: Select[Any], coluna: ColumnElement[Any]) -> Select[Any]:
-        """Recorte do painel sobre o que o RLS já limitou ao território."""
-        return filtrar_municipio(stmt, coluna, municipios_filtro)
+    def _no_territorio(
+        stmt: Select[Any],
+        coluna: ColumnElement[Any],
+        coluna_fonte: ColumnElement[Any] | None = None,
+    ) -> Select[Any]:
+        """Recorte do painel sobre o que o RLS já limitou ao território.
+
+        Os dois recortes do trilho lateral valem aqui: município e FONTE. Sem o
+        segundo, filtrar a fonte mudaria as telas dos eixos e deixaria os cards
+        do Meu painel contando outra coisa — dois números para o mesmo recorte.
+        """
+        stmt = filtrar_municipio(stmt, coluna, municipios_filtro)
+        if coluna_fonte is not None:
+            stmt = fontes_service.filtrar(stmt, coluna_fonte, fontes_filtro)
+        return stmt
 
     dimensoes: list[DimensaoResumo] = []
 
@@ -366,7 +394,9 @@ async def visao_geral(
     # serviço de propostas — o MESMO critério da lista e do resumo da captação.
     propostas: list[Proposta] = []
     if ano:
-        propostas = await propostas_service.listar(session, municipio=municipios_filtro, ano=ano)
+        propostas = await propostas_service.listar(
+            session, municipio=municipios_filtro, fonte=fontes_filtro, ano=ano
+        )
         prop_n = len(propostas)
         prop_valor = sum((p.valor_total or Decimal(0) for p in propostas), Decimal(0))
     else:
@@ -378,6 +408,7 @@ async def visao_geral(
                         func.coalesce(func.sum(Proposta.valor_total), 0),
                     ).where(Proposta.excluido_em.is_(None)),  # zerada não conta
                     Proposta.municipio_ibge,
+                    Proposta.fonte,
                 )
             )
         ).one()
@@ -393,6 +424,7 @@ async def visao_geral(
                         _no_territorio(
                             select(Proposta).where(Proposta.excluido_em.is_(None)),
                             Proposta.municipio_ibge,
+                            Proposta.fonte,
                         )
                     )
                 )
@@ -428,6 +460,7 @@ async def visao_geral(
     stmt_rep = _no_territorio(
         select(func.count(Repasse.id), func.coalesce(func.sum(Repasse.valor), 0)),
         Repasse.municipio_ibge,
+        Repasse.fonte,
     )
     if ano:
         stmt_rep = stmt_rep.where(
@@ -476,7 +509,9 @@ async def visao_geral(
 
     # Obras (execução) — destaque é o que está em andamento.
     obras_n = (
-        await session.execute(_no_territorio(select(func.count(Obra.id)), Obra.municipio_ibge))
+        await session.execute(
+            _no_territorio(select(func.count(Obra.id)), Obra.municipio_ibge, Obra.fonte)
+        )
     ).scalar_one()
     if ativos.get("obras") or obras_n:
         obras_exec = (
@@ -484,6 +519,7 @@ async def visao_geral(
                 _no_territorio(
                     select(func.count(Obra.id)).where(Obra.situacao == "em_execucao"),
                     Obra.municipio_ibge,
+                    Obra.fonte,
                 )
             )
         ).scalar_one()
@@ -543,6 +579,7 @@ async def novidades(
     *,
     limite: int = 20,
     municipios_filtro: Municipios = None,
+    fontes_filtro: Fontes = None,
     ano: str | None = None,
 ) -> NovidadesPerfil:
     """Últimas novidades do território: propostas (captação) e verbas (recebidos).
@@ -562,6 +599,12 @@ async def novidades(
     """
     pref = await _preferencias(session, usuario.id)
     fontes = _fontes_do_perfil(pref)
+    # recorte do trilho lateral: INTERSECÇÃO com o do perfil — o filtro escolhe
+    # quais das fontes acompanhadas ver agora, nunca acrescenta uma que o
+    # usuário não acompanha (mesma disciplina do recorte de território)
+    escolhidas = fontes_service.recorte(fontes_filtro)
+    if escolhidas:
+        fontes = (fontes & set(escolhidas)) if fontes else set(escolhidas)
 
     stmt_p = (
         select(Proposta)

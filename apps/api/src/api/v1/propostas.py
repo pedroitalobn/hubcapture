@@ -55,7 +55,12 @@ class FiltrosProposta(BaseModel):
     uf: str | None = Field(
         default=None, min_length=2, max_length=2, description="unidade federativa"
     )
-    fonte: str | None = None
+    # Recorte de fonte: irmão do de município — o trilho lateral escolhe QUAIS
+    # das fontes do perfil entram no painel agora, e vale para todas as lentes.
+    fonte: list[str] | None = Field(
+        default=None,
+        description="grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
+    )
     area: str | None = Field(default=None, description="área de interesse (saude, educacao…)")
     situacao: str | None = None
     modalidade: str | None = Field(default=None, description="tipo de instrumento")

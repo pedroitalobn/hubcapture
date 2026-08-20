@@ -2230,3 +2230,49 @@ discricionárias/legais**: a base sai inteira, um ZIP por tabela do modelo, em
   caminho real (carga global sem tenant → leitura sob a sessão RLS do gestor,
   com ordem por `data_proposta`, filtro de safra e o território de outro
   usuário fora da lista mesmo no escopo nacional).
+
+## 52. Seletor de FONTE no trilho lateral — o segundo recorte global
+
+O trilho do painel tinha só o recorte de TERRITÓRIO (§33). A fonte só existia
+como dropdown local da Captação, alimentado pelas facetas — não valia para as
+outras lentes, sumia no modo acompanhamento e não tinha como responder "quero
+ver só o que veio do TransfereGov" no painel inteiro. Agora fonte é recorte
+global, irmão do de município, no mesmo lugar e com o mesmo comportamento.
+
+Isto **não** contradiz a §19: o que ela proíbe é fonte virar ABA de navegação.
+Aqui a fonte segue detalhe de ingestão — é só mais um filtro sobre o mesmo
+território, como o município.
+
+- **Vocabulário do usuário na entrada** (`services/fontes.py`): `Fontes` +
+  `recorte()` traduzem GRUPO ("transferegov", "fns") → connector ids com o mesmo
+  `expandir()` do onboarding. A tela nunca guarda a lista de connectors de cada
+  grupo — essa cópia envelheceria calada ao ligar/desligar uma fonte. Por isso
+  `GET /profile` passou a devolver `fontes_grupos` (chave/label/descrição), que
+  é o que o seletor consome.
+- **`fonte` virou repetível** onde `municipio` já era: `GET /proposals`
+  (+facets/summary/report.csv), `GET /transfers`, `GET /works`,
+  `GET /profile/overview`, `GET /profile/feed` e `POST /proposals/live-search`.
+  Um valor único continua valendo, e connector id cru também (perfil antigo,
+  chamada direta).
+- **Duas armadilhas, as duas com regressão em `test_recorte_fonte.py`**:
+  1. Escolha que expande para NADA não pode virar "sem recorte" — devolveria
+     tudo justamente quando se pediu um subconjunto. `fontes.condicao()` gera
+     condição vazia, e `consulta_avulsa._fontes_alvo` mantém o nome não
+     reconhecido para ele falhar em `get_connector` e virar incidente visível,
+     em vez de silenciosamente coletar TODAS as fontes.
+  2. O recorte só manda DENTRO do universo que o seletor oferece
+     (`HABILITADAS`). Linha de fonte fora dele passa intacta — senão escolher
+     "TransfereGov" zeraria obras e conformidade, que vêm de connectors que o
+     seletor sequer lista. Fonte conhecida que não produz proposta (FNS produz
+     repasse) devolve vazio na captação, sem erro inventado.
+- **Web**: `lib/fontes.tsx` (`FonteProvider` + `useFontes`, persistido em
+  `hub_fontes_ativas`, aninhado no `TerritorioProvider` para reusar o perfil já
+  carregado — uma chamada só) e `components/FonteFiltro.tsx` no trilho, abaixo
+  do território. O dropdown "Fonte" SAIU dos filtros locais da Captação (era o
+  mesmo recorte em dois controles, como aconteceu com o município na §33); a
+  tela anuncia o recorte ativo no cabeçalho e aponta para o menu lateral.
+- **Hidratação**: o recorte nasce do `localStorage`, que o servidor não tem.
+  Texto condicionado só a ele diverge entre o HTML do servidor e o 1º render do
+  cliente (React #418, pego rodando o app em navegador). Como no território, o
+  anúncio do recorte também depende do que veio do PERFIL — vazio nos dois lados
+  até o fetch chegar. Zerar o perfil limpa os dois recortes salvos.

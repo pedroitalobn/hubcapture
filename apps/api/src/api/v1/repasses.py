@@ -52,7 +52,10 @@ async def listar_repasses(
     municipio: list[str] | None = Query(
         default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
     ),
-    fonte: str | None = Query(default=None),
+    fonte: list[str] | None = Query(
+        default=None,
+        description="grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
+    ),
     inicio: date | None = Query(default=None),
     fim: date | None = Query(default=None),
     emenda: bool | None = Query(default=None, description="só repasses de emenda"),

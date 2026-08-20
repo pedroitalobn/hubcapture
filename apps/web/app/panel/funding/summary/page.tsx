@@ -7,6 +7,7 @@ import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
 import { formatBRL, formatDate } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
+import { paramFonte, useFontes } from "@/lib/fontes";
 
 type Opcao = { valor: string; rotulo: string; total: number };
 type Facetas = Record<string, Opcao[]>;
@@ -67,6 +68,7 @@ function num(v?: string | null): number {
 
 export default function ResumoCaptacaoPage() {
   const { selecionados } = useTerritorio();
+  const { selecionadas: fontesSelecionadas } = useFontes();
   const [resumo, setResumo] = useState<ResumoCaptacao | null>(null);
   const [facetas, setFacetas] = useState<Facetas>({});
   const [filtros, setFiltros] = useState<Filtros>(VAZIO);
@@ -77,6 +79,7 @@ export default function ResumoCaptacaoPage() {
     const query = {
       ...Object.fromEntries(Object.entries(filtros).filter(([, v]) => v !== "")),
       municipio: paramMunicipio(selecionados), // recorte de território do painel
+      fonte: paramFonte(fontesSelecionadas), // recorte de fonte (mesmo trilho)
     };
     const [r, f] = await Promise.all([
       api.GET("/api/v1/proposals/summary", { params: { query } as never }),
@@ -85,7 +88,7 @@ export default function ResumoCaptacaoPage() {
     if (r.data) setResumo(r.data as ResumoCaptacao);
     if (f.data) setFacetas(f.data as Facetas);
     setCarregando(false);
-  }, [filtros, selecionados]);
+  }, [filtros, selecionados, fontesSelecionadas]);
 
   useEffect(() => {
     void carregar();

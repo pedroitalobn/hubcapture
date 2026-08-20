@@ -36,7 +36,10 @@ class LiveSearchRequest(BaseModel):
         default=None, description="códigos IBGE (7 dígitos) do recorte escolhido no painel"
     )
     uf: str | None = Field(default=None, min_length=2, max_length=2)
-    fonte: str | None = None
+    fonte: list[str] | None = Field(
+        default=None,
+        description="grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
+    )
     area: str | None = None
     situacao: str | None = None
     modalidade: str | None = Field(default=None, description="tipo de instrumento")

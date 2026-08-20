@@ -29,12 +29,20 @@ export interface MunicipioPerfil {
   modo?: string;
 }
 
+export interface GrupoFontePerfil {
+  chave: string;
+  label: string;
+  descricao?: string | null;
+}
+
 export interface Perfil {
   nome?: string | null;
   papel?: string | null;
   municipios: MunicipioPerfil[];
   areas: string[];
   fontes?: string[];
+  /** As mesmas `fontes`, no vocabulário do usuário — alimenta o seletor de fonte. */
+  fontes_grupos?: GrupoFontePerfil[];
   modulos?: string[];
 }
 

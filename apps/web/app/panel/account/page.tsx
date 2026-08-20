@@ -14,6 +14,7 @@ import {
   rotuloMunicipio,
   useTerritorio,
 } from "@/lib/territorio";
+import { limparFontesSalvas } from "@/lib/fontes";
 
 interface Membro {
   convite_id: string;
@@ -106,6 +107,7 @@ export default function ContaPage() {
       await zerarPerfil();
       // o recorte salvo aponta para um território que não existe mais
       limparTerritorioSalvo();
+      limparFontesSalvas();
       // recarga dura: perfil, menu e caches de tela nascem de novo no onboarding
       window.location.href = "/onboarding";
     } catch (err) {
@@ -250,6 +252,7 @@ function MeuTerritorio() {
       await removerMunicipio(ibge);
       // o recorte salvo pode apontar para o município que saiu
       limparTerritorioSalvo();
+      limparFontesSalvas();
       await recarregar();
       setConfirmar(null);
     } catch (err) {

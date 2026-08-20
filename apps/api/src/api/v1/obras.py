@@ -28,7 +28,10 @@ async def listar_obras(
     municipio: list[str] | None = Query(
         default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
     ),
-    fonte: str | None = Query(default=None),
+    fonte: list[str] | None = Query(
+        default=None,
+        description="grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias",
+    ),
     situacao: str | None = Query(default=None),
     session: AsyncSession = Depends(get_rls_db),
 ) -> list[ObraRead]:

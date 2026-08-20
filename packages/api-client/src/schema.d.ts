@@ -591,6 +591,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/siconv/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Arquivos
+         * @description Catálogo do pacote com disponibilidade ao vivo (uma sondagem por tabela).
+         *
+         *     Sonda com HEAD (e um GET de 1 byte quando o CDN recusa HEAD): confirma que o
+         *     arquivo existe e quanto pesa sem baixar nada. Arquivo indisponível vem com o
+         *     `erro` em vez de sumir da lista — "a fonte renomeou" e "a fonte caiu"
+         *     precisam ser distinguíveis na tela.
+         */
+        get: operations["listar_arquivos_api_v1_admin_siconv_files_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/siconv/load": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disparar Carga
+         * @description Dispara a carga AGORA, sem esperar a janela agendada.
+         *
+         *     `asyncio.create_task` e nunca `BackgroundTasks` (§19b): a carga leva minutos
+         *     e o `BackgroundTasks` roda antes do teardown da sessão do request, prendendo
+         *     a conexão. O trabalho pesado é I/O (download em streaming para disco) e
+         *     depois `COPY`/upsert — quem sua é o Postgres, não este processo.
+         *
+         *     A trava é o advisory lock do próprio `sweep`: dois disparos (ou um disparo
+         *     e o worker agendado) não carregam a mesma tabela em paralelo — o segundo
+         *     responde "ocupado" no log e sai.
+         */
+        post: operations["disparar_carga_api_v1_admin_siconv_load_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/siconv/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Cargas */
+        get: operations["listar_cargas_api_v1_admin_siconv_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/sources": {
         parameters: {
             query?: never;
@@ -2437,6 +2508,31 @@ export interface components {
              */
             total: number;
         };
+        /**
+         * ArquivoSiconv
+         * @description Um arquivo do pacote, com o que se sabe dele SEM baixar.
+         */
+        ArquivoSiconv: {
+            /** Carrega */
+            carrega: boolean;
+            /** Descricao */
+            descricao: string;
+            /**
+             * Disponivel
+             * @default false
+             */
+            disponivel: boolean;
+            /** Erro */
+            erro?: string | null;
+            /** Nome */
+            nome?: string | null;
+            /** Tabela */
+            tabela: string;
+            /** Tamanho */
+            tamanho?: number | null;
+            /** Url */
+            url?: string | null;
+        };
         /** AssessoriaContatosSet */
         AssessoriaContatosSet: {
             /** Contatos */
@@ -2572,6 +2668,49 @@ export interface components {
             redirect_uri?: string | null;
             /** State */
             state?: string | null;
+        };
+        /** CargaIniciada */
+        CargaIniciada: {
+            /** Detalhe */
+            detalhe: string;
+            /** Iniciada */
+            iniciada: boolean;
+            /** Tabelas */
+            tabelas: string[];
+        };
+        /**
+         * CargaSiconv
+         * @description Uma execução da carga (o que `sync_runs` guardou).
+         */
+        CargaSiconv: {
+            /** Erro */
+            erro?: string | null;
+            /** Finalizado Em */
+            finalizado_em?: string | null;
+            /** Iniciado Em */
+            iniciado_em?: string | null;
+            /**
+             * Registros
+             * @default 0
+             */
+            registros: number;
+            /** Status */
+            status: string;
+        };
+        /** CatalogoSiconv */
+        CatalogoSiconv: {
+            /** Arquivos */
+            arquivos: components["schemas"]["ArquivoSiconv"][];
+            /** Base Url */
+            base_url: string;
+            /** Escopo Propostas */
+            escopo_propostas: string;
+            /** Municipios Monitorados */
+            municipios_monitorados: number;
+            /** Tabelas Da Carga */
+            tabelas_da_carga: string[];
+            /** Ultimas Cargas */
+            ultimas_cargas: components["schemas"]["CargaSiconv"][];
         };
         /**
          * CategoriaInstitucional
@@ -3663,6 +3802,23 @@ export interface components {
             /** Status */
             status: string;
         };
+        /**
+         * GrupoFontePerfil
+         * @description Uma fonte no vocabulário do USUÁRIO ("TransfereGov"), não do connector.
+         *
+         *     O seletor de fonte do trilho lateral consome isto: sem ele, a tela teria de
+         *     guardar sua própria cópia de quais connectors formam cada grupo — e essa
+         *     cópia envelhece calada no dia em que uma fonte é ligada ou desligada
+         *     (`services/fontes.py` é a fonte de verdade).
+         */
+        GrupoFontePerfil: {
+            /** Chave */
+            chave: string;
+            /** Descricao */
+            descricao?: string | null;
+            /** Label */
+            label: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -4061,8 +4217,11 @@ export interface components {
              * @description pílula de categoria (saude, infraestrutura, cultura…)
              */
             categoria?: string | null;
-            /** Fonte */
-            fonte?: string | null;
+            /**
+             * Fonte
+             * @description grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias
+             */
+            fonte?: string[] | null;
             /**
              * Forcar
              * @description ignora o cache e consulta as fontes agora (ação explícita)
@@ -4709,6 +4868,14 @@ export interface components {
             nome?: string | null;
         };
         /**
+         * PedidoCarga
+         * @description Disparo manual. Vazio = o mesmo recorte da carga agendada.
+         */
+        PedidoCarga: {
+            /** Tabelas */
+            tabelas?: string[];
+        };
+        /**
          * PerfilRead
          * @description Identidade do usuário do ponto de vista da navegação.
          */
@@ -4723,6 +4890,11 @@ export interface components {
              * @default []
              */
             fontes: string[];
+            /**
+             * Fontes Grupos
+             * @default []
+             */
+            fontes_grupos: components["schemas"]["GrupoFontePerfil"][];
             /**
              * Modulos
              * @default []
@@ -6954,6 +7126,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResultadoLimpeza"];
+                };
+            };
+        };
+    };
+    listar_arquivos_api_v1_admin_siconv_files_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogoSiconv"];
+                };
+            };
+        };
+    };
+    disparar_carga_api_v1_admin_siconv_load_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PedidoCarga"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CargaIniciada"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_cargas_api_v1_admin_siconv_runs_get: {
+        parameters: {
+            query?: {
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CargaSiconv"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -9274,6 +9530,8 @@ export interface operations {
             query?: {
                 /** @description códigos IBGE (repita o parâmetro para vários municípios) */
                 municipio?: string[] | null;
+                /** @description recorte de fonte: grupo ('transferegov', 'fns') ou connector id (repetível) */
+                fonte?: string[] | null;
                 /** @description tamanho da janela do feed */
                 limite?: number;
                 /** @description safra (ano) do recorte; omitir = todos os anos */
@@ -9341,6 +9599,8 @@ export interface operations {
             query?: {
                 /** @description códigos IBGE (repita o parâmetro para vários municípios) */
                 municipio?: string[] | null;
+                /** @description recorte de fonte: grupo ('transferegov', 'fns') ou connector id (repetível) */
+                fonte?: string[] | null;
                 /** @description safra (ano) do recorte; omitir = todos os anos */
                 ano?: string | null;
             };
@@ -9377,7 +9637,8 @@ export interface operations {
                 municipio?: string[] | null;
                 /** @description unidade federativa */
                 uf?: string | null;
-                fonte?: string | null;
+                /** @description grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias */
+                fonte?: string[] | null;
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
                 situacao?: string | null;
@@ -9474,7 +9735,8 @@ export interface operations {
                 municipio?: string[] | null;
                 /** @description unidade federativa */
                 uf?: string | null;
-                fonte?: string | null;
+                /** @description grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias */
+                fonte?: string[] | null;
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
                 situacao?: string | null;
@@ -9565,7 +9827,8 @@ export interface operations {
                 municipio?: string[] | null;
                 /** @description unidade federativa */
                 uf?: string | null;
-                fonte?: string | null;
+                /** @description grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias */
+                fonte?: string[] | null;
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
                 situacao?: string | null;
@@ -9625,7 +9888,8 @@ export interface operations {
                 municipio?: string[] | null;
                 /** @description unidade federativa */
                 uf?: string | null;
-                fonte?: string | null;
+                /** @description grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias */
+                fonte?: string[] | null;
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
                 situacao?: string | null;
@@ -9882,7 +10146,8 @@ export interface operations {
             query?: {
                 /** @description códigos IBGE (repita o parâmetro para vários municípios) */
                 municipio?: string[] | null;
-                fonte?: string | null;
+                /** @description grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias */
+                fonte?: string[] | null;
                 inicio?: string | null;
                 fim?: string | null;
                 /** @description só repasses de emenda */
@@ -10373,7 +10638,8 @@ export interface operations {
             query?: {
                 /** @description códigos IBGE (repita o parâmetro para vários municípios) */
                 municipio?: string[] | null;
-                fonte?: string | null;
+                /** @description grupo de fonte ('transferegov', 'fns') ou connector id — repita para várias */
+                fonte?: string[] | null;
                 situacao?: string | null;
             };
             header?: never;

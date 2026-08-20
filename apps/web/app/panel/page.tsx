@@ -11,6 +11,7 @@ import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
 import { formatBRL, humanizarCaixa, recortarTexto } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
+import { paramFonte, useFontes } from "@/lib/fontes";
 
 // ── Panorama financeiro do território (números + gráfico) ───────────────────
 // Reusa /proposals/summary (mesma fonte da página de resumo da Captação) para
@@ -41,6 +42,7 @@ function numBR(v?: string | number | null): number {
 
 function PanoramaFinanceiro({ ano }: { ano: string }) {
   const { selecionados } = useTerritorio();
+  const { selecionadas: fontesSelecionadas } = useFontes();
   const [resumo, setResumo] = useState<ResumoPainelData | null>(null);
   const [carregando, setCarregando] = useState(true);
 
@@ -52,6 +54,7 @@ function PanoramaFinanceiro({ ano }: { ano: string }) {
           query: {
             ano: ano || undefined,
             municipio: paramMunicipio(selecionados),
+            fonte: paramFonte(fontesSelecionadas),
           },
         } as never,
       })
@@ -282,6 +285,7 @@ function MeuPainel() {
   const sincronizando = searchParams.get("sync") === "1";
   // recorte de município escolhido no trilho lateral (vazio = todo o território)
   const { selecionados } = useTerritorio();
+  const { selecionadas: fontesSelecionadas } = useFontes();
 
   const [data, setData] = useState<VisaoGeral | null>(null);
   const [novidades, setNovidades] = useState<Novidades | null>(null);
@@ -302,6 +306,7 @@ function MeuPainel() {
   // panorama e feed — todos no mesmo recorte.
   const carregar = useCallback(async () => {
     const municipio = paramMunicipio(selecionados);
+    const fonte = paramFonte(fontesSelecionadas);
     const query = { municipio, ano: ano || undefined };
     const [{ data: vg }, { data: nov }] = await Promise.all([
       api.GET("/api/v1/profile/overview", { params: { query } }),
@@ -316,7 +321,7 @@ function MeuPainel() {
     // ausente — um nível a menos de defesa do que o próprio `?.` pretendia.
     // Sem o segundo `?.`, um feed sem `itens` derruba a tela inicial inteira.
     return (nov as Novidades | undefined)?.itens?.length ?? 0;
-  }, [selecionados, ano]);
+  }, [selecionados, fontesSelecionadas, ano]);
 
   useEffect(() => {
     void carregar();
@@ -336,7 +341,7 @@ function MeuPainel() {
       if (not.data) setNoticias(not.data as Noticia[]);
       if (al.data) setNaoLidos((al.data as Alerta[]).length);
     })();
-  }, [selecionados]);
+  }, [selecionados, fontesSelecionadas]);
 
   useEffect(() => {
     // Favoritas do usuário — alimenta a ★ do feed. O painel NÃO faz consulta

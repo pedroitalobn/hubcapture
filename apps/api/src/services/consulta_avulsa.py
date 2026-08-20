@@ -39,6 +39,7 @@ from . import fontes as fontes_service
 from . import plano_gates
 from . import propostas as propostas_service
 from ._territorio import Municipios, ibges
+from .fontes import Fontes
 
 
 async def _garantir_municipio_avulso(
@@ -213,9 +214,32 @@ async def consulta_avulsa(
 CAPTACAO_FONTES: tuple[str, ...] = fontes_service.CAPTACAO
 
 
-def _fontes_alvo(fonte: str | None, area: str | None, fontes_perfil: list[str] | None) -> list[str]:
-    if fonte:
-        return [fonte]
+def _pedido_explicito(fonte: Fontes) -> list[str]:
+    """Nomes de fonte que o chamador realmente pediu (antes de qualquer filtro)."""
+    if fonte is None:
+        return []
+    brutos = [fonte] if isinstance(fonte, str) else list(fonte)
+    return [str(f).strip() for f in brutos if str(f).strip()]
+
+
+def _fontes_alvo(fonte: Fontes, area: str | None, fontes_perfil: list[str] | None) -> list[str]:
+    """Fontes a coletar nesta rodada. Pedido explícito NUNCA vira 'colete tudo'.
+
+    Três casos distintos, e confundi-los é o que gera painel mentiroso:
+
+    * fonte de captação → coleta só ela(s);
+    * fonte conhecida que NÃO produz proposta (FNS produz repasse) → nada a
+      coletar, sem incidente: a resposta é honestamente vazia;
+    * nome que não corresponde a fonte alguma → segue para a coleta e falha em
+      `get_connector`, virando status de erro. Descartar em silêncio faria o
+      pedido cair no padrão e coletar TODAS as fontes — o oposto do que se pediu.
+    """
+    pedidas = _pedido_explicito(fonte)
+    if pedidas:
+        escolhidas = fontes_service.recorte(pedidas)
+        if escolhidas:
+            return [f for f in escolhidas if f in CAPTACAO_FONTES]
+        return pedidas  # nenhuma reconhecida: que o incidente apareça
     if area:
         from .perfil import AREA_FONTES
 
@@ -234,7 +258,7 @@ async def live_search(
     *,
     usuario_id: uuid.UUID,
     municipio: Municipios = None,
-    fonte: str | None = None,
+    fonte: Fontes = None,
     area: str | None = None,
     forcar: bool = False,
     **filtros,
