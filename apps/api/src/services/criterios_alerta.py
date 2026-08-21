@@ -42,30 +42,54 @@ class Criterio:
 
 CRITERIOS: tuple[Criterio, ...] = (
     Criterio(
+        chave="parecer_novo",
+        rotulo="Novo parecer",
+        descricao="Parecer emitido sobre o plano de trabalho que ainda não existia.",
+        escopo=ESCOPO_PROPOSTA,
+    ),
+    Criterio(
         chave="parecer",
-        rotulo="Atualização de pareceres",
+        rotulo="Parecer atualizado",
         descricao=(
-            "Novo parecer do plano de trabalho ou mudança no veredito "
-            "(aprovar, reprovar, solicitar complementação)."
+            "Veredito de um parecer já emitido mudou (aprovar, reprovar, "
+            "solicitar complementação) ou a análise foi concluída."
         ),
         escopo=ESCOPO_PROPOSTA,
     ),
     Criterio(
         chave="empenho",
         rotulo="Valor empenhado",
-        descricao="Novo empenho ou alteração do valor empenhado da proposta.",
+        descricao="Novo empenho emitido ou alteração do valor empenhado da proposta.",
+        escopo=ESCOPO_PROPOSTA,
+    ),
+    Criterio(
+        chave="empenho_pago",
+        rotulo="Empenho pago",
+        descricao="Pagamento ou liquidação nos documentos de empenho da proposta.",
         escopo=ESCOPO_PROPOSTA,
     ),
     Criterio(
         chave="pagamento",
-        rotulo="Pagamento",
-        descricao="Valor pago ou liberado (desembolso) mudou.",
+        rotulo="Pagamento (desembolso)",
+        descricao="Valor pago ou liberado no agregado da execução financeira.",
+        escopo=ESCOPO_PROPOSTA,
+    ),
+    Criterio(
+        chave="emenda",
+        rotulo="Emenda aplicada",
+        descricao=(
+            "Emenda parlamentar vinculada à proposta — nova emenda ou mudança "
+            "nos valores empenhado/pago dela."
+        ),
         escopo=ESCOPO_PROPOSTA,
     ),
     Criterio(
         chave="publicacao",
-        rotulo="Publicação",
-        descricao="Publicação do instrumento na fonte (situação ou valor publicado).",
+        rotulo="Proposta publicada",
+        descricao=(
+            "Publicação do instrumento na fonte — passou a publicada, ou a "
+            "situação/valor de publicação mudou."
+        ),
         escopo=ESCOPO_PROPOSTA,
     ),
     Criterio(

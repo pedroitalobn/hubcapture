@@ -5936,6 +5936,11 @@
             "title": "Id",
             "type": "string"
           },
+          "origem": {
+            "default": "manual",
+            "title": "Origem",
+            "type": "string"
+          },
           "proposta_id": {
             "format": "uuid",
             "title": "Proposta Id",

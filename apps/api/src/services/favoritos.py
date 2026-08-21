@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.favorito import Favorito
 from ..models.proposta import Proposta
+from . import monitoramentos as mon_service
 
 
 async def listar(session: AsyncSession, usuario_id: uuid.UUID) -> list[Favorito]:
@@ -23,6 +24,9 @@ async def adicionar(session: AsyncSession, usuario_id: uuid.UUID, proposta_id: u
         .values(usuario_id=usuario_id, proposta_id=proposta_id)
         .on_conflict_do_nothing()
     )
+    # favoritar já é acompanhar (§53): a fotografia é tirada AGORA, senão a
+    # atualização que o cron trouxer no meio do caminho viraria só linha de base
+    await mon_service.acompanhar_favorita(session, usuario_id, proposta_id)
 
 
 async def remover(session: AsyncSession, usuario_id: uuid.UUID, proposta_id: uuid.UUID) -> None:

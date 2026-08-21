@@ -28,6 +28,10 @@ class Monitoramento(Base):
         PgUUID(as_uuid=True), ForeignKey("propostas.id", ondelete="CASCADE")
     )
     ativo: Mapped[bool] = mapped_column(default=True)
+    # de onde veio o acompanhamento: `manual` (o gestor clicou em monitorar) ou
+    # `favorito` (favoritar já é acompanhar — §53). Desativar um implícito NÃO
+    # o ressuscita: a ausência de linha é que autoriza criar.
+    origem: Mapped[str] = mapped_column(String(16), default="manual", server_default="manual")
     canais: Mapped[list[str] | None] = mapped_column(ARRAY(TEXT), nullable=True)
     # QUAIS mudanças alertar (§53). NULL = os padrões do registro de critérios —
     # é o que vale para os monitoramentos criados antes da escolha existir.

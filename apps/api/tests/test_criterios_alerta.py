@@ -12,7 +12,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from src.db.session import rls_session
 from src.models.alerta import Alerta
@@ -20,6 +20,7 @@ from src.models.monitoramento import Monitoramento, MonitoramentoBusca
 from src.models.proposta import Proposta
 from src.models.usuario import Usuario
 from src.services import criterios_alerta, detect_changes
+from src.services import favoritos as fav_service
 from src.services import monitoramentos as mon_service
 from src.services import oportunidades as oport_service
 
@@ -120,22 +121,29 @@ def test_avaliar_nao_alerta_sem_linha_de_base() -> None:
     assert detect_changes.avaliar(None, atual, {"situacao", "empenho"}) == []
 
 
-def test_parecer_alerta_no_novo_e_na_mudanca_de_veredito() -> None:
+def test_parecer_novo_e_parecer_atualizado_sao_criterios_distintos() -> None:
+    """Novo parecer ≠ veredito alterado: o gestor escolhe cada um."""
     p = _proposta()
     parecer = SimpleNamespace(
         id_externo="1", situacao="Em elaboração", situacao_analise=None, hash_conteudo=None
     )
     vazio = detect_changes.snapshot(p, pareceres=[], hoje=date(2026, 1, 1))
     com_parecer = detect_changes.snapshot(p, pareceres=[parecer], hoje=date(2026, 1, 1))
-    (novo,) = detect_changes.avaliar(vazio, com_parecer, {"parecer"})
-    assert novo.criterio == "parecer"
+
+    (novo,) = detect_changes.avaliar(vazio, com_parecer, {"parecer_novo", "parecer"})
+    assert novo.criterio == "parecer_novo"  # entrou um parecer: não é "atualizado"
+    assert novo.payload["pareceres_novos"] == ["1"]
 
     aprovado = SimpleNamespace(
         id_externo="1", situacao="Aprovar", situacao_analise=None, hash_conteudo=None
     )
     virou = detect_changes.snapshot(p, pareceres=[aprovado], hoje=date(2026, 1, 1))
-    (mudou,) = detect_changes.avaliar(com_parecer, virou, {"parecer"})
-    assert mudou.criterio == "parecer"
+    (mudou,) = detect_changes.avaliar(com_parecer, virou, {"parecer_novo", "parecer"})
+    assert mudou.criterio == "parecer"  # o MESMO parecer mudou de veredito
+    assert "Em elaboração → Aprovar" in mudou.payload["resumo"]
+
+    # parecer que some da fonte não é "novo parecer"
+    assert detect_changes.avaliar(virou, vazio, {"parecer_novo"}) == []
 
 
 def test_vencimento_avisa_ao_entrar_na_janela_e_nao_repete_por_dia() -> None:
@@ -168,8 +176,9 @@ def test_podar_descarta_campo_de_criterio_desligado() -> None:
     podado = detect_changes.podar(snap, {"situacao"})
     assert "situacao" in podado
     assert "pareceres_total" not in podado and "valor_empenhado" not in podado
+    assert "emendas_total" not in podado and "dias_para_vencer" not in podado
     # sem o campo, ligar o critério depois recomeça a linha de base (nada emite)
-    assert detect_changes.avaliar(podado, snap, {"parecer"}) == []
+    assert detect_changes.avaliar(podado, snap, {"parecer", "parecer_novo"}) == []
 
 
 # ── varredura ponta a ponta ─────────────────────────────────────────────────
@@ -313,3 +322,169 @@ def test_janela_de_vencimento_e_a_do_registro() -> None:
         hoje=datetime.now(UTC).date(),
     )
     assert snap["vencimento_proximo"] is True
+
+
+# ── critérios novos: empenho pago, emenda aplicada, proposta publicada ──────
+def test_empenho_e_empenho_pago_sao_avisos_diferentes() -> None:
+    """Emitir empenho ≠ pagar empenho: quem só quer saber do dinheiro que saiu
+    marca `empenho_pago` e não recebe o resto."""
+    p = _proposta()
+    emitido = SimpleNamespace(
+        valor_empenhado=Decimal("1000"),
+        valor_anulado=None,
+        valor_liquidado=None,
+        valor_pago=None,
+    )
+    pago = SimpleNamespace(
+        valor_empenhado=Decimal("1000"),
+        valor_anulado=None,
+        valor_liquidado=Decimal("400"),
+        valor_pago=Decimal("400"),
+    )
+    antes = detect_changes.snapshot(p, empenhos=[emitido], hoje=date(2026, 1, 1))
+    depois = detect_changes.snapshot(p, empenhos=[pago], hoje=date(2026, 1, 1))
+
+    (so_pago,) = detect_changes.avaliar(antes, depois, {"empenho", "empenho_pago"})
+    assert so_pago.criterio == "empenho_pago"  # o empenhado não mudou
+
+    novo_empenho = detect_changes.snapshot(p, empenhos=[emitido, emitido], hoje=date(2026, 1, 1))
+    (so_empenho,) = detect_changes.avaliar(antes, novo_empenho, {"empenho", "empenho_pago"})
+    assert so_empenho.criterio == "empenho"
+
+
+def test_emenda_aplicada_alerta_com_o_autor() -> None:
+    p = _proposta()
+    emenda = SimpleNamespace(
+        id_externo="E1",
+        hash_conteudo=None,
+        parlamentar="Dep. Fulano",
+        valor=Decimal("500000"),
+        valor_empenhado=Decimal("0"),
+        valor_pago=Decimal("0"),
+    )
+    sem = detect_changes.snapshot(p, emendas=[], hoje=date(2026, 1, 1))
+    com = detect_changes.snapshot(p, emendas=[emenda], hoje=date(2026, 1, 1))
+    (aplicada,) = detect_changes.avaliar(sem, com, {"emenda"})
+    assert aplicada.criterio == "emenda"
+    assert "Dep. Fulano" in aplicada.payload["resumo"]
+    assert aplicada.payload["emendas_novas"] == ["E1"]
+
+    # empenho da MESMA emenda: continua sendo alerta de emenda, sem "aplicada"
+    empenhada = SimpleNamespace(
+        id_externo="E1",
+        hash_conteudo=None,
+        parlamentar="Dep. Fulano",
+        valor=Decimal("500000"),
+        valor_empenhado=Decimal("500000"),
+        valor_pago=Decimal("0"),
+    )
+    depois = detect_changes.snapshot(p, emendas=[empenhada], hoje=date(2026, 1, 1))
+    (mudou,) = detect_changes.avaliar(com, depois, {"emenda"})
+    assert mudou.payload["emendas_novas"] == []
+    assert "Valores da emenda" in mudou.payload["resumo"]
+
+
+def test_proposta_publicada_e_estado_nao_so_texto() -> None:
+    p = _proposta()
+    antes = detect_changes.snapshot(p, hoje=date(2026, 1, 1)) | {
+        "publicada": False,
+        "publicacao_situacao": "Não publicado",
+        "publicacao_valor": None,
+    }
+    publicada = detect_changes.snapshot(
+        _proposta(execucao={"situacao_publicacao": "Publicado em 12/03/2026"}),
+        hoje=date(2026, 1, 1),
+    )
+    assert publicada["publicada"] is True
+    (aviso,) = detect_changes.avaliar(antes, publicada, {"publicacao"})
+    assert aviso.criterio == "publicacao"
+    assert aviso.payload["resumo"] == "Proposta publicada na fonte"
+
+    # "Não publicado" não conta como publicada (senão todo registro nasceria publicado)
+    assert (
+        detect_changes.snapshot(
+            _proposta(execucao={"situacao_publicacao": "Não publicado"}), hoje=date(2026, 1, 1)
+        )["publicada"]
+        is False
+    )
+
+
+# ── favoritar é acompanhar ─────────────────────────────────────────────────
+async def test_favoritar_cria_acompanhamento_com_linha_de_base(
+    seed_user, seed_municipio, seed_proposta
+) -> None:
+    u = await seed_user("fav-monitor@x.com")
+    await seed_municipio(u, "3550308")
+    pid = await seed_proposta("transferegov_ff", "P-FAV", "3550308", situacao="Em análise")
+    async with rls_session(u) as s:
+        await fav_service.adicionar(s, u, pid)
+        mon = (await s.execute(select(Monitoramento))).scalar_one()
+        assert mon.origem == "favorito"
+        # a fotografia é tirada NA HORA: a mudança que vier depois já alerta,
+        # sem esperar uma varredura só para criar a linha de base
+        assert mon.snapshot and mon.snapshot["situacao"] == "Em análise"
+
+    async with rls_session(u) as s:
+        proposta = (await s.execute(select(Proposta).where(Proposta.id == pid))).scalar_one()
+        proposta.situacao = "Aprovada"
+        await s.flush()
+        await oport_service.varredura(s, await _usuario(s, u))
+        alertas = (await s.execute(select(Alerta))).scalars().all()
+        assert [a.tipo for a in alertas] == ["situacao"]
+
+
+async def test_favorita_antiga_entra_no_acompanhamento_na_varredura(
+    seed_user, seed_municipio, seed_proposta
+) -> None:
+    """Favorita anterior à feature (sem monitoramento) é adotada pela varredura."""
+    u = await seed_user("fav-legado@x.com")
+    await seed_municipio(u, "3550308")
+    pid = await seed_proposta("transferegov_ff", "P-LEG-FAV", "3550308")
+    async with rls_session(u) as s:
+        # grava o favorito SEM passar pelo serviço (é o estado do banco legado)
+        await s.execute(
+            text("INSERT INTO favoritos (usuario_id, proposta_id) VALUES (:u, :p)"),
+            {"u": u, "p": pid},
+        )
+        await oport_service.varredura(s, await _usuario(s, u))
+        mon = (await s.execute(select(Monitoramento))).scalar_one()
+        assert mon.origem == "favorito" and mon.snapshot is not None
+
+
+async def test_parar_favorita_nao_ressuscita_na_proxima_varredura(
+    seed_user, seed_municipio, seed_proposta
+) -> None:
+    u = await seed_user("fav-parou@x.com")
+    await seed_municipio(u, "3550308")
+    pid = await seed_proposta("transferegov_ff", "P-PAROU", "3550308")
+    async with rls_session(u) as s:
+        await fav_service.adicionar(s, u, pid)
+        mon = (await s.execute(select(Monitoramento))).scalar_one()
+        await mon_service.desativar(s, u, mon.id)
+        await oport_service.varredura(s, await _usuario(s, u))
+        mons = (await s.execute(select(Monitoramento))).scalars().all()
+        assert len(mons) == 1 and mons[0].ativo is False
+
+
+async def test_cron_diario_varre_alertas_do_usuario(
+    seed_user, seed_municipio, seed_proposta
+) -> None:
+    """O alerta nasce no CRON: o gestor não precisa abrir a central para saber."""
+    from src.jobs import alertas as alertas_job
+
+    u = await seed_user("cron@x.com")
+    await seed_municipio(u, "3550308")
+    pid = await seed_proposta("transferegov_ff", "P-CRON", "3550308", situacao="Em análise")
+    async with rls_session(u) as s:
+        await fav_service.adicionar(s, u, pid)
+
+    async with rls_session(u) as s:
+        proposta = (await s.execute(select(Proposta).where(Proposta.id == pid))).scalar_one()
+        proposta.situacao = "Aprovada"
+        await s.flush()
+
+    resumo = await alertas_job.varrer_todos()
+    assert resumo["usuarios"] == 1 and resumo["alertas"] == 1
+    async with rls_session(u) as s:
+        alerta = (await s.execute(select(Alerta))).scalar_one()
+        assert alerta.tipo == "situacao"

@@ -2136,9 +2136,17 @@ novo** — não um alerta genérico de "mudou alguma coisa".
 - **Registro** — `services/criterios_alerta.py::CRITERIOS` é a fonte de verdade
   (chave, rótulo, descrição, escopo, padrão). Dois escopos: `proposta`
   (monitorar uma proposta-chave) e `territorio` (monitorar um município).
-  Critérios de proposta: `parecer` (novo parecer ou veredito alterado),
-  `empenho`, `pagamento`, `publicacao`, `vencimento` (fim de vigência),
-  `situacao` (situação/movimentação), `prazo`, `pendencia`. De território:
+  Critérios de proposta: `parecer_novo` (parecer que ainda não existia),
+  `parecer` (veredito de um parecer já emitido mudou), `empenho` (empenho
+  emitido/valor empenhado), `empenho_pago` (pagamento/liquidação NOS
+  DOCUMENTOS), `pagamento` (pago/liberado no agregado da execução), `emenda`
+  (emenda aplicada à proposta ou valores dela), `publicacao` (proposta
+  publicada na fonte), `vencimento` (fim de vigência), `situacao`
+  (situação/movimentação), `prazo`, `pendencia`. Os pares
+  `parecer_novo`×`parecer`, `empenho`×`empenho_pago` e `pagamento`×`empenho_pago`
+  existem porque são avisos DIFERENTES para o gestor (emitir ≠ pagar; parecer
+  novo ≠ veredito virou), e cada um observa só o seu campo do snapshot. De
+  território:
   `nova_proposta`, `oportunidade`. Critério novo = uma entrada aqui — catálogo,
   validação da API e chips do front acompanham sozinhos.
 - **`criterios` NULL = os padrões** (`monitoramentos.criterios` e
@@ -2148,13 +2156,25 @@ novo** — não um alerta genérico de "mudou alguma coisa".
   religaria o ruído inteiro.
 - **Detecção por critério** (`services/detect_changes.py`, funções PURAS, sem
   banco): `snapshot()` fotografa o estado material da proposta (situação,
-  movimentação, prazos, pendências, publicação, empenhado/liberado/pago do
-  agregado e dos documentos, pareceres, fim de vigência) e `avaliar()` compara
-  com a foto anterior — `monitoramentos.snapshot` (jsonb) — devolvendo uma
-  `Mudanca(criterio, payload)` por critério. `CAMPOS_POR_CRITERIO` amarra campo
-  → critério; `podar()` remove do snapshot gravado os campos dos critérios
-  DESLIGADOS (guardar o zero de um dado não coletado viraria "3 pareceres novos"
-  no dia em que o usuário ligasse o critério).
+  movimentação, prazos, pendências, estado de publicação, empenhado/liberado/
+  pago do agregado e dos documentos, pareceres POR ID + veredito, emendas por id
+  e valores, fim de vigência) e `avaliar()` compara com a foto anterior —
+  `monitoramentos.snapshot` (jsonb) — devolvendo uma `Mudanca(criterio,
+  payload)` por critério. `CAMPOS_POR_CRITERIO` amarra campo → critério e
+  `CAMPOS_DE_APOIO` marca o que existe só para a FRASE do alerta (`dias_para_
+  vencer`, autores da emenda) — comparar esses geraria alerta diário sem fato
+  novo. `podar()` remove do snapshot gravado os campos dos critérios DESLIGADOS
+  (guardar o zero de um dado não coletado viraria "3 pareceres novos" no dia em
+  que o usuário ligasse o critério).
+- **Identidade, não posição**: parecer e emenda são casados por `id_externo` (ou
+  hash do conteúdo). Cair no índice da lista faria toda a coleta seguinte
+  parecer "tudo novo", porque a ordem muda entre rodadas — mesma disciplina da
+  §51. Parecer que SUMIU da fonte não é "novo parecer", e parecer que acabou de
+  entrar não conta como "veredito alterado" (sairia duplicado nos dois).
+- **Publicação é ESTADO**: `publicada` é derivada do texto/valor que a fonte
+  publica ("Publicado", uma data, ou `valor_publicado > 0`; "não publicado" e
+  variantes contam como não). Assim "passou a publicada" vira uma frase própria
+  em vez de um diff cru de campo.
 - **Sem linha de base não há alerta**: a 1ª varredura só fotografa, senão a
   proposta inteira "mudaria". A exceção é `vencimento`, que é ESTADO e não
   diferença — convênio a vencer dentro de `JANELA_VENCIMENTO_DIAS` (30) avisa já
@@ -2162,11 +2182,28 @@ novo** — não um alerta genérico de "mudou alguma coisa".
   (`dias_para_vencer` fica fora da comparação: mudaria todo dia e alertaria todo
   dia sem fato novo).
 - **Varredura** (`services/oportunidades.varredura`) ganhou a 3ª detecção,
-  `_mudancas_monitoradas`: lê o cache do território (pareceres e empenhos só
-  quando o critério pede — consulta ao vivo é papel da Captação) e cria os
-  alertas com `tipo = <critério>` e payload `{mudou, resumo, titulo,
+  `_mudancas_monitoradas`: lê o cache do território (pareceres, empenhos e
+  emendas só quando o critério pede — consulta ao vivo é papel da Captação) e
+  cria os alertas com `tipo = <critério>` e payload `{mudou, resumo, titulo,
   numero_proposta, municipio…}`. As buscas passam a filtrar `nova_proposta` e
   `oportunidade` pelos seus próprios critérios.
+- **FAVORITAR É ACOMPANHAR** (`monitoramentos.origem`, migration
+  `b2c3d4e5f8a0`): favoritar cria um monitoramento `origem='favorito'` com os
+  critérios padrão E com a fotografia tirada NA HORA
+  (`monitoramentos_service.acompanhar_favorita`) — sem a linha de base imediata,
+  a novidade que o cron trouxesse em seguida só serviria de baseline e passaria
+  em branco. `garantir_das_favoritas` adota na varredura as favoritas anteriores
+  à feature. Parar um acompanhamento implícito NÃO o ressuscita: o insert é
+  `ON CONFLICT DO NOTHING`, então é a AUSÊNCIA de linha que autoriza criar.
+- **O alerta nasce no CRON** (`jobs/alertas.py` + `jobs/refresh_diario`): logo
+  depois de o refresh diário atualizar o cache DAQUELE usuário, a varredura dele
+  roda na sua sessão RLS e os alertas saem pelos canais. Antes, a detecção só
+  acontecia quando alguém abria a central de Alertas — o oposto do que um alerta
+  serve. `varrer_todos()` existe para o cron externo (n8n) e lista os usuários a
+  partir de `usuarios` (fora do RLS) DE PROPÓSITO: `set_config(..., true)` deixa
+  a GUC do tenant como string VAZIA na conexão depois da transação, e aí o
+  `current_setting('app.usuario_id')::uuid` das policies estoura em qualquer
+  leitura sem tenant que reaproveite a conexão.
 - **API**: `GET /alerts/criteria?escopo=` devolve o catálogo (é ele que alimenta
   o multi-select). `POST /monitors` e `POST /monitors/searches` aceitam
   `criterios` (chave inválida = 422 pelo validator do schema). Não há PATCH: o
@@ -2177,7 +2214,8 @@ novo** — não um alerta genérico de "mudou alguma coisa".
   `lib/alertas.ts` carrega o catálogo UMA vez por sessão e dá o rótulo por chave
   (com retaguarda estática, inclusive o tipo legado `status`). Pontos de
   configuração: o formulário de "monitorar futuras propostas" e a nova seção
-  **Propostas monitoradas** em `app/panel/alerts`, e o botão 🔔 do detalhe
+  **Propostas monitoradas** em `app/panel/alerts` (que marca ★ favorita quando
+  o acompanhamento veio do favorito), e o botão 🔔 do detalhe
   (`app/panel/funding/[id]`), que agora abre o multi-select em vez de ficar
   desabilitado. `DynamicIsland` e o WhatsApp (`dispatch_alerts`) leem o mesmo
   rótulo e o `resumo` do payload — "vencimento" cru não diz ao gestor que o
