@@ -108,7 +108,7 @@ function AlertasConteudo() {
   // cópia velha do closure e refaria a busca de título a cada recarga
   const titulosRef = useRef<Record<string, string>>({});
   const [editando, setEditando] = useState<string | null>(null);
-  const { rotulo } = useCriteriosAlerta();
+  const { rotuloPill } = useCriteriosAlerta();
 
   const carregar = useCallback(async () => {
     const [al, bu, mo] = await Promise.all([
@@ -512,14 +512,12 @@ function AlertasConteudo() {
                 <p className="text-sm font-medium">
                   <span
                     className={`mr-2 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase ${
-                      a.tipo === "oportunidade"
-                        ? "bg-warn/10 text-warn"
-                        : a.tipo === "nova_proposta"
-                          ? "bg-ok/10 text-ok"
-                          : "bg-surface-2 text-ink-2"
+                      a.tipo === "oportunidade" || a.tipo === "nova_proposta"
+                        ? "bg-ok/10 text-ok"
+                        : "bg-surface-2 text-ink-2"
                     }`}
                   >
-                    {rotulo(a.tipo)}
+                    {rotuloPill(a.tipo)}
                   </span>
                   {descricao(a)}
                 </p>
