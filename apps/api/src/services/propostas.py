@@ -260,6 +260,17 @@ def ano_de(p: Proposta) -> str | None:
     exercicio = str(_execucao(p).get("ano") or "")[:4]
     if exercicio.isdigit() and _ano_plausivel(int(exercicio)):
         return exercicio
+    # Especiais: o módulo publica `ano_plano_acao` — é o ano do plano de ação,
+    # a criação daquela captação. Fundo a fundo não publica ano nenhum; o
+    # início de vigência do plano é o sinal que existe. Sem estes dois, TODA
+    # proposta FF/ESP ficava "sem safra" e sumia das contagens filtradas por
+    # ano do painel — com o dado à vista no registro-fonte.
+    ano_pa = _campo_fonte(p.dados_fonte, "ano_plano_acao")
+    if ano_pa and str(ano_pa)[:4].isdigit() and _ano_plausivel(int(str(ano_pa)[:4])):
+        return str(ano_pa)[:4]
+    vigencia = str(_campo_fonte(p.dados_fonte, "data_inicio_vigencia_plano_acao") or "")
+    if vigencia[:4].isdigit() and _ano_plausivel(int(vigencia[:4])):
+        return vigencia[:4]
     return None
 
 
@@ -465,7 +476,7 @@ async def listar_pagina(
     natureza_juridica: str | None = None,
     natureza_grupo: str | None = None,
     qualificacao: str | None = None,
-    ano: str | None = None,
+    ano: Filtro = None,
     mes: str | None = None,
     categoria: str | None = None,
     ordenar: str | None = None,
@@ -526,7 +537,9 @@ async def listar_pagina(
     if qualificacao:
         rows = [p for p in rows if qualificacao_de(p) == qualificacao]
     if ano:
-        rows = [p for p in rows if ano_de(p) == str(ano)]
+        # multi-seleção: a proposta entra se a safra dela é QUALQUER das escolhidas
+        safras = set(_escolhidos(ano))
+        rows = [p for p in rows if ano_de(p) in safras]
     if mes:
         rows = [p for p in rows if mes_de(p) == str(mes).zfill(2)]
     if categoria:
@@ -645,12 +658,15 @@ def _valores(dim: str, p: Proposta) -> list[str]:
 def _escolhidos(valor: Filtro) -> list[str]:
     """Filtro de uma dimensão: um valor, vários (multi-seleção) ou nenhum.
 
-    Município chega como lista quando o painel recorta o território; as demais
+    Município e ano chegam como lista quando o painel soma recortes; as demais
     dimensões chegam como string — os dois casos viram a mesma lista aqui.
+    Escalar fora do contrato (`ano=2024` como int) vale como valor único, como
+    o `str(ano)` de antes do multi tolerava.
     """
     if valor is None:
         return []
-    brutos = [valor] if isinstance(valor, str) else list(valor)
+    escalar = isinstance(valor, str) or not isinstance(valor, Sequence)
+    brutos = [valor] if escalar else list(valor)
     return [str(v) for v in brutos if str(v)]
 
 
@@ -760,9 +776,17 @@ def _fim_vigencia(p: Proposta) -> date | None:
 
 async def resumo(session: AsyncSession, **filtros) -> dict:
     """Cards financeiros, série aprovado × desembolsado por ano, pipeline por
-    situação e a lista de convênios vigentes com % de desembolso."""
+    situação e a lista de convênios vigentes com % de desembolso.
+
+    Com UMA safra no filtro, a resposta traz também `por_mes` — a mesma série
+    aberta mês a mês daquele ano (mês de criação da proposta, `mes_de`, o mesmo
+    referencial do filtro de mês). Com zero ou várias safras a lista vem vazia:
+    misturar janeiros de anos diferentes numa barra só não é uma série.
+    """
     rows = await listar(session, **filtros)
     hoje = date.today()
+    # `rows` já vem recortado pela(s) safra(s) — aqui só decidimos a abertura
+    safra_unica = len(set(_escolhidos(filtros.get("ano")))) == 1
 
     empenhado = sum((_dec(_execucao(p).get("valor_empenhado")) for p in rows), Decimal(0))
     pago = sum((_dec(_execucao(p).get("valor_pago")) for p in rows), Decimal(0))
@@ -772,6 +796,7 @@ async def resumo(session: AsyncSession, **filtros) -> dict:
     desembolsado = sum((_desembolsado(p) for p in rows), Decimal(0))
 
     por_ano: dict[str, list[Decimal]] = {}
+    por_mes: dict[str, list[Decimal]] = {}
     pipeline: dict[str, list] = {}
     vigentes: list[dict] = []
     iniciados = 0
@@ -782,6 +807,12 @@ async def resumo(session: AsyncSession, **filtros) -> dict:
             acc = por_ano.setdefault(ano, [Decimal(0), Decimal(0)])
             acc[0] += _valor_global(p)
             acc[1] += _desembolsado(p)
+        if safra_unica:
+            mes = mes_de(p)
+            if mes:
+                acc_m = por_mes.setdefault(mes, [Decimal(0), Decimal(0)])
+                acc_m[0] += _valor_global(p)
+                acc_m[1] += _desembolsado(p)
 
         chave = p.situacao or "Sem situação"
         item = pipeline.setdefault(chave, [0, Decimal(0)])
@@ -835,6 +866,15 @@ async def resumo(session: AsyncSession, **filtros) -> dict:
         "por_ano": [
             {"ano": ano, "aprovado": v[0], "desembolsado": v[1]}
             for ano, v in sorted(por_ano.items())
+        ],
+        "por_mes": [
+            {
+                "mes": mes,
+                "rotulo": dict(MESES).get(mes, mes),
+                "aprovado": v[0],
+                "desembolsado": v[1],
+            }
+            for mes, v in sorted(por_mes.items())
         ],
         "pipeline": [
             {"situacao": s, "quantidade": v[0], "valor": v[1]}

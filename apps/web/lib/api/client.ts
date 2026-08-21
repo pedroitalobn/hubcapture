@@ -122,6 +122,67 @@ export async function restaurarPropostas(): Promise<{ removidas: number }> {
   return resp.json();
 }
 
+// ── Pacote de dados abertos do SIconv (admin) ───────────────────────────────
+// As transferências discricionárias e legais não têm consulta por município: a
+// fonte publica a base inteira em ZIPs nacionais. Estas chamadas são a operação
+// disso — ver o estado dos arquivos e mandar carregar.
+
+export interface ArquivoSiconv {
+  tabela: string;
+  descricao: string;
+  carrega: boolean;
+  nome?: string | null;
+  url?: string | null;
+  disponivel: boolean;
+  tamanho?: number | null;
+  erro?: string | null;
+}
+
+export interface CargaSiconv {
+  status: string;
+  registros: number;
+  iniciado_em?: string | null;
+  finalizado_em?: string | null;
+  erro?: string | null;
+}
+
+export interface CatalogoSiconv {
+  base_url: string;
+  escopo_propostas: string;
+  municipios_monitorados: number;
+  tabelas_da_carga: string[];
+  arquivos: ArquivoSiconv[];
+  ultimas_cargas: CargaSiconv[];
+}
+
+/** Catálogo do pacote com disponibilidade sondada ao vivo (não baixa nada). */
+export async function catalogoSiconv(): Promise<CatalogoSiconv> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/admin/siconv/files`, {
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+  });
+  if (!resp.ok) throw new Error(`Falha ao ler o catálogo do SIconv (HTTP ${resp.status})`);
+  return resp.json();
+}
+
+/** Dispara a carga em segundo plano. Vazio = o mesmo recorte da carga agendada. */
+export async function carregarSiconv(
+  tabelas: string[] = [],
+): Promise<{ iniciada: boolean; tabelas: string[]; detalhe: string }> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/admin/siconv/load`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${(await garantirSessao()) ?? ""}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ tabelas }),
+  });
+  if (!resp.ok) {
+    const corpo = await resp.json().catch(() => null);
+    throw new Error(corpo?.detail ?? `Falha ao disparar a carga (HTTP ${resp.status})`);
+  }
+  return resp.json();
+}
+
 export interface ResetPerfil {
   municipios: number;
   propostas: number;
@@ -422,6 +483,23 @@ export async function login(email: string, senha: string): Promise<void> {
   });
   if (!resp.ok) {
     throw new Error("Credenciais inválidas");
+  }
+  const data = (await resp.json()) as {
+    access_token: string;
+    refresh_token: string;
+  };
+  setTokens(data.access_token, data.refresh_token);
+}
+
+/**
+ * Entra na conta de DEMONSTRAÇÃO (sandbox de apresentação, sem credencial).
+ * O backend garante território/curadoria semeados a cada entrada.
+ * Usada SÓ pela rota reservada /demo — o /login não oferece nem anuncia demo.
+ */
+export async function entrarDemo(): Promise<void> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/auth/demo`, { method: "POST" });
+  if (!resp.ok) {
+    throw new Error("A demonstração está indisponível no momento");
   }
   const data = (await resp.json()) as {
     access_token: string;

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/AuthShell";
+import { BotaoVoltar } from "@/components/Voltar";
 import { api, getToken } from "@/lib/api/client";
 
 /**
@@ -19,6 +20,7 @@ const NAV = [
   { href: "/admin/plans", label: "Planos" },
   { href: "/admin/config", label: "Providers & Config" },
   { href: "/admin/sources", label: "Fontes (diagnóstico)" },
+  { href: "/admin/siconv", label: "Pacote SIconv" },
   { href: "/admin/modules", label: "Módulos" },
   { href: "/admin/advisory", label: "Assessoria" },
   { href: "/admin/directory", label: "Diretório institucional" },
@@ -66,15 +68,13 @@ export default function AdminLayout({
           <BrandMark />
           <p className="label-mono mt-1.5">Administração</p>
         </div>
-        <Link
-          href="/panel"
-          className="link-soft font-mono text-[11px] uppercase tracking-[0.04em]"
-        >
-          ← Meu painel
-        </Link>
       </header>
 
-      <nav className="flex flex-wrap gap-1 border-b border-hairline pb-3">
+      {/* O retorno ao painel abre a linha de navegação, à ESQUERDA — era um
+          link mono de 11px no canto direito, que ninguém encontrava. */}
+      <nav className="flex flex-wrap items-center gap-1 border-b border-hairline pb-3">
+        <BotaoVoltar href="/panel" rotulo="Meu painel" />
+        <span aria-hidden className="mx-2 h-5 w-px bg-hairline" />
         {NAV.map((item) => {
           const active = pathname.startsWith(item.href);
           return (

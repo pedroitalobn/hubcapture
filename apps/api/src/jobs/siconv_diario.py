@@ -47,6 +47,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from ..connectors import siconv_downloads
 from ..connectors.siconv_downloads import CARREGADAS, DownloadError
 from ..db.session import engine
+from ..services import config as config_service
 
 log = logging.getLogger(__name__)
 
@@ -69,6 +70,41 @@ def tabelas_alvo() -> tuple[str, ...]:
     if not _TABELAS_ENV:
         return CARREGADAS
     return tuple(t for t in CARREGADAS if t in _TABELAS_ENV)
+
+
+ESCOPO_TERRITORIO = "territorio"
+ESCOPO_NACIONAL = "nacional"
+_ESCOPO_ENV = (os.getenv("SICONV_PROPOSTAS_ESCOPO") or "").strip().lower()
+
+
+async def escopo_propostas() -> str:
+    """`territorio` (padrão) ou `nacional` — painel admin sobrescreve o env.
+
+    O padrão é o território porque `proposta.csv` é NACIONAL: carregá-lo inteiro
+    são milhões de linhas (com o registro-fonte em jsonb junto) para um cache que
+    só é lido por município. `nacional` existe para quem quer o país no banco e
+    aceita o custo — a decisão é de operação, não de código.
+    """
+    do_painel = (await config_service.resolver("siconv_propostas_escopo") or "").strip().lower()
+    valor = do_painel or _ESCOPO_ENV
+    return ESCOPO_NACIONAL if valor == ESCOPO_NACIONAL else ESCOPO_TERRITORIO
+
+
+async def ibges_do_territorio(conn: AsyncConnection) -> list[str]:
+    """Municípios monitorados por QUALQUER usuário — o recorte da carga.
+
+    Lê `municipios_interesse`, que é tabela por-tenant sob FORCE RLS: só a
+    bandeira `app.plataforma` (ligada por `aplicar_carga`) enxerga o conjunto
+    todo. Sem ela o job veria zero e a carga entregaria zero proposta em
+    silêncio — o pior desfecho possível para uma coleta.
+    """
+    linhas = await conn.execute(
+        text(
+            "SELECT DISTINCT ibge FROM municipios_interesse "
+            "WHERE ibge IS NOT NULL AND ibge ~ '^[0-9]{7}$'"
+        )
+    )
+    return sorted(linha[0] for linha in linhas)
 
 
 # --------------------------------------------------------------------------
@@ -157,6 +193,25 @@ def data(expr: str) -> str:
     )
 
 
+def data_componentes(dia: str, mes: str, ano: str, unica: str) -> str:
+    """Data de CRIAÇÃO da proposta, remontada de DIA_PROP + MES_PROP + ANO_PROP.
+
+    São as variáveis oficiais do SIconv (§35b) e elas vencem qualquer coluna
+    única de data: as retaguardas (vigência, cadastro) marcavam a proposta com
+    uma data que não é a dela. `make_date` levantaria em linha suja; a
+    montagem por texto + `to_date` degrada para NULL, como no resto da carga.
+    """
+    d = f"lpad(regexp_replace(coalesce({dia}, ''), '[^0-9]', '', 'g'), 2, '0')"
+    m = f"lpad(regexp_replace(coalesce({mes}, ''), '[^0-9]', '', 'g'), 2, '0')"
+    a = f"regexp_replace(coalesce({ano}, ''), '[^0-9]', '', 'g')"
+    composta = (
+        f"CASE WHEN {a} ~ '^[0-9]{{4}}$' AND {d} ~ '^(0[1-9]|[12][0-9]|3[01])$' "
+        f"AND {m} ~ '^(0[1-9]|1[0-2])$' "
+        f"THEN to_date({a} || '-' || {m} || '-' || {d}, 'YYYY-MM-DD') END"
+    )
+    return f"coalesce(({composta}), {data(unica)})"
+
+
 def texto(expr: str, tamanho: int) -> str:
     """Recorta no limite da coluna: a fonte não promete tamanho e um valor longo
     abortaria a carga inteira por causa de uma linha."""
@@ -224,25 +279,25 @@ def sql_upsert_emendas(cols_emenda: list[str], cols_proposta: list[str]) -> str:
         gen_random_uuid(),
         '{FONTE}',
         left(e.id_proposta || '|' || e.nr_emenda, 128),
-        {texto(p('nr_proposta'), 64)},
+        {texto(p("nr_proposta"), 64)},
         {municipio},
         {numero_emenda},
-        {ano(p('ano_prop'))},
+        {ano(p("ano_prop"))},
         {tipo},
         {parlamentar},
         {valor},
         jsonb_strip_nulls(jsonb_build_object(
             'id_proposta', e.id_proposta,
-            'cod_programa_emenda', {e('cod_programa_emenda')},
-            'beneficiario_emenda', {e('beneficiario_emenda')},
-            'qualif_proponente', {e('qualif_proponente')},
-            'ind_impositivo', {e('ind_impositivo')},
-            'valor_repasse_proposta_emenda', {numero_br(e('valor_repasse_proposta_emenda'))},
-            'valor_repasse_emenda', {numero_br(e('valor_repasse_emenda'))},
-            'municipio_nome', {p('munic_proponente')},
-            'uf', {p('uf_proponente')},
-            'objeto_proposta', {p('objeto_proposta')},
-            'situacao_proposta', {p('sit_proposta')}
+            'cod_programa_emenda', {e("cod_programa_emenda")},
+            'beneficiario_emenda', {e("beneficiario_emenda")},
+            'qualif_proponente', {e("qualif_proponente")},
+            'ind_impositivo', {e("ind_impositivo")},
+            'valor_repasse_proposta_emenda', {numero_br(e("valor_repasse_proposta_emenda"))},
+            'valor_repasse_emenda', {numero_br(e("valor_repasse_emenda"))},
+            'municipio_nome', {p("munic_proponente")},
+            'uf', {p("uf_proponente")},
+            'objeto_proposta', {p("objeto_proposta")},
+            'situacao_proposta', {p("sit_proposta")}
         )),
         jsonb_build_object(
             'numero_emenda', 'siconv:emenda.NR_EMENDA',
@@ -272,6 +327,135 @@ def sql_upsert_emendas(cols_emenda: list[str], cols_proposta: list[str]) -> str:
         proveniencia    = EXCLUDED.proveniencia,
         hash_conteudo   = EXCLUDED.hash_conteudo,
         cache_atualizado_em = EXCLUDED.cache_atualizado_em,
+        updated_at      = now()
+    """
+
+
+#: `fonte` das propostas gravadas por esta carga. É o MESMO connector que já lê
+#: este arquivo na busca ao vivo (`transferegov_disc`), e isso não é detalhe: a
+#: chave do cache é `(fonte, id_externo)` — usar uma fonte própria aqui faria a
+#: mesma proposta aparecer DUAS vezes no painel, uma por caminho de ingestão.
+FONTE_PROPOSTA = "transferegov_disc"
+
+
+def sql_upsert_propostas(cols_proposta: list[str], *, ibges: list[str] | None) -> str:
+    """`proposta.csv` do pacote → tabela canônica `propostas`.
+
+    É a carga que responde "quero TODAS as propostas do município", sem depender
+    de a busca ao vivo varrer 1 GB de CSV a cada filtro do painel (§38). O
+    de-para espelha o do connector `transferegov_disc` (§35b): `NR_PROPOSTA` é a
+    referência do gestor e a data de criação é REMONTADA de DIA_PROP + MES_PROP
+    + ANO_PROP — nunca de uma coluna de vigência, que é outra data.
+
+    `ibges=None` carrega o país inteiro (milhões de linhas); com lista, só o
+    território monitorado — o padrão, e a razão de o job caber num Neon.
+    """
+    p = lambda n: col(cols_proposta, "p", n)  # noqa: E731
+
+    municipio = ibge(p("cod_munic_ibge"))
+    numero = texto(p("nr_proposta"), 64)
+    objeto = f"nullif(btrim({p('objeto_proposta')}), '')"
+    situacao = texto(p("sit_proposta"), 255)
+    # VL_GLOBAL_PROP é o valor da PROPOSTA (VL_GLOBAL_CONV seria o do convênio
+    # celebrado, que é outro momento do ciclo) — §46.
+    global_ = numero_br(p("vl_global_prop"))
+    repasse = numero_br(p("vl_repasse_prop"))
+    contrapartida = numero_br(p("vl_contrapartida_prop"))
+    valor = f"coalesce({global_}, {repasse})"
+    criacao = data_componentes(p("dia_prop"), p("mes_prop"), p("ano_prop"), p("dia_proposta"))
+    fim_vigencia = data(p("dia_fim_vigencia_proposta"))
+    orgao = f"coalesce({texto(p('desc_orgao_sup'), 255)}, {texto(p('desc_orgao'), 255)})"
+
+    # O recorte é o do TERRITÓRIO, e ele entra como filtro da própria varredura:
+    # carregar o país e descartar depois custaria a carga inteira em disco.
+    onde_municipio = ""
+    if ibges is not None:
+        lista = ", ".join(f"'{i}'" for i in ibges)
+        onde_municipio = f" AND {municipio} IN ({lista})" if lista else " AND false"
+
+    return f"""
+    INSERT INTO propostas (
+        id, fonte, id_externo, numero_proposta, objeto, orgao_superior, modalidade,
+        municipio_ibge, municipio_nome, uf, valor_total, contrapartida, situacao,
+        prazos, data_proposta, execucao, dados_fonte, proveniencia,
+        hash_conteudo, cache_atualizado_em, excluido_em
+    )
+    SELECT DISTINCT ON (p.id_proposta)
+        gen_random_uuid(),
+        '{FONTE_PROPOSTA}',
+        left(p.id_proposta, 255),
+        {numero},
+        {objeto},
+        {orgao},
+        {texto(p("modalidade"), 64)},
+        {municipio},
+        {texto(p("munic_proponente"), 255)},
+        upper(left(nullif(btrim({p("uf_proponente")}), ''), 2)),
+        {valor},
+        {contrapartida},
+        {situacao},
+        CASE WHEN {fim_vigencia} IS NOT NULL THEN jsonb_build_array(jsonb_build_object(
+            'tipo', 'fim de vigência',
+            'data_limite', to_char({fim_vigencia}, 'YYYY-MM-DD')
+        )) END,
+        {criacao},
+        jsonb_strip_nulls(jsonb_build_object(
+            'valor_global', {global_},
+            'valor_repasse', {repasse},
+            'contrapartida', {contrapartida},
+            'ano', {ano(p("ano_prop"))},
+            'natureza_juridica', {texto(p("natureza_juridica"), 255)},
+            'tipo_transferencia', {texto(p("modalidade"), 64)},
+            'ente_recebedor', {texto(p("nm_proponente"), 255)},
+            'data_inicio_vigencia', to_char({data(p("dia_inic_vigencia_proposta"))}, 'YYYY-MM-DD'),
+            'data_fim_vigencia', to_char({fim_vigencia}, 'YYYY-MM-DD')
+        )),
+        -- registro-fonte COMPLETO, no MESMO formato que o connector grava
+        -- (`plano_acao.csv` = linha bruta): é dele que `ano_de`/`mes_de` e o
+        -- "Dados completos da fonte" do detalhe leem (§46).
+        jsonb_build_object(
+            'plano_acao', jsonb_build_object('csv', to_jsonb(p)),
+            'modalidade', {p("modalidade")},
+            '_carga', 'siconv:pacote-diario'
+        ),
+        jsonb_build_object(
+            'numero_proposta', 'siconv:proposta.NR_PROPOSTA',
+            'data_proposta', 'siconv:proposta.DIA_PROP+MES_PROP+ANO_PROP',
+            'valor_total', 'siconv:proposta.VL_GLOBAL_PROP',
+            'situacao', 'siconv:proposta.SIT_PROPOSTA',
+            'municipio_ibge', 'siconv:proposta.COD_MUNIC_IBGE',
+            '_fonte', '{FONTE_PROPOSTA}',
+            '_via', 'siconv:pacote-diario'
+        ),
+        md5(concat_ws('|', {numero}, {situacao}, {valor}::text, {municipio},
+                      {criacao}::text, left(coalesce({objeto}, ''), 500))),
+        now(),
+        NULL  -- a fonte ainda publica esta proposta: uma zeragem anterior é desfeita
+    FROM stg_proposta p
+    WHERE nullif(btrim(p.id_proposta), '') IS NOT NULL
+      AND {municipio} IS NOT NULL{onde_municipio}
+    ORDER BY p.id_proposta
+    ON CONFLICT (fonte, id_externo) DO UPDATE SET
+        numero_proposta = EXCLUDED.numero_proposta,
+        objeto          = coalesce(EXCLUDED.objeto, propostas.objeto),
+        orgao_superior  = coalesce(EXCLUDED.orgao_superior, propostas.orgao_superior),
+        modalidade      = coalesce(EXCLUDED.modalidade, propostas.modalidade),
+        municipio_ibge  = EXCLUDED.municipio_ibge,
+        municipio_nome  = coalesce(EXCLUDED.municipio_nome, propostas.municipio_nome),
+        uf              = coalesce(EXCLUDED.uf, propostas.uf),
+        valor_total     = coalesce(EXCLUDED.valor_total, propostas.valor_total),
+        contrapartida   = coalesce(EXCLUDED.contrapartida, propostas.contrapartida),
+        situacao        = coalesce(EXCLUDED.situacao, propostas.situacao),
+        prazos          = coalesce(EXCLUDED.prazos, propostas.prazos),
+        data_proposta   = coalesce(EXCLUDED.data_proposta, propostas.data_proposta),
+        -- a execução do painel da Visão Geral (empenhado/pago/saldo) é mais
+        -- rica que a do CSV: o pacote COMPLETA o que falta, não sobrescreve
+        execucao        = coalesce(propostas.execucao, '{{}}'::jsonb) || EXCLUDED.execucao,
+        dados_fonte     = coalesce(propostas.dados_fonte, '{{}}'::jsonb) || EXCLUDED.dados_fonte,
+        proveniencia    = EXCLUDED.proveniencia,
+        hash_conteudo   = EXCLUDED.hash_conteudo,
+        cache_atualizado_em = EXCLUDED.cache_atualizado_em,
+        excluido_em     = NULL,
         updated_at      = now()
     """
 
@@ -310,29 +494,29 @@ def sql_upsert_empenhos(
         gen_random_uuid(),
         '{FONTE}',
         left(e.id_empenho, 128),
-        {texto(prop('nr_proposta'), 64)},
+        {texto(prop("nr_proposta"), 64)},
         {municipio},
         {numero},
         {emissao},
-        {texto(emp('desc_tipo_nota'), 64)},
-        {texto(emp('desc_situacao_empenho'), 128)},
+        {texto(emp("desc_tipo_nota"), 64)},
+        {texto(emp("desc_situacao_empenho"), 128)},
         left(nullif(to_char({emissao}, 'YYYY'), ''), 4),
         {valor},
-        {texto(emp('ug_emitente'), 255)},
-        {texto(emp('natureza_despesa'), 255)},
-        {texto(emp('fonte_recurso'), 255)},
-        {texto(emp('plano_interno'), 255)},
-        nullif(btrim({emp('observacao_empenho')}), ''),
+        {texto(emp("ug_emitente"), 255)},
+        {texto(emp("natureza_despesa"), 255)},
+        {texto(emp("fonte_recurso"), 255)},
+        {texto(emp("plano_interno"), 255)},
+        nullif(btrim({emp("observacao_empenho")}), ''),
         jsonb_strip_nulls(jsonb_build_object(
             'nr_convenio', e.nr_convenio,
-            'id_proposta', {conv('id_proposta')},
-            'ptres', {emp('ptres')},
-            'tipo_nota', {emp('tipo_nota')},
-            'ug_responsavel', {emp('ug_responsavel')},
-            'resultado_primario', {emp('resultado_primario')},
-            'descricao_emenda_siafi', {emp('descricao_emenda_siafi')},
-            'municipio_nome', {prop('munic_proponente')},
-            'uf', {prop('uf_proponente')}
+            'id_proposta', {conv("id_proposta")},
+            'ptres', {emp("ptres")},
+            'tipo_nota', {emp("tipo_nota")},
+            'ug_responsavel', {emp("ug_responsavel")},
+            'resultado_primario', {emp("resultado_primario")},
+            'descricao_emenda_siafi', {emp("descricao_emenda_siafi")},
+            'municipio_nome', {prop("munic_proponente")},
+            'uf', {prop("uf_proponente")}
         )),
         jsonb_build_object(
             'numero_empenho', 'siconv:empenho.NR_EMPENHO',
@@ -375,6 +559,49 @@ def sql_upsert_empenhos(
 # --------------------------------------------------------------------------
 
 
+def sql_carimbar_convenio(cols_conv: list[str]) -> str:
+    """`stg_convenio` → `propostas.execucao` — publicação, empenho e pago no header.
+
+    O gestor pergunta três coisas no topo da proposta: empenhou? publicou?
+    pagou? As três moram no CONVÊNIO do pacote (`SITUACAO_PUBLICACAO`/
+    `DIA_PUBL_CONV`, `VL_EMPENHADO_CONV`, `VL_DESEMBOLSADO_CONV` — desembolso é
+    o que efetivamente saiu para o convenente). Este UPDATE funde tudo em
+    `execucao`, que é de onde a faixa de destaque do detalhe já lê: os
+    agregados entram nas chaves que a tela conhece (`valor_empenhado`,
+    `valor_pago`) e o resto sob `convenio`, sem coluna nova.
+
+    `DISTINCT ON (id_proposta)` com a assinatura mais recente primeiro: uma
+    proposta pode acumular convênios (raro, mas o arquivo tem) e dois UPDATEs na
+    mesma linha derrubariam o comando inteiro.
+    """
+    c = lambda n: col(cols_conv, "c", n)  # noqa: E731
+    return f"""
+    UPDATE propostas p SET execucao = coalesce(p.execucao, '{{}}'::jsonb) || jsonb_strip_nulls(
+        jsonb_build_object(
+            'valor_empenhado', {numero_br(c("vl_empenhado_conv"))},
+            'valor_pago',      {numero_br(c("vl_desembolsado_conv"))},
+            'situacao_publicacao', {c("situacao_publicacao")},
+            'convenio', jsonb_strip_nulls(jsonb_build_object(
+                'numero',              {c("nr_convenio")},
+                'situacao',            {c("sit_convenio")},
+                'situacao_publicacao', {c("situacao_publicacao")},
+                'publicado_em',        {c("dia_publ_conv")},
+                'assinado_em',         {c("dia_assin_conv")},
+                'fim_vigencia',        {c("dia_fim_vigenc_conv")},
+                'valor_empenhado',     {numero_br(c("vl_empenhado_conv"))},
+                'valor_desembolsado',  {numero_br(c("vl_desembolsado_conv"))}
+            ))
+        ))
+    FROM (
+        SELECT DISTINCT ON (c.id_proposta) *
+        FROM stg_convenio c
+        WHERE c.id_proposta IS NOT NULL
+        ORDER BY c.id_proposta, {c("dia_assin_conv")} DESC NULLS LAST
+    ) c
+    WHERE p.fonte = '{FONTE_PROPOSTA}' AND p.id_externo = c.id_proposta
+    """
+
+
 async def aplicar_carga(conn: AsyncConnection, arquivos: dict[str, Path]) -> dict[str, int]:
     """Staging + upserts numa transação. Devolve o que foi gravado por entidade.
 
@@ -400,13 +627,57 @@ async def aplicar_carga(conn: AsyncConnection, arquivos: dict[str, Path]) -> dic
         )
         gravadas["emendas"] = resultado.rowcount or 0
 
+    if "proposta" in colunas:
+        escopo = await escopo_propostas()
+        ibges = None if escopo == ESCOPO_NACIONAL else await ibges_do_territorio(conn)
+        if ibges is not None and not ibges:
+            # Nenhum município monitorado ainda (instalação nova): não há o que
+            # carregar, e dizer isso é melhor que gravar o país inteiro "por
+            # via das dúvidas".
+            log.warning("siconv: nenhum município em municipios_interesse — propostas puladas")
+            gravadas["propostas"] = 0
+        else:
+            log.info(
+                "siconv: carregando propostas (escopo=%s, %s)",
+                escopo,
+                "país inteiro" if ibges is None else f"{len(ibges)} município(s)",
+            )
+            resultado = await conn.execute(
+                text(sql_upsert_propostas(colunas["proposta"], ibges=ibges))
+            )
+            gravadas["propostas"] = resultado.rowcount or 0
+
     if {"empenho", "convenio", "proposta"} <= colunas.keys():
         resultado = await conn.execute(
             text(sql_upsert_empenhos(colunas["empenho"], colunas["convenio"], colunas["proposta"]))
         )
         gravadas["empenhos"] = resultado.rowcount or 0
 
+    if "convenio" in colunas:
+        resultado = await conn.execute(text(sql_carimbar_convenio(colunas["convenio"])))
+        gravadas["convenios_carimbados"] = resultado.rowcount or 0
+
     return gravadas
+
+
+async def registrar_em_transacao_propria(
+    inicio: datetime, status: str, registros: int, erro: str | None
+) -> None:
+    """`sync_runs` numa transação SÓ dela — e que nunca derruba a carga.
+
+    Escrever o registro DENTRO da transação da carga custou 526 mil linhas em
+    produção: o `INSERT` em `sync_runs` bateu num deadlock com outro processo
+    (ele esperava lock nas nossas tabelas, nós no `sync_runs`), a transação
+    inteira sofreu rollback e a carga do dia — já concluída — foi descartada
+    junto. A anotação é CONTABILIDADE da carga; a carga não pode depender dela.
+
+    Por isso: conexão própria, depois do commit, e falha aqui vira log.
+    """
+    try:
+        async with engine.begin() as conn:
+            await _registrar(conn, inicio, status, registros, erro)
+    except Exception:  # noqa: BLE001 — bookkeeping não desfaz trabalho bom
+        log.warning("siconv: não consegui anotar a execução em sync_runs", exc_info=True)
 
 
 async def _registrar(
@@ -429,22 +700,29 @@ async def _registrar(
     )
 
 
-async def executar(dir_trabalho: str | None = None) -> dict:
-    """Uma carga completa: baixa → descompacta → COPY → upsert. Devolve o resumo."""
+async def executar(dir_trabalho: str | None = None, tabelas: tuple[str, ...] | None = None) -> dict:
+    """Uma carga completa: baixa → descompacta → COPY → upsert. Devolve o resumo.
+
+    `tabelas` restringe o lote (é o que a rota admin manda quando o operador
+    pede só `proposta`, por exemplo); vazio = o recorte de `tabelas_alvo()`.
+    Tabela fora do catálogo é ignorada em vez de derrubar a carga.
+    """
     inicio = datetime.now(UTC)
     base_dir = Path(dir_trabalho) if dir_trabalho else None
     tmp = None if base_dir else tempfile.TemporaryDirectory(prefix="siconv-")
     destino = base_dir or Path(tmp.name)  # type: ignore[union-attr]
+    alvo = tuple(t for t in (tabelas or tabelas_alvo()) if t in siconv_downloads.ARQUIVOS)
 
     try:
         arquivos: dict[str, Path] = {}
-        for tabela in tabelas_alvo():
+        for tabela in alvo:
             log.info("siconv: baixando %s…", tabela)
             arquivos[tabela] = await siconv_downloads.baixar_csv(tabela, destino)
 
         async with engine.begin() as conn:
             gravadas = await aplicar_carga(conn, arquivos)
-            await _registrar(conn, inicio, "ok", sum(gravadas.values()), None)
+        # commitado: daqui para baixo nada mais pode desfazer a carga
+        await registrar_em_transacao_propria(inicio, "ok", sum(gravadas.values()), None)
 
         dur = (datetime.now(UTC) - inicio).total_seconds()
         resumo = ", ".join(f"{v} {k}" for k, v in gravadas.items()) or "nada"
@@ -453,18 +731,14 @@ async def executar(dir_trabalho: str | None = None) -> dict:
 
     except Exception as exc:  # noqa: BLE001 — a falha vira registro, não silêncio
         log.exception("siconv: carga falhou")
-        try:
-            async with engine.begin() as conn:
-                await _registrar(conn, inicio, "erro", 0, f"{type(exc).__name__}: {exc}")
-        except Exception:  # noqa: BLE001 — banco fora do ar: só o log resta
-            log.warning("siconv: não consegui registrar o incidente em sync_runs")
+        await registrar_em_transacao_propria(inicio, "erro", 0, f"{type(exc).__name__}: {exc}")
         return {"status": "erro", "erro": str(exc)}
     finally:
         if tmp is not None:
             tmp.cleanup()
 
 
-async def sweep() -> dict:
+async def sweep(tabelas: tuple[str, ...] | None = None) -> dict:
     """`executar` sob advisory lock — só uma réplica carrega por vez."""
     async with engine.connect() as conn:
         travou = (
@@ -474,7 +748,7 @@ async def sweep() -> dict:
             log.warning("siconv: outra carga em andamento — pulando")
             return {"status": "ocupado"}
         try:
-            return await executar()
+            return await executar(tabelas=tabelas)
         finally:
             await conn.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": LOCK_ID})
 

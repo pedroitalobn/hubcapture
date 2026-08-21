@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DateRangePresets, presetToInicio, type RangePreset } from "@/components/DateRangePresets";
 import { Feed } from "@/components/Feed";
-import { FilterChips } from "@/components/FilterChips";
+import { PageHeader } from "@/components/PageHeader";
+import { IconeAcao } from "@/components/icons";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
-import { formatBRL } from "@/lib/format";
+import { formatBRL, formatBRLCompact } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
+import { useOrigem } from "@/lib/origem";
 
 interface FonteResumo {
   fonte: string;
@@ -37,21 +39,14 @@ interface VisaoGeral {
   feed: DiaGroup[];
 }
 
-const FONTE_LABEL: Record<string, string> = {
-  fpm: "FPM",
-  emendas: "Emendas",
-  fns: "FNS",
-  fnde: "FNDE",
-  transferegov_ff: "TransfereGov",
-  caixa: "CAIXA",
-};
-
 export default function RepassesPage() {
   const { selecionados } = useTerritorio();
   const [preset, setPreset] = useState<RangePreset>("30d");
   const [data, setData] = useState<VisaoGeral | null>(null);
   const [loading, setLoading] = useState(true);
-  const [fonteSel, setFonteSel] = useState<string | null>(null);
+  // origem do recurso vem do TRILHO (multi-select global) — a página não tem
+  // mais chip próprio de fonte; um filtro em dois lugares dessincroniza.
+  const { selecionadas: origens } = useOrigem();
   const [ibge, setIbge] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [sincronizando, setSincronizando] = useState(false);
@@ -96,35 +91,32 @@ export default function RepassesPage() {
     setSincronizando(false);
   }
 
-  const chips = useMemo(
-    () =>
-      (data?.fontes ?? []).map((f) => ({
-        value: f.fonte,
-        label: FONTE_LABEL[f.fonte] ?? f.fonte,
-        count: f.movimentacoes,
-      })),
-    [data],
-  );
 
   const feed = useMemo(() => {
     const f = data?.feed ?? [];
-    if (!fonteSel) return f;
+    if (origens.length === 0) return f;
     return f
-      .map((d) => ({ ...d, itens: d.itens.filter((i) => i.fonte === fonteSel) }))
+      .map((d) => ({ ...d, itens: d.itens.filter((i) => origens.includes(i.fonte)) }))
       .filter((d) => d.itens.length > 0);
-  }, [data, fonteSel]);
+  }, [data, origens]);
 
   return (
     <>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="page-title">Recursos recebidos</h1>
-        <div className="flex items-center gap-3">
-          <Link href="/panel/transfers/amendments" className="btn btn-ghost btn-sm">
-            Emendas →
-          </Link>
-          <DateRangePresets value={preset} onChange={setPreset} />
-        </div>
-      </header>
+      <PageHeader
+        titulo="Recursos recebidos"
+        acoes={
+          <>
+            <Link
+              href="/panel/transfers/amendments"
+              className="btn btn-ghost btn-sm"
+            >
+              Emendas
+              <IconeAcao nome="avancar" />
+            </Link>
+            <DateRangePresets value={preset} onChange={setPreset} />
+          </>
+        }
+      />
 
       <form onSubmit={sincronizar} className="card flex flex-wrap items-end gap-3 p-5">
         <label className="flex flex-col gap-1.5">
@@ -153,9 +145,12 @@ export default function RepassesPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {/* BRL compacto no KPI: por extenso não cabe no card estreito e o
+                .card corta o que estoura; o valor cheio fica no tooltip */}
             <StatCard
               label="Total Pago"
-              value={formatBRL(data?.total_pago)}
+              value={formatBRLCompact(data?.total_pago)}
+              title={formatBRL(data?.total_pago)}
               context={`${data?.movimentacoes ?? 0} movimentações`}
             />
             <StatCard
@@ -164,10 +159,6 @@ export default function RepassesPage() {
               context="com movimentação no período"
             />
           </div>
-
-          {chips.length > 0 && (
-            <FilterChips options={chips} selected={fonteSel} onSelect={setFonteSel} />
-          )}
 
           <section>
             <Feed dias={feed} />

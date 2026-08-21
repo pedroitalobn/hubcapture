@@ -362,6 +362,19 @@ p {
     transform: translateY(-6px);
   }
 }
+/* Troca de DADO no mesmo lugar (número de card ao mudar safra/município):
+   mais curto e mais sutil que o fade-up de entrada — o card não se move,
+   só o valor respira ao trocar. */
+@keyframes hc-swap {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 @layer components {
   /* Título de página — 500, tracking negativo, leve gradiente de tinta */
@@ -407,6 +420,10 @@ p {
   }
   .anim-pop {
     animation: hc-pop 0.35s var(--ease-spring) both;
+  }
+  /* Aplicar com `key={valor}`: o remount dispara a animação a cada troca */
+  .anim-swap {
+    animation: hc-swap 0.3s ease-out both;
   }
   /* Stagger: filhos entram em cascata (listas, grids, chips) */
   .stagger > * {
@@ -525,6 +542,33 @@ p {
     transform: translateX(160%);
   }
 
+  /* Tons cheios do StatCard (prop `tone`): KPIs financeiros do painel em cor
+     da marca, para não se confundirem com os cards brancos do restante.
+     `ink` segue os tokens de ação (inverte sozinho no tema escuro); lime,
+     aqua e o gradiente são preenchimentos fixos da marca — a tinta é sempre
+     abyss porque o fundo não muda com o tema. O vidro do .card é vencido
+     pela ordem (mesma camada, declarado depois). */
+  .stat-ink {
+    background: var(--action-bg);
+    color: var(--action-fg);
+    border-color: transparent;
+  }
+  .stat-lime {
+    background: var(--color-lime);
+    color: var(--color-abyss);
+    border-color: transparent;
+  }
+  .stat-aqua {
+    background: var(--color-aqua);
+    color: var(--color-abyss);
+    border-color: transparent;
+  }
+  .stat-grad {
+    background: var(--grad-brand);
+    color: var(--color-abyss);
+    border-color: transparent;
+  }
+
   /* Trilho lateral spatial — painel de vidro fixo, elevado do canvas */
   .rail {
     background: var(--rail);
@@ -598,6 +642,41 @@ p {
   .btn-sm {
     padding: 0.3125rem 0.75rem;
     font-size: 0.75rem;
+  }
+
+  /* Retorno de tela (BotaoVoltar): pílula com borda, SEMPRE à esquerda e
+     acima do título — nunca um link solto escondido no canto direito. A
+     borda + superfície dão a affordance que o texto mono puro não tinha. */
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 0.4375rem;
+    border: 1px solid var(--hairline);
+    border-radius: 9999px;
+    background: var(--surface-2);
+    padding: 0.3125rem 0.875rem 0.3125rem 0.625rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    transition:
+      color 0.15s ease,
+      border-color 0.15s ease,
+      background-color 0.15s ease;
+  }
+  .back-link:hover {
+    color: var(--ink);
+    border-color: var(--ink-2);
+  }
+  .back-link-seta {
+    flex-shrink: 0;
+    transition: transform 0.2s var(--ease-spring);
+  }
+  .back-link:hover .back-link-seta {
+    transform: translateX(-2px);
   }
 
   /* Seta/acento: o ÚNICO lugar onde o lime preenche uma forma */
@@ -843,6 +922,16 @@ p {
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
   }
+  /* Degrau 1b — o KPI do StatCard: papel de hero num card pequeno. Encolhe
+     com a viewport e QUEBRA quando ainda assim não cabe — o .card tem
+     overflow:hidden, então valor que estoura é cortado, não rolado. */
+  .value-stat {
+    font-size: clamp(1.25rem, 1.1vw + 0.9rem, 1.75rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
   /* Degrau 2 — número de destaque dentro de uma seção */
   .value-lg {
     font-size: 1.25rem;
@@ -850,6 +939,7 @@ p {
     font-weight: 500;
     letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
   }
   /* Degrau 3 — valor corrente de um campo (substitui o text-sm solto) */
   .value-md {
@@ -1162,6 +1252,16 @@ html {
     transform: translateX(0);
   }
 }
+@keyframes hc-island-entra {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 @keyframes hc-ring-spin {
   to {
     transform: rotate(360deg);
@@ -1470,14 +1570,32 @@ html {
     }
   }
 
-  /* Cápsula/ilha do Copiloto — morph com mola, não corte seco */
+  /* Cápsula/ilha do Copiloto — morph de VERDADE.
+     A versão anterior transicionava `width`, mas o estado fechado era
+     `width: auto`: valor não interpolável, então a caixa PULAVA para o
+     tamanho novo e só o conteúdo fazia fade — o que se lê como "lento e
+     sem efeito". O componente agora mede o conteúdo e escreve
+     largura/altura em PIXEL; aqui só resta interpolar.
+     A curva é a de painel do iOS (saída forte, chegada macia) e a
+     duração encurta para 280ms: o morph tem que terminar ANTES de o
+     usuário procurar o campo de texto. */
   .island {
+    transition: none;
+  }
+  .island-pronta {
     transition:
-      width var(--dur-3) var(--ease-spring),
-      max-width var(--dur-3) var(--ease-spring),
-      border-radius var(--dur-3) var(--ease-spring),
-      box-shadow var(--dur-3) var(--ease-spring),
+      width 280ms cubic-bezier(0.32, 0.72, 0, 1),
+      height 280ms cubic-bezier(0.32, 0.72, 0, 1),
+      border-radius 280ms cubic-bezier(0.32, 0.72, 0, 1),
+      box-shadow var(--dur-2) var(--ease-spring),
       transform var(--dur-2) var(--ease-spring);
+    will-change: width, height;
+  }
+  /* Conteúdo entra junto com a caixa (não depois dela): 180ms, deslocamento
+     mínimo. O `anim-fade-in` genérico de 400ms terminava bem depois do
+     morph e era metade da sensação de lentidão. */
+  .island-entra {
+    animation: hc-island-entra 0.18s var(--ease-out-soft) both;
   }
   .island-fechada:hover {
     transform: translateY(1px) scale(1.03);
@@ -1564,6 +1682,7 @@ html[data-ui="v1"]::before {
 [data-ui="v1"] .anim-fade-up,
 [data-ui="v1"] .anim-fade-in,
 [data-ui="v1"] .anim-pop,
+[data-ui="v1"] .anim-swap,
 [data-ui="v1"] .stagger > * {
   animation: none;
 }
@@ -1573,6 +1692,14 @@ html[data-ui="v1"]::before {
 }
 [data-ui="v1"] .btn-primary:hover:not(:disabled) {
   box-shadow: none;
+}
+/* Retorno de tela na v1: flat e peso único, sem a seta deslizando. */
+[data-ui="v1"] .back-link {
+  font-weight: 400;
+  background: transparent;
+}
+[data-ui="v1"] .back-link:hover .back-link-seta {
+  transform: none;
 }
 
 /* Realces voltam a ser tinta sólida; foco de input é só a borda. */
@@ -1637,6 +1764,24 @@ html[data-ui="v1"]::before {
 }
 [data-ui="v1"] .island-fechada:hover {
   transform: none;
+}
+/* Tons do StatCard na v1 (acento único): o flat genérico do `.card` acima
+   apagaria os quatro — o de tinta e o lime são REAFIRMADOS aqui (fazem parte
+   do porte), enquanto aqua e gradiente colapsam no card flat, a mesma regra
+   do --grad-brand no topo desta camada. A tinta volta ao token do tema,
+   senão o abyss fixo sumiria sobre o card escuro. */
+[data-ui="v1"] .stat-ink {
+  background: var(--action-bg);
+  color: var(--action-fg);
+}
+[data-ui="v1"] .stat-lime {
+  background: var(--color-lime);
+  color: var(--color-abyss);
+}
+[data-ui="v1"] .stat-aqua,
+[data-ui="v1"] .stat-grad {
+  background: var(--card);
+  color: var(--ink);
 }
 
 /* ── Resposta ao clique, por padrão ────────────────────────────

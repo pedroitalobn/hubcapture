@@ -43,9 +43,9 @@ from ._http import ConnectorClientError, get_json
 SOURCE_ID = "transferegov_parecer"
 
 # Rota real da API pública (módulo "especiais"). Overrides no painel admin.
-BASE_PADRAO = "https://api-publica.transferegov.gestao.gov.br/especiais/"
+BASE_PADRAO = "https://api.transferegov.gestao.gov.br/transferenciasespeciais/"
 # Rota da API NOVA, confirmada no spec oficial do módulo.
-ENDPOINT_PADRAO = "planos_trabalho_analises_especiais"
+ENDPOINT_PADRAO = "plano_trabalho_analise_especial"
 # Assunto e chaves que a descoberta usa para reconhecer a rota nas duas APIs.
 PALAVRAS_ROTA = ("analise",)
 CHAVES = ("id_plano_trabalho",)

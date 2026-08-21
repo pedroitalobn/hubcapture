@@ -360,23 +360,58 @@ export default function DynamicIsland() {
     void carregarAlertas();
   }
 
+  /* MORPH DE VERDADE — a cápsula não animava porque `width: auto` não é
+     interpolável: a caixa PULAVA para o tamanho novo e só o conteúdo fazia
+     fade, o que se lê como "lento e sem efeito". Aqui o conteúdo é medido
+     (ResizeObserver) e a caixa recebe largura/altura em PIXEL, que o CSS
+     interpola. De brinde, a ilha cresce suave a cada mensagem nova e a
+     cápsula fechada acompanha o texto do status da ferramenta.
+     `pronta` só entra depois da 1ª medida: sem isso a montagem inicial
+     animaria de zero até o tamanho natural. */
+  const medidaRef = useRef<HTMLDivElement>(null);
+  const [dim, setDim] = useState<{ w: number; h: number } | null>(null);
+
+  useEffect(() => {
+    const el = medidaRef.current;
+    if (!el) return;
+    const medir = () => {
+      const r = el.getBoundingClientRect();
+      setDim({ w: Math.ceil(r.width), h: Math.ceil(r.height) });
+    };
+    medir();
+    // o conteúdo troca (cápsula ⇄ painel) e cresce (mensagens, alertas):
+    // observar o elemento cobre os dois casos sem lista de dependências.
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const temAtualizacao = alertas.length > 0;
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center px-3">
       <div
+        style={dim ? { width: dim.w, height: dim.h } : undefined}
         className={`island pointer-events-auto relative overflow-hidden bg-abyss text-white shadow-2xl ring-1 ${
+          dim ? "island-pronta" : ""
+        } ${
           temAtualizacao && !aberta ? "ring-amber-300/40" : "ring-white/10"
         } ${
           aberta
-            ? "w-full max-w-md rounded-3xl"
-            : "island-fechada w-auto cursor-pointer rounded-full hover:ring-white/25"
+            ? "rounded-3xl"
+            : "island-fechada cursor-pointer rounded-full hover:ring-white/25"
         }`}
       >
+        <div
+          ref={medidaRef}
+          className={
+            aberta ? "w-[min(28rem,calc(100vw-1.5rem))]" : "w-max"
+          }
+        >
         {!aberta ? (
           <button
             onClick={abrir}
-            className="anim-fade-in flex items-center gap-2.5 px-4 py-2 text-sm"
+            className="island-entra flex items-center gap-2.5 px-4 py-2 text-sm"
             aria-label={
               temAtualizacao
                 ? `Abrir Copiloto — ${alertas.length} atualização(ões) de proposta`
@@ -410,7 +445,7 @@ export default function DynamicIsland() {
             )}
           </button>
         ) : (
-          <div className="anim-fade-in flex max-h-[70vh] flex-col">
+          <div className="island-entra flex max-h-[70vh] flex-col">
             <div className="flex items-center justify-between px-4 py-2.5">
               <div className="flex items-center gap-2.5">
                 <span className="relative flex h-2 w-2">
@@ -606,6 +641,7 @@ export default function DynamicIsland() {
             </form>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

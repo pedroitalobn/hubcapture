@@ -23,13 +23,15 @@ import httpx
 
 from ..core.config import settings
 from ..services import config as config_service
-from . import _identidade
+from . import _identidade, siconv_downloads
 from ._http import TIMEOUT
 from .base import RawRecord, register
 
-# Fonte oficial: ZIP nacional (siconv_proposta.csv dentro) no Azure blob do
-# Transferegov. Tem COD_MUNIC_IBGE, então dá pra filtrar por município.
-ZIP_URL = "https://api-publica.transferegov.gestao.gov.br/downloads/dadosgov/siconv_proposta.zip"
+# Fonte: ZIP nacional (siconv_proposta.csv dentro) do pacote SIconv. Tem
+# COD_MUNIC_IBGE, então dá pra filtrar por município. QUAL das origens responde
+# hoje quem decide é `siconv_downloads` (origem oficial + espelho) — aqui fica
+# só a retaguarda para quando nem a sondagem responder.
+ZIP_URL = "https://repositorio.dados.gov.br/seges/detru/siconv_proposta.csv.zip"
 
 # o arquivo é NACIONAL (todos os municípios) e grande (~200MB) — cache dos
 # BYTES em memória por 1h para a live-search de vários municípios reusar sem
@@ -128,12 +130,20 @@ class TransferegovDiscConnector:
     def __init__(self, base_url: str | None = None) -> None:
         self.base_url = base_url or settings.transferegov_disc_csv_url
 
-    def _resolver_url(self, base: str) -> str:
-        # a URL antiga (repositorio.dados.gov.br/.../siconv_proposta.csv) 404 —
-        # a fonte oficial é o ZIP nacional no Azure blob. Aceita override .csv/.zip.
+    async def _resolver_url(self, base: str) -> str:
+        """URL do pacote. Override explícito vence; senão, sonda as origens.
+
+        A origem oficial responde 403 (desafio da Cloudflare) para o IP deste
+        servidor e o espelho publica com OUTRO nome (`.csv.zip`) — fixar uma
+        URL aqui é o que deixava a fonte muda. `inspecionar` já percorre bases ×
+        candidatos e devolve a que respondeu.
+        """
         low = base.lower()
         if low.endswith(".zip") or low.endswith(".csv"):
             return base
+        disp = await siconv_downloads.inspecionar("proposta")
+        if disp.disponivel and disp.url:
+            return disp.url
         return ZIP_URL
 
     async def _bytes_da_fonte(self, url: str) -> bytes:
@@ -171,7 +181,7 @@ class TransferegovDiscConnector:
 
     async def collect(self, municipio_ibge: str, since: date) -> list[RawRecord]:
         base = await config_service.resolver("transferegov_disc_csv_url") or self.base_url
-        url = self._resolver_url(base)
+        url = await self._resolver_url(base)
 
         em_cache = _registros_cache.get((url, municipio_ibge))
         if em_cache and time.monotonic() - em_cache[0] < _CACHE_TTL:
@@ -203,9 +213,16 @@ class TransferegovDiscConnector:
             # (`len(records) + 1`) dava "1", "2", "3"… para TODO município — e o
             # par único (fonte, id_externo) é global: a proposta "1" de um
             # município sobrescrevia a "1" do outro e mudava de território.
-            id_ext = str(plano.get("numero") or _col(row, "id_proposta") or "") or (
-                _identidade.hash_conteudo(row, municipio_ibge, prefixo="csv:")
-            )
+            # ID_PROPOSTA é a chave primária que a fonte publica para ESTE
+            # arquivo, e é ela que manda (§51). O nº do convênio vinha antes e
+            # isso instabilizava a identidade: a proposta nasce sem convênio
+            # (id = hash do conteúdo) e ganha um ao ser celebrada — a linha
+            # trocava de `id_externo` e virava DUAS no painel. Vale também para
+            # convergir com a carga do pacote (`jobs/siconv_diario`), que casa
+            # pelo mesmo id.
+            id_ext = str(
+                _col_exata(row, "id_proposta") or plano.get("numero") or ""
+            ) or _identidade.hash_conteudo(row, municipio_ibge, prefixo="csv:")
             records.append(
                 RawRecord(
                     source_id=self.source_id,
@@ -219,8 +236,9 @@ class TransferegovDiscConnector:
 
     async def health_check(self) -> bool:
         try:
+            url = await self._resolver_url(self.base_url)
             async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
-                resp = await client.head(self._resolver_url(self.base_url))
+                resp = await client.head(url)
             return resp.status_code < 400
         except Exception:
             return False

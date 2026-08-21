@@ -5,6 +5,7 @@ relatório CSV — e a lente de emendas parlamentares sobre os recebidos."""
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 
 from sqlalchemy import text
 
@@ -666,3 +667,44 @@ def test_esta_publicada_le_valor_e_estado() -> None:
     assert esta_publicada(Proposta(execucao={"situacao_publicacao": "Não publicado"})) is False
     assert esta_publicada(Proposta(execucao={})) is False
     assert esta_publicada(Proposta()) is False
+
+
+async def test_listar_soma_varias_safras(seed_user, seed_municipio) -> None:
+    """`ano` aceita várias safras (parâmetro repetido) — OU dentro da dimensão."""
+    u = await seed_user("multisafra@x.com")
+    await seed_municipio(u, "3550308")
+    await _seed("A", "3550308", data_proposta="2024-03-01")
+    await _seed("B", "3550308", data_proposta="2025-06-01")
+    await _seed("C", "3550308", data_proposta="2026-01-01")
+
+    async with rls_session(u) as s:
+        duas, _ = await prop_service.listar_pagina(s, ano=["2024", "2026"])
+        uma, _ = await prop_service.listar_pagina(s, ano="2025")  # string continua valendo
+
+    assert {p.id_externo for p in duas} == {"A", "C"}
+    assert [p.id_externo for p in uma] == ["B"]
+
+
+async def test_resumo_abre_mes_a_mes_com_safra_unica(seed_user, seed_municipio) -> None:
+    """Com UMA safra no filtro o resumo traz `por_mes` (mês de criação, mesmo
+    referencial do filtro de mês); com zero ou várias safras a lista vem vazia —
+    misturar janeiros de anos diferentes numa barra só não é uma série."""
+    u = await seed_user("mensal@x.com")
+    await seed_municipio(u, "3550308")
+    await _seed("M1", "3550308", data_proposta="2025-02-10", valor="100")
+    await _seed("M2", "3550308", data_proposta="2025-02-20", valor="50")
+    await _seed("M3", "3550308", data_proposta="2025-09-05", valor="30")
+    await _seed("M4", "3550308", data_proposta="2024-01-01", valor="10")
+
+    async with rls_session(u) as s:
+        mensal = await prop_service.resumo(s, ano=["2025"])
+        todas = await prop_service.resumo(s)
+        duas = await prop_service.resumo(s, ano=["2024", "2025"])
+
+    assert [(m["mes"], m["rotulo"]) for m in mensal["por_mes"]] == [
+        ("02", "Fevereiro"),
+        ("09", "Setembro"),
+    ]
+    assert mensal["por_mes"][0]["aprovado"] == Decimal("150")
+    assert todas["por_mes"] == []
+    assert duas["por_mes"] == []

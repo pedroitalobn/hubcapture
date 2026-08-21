@@ -11,6 +11,8 @@ import { IconeNav, type NomeIcone } from "@/components/icons";
 import { api, clearTokens, getToken } from "@/lib/api/client";
 import { HelpProvider } from "@/lib/help";
 import { TerritorioProvider, useTerritorio } from "@/lib/territorio";
+import { OrigemProvider } from "@/lib/origem";
+import { OrigemRecursoFiltro } from "@/components/OrigemRecursoFiltro";
 
 // A navegação NÃO é por fonte de dados — é o ciclo do recurso público, sempre
 // recortado pelo território do usuário (via RLS). Cada item é uma LENTE sobre
@@ -101,11 +103,13 @@ export default function PainelLayout({
   // painel: o provider carrega o perfil uma vez e as telas leem daqui.
   return (
     <TerritorioProvider>
+      <OrigemProvider>
       {/* O mapa de hints (ⓘ) é estado de todo o painel, como o território:
           carrega uma vez e os <Hint/> das telas consultam localmente. */}
       <HelpProvider>
         <PainelShell>{children}</PainelShell>
       </HelpProvider>
+      </OrigemProvider>
     </TerritorioProvider>
   );
 }
@@ -155,6 +159,11 @@ function PainelShell({ children }: { children: React.ReactNode }) {
             )}
           </p>
           <TerritorioFiltro />
+          {/* Origem do recurso — de QUAL fonte o dinheiro veio (FNS, FPM…).
+              Multi-select: o recorte soma origens; vazio = todas. Vale para a
+              lente de recebidos, como o território vale para tudo. */}
+          <p className="label-mono mb-1.5 mt-4">Origem do recurso</p>
+          <OrigemRecursoFiltro />
           {(perfil?.areas ?? []).length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {perfil!.areas.map((a) => (
@@ -168,12 +177,16 @@ function PainelShell({ children }: { children: React.ReactNode }) {
               ))}
             </div>
           )}
-          <Link
-            href="/onboarding"
-            className="link-soft mt-3 inline-block font-mono text-[11px] uppercase tracking-[0.04em]"
-          >
-            Ajustar perfil →
-          </Link>
+          {/* Conta demo: o território é semeado pela plataforma e o backend
+              bloqueia o onboarding — sem o link, sem beco sem saída. */}
+          {!perfil?.demo && (
+            <Link
+              href="/onboarding"
+              className="link-soft mt-3 inline-block font-mono text-[11px] uppercase tracking-[0.04em]"
+            >
+              Ajustar perfil →
+            </Link>
+          )}
         </div>
 
         <nav className="flex flex-col gap-1">
@@ -217,6 +230,19 @@ function PainelShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="mx-auto flex w-full min-w-0 max-w-[1600px] flex-1 flex-col py-2">
+        {/* Faixa do sandbox: dados são REAIS (cache de captação); o que é
+            simulado são as ações de conta — o backend bloqueia o destrutivo. */}
+        {perfil?.demo && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-hairline px-4 py-2.5 text-sm text-ink-2">
+            <span>
+              <strong className="text-ink">Ambiente de demonstração</strong> —
+              dados reais de captação; alterações de conta ficam desativadas.
+            </span>
+            <Link href="/signup" className="link-soft font-mono text-[11px] uppercase tracking-[0.04em]">
+              Criar minha conta →
+            </Link>
+          </div>
+        )}
         {/* `key={pathname}` remonta o wrapper a cada navegação, então a
             animação de entrada REEXECUTA — sem isso o layout persiste no App
             Router e a transição só aconteceria no primeiro carregamento.

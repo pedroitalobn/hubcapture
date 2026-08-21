@@ -303,7 +303,7 @@ async def test_fns_collect_api_e_scrape_fundidos(monkeypatch) -> None:
     async def fake_get_json(base, endpoint, params, headers=None):
         if endpoint == "":
             return {}
-        if endpoint == "repasse/consultar":
+        if endpoint == "proposta/consultar":
             return {
                 "items": [
                     {
@@ -338,13 +338,13 @@ async def test_fns_collect_api_e_scrape_fundidos(monkeypatch) -> None:
     records = await conn.collect("3550308", since=date(2026, 1, 1))
 
     assert len(records) == 2  # 1 fundido + 1 só-scraping; o de outro município caiu
-    fundido = next(r for r in records if r.endpoint == "repasse/consultar+scrape")
+    fundido = next(r for r in records if r.endpoint == "proposta/consultar+scrape")
     assert fundido.raw["descricao"] == "Piso da Atenção Básica (painel)"  # scrape vence
     assert fundido.raw["valor"] == "1000,00"  # API vence
     assert fundido.raw["_proveniencia"]["descricao"] == "scrape"
     so_scrape = next(r for r in records if r.endpoint == "scrape")
     assert so_scrape.id_externo == "777/2026"
-    assert fns_mod._endpoint_cache["http://api/"] == "repasse/consultar"
+    assert fns_mod._endpoint_cache["http://api/"] == "proposta/consultar"
 
 
 async def test_fns_collect_api_falha_scrape_assume(monkeypatch) -> None:

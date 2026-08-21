@@ -58,6 +58,9 @@ services:
       DATABASE_MIGRATOR_URL: postgresql+asyncpg://${POSTGRES_USER:-hubcapture}:${POSTGRES_PASSWORD:-postgres_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
       # 06:00 UTC ≈ 03:00 em Brasília — fora do horário de uso.
       REFRESH_DIARIO_HORA_UTC: ${REFRESH_DIARIO_HORA_UTC:-6}
+      # Fortaleza-size: a coleta do FNS por proposta (drill + detalhe via
+      # egresso) não cabe em 5 min — o teto padrão derrubava a coleta INTEIRA
+      COLETA_TIMEOUT_SECONDS: ${COLETA_TIMEOUT_SECONDS:-900}
       REFRESH_DIARIO_ATIVO: ${REFRESH_DIARIO_ATIVO:-1}
     # Sobrescreve o entrypoint da api (que sobe o uvicorn) — aqui o processo é o
     # agendador. Sem `--` o módulo herdaria o boot HTTP e subiria uma 2ª API.
@@ -87,6 +90,12 @@ services:
       # não disputarem CPU e rede baixando arquivo grande ao mesmo tempo.
       SICONV_DIARIO_HORA_UTC: ${SICONV_DIARIO_HORA_UTC:-7}
       SICONV_DIARIO_ATIVO: ${SICONV_DIARIO_ATIVO:-1}
+      # Quais tabelas do pacote entram na carga (vazio = as do catálogo com
+      # destino no schema: emenda, proposta, convenio, empenho).
+      SICONV_TABELAS: ${SICONV_TABELAS:-}
+      # `territorio` (padrão) carrega só os municípios monitorados; o
+      # arquivo de propostas é NACIONAL e `nacional` são milhões de linhas.
+      SICONV_PROPOSTAS_ESCOPO: ${SICONV_PROPOSTAS_ESCOPO:-territorio}
     # Agendador próprio, não a API: sem `--` o módulo herdaria o boot HTTP.
     entrypoint: ["/app/apps/api/.venv/bin/python", "-m", "src.jobs.siconv_diario"]
     working_dir: /app/apps/api
@@ -117,6 +126,7 @@ services:
     environment:
       # dentro da rede do compose o host do banco é "postgres" (não localhost)
       DB_HOST: postgres
+      COLETA_TIMEOUT_SECONDS: ${COLETA_TIMEOUT_SECONDS:-900}
       DATABASE_URL: postgresql+asyncpg://hubcapture_app:${APP_DB_PASSWORD:-app_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
       DATABASE_MIGRATOR_URL: postgresql+asyncpg://${POSTGRES_USER:-hubcapture}:${POSTGRES_PASSWORD:-postgres_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
     expose:

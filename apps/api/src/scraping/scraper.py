@@ -87,6 +87,17 @@ class Scraper:
 
     async def _tentar(self, metodo: str, *args: Any, **kwargs: Any) -> dict[str, Any]:
         providers = await self._providers()
+        # Host que recusa o IP deste servidor (ver connectors/_egress): browser
+        # LOCAL sai pelo mesmo IP e só queima o timeout — os providers remotos
+        # (crawl4ai remoto, firecrawl) vão para a frente. Sem isso cada coleta
+        # do FNS pagava ~2 min de timeouts antes de chegar em quem responde.
+        url = args[0] if args and isinstance(args[0], str) else None
+        if url and providers:
+            from ..connectors import _egress  # import local: evita ciclo no boot
+
+            if _egress.bloqueado(url):
+                remotos = {"crawl4ai", "firecrawl"}
+                providers.sort(key=lambda item: 0 if item[0] in remotos else 1)
         if not providers:
             raise ScraperNotConfigured(
                 "Nenhum scraper disponível — instale o extra 'scraping' "

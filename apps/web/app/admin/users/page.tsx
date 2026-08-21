@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { api, getToken, excluirUsuario } from "@/lib/api/client";
+import { api, getToken, excluirUsuario, mensagemDaFalha } from "@/lib/api/client";
 
 interface Usuario {
   id: string;
@@ -24,7 +24,8 @@ const PAPEIS = ["parlamentar", "executivo", "equipe"] as const;
 export default function AdminUsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [planos, setPlanos] = useState<Plano[]>([]);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ texto: string; erro?: boolean } | null>(null);
+  const [criando, setCriando] = useState(false);
 
   // form de criação
   const [email, setEmail] = useState("");
@@ -51,31 +52,46 @@ export default function AdminUsuariosPage() {
     e.preventDefault();
     setMsg(null);
     if (!getToken()) {
-      setMsg("Faça login como administrador.");
+      setMsg({ texto: "Faça login como administrador.", erro: true });
       return;
     }
-    const { error } = await api.POST("/api/v1/admin/users", {
-      body: {
-        email,
-        senha,
-        nome: nome || null,
-        papel,
-        plano_id: planoId || null,
-        is_superuser: superuser,
-      },
-    });
-    if (error) {
-      setMsg("Não foi possível criar (e-mail já existe? permissão?).");
-      return;
+    // handler async que liga "…ando" desliga no finally (§52): promessa
+    // rejeitada não pode deixar o botão preso nem a tela sem mensagem
+    setCriando(true);
+    try {
+      const { error } = await api.POST("/api/v1/admin/users", {
+        body: {
+          email,
+          senha,
+          nome: nome || null,
+          papel: papel || null,
+          plano_id: planoId || null,
+          is_superuser: superuser,
+        },
+      });
+      if (error) {
+        setMsg({
+          texto: mensagemDaFalha(error, "Não foi possível criar o usuário"),
+          erro: true,
+        });
+        return;
+      }
+      setEmail("");
+      setNome("");
+      setSenha("");
+      setPapel("");
+      setPlanoId("");
+      setSuperuser(false);
+      setMsg({ texto: "Usuário criado." });
+      await carregar();
+    } catch (err) {
+      setMsg({
+        texto: mensagemDaFalha(err, "Não foi possível criar o usuário"),
+        erro: true,
+      });
+    } finally {
+      setCriando(false);
     }
-    setEmail("");
-    setNome("");
-    setSenha("");
-    setPapel("");
-    setPlanoId("");
-    setSuperuser(false);
-    setMsg("Usuário criado.");
-    await carregar();
   }
 
   async function atualizar(
@@ -86,7 +102,7 @@ export default function AdminUsuariosPage() {
       params: { path: { usuario_id: id } },
       body: patch,
     });
-    if (error) setMsg("Falha ao atualizar.");
+    if (error) setMsg({ texto: mensagemDaFalha(error, "Falha ao atualizar"), erro: true });
     await carregar();
   }
 
@@ -102,7 +118,7 @@ export default function AdminUsuariosPage() {
       await excluirUsuario(id);
       await carregar();
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Falha ao excluir usuário.");
+      setMsg({ texto: mensagemDaFalha(e, "Falha ao excluir usuário"), erro: true });
     }
   }
 
@@ -116,7 +132,11 @@ export default function AdminUsuariosPage() {
         </p>
       </header>
 
-      {msg && <p className="text-sm text-ink-2">{msg}</p>}
+      {msg && (
+        <p className={`text-sm ${msg.erro ? "text-danger" : "text-ink-2"}`}>
+          {msg.texto}
+        </p>
+      )}
 
       <form onSubmit={criar} className="card grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
         <label className="flex flex-col gap-1.5">
@@ -187,8 +207,12 @@ export default function AdminUsuariosPage() {
           />
           Permissão de admin (superuser)
         </label>
-        <button type="submit" className="btn btn-primary col-span-full self-start">
-          Criar usuário
+        <button
+          type="submit"
+          disabled={criando}
+          className="btn btn-primary col-span-full self-start"
+        >
+          {criando ? "Criando…" : "Criar usuário"}
         </button>
       </form>
 

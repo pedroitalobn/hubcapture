@@ -36,6 +36,13 @@ _HASH_FIELDS = (
 )
 
 
+def _texto_ou_none(v):
+    """int/float da fonte vira texto; vazio vira None (o schema é string|None)."""
+    if v in (None, ""):
+        return None
+    return str(v).strip() or None
+
+
 def _first(*values: Any) -> Any:
     for v in values:
         if v not in (None, "", []):
@@ -225,14 +232,19 @@ def normalize(record: RawRecord) -> PropostaCanonica:
             plano.get("codigo_plano_acao"),  # fundo a fundo
             plano.get("numero"),  # painel SERPRO
         ),
-        # nº do plano de trabalho — é por ele que a fonte emite os PARECERES
-        "numero_plano_trabalho": _first(
-            plano.get("numero_plano_trabalho"),
-            plano.get("nr_plano_trabalho"),
-            plano.get("id_plano_trabalho"),
-            plano.get("cd_plano_trabalho"),
-            plano.get("numero_plano_acao"),
-            plano.get("id_plano_acao"),
+        # nº do plano de trabalho — é por ele que a fonte emite os PARECERES.
+        # str(): o fundo a fundo publica `id_plano_acao` como INTEIRO e o
+        # schema é texto — sem o cast, TODA proposta FF/especiais era recusada
+        # na validação e a coleta inteira do município falhava.
+        "numero_plano_trabalho": _texto_ou_none(
+            _first(
+                plano.get("numero_plano_trabalho"),
+                plano.get("nr_plano_trabalho"),
+                plano.get("id_plano_trabalho"),
+                plano.get("cd_plano_trabalho"),
+                plano.get("numero_plano_acao"),
+                plano.get("id_plano_acao"),
+            )
         ),
         "titulo": _first(
             programa.get("nome_programa"),

@@ -29,6 +29,9 @@ def versao_ui_efetiva(valor: str | None) -> str:
 
 class UiRead(BaseModel):
     versao: str
+    # NÃO anunciar o acesso demo aqui: a rota é pública e o demo é um link
+    # RESERVADO (/demo) que o time de vendas compartilha — o /login não mostra
+    # botão nem sinaliza que a conta existe.
 
 
 @router.get("/ui", response_model=UiRead)

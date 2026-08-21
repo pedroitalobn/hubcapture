@@ -9,10 +9,13 @@ import { Favorito } from "@/components/Favorito";
 import { Hint } from "@/components/Hint";
 import { ModuloGate } from "@/components/ModuloGate";
 import { NumeroProposta } from "@/components/NumeroProposta";
+import { PageHeader } from "@/components/PageHeader";
+import { IconeAcao } from "@/components/icons";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { TextoLimitado } from "@/components/TextoLimitado";
 import {
   formatBRL,
+  formatBRLCompact,
   formatDate,
   formatDateTime,
   haQuantoTempo,
@@ -875,10 +878,10 @@ function CaptacaoExploracao() {
 
   return (
     <>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="page-title">Propostas</h1>
-          <p className="mt-1 text-sm text-ink-2">
+      <PageHeader
+        titulo="Propostas"
+        descricao={
+          <>
             Propostas e oportunidades de{" "}
             {/* condiciona ao que JÁ carregou (não ao recorte salvo no
                 localStorage): antes do perfil chegar, cliente e servidor
@@ -892,12 +895,40 @@ function CaptacaoExploracao() {
             )}
             , das fontes oficiais (API + scraping). Atualiza sozinha uma vez por
             dia — use “Atualizar fontes” para consultar agora.
-          </p>
-        </div>
-        <Link href="/panel/funding/summary" className="btn btn-ghost btn-sm">
-          Ver resumo →
-        </Link>
-      </header>
+          </>
+        }
+        acoes={
+          <>
+            <Link href="/panel/funding/summary" className="btn btn-ghost btn-sm">
+              <IconeAcao nome="resumo" />
+              Ver resumo
+            </Link>
+            {/* A ação MAIS importante da tela (consultar as fontes agora)
+                vivia enterrada como ghost pequeno no meio da página; é ação
+                primária e mora no cabeçalho, onde toda tela põe a sua. */}
+            {!acompanhando && (
+              <button
+                onClick={() => void atualizarFontes()}
+                disabled={atualizando}
+                className="btn btn-primary"
+                title="Consulta as fontes oficiais agora e grava o que houver de novo. A lista já é atualizada sozinha uma vez por dia."
+              >
+                {atualizando ? (
+                  <>
+                    <span className="spinner" aria-hidden />
+                    Consultando fontes…
+                  </>
+                ) : (
+                  <>
+                    <IconeAcao nome="atualizar" />
+                    Atualizar fontes
+                  </>
+                )}
+              </button>
+            )}
+          </>
+        }
+      />
 
       {/* abas — várias frentes de trabalho ao mesmo tempo */}
       <div className="flex flex-wrap items-center gap-1.5">
@@ -1264,21 +1295,8 @@ function CaptacaoExploracao() {
           </select>
         </label>
 
-        <button
-          onClick={() => void atualizarFontes()}
-          disabled={atualizando}
-          className="btn btn-ghost btn-sm disabled:opacity-50"
-          title="Consulta as fontes oficiais agora e grava o que houver de novo. A lista já é atualizada sozinha uma vez por dia."
-        >
-          {atualizando ? (
-            <>
-              <span className="spinner" aria-hidden />
-              Consultando fontes…
-            </>
-          ) : (
-            "↻ Atualizar fontes"
-          )}
-        </button>
+        {/* o botão "Atualizar fontes" subiu para o cabeçalho da página (ação
+            primária); aqui fica só o estado honesto da coleta */}
 
         {/* idade do dado: a lista vem do banco, alimentado pelo sweep diário —
             sem o carimbo, "o número mudou" não tem como ser explicado */}
@@ -1320,16 +1338,43 @@ function CaptacaoExploracao() {
       {/* execução financeira (TransfereGov): quanto foi disponibilizado × usado */}
       {execucao && (
         <section className="stagger grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          {/* BRL compacto: em 6 colunas o valor por extenso não cabe e o .card
+              corta o que estoura; o valor cheio fica no tooltip (title) */}
           {(
             [
-              ["Transferências", String(execucao.transferencias), false],
-              ["Valor global", formatBRL(String(execucao.global)), false],
-              ["Empenhado", formatBRL(String(execucao.empenhado)), false],
-              ["Empenhado a utilizar", formatBRL(String(execucao.aUtilizar)), true],
-              ["Pago", formatBRL(String(execucao.pago)), false],
-              ["Saldo em conta", formatBRL(String(execucao.saldo)), false],
+              ["Transferências", String(execucao.transferencias), null, false],
+              [
+                "Valor global",
+                formatBRLCompact(String(execucao.global)),
+                formatBRL(String(execucao.global)),
+                false,
+              ],
+              [
+                "Empenhado",
+                formatBRLCompact(String(execucao.empenhado)),
+                formatBRL(String(execucao.empenhado)),
+                false,
+              ],
+              [
+                "Empenhado a utilizar",
+                formatBRLCompact(String(execucao.aUtilizar)),
+                formatBRL(String(execucao.aUtilizar)),
+                true,
+              ],
+              [
+                "Pago",
+                formatBRLCompact(String(execucao.pago)),
+                formatBRL(String(execucao.pago)),
+                false,
+              ],
+              [
+                "Saldo em conta",
+                formatBRLCompact(String(execucao.saldo)),
+                formatBRL(String(execucao.saldo)),
+                false,
+              ],
             ] as const
-          ).map(([rotulo, valor, destaque]) => (
+          ).map(([rotulo, valor, cheio, destaque]) => (
             <div
               key={rotulo}
               className={`card p-4 ${destaque ? "ring-1 ring-lime" : ""}`}
@@ -1338,7 +1383,10 @@ function CaptacaoExploracao() {
                   utilizar") empurra só o seu valor para baixo e a fileira de
                   números deixa de alinhar. */}
               <p className="field-label min-h-[2.2em] leading-tight">{rotulo}</p>
-              <p className={cx("value-lg mt-1", destaque && "tone-ok")}>
+              <p
+                className={cx("value-lg mt-1", destaque && "tone-ok")}
+                title={cheio ?? undefined}
+              >
                 {valor}
               </p>
               {destaque && (
@@ -1358,7 +1406,7 @@ function CaptacaoExploracao() {
               ? "Nenhuma favorita ainda — favorite ★ uma proposta na busca para acompanhá-la aqui."
               : buscando
                 ? "Carregando propostas…"
-                : "Nenhuma proposta com esses filtros. Tente afrouxar o recorte ou ↻ Atualizar fontes."}
+                : "Nenhuma proposta com esses filtros. Tente afrouxar o recorte ou use “Atualizar fontes”, no topo da página."}
           </p>
         ) : (
           <div className="card overflow-hidden">

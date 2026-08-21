@@ -95,7 +95,14 @@ def test_catalogo_carrega_apenas_o_que_tem_destino():
 
 
 def test_candidatos_de_nome_do_zip():
-    assert siconv_downloads.ARQUIVOS["emenda"].nomes() == ("siconv_emenda.zip", "emenda.zip")
+    # `.csv.zip` primeiro: é o padrão do espelho (repositorio.dados.gov.br), a
+    # única origem que responde deste servidor; a oficial mantém `.zip`
+    assert siconv_downloads.ARQUIVOS["emenda"].nomes() == (
+        "siconv_emenda.csv.zip",
+        "siconv_emenda.zip",
+        "emenda.csv.zip",
+        "emenda.zip",
+    )
 
 
 def test_proxima_execucao_nunca_e_agora():
@@ -145,7 +152,9 @@ async def _rodar_carga(tmp_path: Path) -> list[dict]:
 
     async with engine.begin() as conn:
         gravadas = await job.aplicar_carga(conn, {"emenda": emenda, "proposta": proposta})
-    assert gravadas == {"emendas": 3}
+    # a carga também alimenta `propostas`; aqui não há território monitorado,
+    # então o recorte é vazio — o que interessa neste teste são as emendas
+    assert gravadas["emendas"] == 3
 
     from tests.conftest import _owner_engine
 
@@ -243,7 +252,7 @@ async def _rodar_carga_execucao(tmp_path: Path) -> list[dict]:
 
     async with engine.begin() as conn:
         gravadas = await job.aplicar_carga(conn, arquivos)
-    assert gravadas == {"empenhos": 3}
+    assert gravadas["empenhos"] == 3
 
     from tests.conftest import _owner_engine
 

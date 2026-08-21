@@ -9,7 +9,12 @@ import { NumeroProposta } from "@/components/NumeroProposta";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
-import { formatBRL, humanizarCaixa, recortarTexto } from "@/lib/format";
+import {
+  formatBRL,
+  formatBRLCompact,
+  humanizarCaixa,
+  recortarTexto,
+} from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 // ── Panorama financeiro do território (números + gráfico) ───────────────────
@@ -18,6 +23,14 @@ import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 // PÁGINA (prop `ano`), não de um seletor próprio: dois filtros de ano na mesma
 // tela mostravam recortes diferentes lado a lado — o gráfico obedecia a um, os
 // cards e o feed continuavam no outro.
+//
+// O panorama deixou de ser uma seção própria: com poucas dimensões ativas, o
+// card do nº de propostas ficava sozinho numa grade de 4 colunas e a linha
+// inteira era vão. O gráfico aprovado × desembolsado entra NA MESMA grade,
+// fechando a linha ao lado do número, e os KPIs financeiros viram uma faixa
+// de cards logo abaixo, com as cores cheias da marca (tinta, lime, aqua e o
+// gradiente) — contraste de verdade sobre o canvas claro, em vez de mais
+// quatro cards brancos.
 interface ResumoPainelData {
   cards: {
     valor_conveniado: string;
@@ -32,6 +45,8 @@ interface ResumoPainelData {
     oportunidades_abertas: number;
   };
   por_ano: { ano: string; aprovado: string; desembolsado: string }[];
+  // abertura mês a mês — a API só a manda quando o recorte é de UMA safra
+  por_mes?: { mes: string; rotulo: string; aprovado: string; desembolsado: string }[];
 }
 
 function numBR(v?: string | number | null): number {
@@ -39,18 +54,22 @@ function numBR(v?: string | number | null): number {
   return Number.isNaN(n) ? 0 : n;
 }
 
-function PanoramaFinanceiro({ ano }: { ano: string }) {
+/** Busca o resumo financeiro do recorte (safras + território). `habilitado`
+ *  segura a consulta enquanto o perfil não confirmou território — sem ele, a
+ *  conta recém-criada pagaria um summary vazio a cada carga. */
+function useResumoFinanceiro(anos: string[], habilitado: boolean) {
   const { selecionados } = useTerritorio();
   const [resumo, setResumo] = useState<ResumoPainelData | null>(null);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
+    if (!habilitado) return;
     setCarregando(true);
     void api
       .GET("/api/v1/proposals/summary", {
         params: {
           query: {
-            ano: ano || undefined,
+            ano: anos.length ? anos : undefined,
             municipio: paramMunicipio(selecionados),
           },
         } as never,
@@ -67,88 +86,161 @@ function PanoramaFinanceiro({ ano }: { ano: string }) {
         if (ok) setResumo(data as ResumoPainelData);
         setCarregando(false);
       });
-  }, [ano, selecionados]);
+  }, [anos, selecionados, habilitado]);
 
-  if (carregando && !resumo) return <SkeletonCards />;
-  if (!resumo) return null;
+  return { resumo, carregando };
+}
 
-  const porAno = resumo.por_ano ?? [];
-  const maxAno = Math.max(
+// Quantas colunas (grade xl de 4) o gráfico ocupa ao lado dos cards de
+// dimensão: com 1–2 dimensões ele fecha a linha; com mais, desce inteiro
+// para a linha seguinte. Mapa de literais — Tailwind não enxerga classe
+// montada por template.
+const SPAN_GRAFICO: Record<number, string> = {
+  1: "xl:col-span-3",
+  2: "xl:col-span-2",
+};
+
+/** Gráfico aprovado × desembolsado, morando na MESMA grade das dimensões —
+ *  é ele que preenche o vão ao lado do nº de propostas.
+ *
+ *  Com UMA safra selecionada o gráfico troca de escala: em vez de repetir a
+ *  barra única do ano, abre o mesmo par mês a mês daquele ano (`por_mes` da
+ *  API). As barras transicionam a altura em CSS — trocar de safra morfa o
+ *  desenho em vez de piscar um novo. */
+function GraficoAprovadoDesembolsado({
+  resumo,
+  anos,
+  className = "",
+}: {
+  resumo: ResumoPainelData;
+  anos: string[];
+  className?: string;
+}) {
+  const porMes = anos.length === 1 ? (resumo.por_mes ?? []) : [];
+  const mensal = porMes.length > 0;
+  // no modo mensal a série é a dos meses; no anual, a dos anos
+  const serie = mensal
+    ? porMes.map((m) => ({
+        chave: m.mes,
+        rotulo: m.rotulo.slice(0, 3).toLowerCase(),
+        aprovado: m.aprovado,
+        desembolsado: m.desembolsado,
+      }))
+    : (resumo.por_ano ?? []).map((a) => ({
+        chave: a.ano,
+        rotulo: a.ano,
+        aprovado: a.aprovado,
+        desembolsado: a.desembolsado,
+      }));
+  const teto = Math.max(
     1,
-    ...porAno.flatMap((a) => [numBR(a.aprovado), numBR(a.desembolsado)]),
+    ...serie.flatMap((s) => [numBR(s.aprovado), numBR(s.desembolsado)]),
   );
-
+  const recorte =
+    anos.length === 0
+      ? "todas as safras"
+      : anos.length === 1
+        ? `safra ${anos[0]}${mensal ? " · mês a mês" : ""}`
+        : `safras ${[...anos].sort().join(" + ")}`;
   return (
-    <section className="anim-fade-up flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="tracking-tight">Panorama financeiro</h2>
-        <span className="label-mono">
-          {ano ? `safra ${ano}` : "todas as safras"}
-        </span>
+    <div className={`card flex flex-col justify-between p-4 ${className}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="label-mono">
+          {mensal
+            ? "Aprovado × desembolsado por mês"
+            : "Aprovado × desembolsado por ano"}
+        </h3>
+        <span className="label-mono">{recorte}</span>
       </div>
-
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard
-          label="Total geral"
-          value={formatBRL(resumo.cards.valor_conveniado)}
-          context={`${resumo.cards.transferencias} transferências`}
-        />
-        <StatCard
-          label="Empenhado"
-          value={formatBRL(resumo.cards.valor_empenhado)}
-          context="reservado pelo concedente"
-        />
-        {/* "Publicado" vem da fonte ora como valor, ora como estado. Com
-            valor, mostra o valor; sem ele, a contagem de publicadas — R$ 0,00
-            leria como "nada publicado", que é outra coisa. */}
-        <StatCard
-          label="Publicado"
-          value={
-            numBR(resumo.cards.valor_publicado) > 0
-              ? formatBRL(resumo.cards.valor_publicado)
-              : String(resumo.cards.propostas_publicadas)
-          }
-          context={
-            numBR(resumo.cards.valor_publicado) > 0
-              ? "publicado pela fonte"
-              : "propostas publicadas"
-          }
-        />
-        <StatCard
-          label="Pago"
-          value={formatBRL(resumo.cards.valor_pago)}
-          context="efetivamente pago"
-        />
-      </div>
-
-      {porAno.length > 0 && (
-        <div className="card p-5">
-          <h3 className="label-mono">Aprovado × desembolsado por ano</h3>
-          <div className="mt-4 flex items-end gap-2 overflow-x-auto">
-            {porAno.map((a) => (
-              <div key={a.ano} className="flex min-w-[42px] flex-col items-center gap-1">
-                <div className="flex h-28 items-end gap-0.5">
-                  <div
-                    title={`Aprovado: ${formatBRL(a.aprovado)}`}
-                    className="w-3 rounded-t bg-ink/70"
-                    style={{ height: `${(numBR(a.aprovado) / maxAno) * 100}%` }}
-                  />
-                  <div
-                    title={`Desembolsado: ${formatBRL(a.desembolsado)}`}
-                    className="w-3 rounded-t bg-lime"
-                    style={{ height: `${(numBR(a.desembolsado) / maxAno) * 100}%` }}
-                  />
-                </div>
-                <span className="font-mono text-[10px] text-ink-3">{a.ano}</span>
-              </div>
-            ))}
+      {/* key = escala: trocar ano→mês remonta com fade; ano→ano e mês→mês
+          mantém os elementos e a transition morfa as alturas */}
+      <div
+        key={mensal ? "mensal" : "anual"}
+        className="anim-fade-in mt-3 flex items-end gap-2 overflow-x-auto"
+      >
+        {serie.map((s) => (
+          <div
+            key={s.chave}
+            className={`flex flex-col items-center gap-1 ${
+              mensal ? "min-w-[26px]" : "min-w-[42px]"
+            }`}
+          >
+            <div className="flex h-16 items-end gap-0.5">
+              <div
+                title={`Aprovado: ${formatBRL(s.aprovado)}`}
+                className="w-3 rounded-t bg-ink/70 transition-[height] duration-500 ease-out"
+                style={{ height: `${(numBR(s.aprovado) / teto) * 100}%` }}
+              />
+              <div
+                title={`Desembolsado: ${formatBRL(s.desembolsado)}`}
+                className="w-3 rounded-t bg-lime transition-[height] duration-500 ease-out"
+                style={{ height: `${(numBR(s.desembolsado) / teto) * 100}%` }}
+              />
+            </div>
+            <span className="font-mono text-[10px] text-ink-3">{s.rotulo}</span>
           </div>
-          <p className="mt-3 font-mono text-[11px] text-ink-3">
-            <span className="mr-3">▊ aprovado</span>
-            <span className="text-lime">▊ desembolsado</span>
-          </p>
-        </div>
-      )}
+        ))}
+      </div>
+      <p className="mt-2 font-mono text-[11px] text-ink-3">
+        <span className="mr-3">▊ aprovado</span>
+        <span className="text-lime">▊ desembolsado</span>
+      </p>
+    </div>
+  );
+}
+
+/** Faixa de KPIs financeiros — cores cheias da marca, uma por card, para o
+ *  bloco contrastar com o canvas e com os cards brancos do restante. */
+function CardsFinanceiros({ resumo }: { resumo: ResumoPainelData }) {
+  const cards = resumo.cards;
+  return (
+    <section className="stagger grid grid-cols-2 gap-4 md:grid-cols-4">
+      {/* BRL compacto no KPI (R$ 5,63 mi): por extenso não cabe no card de
+          2 colunas do celular e o .card corta o que estoura. O valor cheio
+          fica no tooltip (title). */}
+      <StatCard
+        tone="ink"
+        label="Total geral"
+        value={formatBRLCompact(cards.valor_conveniado)}
+        title={formatBRL(cards.valor_conveniado)}
+        context={`${cards.transferencias} transferências`}
+      />
+      <StatCard
+        tone="lime"
+        label="Empenhado"
+        value={formatBRLCompact(cards.valor_empenhado)}
+        title={formatBRL(cards.valor_empenhado)}
+        context="reservado pelo concedente"
+      />
+      {/* "Publicado" vem da fonte ora como valor, ora como estado. Com
+          valor, mostra o valor; sem ele, a contagem de publicadas — R$ 0,00
+          leria como "nada publicado", que é outra coisa. */}
+      <StatCard
+        tone="aqua"
+        label="Publicado"
+        value={
+          numBR(cards.valor_publicado) > 0
+            ? formatBRLCompact(cards.valor_publicado)
+            : String(cards.propostas_publicadas)
+        }
+        title={
+          numBR(cards.valor_publicado) > 0
+            ? formatBRL(cards.valor_publicado)
+            : undefined
+        }
+        context={
+          numBR(cards.valor_publicado) > 0
+            ? "publicado pela fonte"
+            : "propostas publicadas"
+        }
+      />
+      <StatCard
+        tone="grad"
+        label="Pago"
+        value={formatBRLCompact(cards.valor_pago)}
+        title={formatBRL(cards.valor_pago)}
+        context="efetivamente pago"
+      />
     </section>
   );
 }
@@ -261,19 +353,28 @@ function dataBr(iso: string | null | undefined): string | null {
 // não apaga as outras safras do seletor; o recorte é do SERVIDOR, então uma
 // safra antiga traz os itens daquele ano em vez de garimpar o que sobrou na
 // janela. A escolha persiste entre visitas.
+//
+// A forma é uma LINHA DE CHIPS à esquerda, sob o título — não um <select>
+// no canto direito do cabeçalho: escondido lá, o filtro passava despercebido
+// e o ano escolhido não se via sem abrir o dropdown. O chip ativo usa o
+// acento da marca (`.chip-active`), então a safra em vigor está sempre à
+// vista; as mais antigas colapsam num dropdown para o território com muitas
+// safras não virar uma parede de chips.
 const ANO_KEY = "hub_painel_ano";
+const ANOS_EM_CHIP = 6;
 // Janela do feed: quantos itens da safra escolhida (ou das mais recentes,
 // quando "todos os anos") cabem na lista.
 const FEED_LIMITE = 60;
 
-/** Preferência salva do filtro de ano ("" = todos os anos). */
-function lerAnoSalvo(): string {
-  if (typeof window === "undefined") return "";
+/** Preferência salva do filtro de safra ([] = todos os anos). O valor é uma
+ *  lista separada por vírgula; o formato antigo (um ano só) continua lendo. */
+function lerAnosSalvos(): string[] {
+  if (typeof window === "undefined") return [];
   try {
-    const salvo = window.localStorage.getItem(ANO_KEY);
-    return salvo && /^\d{4}$/.test(salvo) ? salvo : "";
+    const salvo = window.localStorage.getItem(ANO_KEY) ?? "";
+    return salvo.split(",").filter((a) => /^\d{4}$/.test(a));
   } catch {
-    return ""; // preferência corrompida/indisponível → todos os anos
+    return []; // preferência corrompida/indisponível → todos os anos
   }
 }
 
@@ -291,18 +392,31 @@ function MeuPainel() {
   const [favErro, setFavErro] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const tentativas = useRef(0);
-  // "" = todos os anos. Ler o localStorage já no initializer divergiria do HTML
-  // do servidor, que não tem acesso a ele — erro de hidratação; a restauração
+  // [] = todos os anos; a seleção é um CONJUNTO de safras (multi-seleção nos
+  // chips). Ler o localStorage já no initializer divergiria do HTML do
+  // servidor, que não tem acesso a ele — erro de hidratação; a restauração
   // acontece no efeito abaixo.
-  const [ano, setAno] = useState("");
+  const [anos, setAnos] = useState<string[]>([]);
   const prefCarregada = useRef(false);
+  // Panorama financeiro (gráfico + faixa de KPIs) — só consulta depois que o
+  // perfil confirmou território.
+  const { resumo, carregando: carregandoResumo } = useResumoFinanceiro(
+    anos,
+    (data?.municipios.length ?? 0) > 0,
+  );
+  /** Liga/desliga uma safra no conjunto (clique no chip). */
+  const alternarAno = useCallback((safra: string) => {
+    setAnos((prev) =>
+      prev.includes(safra) ? prev.filter((a) => a !== safra) : [...prev, safra],
+    );
+  }, []);
 
   // O recorte de município E a safra entram em TODA consulta do painel: trocar
   // o território no trilho lateral ou o ano no filtro refaz visão geral,
   // panorama e feed — todos no mesmo recorte.
   const carregar = useCallback(async () => {
     const municipio = paramMunicipio(selecionados);
-    const query = { municipio, ano: ano || undefined };
+    const query = { municipio, ano: anos.length ? anos : undefined };
     const [{ data: vg }, { data: nov }] = await Promise.all([
       api.GET("/api/v1/profile/overview", { params: { query } }),
       api.GET("/api/v1/profile/feed", {
@@ -316,7 +430,7 @@ function MeuPainel() {
     // ausente — um nível a menos de defesa do que o próprio `?.` pretendia.
     // Sem o segundo `?.`, um feed sem `itens` derruba a tela inicial inteira.
     return (nov as Novidades | undefined)?.itens?.length ?? 0;
-  }, [selecionados, ano]);
+  }, [selecionados, anos]);
 
   useEffect(() => {
     void carregar();
@@ -354,8 +468,8 @@ function MeuPainel() {
 
   // Restaura a preferência salva uma única vez, no cliente.
   useEffect(() => {
-    const salvo = lerAnoSalvo();
-    if (salvo) setAno(salvo);
+    const salvos = lerAnosSalvos();
+    if (salvos.length) setAnos(salvos);
     prefCarregada.current = true;
   }, []);
 
@@ -364,11 +478,11 @@ function MeuPainel() {
   useEffect(() => {
     if (!prefCarregada.current) return;
     try {
-      window.localStorage.setItem(ANO_KEY, ano);
+      window.localStorage.setItem(ANO_KEY, anos.join(","));
     } catch {
       /* storage cheio/bloqueado: o filtro segue valendo nesta sessão */
     }
-  }, [ano]);
+  }, [anos]);
 
   // A estrela só muda depois que a API confirmou — marcar antes e ignorar o
   // erro criava a "favorita fantasma" que sumia no próximo carregamento.
@@ -418,59 +532,105 @@ function MeuPainel() {
     [novidades],
   );
   // Safra salva que não existe mais no território (município trocado, cache
-  // zerado) prenderia o painel num recorte vazio — volta para "todos os anos".
+  // zerado) prenderia o painel num recorte vazio — sai do conjunto; sem
+  // nenhuma sobrando, volta para "todos os anos".
   useEffect(() => {
-    if (!ano || !novidades) return;
-    if (!(novidades.anos ?? []).some((a) => a.ano === ano)) setAno("");
-  }, [ano, novidades]);
+    if (!anos.length || !novidades) return;
+    const existentes = new Set((novidades.anos ?? []).map((a) => a.ano));
+    const validos = anos.filter((a) => existentes.has(a));
+    if (validos.length !== anos.length) setAnos(validos);
+  }, [anos, novidades]);
   const dimensoes = data?.dimensoes ?? [];
   // Dimensões que não têm safra (conformidade/obras): o painel avisa em vez de
   // deixar o usuário achar que o filtro falhou nesses cards.
-  const semSafra = ano
+  const semSafra = anos.length
     ? dimensoes.filter((d) => d.recorte_ano === false).map((d) => d.titulo)
     : [];
+  // Safras em chip (as mais recentes) × safras antigas (dropdown compacto).
+  const anosChip = anosDisponiveis.slice(0, ANOS_EM_CHIP);
+  const anosAntigos = anosDisponiveis.slice(ANOS_EM_CHIP);
+  const antigosAtivos = anosAntigos.filter((a) => anos.includes(a.ano)).length;
   const falhas = (novidades?.sync_runs ?? []).filter((r) => r.status === "erro");
   const aguardandoDados =
     sincronizando && itens.length === 0 && tentativas.current < 15;
 
   return (
     <>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="page-title">Meu painel</h1>
-          <p className="mt-1 text-sm text-ink-2">
-            Tudo do seu território, por etapa do ciclo do recurso público.
-          </p>
-        </div>
-        {/* Filtro de ano da PÁGINA: cards, panorama e novidades no mesmo
-            recorte. Só aparece quando o território tem mais de uma safra —
-            filtro que não muda nada parece quebrado. */}
+      <header>
+        <h1 className="page-title">Meu painel</h1>
+        <p className="mt-1 text-sm text-ink-2">
+          Tudo do seu território, por etapa do ciclo do recurso público.
+        </p>
+        {/* Filtro de safra da PÁGINA: cards, panorama e novidades no mesmo
+            recorte. Chips à esquerda, sob o título — MULTI-SELEÇÃO: cada
+            clique liga/desliga a safra no conjunto (comparar 2024+2025 é um
+            recorte legítimo); "Todos os anos" limpa. Só aparece quando o
+            território tem alguma safra — filtro que não muda nada parece
+            quebrado. */}
         {!semTerritorio && anosDisponiveis.length > 0 && (
-          <label className="flex items-center gap-2 text-sm text-ink-2">
-            <span className="label-mono">Ano</span>
+          <nav
+            aria-label="Filtrar o painel por safra (ano) — selecione uma ou várias"
+            className="mt-4 flex flex-wrap items-center gap-2"
+          >
+            <span className="label-mono">Safra</span>
             {anosDisponiveis.length === 1 ? (
               <span
-                className="input flex w-44 items-center text-ink-2"
+                className="chip chip-active cursor-default"
                 title="O território tem uma única safra — não há o que recortar"
               >
-                safra única: {anosDisponiveis[0]?.ano}
+                {anosDisponiveis[0]?.ano}
+                <span className="tabular-nums opacity-60">
+                  {anosDisponiveis[0]?.total}
+                </span>
               </span>
             ) : (
-              <select
-                value={ano}
-                onChange={(e) => setAno(e.target.value)}
-                className="input w-44"
-                title="Recorta o painel inteiro por safra (ano)"
-              >
-                <option value="">Todos os anos</option>
-                {anosDisponiveis.map((a) => (
-                  <option key={a.ano} value={a.ano}>
-                    {a.ano} ({a.total})
-                  </option>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setAnos([])}
+                  className={`chip ${anos.length === 0 ? "chip-active" : ""}`}
+                  aria-pressed={anos.length === 0}
+                  title="Painel inteiro, sem recorte de safra"
+                >
+                  Todos os anos
+                </button>
+                {anosChip.map((a) => (
+                  <button
+                    key={a.ano}
+                    type="button"
+                    onClick={() => alternarAno(a.ano)}
+                    className={`chip ${anos.includes(a.ano) ? "chip-active" : ""}`}
+                    aria-pressed={anos.includes(a.ano)}
+                    title={`Liga/desliga a safra ${a.ano} no recorte (dá para somar várias)`}
+                  >
+                    {a.ano}
+                    <span className="tabular-nums opacity-60">{a.total}</span>
+                  </button>
                 ))}
-              </select>
+                {anosAntigos.length > 0 && (
+                  // o select soma/remove a safra antiga escolhida; o valor
+                  // volta sempre a "anteriores…" porque a seleção vive nos
+                  // chips (o ✓ das opções mostra o que já está ligado)
+                  <select
+                    value=""
+                    onChange={(e) => e.target.value && alternarAno(e.target.value)}
+                    className={`chip ${antigosAtivos ? "chip-active" : ""}`}
+                    title="Safras mais antigas do território — escolher soma ao recorte"
+                  >
+                    <option value="">
+                      anteriores…{antigosAtivos ? ` (${antigosAtivos})` : ""}
+                    </option>
+                    {anosAntigos.map((a) => (
+                      <option key={a.ano} value={a.ano}>
+                        {anos.includes(a.ano) ? "✓ " : ""}
+                        {a.ano} ({a.total})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </>
             )}
-          </label>
+          </nav>
         )}
       </header>
 
@@ -520,8 +680,11 @@ function MeuPainel() {
                     )}
                   </div>
                   <div>
+                    {/* key = valor: trocar safra/território remonta o número e
+                        o anim-swap suaviza a troca (nada de corte seco) */}
                     <div
-                      className={`text-[44px] font-medium leading-none tracking-[-0.03em] tabular-nums ${
+                      key={d.total}
+                      className={`anim-swap text-[34px] font-medium leading-none tracking-[-0.03em] tabular-nums ${
                         d.total > 0 ? "text-gradient" : ""
                       }`}
                     >
@@ -554,12 +717,12 @@ function MeuPainel() {
                   {d.href ? (
                     <Link
                       href={d.href}
-                      className="card card-hover group flex flex-1 flex-col justify-between p-6 min-h-44"
+                      className="card card-hover group flex flex-1 flex-col justify-between gap-3 p-5 min-h-28"
                     >
                       {conteudo}
                     </Link>
                   ) : (
-                    <div className="card flex flex-1 flex-col justify-between p-6 min-h-44">
+                    <div className="card flex flex-1 flex-col justify-between gap-3 p-5 min-h-28">
                       {conteudo}
                     </div>
                   )}
@@ -567,7 +730,24 @@ function MeuPainel() {
                 </div>
               );
             })}
+            {/* O gráfico fecha a linha ao lado do nº de propostas — é o que
+                ocupa o vão da grade quando poucas dimensões estão ativas. */}
+            {resumo && (resumo.por_ano?.length ?? 0) > 0 && (
+              <GraficoAprovadoDesembolsado
+                resumo={resumo}
+                anos={anos}
+                className={`sm:col-span-2 ${
+                  SPAN_GRAFICO[dimensoes.length] ?? "xl:col-span-4"
+                }`}
+              />
+            )}
           </section>
+
+          {carregandoResumo && !resumo ? (
+            <SkeletonCards />
+          ) : resumo ? (
+            <CardsFinanceiros resumo={resumo} />
+          ) : null}
 
           {semSafra.length > 0 && (
             <p className="text-[12px] text-ink-3">
@@ -577,8 +757,6 @@ function MeuPainel() {
               por ano.
             </p>
           )}
-
-          <PanoramaFinanceiro ano={ano} />
 
           <section className="anim-fade-up flex flex-col gap-3">
             <div className="flex items-center justify-between">
@@ -617,12 +795,12 @@ function MeuPainel() {
                     ). Novas tentativas rodam no próximo ciclo; você também pode
                     disparar uma busca nas páginas de cada dimensão.
                   </p>
-                ) : ano ? (
+                ) : anos.length ? (
                   <p>
-                    Nenhuma novidade de {ano} no território —{" "}
+                    Nenhuma novidade de {anos.join(", ")} no território —{" "}
                     <button
                       type="button"
-                      onClick={() => setAno("")}
+                      onClick={() => setAnos([])}
                       className="underline underline-offset-2"
                     >
                       ver todos os anos
@@ -637,7 +815,12 @@ function MeuPainel() {
                 )}
               </div>
             ) : (
-              <ol className="card stagger divide-y divide-hairline p-0">
+              // key = recorte: trocar safra/território re-encena o fade da
+              // lista em vez de trocar as linhas secamente no lugar
+              <ol
+                key={`${anos.join("+")}|${selecionados.join("+")}`}
+                className="card stagger divide-y divide-hairline p-0"
+              >
                 {itens.map((n, i) => (
                   <li
                     key={i}

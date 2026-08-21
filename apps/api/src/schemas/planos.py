@@ -8,6 +8,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from ._papel import papel_ou_none
+
 
 # ── Planos ──────────────────────────────────────────────────────────────────
 class PlanoLimites(BaseModel):
@@ -108,6 +110,8 @@ class ConviteCreate(BaseModel):
     plano_id: uuid.UUID | None = None
     expires_em_dias: int = 7
 
+    _papel = field_validator("papel", mode="before")(papel_ou_none)
+
 
 class ConviteRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -135,6 +139,8 @@ class MembroConviteCreate(BaseModel):
     papel: str | None = "equipe"
     expires_em_dias: int = Field(default=7, ge=1, le=90)
 
+    _papel = field_validator("papel", mode="before")(papel_ou_none)
+
 
 class MembroRead(BaseModel):
     """Um membro da conta — o convite e, se aceito, o usuário criado dele."""
@@ -154,9 +160,11 @@ class AdminUsuarioCreate(BaseModel):
     email: EmailStr
     senha: str = Field(min_length=8)
     nome: str | None = None
-    papel: str | None = None  # parlamentar | executivo | equipe
+    papel: str | None = None  # parlamentar | executivo | equipe ("" → None)
     plano_id: uuid.UUID | None = None
     is_superuser: bool = False  # permissão de admin da plataforma
+
+    _papel = field_validator("papel", mode="before")(papel_ou_none)
 
 
 class AdminUsuarioUpdate(BaseModel):
@@ -166,6 +174,8 @@ class AdminUsuarioUpdate(BaseModel):
     is_superuser: bool | None = None
     is_active: bool | None = None
     plano_id: uuid.UUID | None = None
+
+    _papel = field_validator("papel", mode="before")(papel_ou_none)
 
 
 class AdminUsuarioRead(BaseModel):

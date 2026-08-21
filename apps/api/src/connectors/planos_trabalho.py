@@ -34,7 +34,7 @@ from ._http import get_json
 
 SOURCE_ID = "transferegov_plano_trabalho"
 
-BASE_PADRAO = "https://api-publica.transferegov.gestao.gov.br/especiais/"
+BASE_PADRAO = "https://api.transferegov.gestao.gov.br/transferenciasespeciais/"
 # O módulo nomeia as rotas no SINGULAR (`plano_trabalho_analise_especial` é a
 # irmã confirmada pelo spec), e é PostgREST — por isso o palpite de retaguarda
 # segue essa convenção e esse dialeto. A descoberta pelo spec vence o palpite.

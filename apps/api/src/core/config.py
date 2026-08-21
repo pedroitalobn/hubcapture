@@ -48,6 +48,22 @@ class Settings(BaseSettings):
     admin_email: str = ""
     admin_password: str = ""
 
+    # ── Acesso demo (apresentação/vendas) ───────────────────────────────────
+    # Conta compartilhada de DEMONSTRAÇÃO: sandbox sobre dados REAIS do cache.
+    # Criada no boot (services/demo.ensure_demo). `demo_password` vazio gera
+    # senha aleatória — a entrada é pelo botão "Ver demonstração" (POST
+    # /auth/demo), não por credencial digitada.
+    demo_email: str = "demo@hubcapture.app"
+    demo_password: str = ""
+    # Território do demo: CSV de códigos IBGE. Vazio = autodescoberta (os
+    # municípios com MAIS propostas no cache — sempre demo com dado na tela).
+    demo_ibges: str = ""
+    # on|off — o painel admin sobrescreve em runtime (chave `demo_ativo`).
+    demo_ativo: str = "on"
+    # Vídeo do pacote inicial do Class (YouTube/Vimeo/mp4). Vazio = os artigos
+    # semeados nascem sem vídeo; o admin pluga a URL e re-seed anexa.
+    demo_video_url: str = ""
+
     # ── Cache-first ──────────────────────────────────────────────────────────
     cache_ttl_seconds: int = 21600  # 6h
     # Coleta que não deixou linha no cache (município sem registros na fonte, ou
@@ -75,7 +91,9 @@ class Settings(BaseSettings):
     emendas_api_key: str = ""  # chave-api-dados (Portal da Transparência) — obrigatória
     # Demais fontes (prontas para receber as APIs — calibrar rota/campos).
     # API pública do TransfereGov (docs por módulo em <base>/<modulo>/docs).
-    transferegov_esp_base_url: str = "https://api-publica.transferegov.gestao.gov.br/especiais/"
+    transferegov_esp_base_url: str = (
+        "https://api.transferegov.gestao.gov.br/transferenciasespeciais/"
+    )
     transferegov_esp_endpoint: str = ""  # vazio = autodescoberta (OpenAPI)
     transferegov_esp_ibge_field: str = ""
     transferegov_voluntarias_base_url: str = (
@@ -83,7 +101,7 @@ class Settings(BaseSettings):
     )
     transferegov_voluntarias_endpoint: str = ""  # vazio = autodescoberta (OpenAPI)
     transferegov_voluntarias_ibge_field: str = ""
-    transferegov_disc_csv_url: str = "http://repositorio.dados.gov.br/seges/detru/"
+    transferegov_disc_csv_url: str = "https://repositorio.dados.gov.br/seges/detru/"
     fns_consulta_url: str = "https://consultafns.saude.gov.br/"
     # Backend REST do ConsultaFNS (fonte primária; scraping segue como 2ª fonte)
     fns_api_url: str = "https://consultafns.saude.gov.br/recursos/"

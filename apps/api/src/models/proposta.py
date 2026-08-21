@@ -24,6 +24,7 @@ FONTES = (
     "transferegov_esp",
     "transferegov_disc",
     "fns",
+    "fns_propostas",
     "fnde",
     "serpro",
 )

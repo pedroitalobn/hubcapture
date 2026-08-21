@@ -7,13 +7,25 @@ lados rodam em paralelo e o resultado é fundido — API vence em id/valor/data/
 documento, scraping vence nos campos descritivos — com a origem de cada campo
 registrada em `proveniencia`.
 
-Autocalibração (§27): a rota exata do backend não é fixa aqui —
-  1. rota manual do painel admin (`fns_api_endpoint`), se definida;
-  2. candidatos conhecidos, na ordem (o que respondeu fica em cache por base).
-Os parâmetros também variam por implantação (código de município em 6 dígitos
-vs IBGE de 7) → envia os dois estilos e, quando a resposta ecoa alguma coluna
-de IBGE, SEMPRE refiltra no cliente (linha de outro município nunca entra;
-resposta sem coluna de IBGE é aceita porque a consulta já foi por município).
+O CONTRATO REAL, lido do fonte da própria SPA (app/pages/proposta/*):
+
+    GET recursos/proposta/consultar
+        ?sgUf=CE&coMunicipioIbge=230440&ano=2026&page=1&count=50
+    → {"resultado": {"itensPagina": [...], "totalItens": N, "totalPaginas": P}}
+
+Duas pegadinhas que custaram dias: o código de município é o IBGE de **6
+dígitos** (sem o verificador — com 7 a API devolve zero itens em silêncio), e
+`sgUf` é obrigatório junto. Cada item traz `vlProposta`/`vlPago`/`vlPagar` por
+tipo (CUSTEIO MAC, CAPS, INCREMENTO…) e, nas propostas de emenda,
+`parlamentares[]` com o autor. Rotas irmãs do mesmo módulo:
+`proposta/obter-proposta?nuProposta=`, `proposta/tipos-emenda-por-ano` e
+`repasse-dia/recuperar-data-ultimo-pagamento` (health barato).
+
+Autocalibração (§27): `fns_api_endpoint` no painel admin ainda vence tudo —
+se a SPA mudar de rota, calibra-se sem deploy. Quando a resposta ecoa alguma
+coluna de IBGE, SEMPRE refiltra no cliente (linha de outro município nunca
+entra; resposta sem coluna de IBGE é aceita porque a consulta já foi por
+município e ano).
 """
 
 from __future__ import annotations
@@ -27,25 +39,25 @@ from typing import Any
 from ..core.config import settings
 from ..scraping.scraper import get_scraper
 from ..services import config as config_service
+from ..services import municipios as municipios_service
 from . import _identidade
 from ._combinada import coletar
 from ._http import ConnectorClientError, get_json
 from .base import RawRecord, register
 
-# rotas candidatas do backend do ConsultaFNS — ponto de calibração (§27);
-# `fns_api_endpoint` no painel admin vence qualquer candidato
-ENDPOINT_CANDIDATES = (
-    "repasse/consultar",
-    "repasse",
-    "pagamento/consultar",
-    "pagamento",
-    "consulta-detalhada",
-)
+# rota do backend do ConsultaFNS — lida do fonte da SPA (propostaService.js);
+# `fns_api_endpoint` no painel admin vence (§27). As antigas candidatas
+# (`repasse/…`, `pagamento/…`) eram chute e sempre deram 404 do JBoss.
+ENDPOINT_CANDIDATES = ("proposta/consultar",)
+
+#: paginação da consulta (ngTable): `page`/`count`
+PAGE_FNS = 50
+MAX_PAGINAS_FNS = 40  # trava: um município não tem 2000 tipos de proposta
 PAGE_LIMIT = 500
 MAX_ANOS = 3  # janela máxima de exercícios consultados por coleta
 
 # chaves onde as respostas costumam embrulhar a lista de linhas
-_CHAVES_LISTA = ("items", "content", "registros", "lista", "repasses", "resultado", "dados")
+_CHAVES_LISTA = ("itensPagina", "items", "content", "registros", "lista", "repasses", "dados")
 
 # cache da rota que funcionou, por base_url
 _endpoint_cache: dict[str, str] = {}
@@ -120,6 +132,9 @@ def _extrair_linhas(data: Any) -> list[dict]:
     if isinstance(data, list):
         return [r for r in data if isinstance(r, dict)]
     if isinstance(data, dict):
+        # o ConsultaFNS embrulha tudo em {"resultado": {...}} — desce um nível
+        if isinstance(data.get("resultado"), dict | list):
+            return _extrair_linhas(data["resultado"])
         for chave in _CHAVES_LISTA:
             if isinstance(data.get(chave), list):
                 return [r for r in data[chave] if isinstance(r, dict)]
@@ -131,7 +146,42 @@ def _extrair_linhas(data: Any) -> list[dict]:
 
 def _montar_raw(row: dict) -> dict:
     """Mapeia uma linha da API (schema variável, chaves às vezes em CAIXA ALTA)
-    para o shape do normalizador de repasse — casamento por palavra-chave."""
+    para o shape do normalizador de repasse — casamento por palavra-chave.
+
+    O shape REAL de `proposta/consultar` (2026) tem tratamento explícito: a
+    linha é um agregado por TIPO de proposta no exercício, não um pagamento.
+    `vlPago` é o que de fato entrou (o "recebido"); `vlProposta` é o teto — os
+    dois vão para o detalhe para o painel poder mostrar "pago X de Y". A
+    palavra-chave genérica pegaria `vlProposta` (vem primeiro na linha) e o
+    painel superestimaria o repasse.
+    """
+    if "coTipoProposta" in row or "vlProposta" in row:
+        parlamentares = row.get("parlamentares") or []
+        autores = ", ".join(
+            str(a.get("noParlamentar") or a.get("nome") or a).strip()
+            for a in parlamentares
+            if a
+        )
+        tipo = str(row.get("coTipoProposta") or "Proposta FNS").strip()
+        ano = row.get("anoConsulta")
+        return {
+            "data_repasse": None,  # agregado do exercício: não há data de OB
+            "descricao": f"{tipo} — {row.get('dsTipoRecurso') or 'FNS'}"
+            + (f" (emenda: {autores})" if autores else ""),
+            "categoria": str(row.get("dsTipoRecurso") or "FNS"),
+            "orgao_superior": "Fundo Nacional de Saúde",
+            "natureza": "repasse",
+            "valor": row.get("vlPago") if row.get("vlPago") is not None else row.get("vlProposta"),
+            "competencia": str(ano) if ano else None,
+            "documento": (
+                str(row.get("nuProposta") or "")
+                or (str(row.get("nuProcesso")) if row.get("nuProcesso") not in (None, "N/A") else None)
+            )
+            or None,
+            "emenda": bool(parlamentares),
+            "detalhe": row,
+        }
+
     descricao = _campo(row, "descricao", "acao", "item", "objeto") or "Repasse FNS"
     data_repasse = _campo(row, "data", "dt_")
     if not data_repasse:
@@ -170,6 +220,29 @@ def _id_externo(row: dict, ibge: str) -> str:
     rid = row.get("id") or _campo(row, "id_repasse", "id_pagamento", "nu_ob", "numero_ob")
     if rid:
         return str(rid)
+    if "coTipoProposta" in row:
+        # O mesmo TIPO aparece em várias linhas no mesmo exercício (três
+        # INCREMENTO PAP = três emendas distintas): só tipo×ano colapsava as
+        # três numa linha e o upsert guardava a última — dado sumindo. O
+        # desempate é o conteúdo ESTÁVEL da linha: teto da proposta e autores.
+        # `vlPago` fica DE FORA do id de propósito — muda a cada pagamento e
+        # geraria linha nova onde é a MESMA proposta paga um pouco mais.
+        autores = ",".join(
+            sorted(
+                str(a.get("noParlamentar") or a.get("nome") or a)
+                for a in (row.get("parlamentares") or [])
+                if a
+            )
+        )
+        estavel = json.dumps(
+            [row.get("vlProposta"), row.get("nuProposta"), autores],
+            sort_keys=True,
+            default=str,
+        )
+        sufixo = hashlib.sha256(estavel.encode()).hexdigest()[:10]
+        return (
+            f"{ibge}:{row.get('anoConsulta') or ''}:{row.get('coTipoProposta')}:{sufixo}"
+        )
     payload = json.dumps(row, sort_keys=True, default=str, ensure_ascii=False)
     return f"{ibge}:{hashlib.sha256(payload.encode()).hexdigest()[:16]}"
 
@@ -211,29 +284,40 @@ class FnsConnector:
 
     async def _coletar_api(self, municipio_ibge: str, since: date) -> list[dict]:
         base = await config_service.resolver("fns_api_url") or self.api_url
+        uf = municipios_service.uf_do_ibge(municipio_ibge) or ""
         anos = [str(a) for a in range(since.year, date.today().year + 1)][-MAX_ANOS:]
         ultima_falha: Exception | None = None
         for rota in await self._rotas_candidatas(base):
             linhas: list[dict] = []
             try:
                 for ano in anos:
-                    # os dois estilos de código de município conhecidos; params
-                    # desconhecidos são ignorados e o refiltro local garante
-                    data = await get_json(
-                        base,
-                        rota,
-                        {
-                            "coMunicipio": municipio_ibge[:6],
-                            "coMunicipioIbge": municipio_ibge[:6],
-                            "codigoMunicipio": municipio_ibge,
-                            "ibge": municipio_ibge,
-                            "ano": ano,
-                            "pagina": "1",
-                            "tamanhoPagina": str(PAGE_LIMIT),
-                            "limit": str(PAGE_LIMIT),
-                        },
-                    )
-                    linhas.extend(_extrair_linhas(data))
+                    pagina = 1
+                    while pagina <= MAX_PAGINAS_FNS:
+                        data = await get_json(
+                            base,
+                            rota,
+                            {
+                                "sgUf": uf,
+                                # 6 dígitos, SEM o verificador: com 7 a API
+                                # devolve zero itens em silêncio (testado)
+                                "coMunicipioIbge": municipio_ibge[:6],
+                                "ano": ano,
+                                "page": str(pagina),
+                                "count": str(PAGE_FNS),
+                            },
+                        )
+                        novas = _extrair_linhas(data)
+                        for linha in novas:
+                            # o ano vem do FILTRO, não da linha — carimba para o
+                            # normalizador saber de que exercício é o valor
+                            linha.setdefault("anoConsulta", ano)
+                        linhas.extend(novas)
+                        total_paginas = None
+                        if isinstance(data, dict) and isinstance(data.get("resultado"), dict):
+                            total_paginas = data["resultado"].get("totalPaginas")
+                        if not novas or not total_paginas or pagina >= int(total_paginas):
+                            break
+                        pagina += 1
             except Exception as exc:  # 404/400 → tenta a próxima rota
                 ultima_falha = exc
                 continue
@@ -323,12 +407,17 @@ class FnsConnector:
         return records
 
     async def health_check(self) -> bool:
+        """Saudável = o backend responde a data do último pagamento.
+
+        É a sonda mais barata do módulo e ainda prova FRESCOR (a data volta no
+        corpo) — um GET na raiz só provava que o JBoss estava de pé.
+        """
         base = await config_service.resolver("fns_api_url") or self.api_url
         try:
-            await get_json(base, "", {})
-            return True
+            data = await get_json(base, "repasse-dia/recuperar-data-ultimo-pagamento", {})
+            return bool(isinstance(data, dict) and data.get("resultado"))
         except ConnectorClientError:
-            return True  # 4xx na raiz ainda prova que o serviço está de pé
+            return True  # 4xx ainda prova que o serviço está de pé
         except Exception:
             return await get_scraper().is_enabled()
 

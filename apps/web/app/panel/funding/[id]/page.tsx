@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -16,6 +15,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { TextoExpansivel } from "@/components/TextoExpansivel";
 import { TextoLimitado } from "@/components/TextoLimitado";
+import { BotaoVoltar } from "@/components/Voltar";
 import { Aviso, Dado, cx } from "@/components/ui";
 import {
   diasAte,
@@ -76,6 +76,13 @@ type Proposta = {
     /** "Publicado" — a fonte manda ora valor, ora estado; a tela usa os dois. */
     valor_publicado?: string | null;
     situacao_publicacao?: string | null;
+    /** dados VIVOS do webapp do SIconv (enriquecimento diário) */
+    webapp?: {
+      data_ultimo_desembolso?: string | null;
+      valor_a_desembolsar?: string | null;
+      situacao_siafi?: string | null;
+      instrumento?: string | null;
+    } | null;
     saldo_conta?: string | null;
     ano?: string | number | null;
     ente_recebedor?: string | null;
@@ -158,6 +165,24 @@ export default function PropostaDetalhePage() {
   const voltarHref = voltarParaPainel ? "/panel" : "/panel/funding";
   const voltarRotulo = voltarParaPainel ? "Meu painel" : "Propostas";
   const [p, setP] = useState<Proposta | null>(null);
+  const [resumoEmpenhos, setResumoEmpenhos] = useState<{
+    valor_empenhado?: string | null;
+    valor_pago?: string | null;
+  } | null>(null);
+  useEffect(() => {
+    if (!params.id) return;
+    void (async () => {
+      const { data } = await api.GET("/api/v1/proposals/{proposta_id}/commitments", {
+        params: { path: { proposta_id: params.id } },
+      });
+      const r = (
+        data as {
+          resumo?: { valor_empenhado?: string | null; valor_pago?: string | null };
+        }
+      )?.resumo;
+      if (r) setResumoEmpenhos(r);
+    })();
+  }, [params.id]);
   const [erro, setErro] = useState<string | null>(null);
   const [favorita, setFavorita] = useState(false);
   // monitoramento da proposta: guarda o id e os CRITÉRIOS escolhidos (§53) —
@@ -276,9 +301,7 @@ export default function PropostaDetalhePage() {
     return (
       <div className="flex flex-col items-start gap-4">
         <Aviso tom="erro">{erro}</Aviso>
-        <Link href={voltarHref} className="btn btn-ghost btn-sm">
-          {voltarParaPainel ? "← Voltar ao meu painel" : "← Voltar à captação"}
-        </Link>
+        <BotaoVoltar href={voltarHref} rotulo={voltarRotulo} />
       </div>
     );
   }
@@ -297,8 +320,14 @@ export default function PropostaDetalhePage() {
   // O empenhado é o que a fonte publica como EMPENHADO — nunca o valor global
   // (que é o total previsto da proposta). Quando a fonte não informa, o card
   // fica vazio de propósito: a seção "Empenhos" abaixo soma os documentos.
-  const valorEmpenhado = p.execucao?.valor_empenhado ?? null;
+  // Retaguarda dos DOCUMENTOS: o agregado da execução vem do pacote/painel da
+  // fonte (~mensal); empenho recém-emitido só existe na soma das notas (a
+  // mesma da seção "Empenhos"). Sem ela o header dizia "sem empenho" com a
+  // nota de R$ 390 mil listada logo abaixo.
+  const valorEmpenhado =
+    p.execucao?.valor_empenhado ?? resumoEmpenhos?.valor_empenhado ?? null;
   const temEmpenhado = num(valorEmpenhado) > 0;
+  const valorPago = p.execucao?.valor_pago ?? resumoEmpenhos?.valor_pago ?? null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -308,15 +337,12 @@ export default function PropostaDetalhePage() {
             O município é a identidade do registro, então encabeça o header; o
             código IBGE desce para linha de apoio e o id da fonte sai daqui. */}
         <div className="min-w-0">
-          <Link
-            href={voltarHref}
-            className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 transition-colors hover:text-ink"
-          >
-            ← {voltarRotulo}
-          </Link>
+          {/* O retorno é a pílula padrão (BotaoVoltar) — o link mono de 11px
+              que ficava aqui era quase invisível. */}
+          <BotaoVoltar href={voltarHref} rotulo={voltarRotulo} />
           {/* Ponto 14: o código IBGE saiu daqui — é desambiguador, não
               identidade, e segue rotulado em "Dados gerais". */}
-          <h1 className="page-title mt-1.5">{municipioPrincipal(p)}</h1>
+          <h1 className="page-title mt-2.5">{municipioPrincipal(p)}</h1>
           {/* O objeto da proposta vem logo abaixo — nunca um identificador:
               antes o h1 caía para `id_externo` quando faltava título.
               Com TETO de caracteres: a fonte não separa título de descrição, e
@@ -535,13 +561,13 @@ export default function PropostaDetalhePage() {
               rolar a página inteira. */}
           <div className="field">
             <span className="field-label">Pago</span>
-            {num(p.execucao?.valor_pago) > 0 ? (
+            {num(valorPago) > 0 ? (
               <>
-                <span className="value-hero">
-                  {formatBRL(p.execucao!.valor_pago)}
-                </span>
+                <span className="value-hero">{formatBRL(valorPago)}</span>
                 <span className="num mt-1 text-xs text-ink-3">
-                  efetivamente pago ao ente
+                  {p.execucao?.webapp?.data_ultimo_desembolso
+                    ? `último desembolso em ${p.execucao.webapp.data_ultimo_desembolso}`
+                    : "efetivamente pago ao ente"}
                 </span>
               </>
             ) : (

@@ -59,6 +59,11 @@ async def _usuarios_para_sincronizar() -> list[tuple]:
     # dentro de rls_session (no primeiro_sync.executar), então o RLS segue
     # valendo para tudo que grava dado de território.
     async with SessionLocal() as s:
+        # `municipios_interesse` está sob FORCE RLS: sem a bandeira de
+        # plataforma a sessão sem tenant enxerga ZERO linhas e o sweep conclui
+        # "0 usuário(s)" com o banco cheio — o refresh diário girava em falso
+        # em silêncio (a policy de SELECT da plataforma existe para isto, §54).
+        await s.execute(text("SELECT set_config('app.plataforma', 'on', true)"))
         ids = (await s.execute(select(distinct(MunicipioInteresse.usuario_id)))).scalars().all()
         saida = []
         for uid in ids:
@@ -183,4 +188,13 @@ if __name__ == "__main__":
     if os.getenv("RODAR_AGORA") == "1":
         asyncio.run(sweep())
     else:
-        asyncio.run(loop())
+        # O worker é UM processo para os dois relógios diários: o refresh das
+        # propostas (06:00) e o enriquecimento de pareceres/empenhos (08:00,
+        # `enriquecimento_diario`). Um container a mais só para o segundo
+        # relógio custaria memória que este host não tem.
+        from . import enriquecimento_diario
+
+        async def _loops() -> None:
+            await asyncio.gather(loop(), enriquecimento_diario.loop())
+
+        asyncio.run(_loops())

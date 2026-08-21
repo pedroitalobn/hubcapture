@@ -8,6 +8,7 @@ from decimal import Decimal
 import pytest
 from fastapi import HTTPException
 from fastapi_users.db import SQLAlchemyUserDatabase
+from pydantic import ValidationError
 from sqlalchemy import select
 
 from src.core.users import UserManager
@@ -65,6 +66,39 @@ async def test_admin_cria_usuario_com_plano() -> None:
         u = (await s.execute(select(Usuario).where(Usuario.id == user.id))).scalar_one()
         assert u.plano_id == plano_id
         assert u.papel == "executivo"
+
+
+async def test_admin_cria_usuario_sem_papel_do_select_vazio() -> None:
+    """O form do painel manda papel="" com "— sem papel —" selecionado. Isso
+    violava o CHECK ck_usuarios_papel (500 mudo — "ao criar nada acontece");
+    o schema agora normaliza vazio → None e a criação passa."""
+    dados = AdminUsuarioCreate(email="sempapel@ente.gov", senha="segredo123", papel="")
+    assert dados.papel is None
+    async with SessionLocal() as s:
+        user = await gestao.criar_usuario(s, _user_manager(s), dados)
+        await s.commit()
+        u = (await s.execute(select(Usuario).where(Usuario.id == user.id))).scalar_one()
+        assert u.papel is None
+
+
+def test_admin_usuario_papel_invalido_e_422() -> None:
+    """Papel fora do catálogo é erro de VALIDAÇÃO (422), nunca CheckViolation."""
+    with pytest.raises(ValidationError):
+        AdminUsuarioCreate(email="x@ente.gov", senha="segredo123", papel="gestor")
+
+
+async def test_admin_cria_usuario_email_duplicado_e_400() -> None:
+    """E-mail repetido virava UserAlreadyExists sem tratamento (500). O serviço
+    devolve 400 EMAIL_JA_CADASTRADO — o form mostra a causa."""
+    dados = AdminUsuarioCreate(email="dup@ente.gov", senha="segredo123", papel="executivo")
+    async with SessionLocal() as s:
+        await gestao.criar_usuario(s, _user_manager(s), dados)
+        await s.commit()
+    async with SessionLocal() as s:
+        with pytest.raises(HTTPException) as exc:
+            await gestao.criar_usuario(s, _user_manager(s), dados)
+        assert exc.value.status_code == 400
+        assert exc.value.detail == "EMAIL_JA_CADASTRADO"
 
 
 async def test_convite_criar_e_aceitar() -> None:

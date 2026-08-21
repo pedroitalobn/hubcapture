@@ -165,6 +165,25 @@ CATALOGO: list[dict] = [
         "fonte",
         False,
     ),
+    _c(
+        "siconv_convenio_arquivo",
+        "SIconv — nome do ZIP de convênios (vazio = tenta siconv_convenio.zip / convenio.zip)",
+        "fonte",
+        False,
+    ),
+    _c(
+        "siconv_empenho_arquivo",
+        "SIconv — nome do ZIP de empenhos (vazio = tenta siconv_empenho.zip / empenho.zip)",
+        "fonte",
+        False,
+    ),
+    _c(
+        "siconv_propostas_escopo",
+        "SIconv — escopo da carga de propostas: `territorio` (padrão, só os "
+        "municípios monitorados) ou `nacional` (o país inteiro — milhões de linhas)",
+        "fonte",
+        False,
+    ),
     _c("transferegov_esp_base_url", "TransfereGov Especiais base URL", "fonte", False),
     _c(
         "transferegov_esp_endpoint",
@@ -262,6 +281,26 @@ CATALOGO: list[dict] = [
     # Plataforma — aparência do app. A flag permite portar a UI v2 → v1 sem
     # deploy: o web lê a versão ativa em GET /ui (público) e aplica `data-ui`.
     _c("ui_versao", "Versão da UI do app (v2 atual · v1 clássica)", "plataforma", False),
+    # Acesso demo (apresentação/vendas) — sandbox com dados reais do cache.
+    _c(
+        "demo_ativo",
+        "Acesso demo — botão 'Ver demonstração' no login (on|off)",
+        "plataforma",
+        False,
+    ),
+    _c(
+        "demo_ibges",
+        "Acesso demo — territorio da conta demo (códigos IBGE separados por vírgula; "
+        "vazio = municípios com mais propostas no cache)",
+        "plataforma",
+        False,
+    ),
+    _c(
+        "demo_video_url",
+        "Acesso demo — vídeo dos artigos iniciais do Class (YouTube/Vimeo/mp4)",
+        "plataforma",
+        False,
+    ),
 ]
 _CATALOGO_POR_CHAVE = {c["chave"]: c for c in CATALOGO}
 
