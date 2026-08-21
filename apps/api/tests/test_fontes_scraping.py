@@ -29,8 +29,12 @@ def test_grupos_do_onboarding_expandem_para_connectors() -> None:
 
 
 def test_expandir_aceita_connector_id_e_descarta_fonte_desligada() -> None:
-    # perfil gravado antes do corte guarda connector id, não grupo
-    assert fontes_service.expandir(["transferegov_ff"]) == ["transferegov_ff"]
+    # Perfil gravado antes do corte guarda connector id, não grupo — e o
+    # connector REEXPANDE para o grupo dele: o que o usuário escolheu foi o
+    # assunto ("TransfereGov"), não a lista de connectors do dia do onboarding.
+    # Sem isso, granularidade nova do mesmo grupo (o FNS ganhou propostas além
+    # de repasses) nunca chegava a quem já estava cadastrado.
+    assert fontes_service.expandir(["transferegov_ff"]) == list(fontes_service.TRANSFEREGOV)
     # fonte fora do recorte (FPM, emendas, obras) simplesmente não entra
     assert fontes_service.expandir(["fpm", "emendas", "sismob"]) == []
     assert fontes_service.expandir(["fns", "fpm"]) == list(fontes_service.FNS)

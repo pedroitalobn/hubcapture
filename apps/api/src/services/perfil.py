@@ -148,12 +148,24 @@ async def get_perfil(session: AsyncSession, usuario: Usuario) -> PerfilRead:
     pref = await _preferencias(session, usuario.id)
     ativos = await modulos_service.ativos(session)
     cfg, plano = await _config_plano(session, usuario)
-    fontes_pref = list(pref.fontes or []) if pref else []
+    # As fontes do perfil são as ESCOLHIDAS no onboarding MAIS as derivadas das
+    # ÁREAS de interesse (AREA_FONTES). Sem a segunda parcela, fonte setorial
+    # criada depois do onboarding — o FNDE virou grupo próprio quando o gestor
+    # já tinha "educação" marcada — nunca chegava a quem já estava cadastrado:
+    # ela não entrava na coleta dele nem no filtro de origem, e a plataforma
+    # parecia "não ter" um dado que tem. É o mesmo princípio da reexpansão por
+    # grupo em `fontes.expandir`: o usuário escolheu o ASSUNTO, não a lista de
+    # connectors do dia.
+    areas = list(pref.areas or []) if pref else []
+    escolhidas = list(pref.fontes or []) if pref else []
+    das_areas = sorted({f for a in areas for f in AREA_FONTES.get(a, set())})
+    fontes_pref = fontes_service.expandir(escolhidas) or []
+    fontes_pref += [f for f in das_areas if f not in fontes_pref]
     return PerfilRead(
         nome=usuario.nome,
         papel=usuario.papel,
         municipios=await _municipios(session),
-        areas=list(pref.areas or []) if pref else [],
+        areas=areas,
         # fonte escolhida no onboarding que o plano deixou de incluir some da
         # navegação (o dado gravado fica; um upgrade a traz de volta)
         fontes=plano_gates.filtrar_fontes(cfg, fontes_pref),

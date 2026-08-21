@@ -125,7 +125,19 @@ def expandir(escolhas: list[str] | None) -> list[str]:
     """
     saida: list[str] = []
     for escolha in escolhas or []:
-        alvos = GRUPOS[escolha]["connectors"] if escolha in GRUPOS else (escolha,)
+        if escolha in GRUPOS:
+            alvos: tuple[str, ...] = GRUPOS[escolha]["connectors"]
+        else:
+            # Connector id gravado no perfil: o que o usuário escolheu foi o
+            # GRUPO ("FNS"), e o onboarding congelou a lista de connectors do
+            # dia. Quando o grupo ganha uma granularidade nova — o FNS passou a
+            # publicar PROPOSTAS além de repasses (§30b) —, o perfil antigo
+            # ficaria preso na lista velha: a fonte nova não entraria na coleta
+            # dele nem apareceria no filtro de origem, e o gestor veria a
+            # plataforma "não ter" um dado que ela tem. Reexpandir pelo grupo
+            # mantém a escolha do usuário (o grupo) e acompanha o catálogo.
+            grupo = grupo_de(escolha)
+            alvos = GRUPOS[grupo]["connectors"] if grupo else (escolha,)
         for connector in alvos:
             if habilitada(connector) and connector not in saida:
                 saida.append(connector)
