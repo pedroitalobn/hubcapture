@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
-import { formatBRL, formatDate } from "@/lib/format";
+import { formatBRL, formatBRLCompact, formatDate } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 type Opcao = { valor: string; rotulo: string; total: number };
@@ -128,18 +129,11 @@ export default function ResumoCaptacaoPage() {
 
   return (
     <>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="page-title">Resumo da captação</h1>
-          <p className="mt-1 text-sm text-ink-2">
-            Consolidado do que o seu território já conveniou, o que foi
-            desembolsado e o que ainda está aberto.
-          </p>
-        </div>
-        <Link href="/panel/funding" className="btn btn-ghost btn-sm">
-          ← Voltar à captação
-        </Link>
-      </header>
+      <PageHeader
+        voltar={{ href: "/panel/funding", rotulo: "Captação" }}
+        titulo="Resumo da captação"
+        descricao="Consolidado do que o seu território já conveniou, o que foi desembolsado e o que ainda está aberto."
+      />
 
       <div className="card flex flex-col gap-3 p-4">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -173,14 +167,18 @@ export default function ResumoCaptacaoPage() {
       ) : (
         <>
           <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {/* BRL compacto no KPI: por extenso não cabe no card estreito e o
+                .card corta o que estoura; o valor cheio fica no tooltip */}
             <StatCard
               label="Valor conveniado"
-              value={formatBRL(resumo.cards.valor_conveniado)}
+              value={formatBRLCompact(resumo.cards.valor_conveniado)}
+              title={formatBRL(resumo.cards.valor_conveniado)}
               context={`${resumo.cards.transferencias} transferências`}
             />
             <StatCard
               label="Valor desembolsado"
-              value={formatBRL(resumo.cards.valor_desembolsado)}
+              value={formatBRLCompact(resumo.cards.valor_desembolsado)}
+              title={formatBRL(resumo.cards.valor_desembolsado)}
               context="liberado ao ente"
             />
             <StatCard

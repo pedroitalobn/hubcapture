@@ -19,6 +19,7 @@ import { baixarMidia } from "@/lib/help";
 import { CorpoConteudo } from "@/components/CorpoConteudo";
 import { HelpVideo } from "@/components/HelpVideo";
 import { Skeleton } from "@/components/Skeleton";
+import { BotaoVoltar } from "@/components/Voltar";
 import { Aviso } from "@/components/ui";
 
 interface Midia {
@@ -125,9 +126,7 @@ export default function ArtigoClassPage() {
         <Aviso tom="erro">
           Artigo não encontrado — pode ter sido despublicado ou o link mudou.
         </Aviso>
-        <Link href="/panel/class" className="btn btn-ghost btn-sm">
-          ← Class
-        </Link>
+        <BotaoVoltar href="/panel/class" rotulo="Class" />
       </div>
     );
   }
@@ -150,16 +149,14 @@ export default function ArtigoClassPage() {
       <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="min-w-0">
           {/* aula volta para o índice do módulo; artigo avulso, para o Class */}
-          <Link
+          <BotaoVoltar
             href={
               artigo.modulo
                 ? `/panel/class/modules/${artigo.modulo.slug}`
                 : "/panel/class"
             }
-            className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 transition-colors hover:text-ink"
-          >
-            ← {artigo.modulo ? artigo.modulo.titulo : "Class"}
-          </Link>
+            rotulo={artigo.modulo ? artigo.modulo.titulo : "Class"}
+          />
           {artigo.modulo ? (
             <p className="label-mono mt-2">
               {trilha ? `Aula ${trilha.indice} de ${trilha.total}` : "Aula"}

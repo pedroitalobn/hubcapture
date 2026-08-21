@@ -13,6 +13,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { Skeleton } from "@/components/Skeleton";
+import { BotaoVoltar } from "@/components/Voltar";
 import { Aviso } from "@/components/ui";
 
 interface Aula {
@@ -56,9 +57,7 @@ export default function ModuloClassPage() {
         <Aviso tom="erro">
           Módulo não encontrado — pode ter sido despublicado ou o link mudou.
         </Aviso>
-        <Link href="/panel/class" className="btn btn-ghost btn-sm">
-          ← Class
-        </Link>
+        <BotaoVoltar href="/panel/class" rotulo="Class" />
       </div>
     );
   }
@@ -76,13 +75,8 @@ export default function ModuloClassPage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
       <header>
-        <Link
-          href="/panel/class"
-          className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 transition-colors hover:text-ink"
-        >
-          ← Class
-        </Link>
-        <p className="label-mono mt-2">
+        <BotaoVoltar href="/panel/class" rotulo="Class" />
+        <p className="label-mono mt-3">
           Módulo · {modulo.aulas.length} aula{modulo.aulas.length === 1 ? "" : "s"}
         </p>
         <h1 className="page-title mt-1">{modulo.titulo}</h1>
