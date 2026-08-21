@@ -95,7 +95,7 @@ const TIPO_ALERTA: Record<string, string> = {
   publicacao: "proposta publicada",
   vencimento: "convênio vencendo",
   nova_proposta: "novo alerta",
-  oportunidade: "oportunidade",
+  oportunidade: "novo alerta",
 };
 
 const SUGESTOES = [

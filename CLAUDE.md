@@ -1160,8 +1160,7 @@ diagramada com a identidade do Hub, a UM clique, onde quer que ela apareça.
   barra empilhada da execução financeira (pago ⊂ liberado ⊂ empenhado sobre o
   global) com legenda nas cores dos segmentos, pílulas de categoria/tipo, prazos e
   pendências com tom de urgência (mesma escada de `lib/format.ts::tomPrazo`),
-  dados gerais, situação/movimentação, **QR da fonte oficial** para conferência e
-  anexo com o registro-fonte completo. Rodapé com "página X de Y" (canvas de duas
+  dados gerais e situação/movimentação. Rodapé com "página X de Y" (canvas de duas
   passadas) e data de emissão em toda página.
 - **Paleta e tipografia**: tokens do tema CLARO de `globals.css` (o espelho é
   impresso e reencaminhado, nunca segue o tema escuro). Só fontes Type1 embutidas
@@ -1173,7 +1172,7 @@ diagramada com a identidade do Hub, a UM clique, onde quer que ela apareça.
 - **Tetos de conteúdo** (`_MAX_*`): um card é UMA célula de tabela e não se parte
   entre páginas; sem teto, um `objeto` de 8 mil caracteres ou 40 pendências
   derrubam a exportação inteira com `LayoutError`. Os limites saem da largura de
-  cada bloco e todo corte remete à fonte oficial — nada some em silêncio.
+  cada bloco e todo corte se declara ("trecho abreviado") — nada some em silêncio.
 - **`services/texto.py`**: `humanizar_caixa` — espelho em Python do
   `lib/format.ts::humanizarCaixa`, para o PDF não sair gritando enquanto a tela
   não grita.
@@ -1187,6 +1186,35 @@ diagramada com a identidade do Hub, a UM clique, onde quer que ela apareça.
   `icone` nas listas — Captação, Minhas propostas e feed do Meu painel. Cliente:
   `exportarEspelhoProposta` em `lib/api/client.ts` (lê o nome do
   `Content-Disposition`).
+
+### 34b. O espelho leva o ANDAMENTO (e nada de plumbing) — decisão travada
+
+Duas correções ao documento, vindas do uso: ele saía sem o que a tela mostra e
+com o que a tela esconde.
+
+- **O espelho é o espelho da TELA.** `gerar_pdf_proposta` recebe
+  `pdf.Complementos` (andamento, empenhos + resumo, emendas) e desenha as três
+  seções na MESMA ordem do detalhe. Quem lê o banco é o router
+  (`api/v1/propostas.py::_complementos`, via `services/andamento`) — o serviço de
+  PDF é síncrono e só diagrama. A leitura é a de sempre, cache-first com coleta
+  na fonte quando o cache está vencido, e **best-effort**: cada eixo em seu
+  `try/except`, porque fonte fora do ar não pode impedir a exportação. Sem isso o
+  gestor via parecer, empenho e parlamentar autor na tela, encaminhava o espelho
+  e a outra ponta recebia um PDF que não tinha nada daquilo.
+- **Fora do documento: plumbing.** Saíram a seção "Conferência e proveniência"
+  (com o QR e o link da fonte), o anexo "Dados completos da fonte" (dump do
+  registro bruto), o "Identificador na fonte", o campo "Fonte", a URL de origem
+  no rodapé e o nome da fonte de dados no cabeçalho. O espelho circula fora do
+  painel: proveniência campo a campo, id de integração e instrução de
+  administração não são assunto de quem recebe. O que referencia a proposta
+  continua no cabeçalho — número, data de criação e órgão concedente (§35).
+- **Listas longas em cards de poucas linhas** (`_cards_de_linhas`): um card é uma
+  célula e não se parte entre páginas — 24 passos num card só derrubariam a
+  geração. As linhas são distribuídas por igual entre os cards (6 passos viram
+  3+3, não 5+1), e os tetos (`_MAX_EVENTOS`, `_MAX_EMPENHOS`, `_MAX_EMENDAS`)
+  declaram o que ficou de fora.
+- **Empenho sai LÍQUIDO** das anulações também aqui (§43): documento devolvido
+  que continuasse somando diria que há recurso reservado onde não há.
 
 ## 35. Hierarquia de dado na exibição (decisão travada)
 

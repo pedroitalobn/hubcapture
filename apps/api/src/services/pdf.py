@@ -3,10 +3,15 @@
 O gestor precisa mandar a proposta para o gabinete, para a secretaria ou para o
 WhatsApp de quem decide, e o que ele mandava era uma tabela cinza de 11 linhas.
 O **espelho** é o mesmo conteúdo da tela de detalhe, diagramado com a identidade
-do Hub Capture: banda da marca, faixa de destaque (valor + prazo), barra de
-execução financeira, pílulas de categoria, prazos, pendências, proveniência e um
-QR para conferir na fonte oficial. Um só clique, um só arquivo, pronto para
-circular fora do painel.
+do Hub Capture: banda da marca, faixa de destaque (valor + empenho + safra),
+barra de execução financeira, prazos, pendências, o ANDAMENTO (pareceres e
+marcos da tramitação), os EMPENHOS e a EMENDA que banca a proposta. Um só
+clique, um só arquivo, pronto para circular fora do painel.
+
+**O documento é do gestor, não da plataforma.** Nada de plumbing aqui: sem
+proveniência campo a campo, sem identificador de integração, sem dump do
+registro bruto, sem nome de fonte de dados e sem instrução de administração. O
+que o espelho carrega é o que quem decide precisa ler.
 
 **Fontes tipográficas**: só as Type1 embutidas no reportlab (Helvetica/Courier).
 A imagem da API é `python:3.12-slim`, que não traz nenhuma TTF — usar Inter
@@ -20,8 +25,10 @@ branco; o espelho é impresso e reencaminhado, então nunca segue o tema escuro.
 
 from __future__ import annotations
 
+import math
 import re
 import unicodedata
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
 from io import BytesIO
@@ -37,7 +44,6 @@ from reportlab.platypus import (
     BaseDocTemplate,
     Flowable,
     Frame,
-    KeepTogether,
     NextPageTemplate,
     PageTemplate,
     Paragraph,
@@ -199,8 +205,8 @@ def _tom_situacao(situacao: str | None) -> str:
 # páginas: sem teto, um `objeto` de 8 mil caracteres (ou 40 pendências) faz o
 # reportlab abortar com LayoutError e a exportação inteira cai. Os números saem
 # da largura de cada bloco (≈4,6pt por caractere a 9,2pt), com folga sobre os
-# ~705pt úteis da página. Nenhum corte é silencioso: o texto sempre remete à
-# fonte oficial, que é o documento de fé.
+# ~705pt úteis da página. Nenhum corte é silencioso: o texto sempre diz que
+# foi abreviado.
 _MAX_TITULO = 200  # título na largura cheia (17pt)
 _MAX_CAMPO = 90  # valor de campo em célula de grade
 _MAX_TEXTO = 1000  # objeto, movimentação, resumo
@@ -212,7 +218,7 @@ def _recorte(texto: str, limite: int = _MAX_TEXTO, *, nota: bool = True) -> str:
     if len(texto) <= limite:
         return texto
     cortado = texto[:limite].rstrip()
-    return f"{cortado}… (texto completo na fonte oficial)" if nota else f"{cortado}…"
+    return f"{cortado}… (trecho abreviado)" if nota else f"{cortado}…"
 
 
 def _hex(cor: Color) -> str:
@@ -404,20 +410,6 @@ class BarraExecucao(Flowable):
             c.roundRect(0, 0, max(largura, self.ALTURA), self.ALTURA, self.ALTURA / 2, 0, 1)
 
 
-def _qr(url: str, lado: float = 62.0) -> Flowable | None:
-    """QR da fonte oficial: quem recebe o espelho confere na origem sem digitar."""
-    try:
-        from reportlab.graphics.barcode import qr
-        from reportlab.graphics.shapes import Drawing
-    except ImportError:  # pragma: no cover — reportlab sem o módulo de barcode
-        return None
-    widget = qr.QrCodeWidget(url, barLevel="M")
-    x0, y0, x1, y1 = widget.getBounds()
-    desenho = Drawing(lado, lado, transform=[lado / (x1 - x0), 0, 0, lado / (y1 - y0), 0, 0])
-    desenho.add(widget)
-    return desenho
-
-
 # ── Primitivas de layout ────────────────────────────────────────────────────
 
 
@@ -583,22 +575,11 @@ def _titulo_proposta(p: Proposta) -> str:
     # Identificador NÃO é título (§35): sem título nem objeto, o espelho diz
     # isso — antes caía para `numero_proposta`/`id_externo` e o documento saía
     # encabeçado por um código.
-    bruto = p.titulo or p.objeto or "Proposta sem título na fonte"
+    bruto = p.titulo or p.objeto or "Proposta sem título"
     return _recorte(humanizar_caixa(bruto), _MAX_TITULO, nota=False)
 
 
 # ── Seções do espelho ───────────────────────────────────────────────────────
-
-
-def _fonte_rotulo(p: Proposta) -> str:
-    """Nome que o gestor reconhece ("TransfereGov"), não o id do connector.
-
-    O espelho circula fora do painel: quem recebe não sabe o que é
-    `transferegov_disc`, e a navegação do Hub nunca parte da fonte (§19).
-    """
-    from .fontes import rotulo
-
-    return rotulo(p.fonte) if p.fonte else "—"
 
 
 def _cabecalho(p: Proposta) -> list:
@@ -617,11 +598,10 @@ def _cabecalho(p: Proposta) -> list:
     referencia = f"Proposta {p.numero_proposta}" if p.numero_proposta else ""
     if p.data_proposta:
         referencia = f"{referencia} · de {_data(p.data_proposta)}".lstrip(" ·")
-    meta = " · ".join(
-        x
-        for x in [referencia, _fonte_rotulo(p).upper(), _t(p.orgao_superior, "")]
-        if x and x != "—"
-    )
+    # A FONTE DE DADOS saiu daqui: o espelho é o documento da proposta, não da
+    # integração que a coletou. O que referencia a proposta é o número, a data e
+    # o órgão concedente.
+    meta = " · ".join(x for x in [referencia, _t(p.orgao_superior, "")] if x and x != "—")
 
     elementos: list = [
         Paragraph(escape(territorio), ROTULO_CLARO),
@@ -670,7 +650,7 @@ def _faixa_destaque(p: Proposta) -> Table:
         Spacer(1, 3),
         Paragraph(_brl(valor_global_de(p)), VALOR_HERO),
         Spacer(1, 2),
-        Paragraph("valor global da proposta na fonte", PEQUENO),
+        Paragraph("valor global da proposta", PEQUENO),
     ]
 
     # ANO_PROP na fonte — a mesma safra que o filtro de ano usa
@@ -681,7 +661,7 @@ def _faixa_destaque(p: Proposta) -> Table:
         Paragraph(ano or "—", _estilo("hero_ano", parent=VALOR_HERO, textColor=INK)),
         Spacer(1, 2),
         Paragraph(
-            f"criada em {_data(p.data_proposta)}" if p.data_proposta else "ano de criação na fonte",
+            f"criada em {_data(p.data_proposta)}" if p.data_proposta else "ano de criação",
             PEQUENO,
         ),
     ]
@@ -774,7 +754,7 @@ def _bloco_execucao(p: Proposta) -> list:
         ),
     ]
     ano = e.get("ano")
-    titulo = "Execução financeira — TransfereGov" + (f" ({ano})" if ano else "")
+    titulo = "Execução financeira" + (f" ({ano})" if ano else "")
     return [_card(conteudo, UTIL, titulo=titulo)]
 
 
@@ -791,13 +771,10 @@ def _bloco_dados_gerais(p: Proposta) -> Table:
         _campo("Emenda", _t(p.emenda)),
         # SÓ o NR_PROPOSTA: cair para `id_externo` rotulava o identificador da
         # integração como "nº da proposta" — número que não existe no portal da
-        # fonte, num documento feito para ser levado ao órgão. O id da fonte já
-        # tem o campo próprio na linha seguinte.
+        # fonte, num documento feito para ser levado ao órgão.
         _campo("Nº da proposta", _t(p.numero_proposta)),
-        _campo("Identificador na fonte", escape(str(p.id_externo or "—"))),
-        _campo("Fonte", escape(_fonte_rotulo(p))),
-        _campo("Criada na fonte", _data(p.data_proposta)),
-        _campo("Atualizado na fonte", _data(p.data_atualizacao_fonte)),
+        _campo("Criada em", _data(p.data_proposta)),
+        _campo("Última atualização", _data(p.data_atualizacao_fonte)),
     ]
     conteudo: list = [_grade(campos, interno, colunas=2)]
     if p.objeto:
@@ -831,155 +808,278 @@ def _bloco_situacao(p: Proposta) -> Table:
     return _card(conteudo, MEIO, titulo="Situação e movimentação")
 
 
-def _bloco_conferencia(p: Proposta) -> list:
-    """Como conferir: proveniência campo a campo, QR e link da fonte oficial."""
-    interno = UTIL - 2 * PAD_CARD
-    origem = {"api": "API", "scrape": "painel"}
-    pilulas = [
-        (f"{campo.replace('_', ' ').capitalize()}: {origem.get(str(valor), str(valor))}", "neutral")
-        for campo, valor in sorted((p.proveniencia or {}).items())
-    ]
-    esquerda: list = [
-        (
-            Paragraph(
-                "Cada campo abaixo indica de onde veio: <b>API</b> (dado oficial estruturado) "
-                "ou <b>painel</b> (leitura da página pública, mais atual em situação e "
-                "movimentação).",
-                PEQUENO,
-            )
-            if pilulas
-            else Paragraph(
-                "Sem registro de proveniência para esta proposta.",
-                PEQUENO,
-            )
-        ),
-    ]
-    if pilulas:
-        esquerda += [Spacer(1, 7), Pilulas(pilulas, interno * 0.72)]
-    if p.url_origem:
-        esquerda += [
-            Spacer(1, 9),
-            Paragraph("FONTE OFICIAL", ROTULO),
-            Spacer(1, 2),
-            Paragraph(
-                f"<link href='{escape(p.url_origem)}' color='#2f6b4f'>"
-                f"{escape(p.url_origem)}</link>",
-                PEQUENO,
-            ),
-        ]
+# ── Complementos: andamento, empenhos e emenda ──────────────────────────────
+#
+# O espelho é síncrono e só diagrama — quem lê o banco (e, quando o cache está
+# vencido, a fonte) é o router, que entrega tudo pronto aqui. Sem isto o
+# documento saía com a linha da proposta e nada da tramitação: o gestor via na
+# tela o parecer, o empenho e o parlamentar autor, encaminhava o espelho e a
+# outra ponta recebia um PDF sem nada daquilo.
 
-    codigo = _qr(p.url_origem) if p.url_origem else None
-    if codigo is None:
-        return [_card(esquerda, UTIL, titulo="Conferência e proveniência")]
 
-    direita = [codigo, Spacer(1, 4), Paragraph("Conferir na origem", PEQUENO)]
-    corpo = Table(
-        [[esquerda, direita]],
-        colWidths=[interno * 0.72, interno * 0.28],
-        style=TableStyle(
-            [
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("ALIGN", (1, 0), (1, -1), "CENTER"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                ("TOPPADDING", (0, 0), (-1, -1), 0),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-            ]
-        ),
+@dataclass(slots=True)
+class Complementos:
+    """O que a tela de detalhe mostra além da linha da proposta."""
+
+    andamento: list[Any] = field(default_factory=list)  # EventoAndamento
+    empenhos: list[Any] = field(default_factory=list)  # EmpenhoRead
+    resumo_empenhos: Any = None  # EmpenhoResumo
+    emendas: list[Any] = field(default_factory=list)  # EmendaRead
+
+
+# rótulo do passo — o mesmo do `TIPO_ROTULO` da linha do tempo no web
+_TIPO_EVENTO = {
+    "proposta": "Proposta",
+    "parecer": "Parecer",
+    "empenho": "Empenho",
+    "vigencia": "Vigência",
+    "prazo": "Prazo",
+    "pendencia": "Pendência",
+    "atualizacao": "Movimentação",
+}
+
+_MAX_EVENTOS = 24  # passos da tramitação no espelho
+_EVENTOS_POR_CARD = 5
+_MAX_TEXTO_EVENTO = 420  # texto do parecer dentro de um passo
+_MAX_EMPENHOS = 18
+_EMPENHOS_POR_CARD = 6
+_MAX_EMENDAS = 8
+
+EVENTO_TITULO = _estilo("evento_titulo", fontName=SANS_BOLD, fontSize=9.4, leading=12.8)
+
+
+def _cor_do_tom(tom: Any) -> Color:
+    return TONS.get(str(tom or "neutral"), TONS["neutral"])[0]
+
+
+def _campo_direita(rotulo: str, valor: str) -> Paragraph:
+    """Rótulo pequeno sobre o número, alinhado à direita da linha."""
+    return Paragraph(
+        f"<font size='7' color='{_hex(INK_3)}'>{escape(rotulo.upper())}</font><br/>{escape(valor)}",
+        DIREITA,
     )
-    return [_card([corpo], UTIL, titulo="Conferência e proveniência")]
 
 
-# Teto do anexo: o espelho é para circular, não é dump. `dados_fonte` de algumas
-# fontes traz dezenas de campos; acima disso o documento vira ilegível e o corte
-# é declarado no rodapé da seção (nunca silencioso).
-_MAX_CAMPOS_FONTE = 60
-_MAX_TEXTO_FONTE = 260
-_LINHAS_POR_CARD = 8
+def _cards_de_linhas(
+    linhas: list[list],
+    *,
+    titulo: str,
+    por_card: int,
+    proporcoes: tuple[float, float],
+    cabecalho: list | None = None,
+    nota: str | None = None,
+) -> list:
+    """Lista longa em cards de poucas linhas.
 
-
-def _achatar(dados: dict, prefixo: str = "") -> list[tuple[str, str]]:
-    saida: list[tuple[str, str]] = []
-    for chave, valor in dados.items():
-        rotulo = f"{prefixo}{chave}".replace("_", " ").strip()
-        if isinstance(valor, dict):
-            saida += _achatar(valor, prefixo=f"{chave} · ")
-        elif isinstance(valor, list):
-            if valor and all(not isinstance(v, (dict, list)) for v in valor):
-                saida.append((rotulo, " · ".join(str(v) for v in valor)))
-        elif valor not in (None, ""):
-            saida.append((rotulo, str(valor)))
-    return saida
-
-
-def _bloco_fonte_completa(p: Proposta) -> list:
-    campos = _achatar(p.dados_fonte or {})
-    if not campos:
-        return []
-    omitidos = max(0, len(campos) - _MAX_CAMPOS_FONTE)
+    Um card é UMA célula de tabela e não se parte entre páginas: 24 passos num
+    card só derrubariam a geração inteira com LayoutError (mesma disciplina dos
+    tetos de conteúdo acima). O fluxo empurra o card seguinte para a próxima
+    página quando não cabe.
+    """
     interno = UTIL - 2 * PAD_CARD
-    valor_estilo = _estilo("fonte_valor", parent=CORPO, fontSize=8.4)
-    linhas = []
-    for rotulo, valor in campos[:_MAX_CAMPOS_FONTE]:
-        texto = valor if len(valor) <= _MAX_TEXTO_FONTE else valor[:_MAX_TEXTO_FONTE] + "…"
-        linhas.append(
-            [
-                Paragraph(escape(rotulo[:1].upper() + rotulo[1:]), ROTULO),
-                Paragraph(_t(texto, limite=_MAX_TEXTO_FONTE), valor_estilo),
-            ]
-        )
+    estilo = TableStyle(
+        [
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LINEBELOW", (0, 0), (-1, -2), 0.5, HAIRLINE),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (0, -1), 10),
+            ("RIGHTPADDING", (1, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]
+    )
+    # Distribui as linhas por igual entre os cards: com o corte cru, 6 passos
+    # em cards de 5 deixariam um card órfão de uma linha só no fim.
+    cards = max(1, math.ceil(len(linhas) / por_card))
+    por_card = math.ceil(len(linhas) / cards)
 
-    def tabela(bloco: list) -> Table:
-        return Table(
-            bloco,
-            colWidths=[interno * 0.34, interno * 0.66],
-            style=TableStyle(
-                [
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("LINEBELOW", (0, 0), (-1, -2), 0.4, HAIRLINE),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                    ("RIGHTPADDING", (0, 0), (0, -1), 8),
-                    ("TOPPADDING", (0, 0), (-1, -1), 4),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                ]
-            ),
-        )
-
-    # Um card é uma célula só e não se parte entre páginas: o anexo sai em
-    # cards de poucas linhas, que o fluxo empurra para a página seguinte quando
-    # não cabem. Card único com 60 campos derrubaria a geração.
     partes: list = []
-    for inicio in range(0, len(linhas), _LINHAS_POR_CARD):
+    for inicio in range(0, len(linhas), por_card):
         primeiro = inicio == 0
-        bloco = linhas[inicio : inicio + _LINHAS_POR_CARD]
         conteudo: list = []
-        if primeiro:
-            conteudo += [
-                Paragraph(
-                    "Todos os campos como vêm da origem — a mesma informação do site oficial.",
-                    PEQUENO,
-                ),
-                Spacer(1, 7),
-            ]
-        conteudo.append(tabela(bloco))
+        if primeiro and cabecalho:
+            conteudo += cabecalho + [Spacer(1, 8)]
+        conteudo.append(
+            Table(
+                linhas[inicio : inicio + por_card],
+                colWidths=[interno * proporcoes[0], interno * proporcoes[1]],
+                style=estilo,
+            )
+        )
         if not primeiro:
             partes.append(Spacer(1, 8))
-        partes.append(
-            _card(
-                conteudo,
-                UTIL,
-                titulo="Dados completos da fonte" if primeiro else None,
-            )
-        )
-    if omitidos:
-        partes += [
-            Spacer(1, 6),
-            Paragraph(
-                f"+ {omitidos} campos não exibidos neste espelho — consulte a fonte oficial.",
-                PEQUENO,
-            ),
-        ]
+        partes.append(_card(conteudo, UTIL, titulo=titulo if primeiro else None))
+    if nota:
+        partes += [Spacer(1, 6), Paragraph(escape(nota), PEQUENO)]
     return partes
+
+
+def _linha_andamento(ev: Any) -> list:
+    """Um passo da tramitação: quando · o que é | o que aconteceu."""
+    tipo = str(getattr(ev, "tipo", "") or "")
+    rotulo = _TIPO_EVENTO.get(tipo, tipo.capitalize() or "Passo")
+    if getattr(ev, "futuro", False):
+        rotulo = f"{rotulo} · a vencer"
+    esquerda = [
+        Paragraph(escape(_data(getattr(ev, "data", None), "sem data")), VALOR),
+        Spacer(1, 2),
+        Paragraph(escape(rotulo.upper()), ROTULO_CLARO),
+    ]
+
+    cor = _cor_do_tom(getattr(ev, "tom", None))
+    titulo = _t(getattr(ev, "titulo", None), "—", limite=_MAX_ITEM_LISTA)
+    direita: list = [Paragraph(f"<font color='{_hex(cor)}'>{titulo}</font>", EVENTO_TITULO)]
+    valor = _dec(getattr(ev, "valor", None))
+    if valor and valor > 0:
+        direita += [Spacer(1, 2), Paragraph(_brl(valor), VALOR)]
+    ator = getattr(ev, "ator", None)
+    if ator:
+        direita += [Spacer(1, 2), Paragraph(_t(ator, limite=_MAX_ITEM_LISTA), CORPO)]
+    detalhe = getattr(ev, "detalhe", None)
+    if detalhe:
+        direita += [Spacer(1, 1), Paragraph(_t(detalhe, limite=_MAX_ITEM_LISTA + 60), PEQUENO)]
+    texto = getattr(ev, "texto", None)
+    if texto:
+        direita += [
+            Spacer(1, 3),
+            Paragraph(escape(_recorte(str(texto), _MAX_TEXTO_EVENTO)), PEQUENO),
+        ]
+    return [esquerda, direita]
+
+
+def _bloco_andamento(eventos: list[Any]) -> list:
+    if not eventos:
+        return []
+    omitidos = max(0, len(eventos) - _MAX_EVENTOS)
+    return _cards_de_linhas(
+        [_linha_andamento(ev) for ev in eventos[:_MAX_EVENTOS]],
+        titulo="Andamento da proposta",
+        por_card=_EVENTOS_POR_CARD,
+        proporcoes=(0.24, 0.76),
+        cabecalho=[
+            Paragraph(
+                "A tramitação em ordem — do mais recente para o mais antigo.",
+                PEQUENO,
+            )
+        ],
+        nota=f"+ {omitidos} passos mais antigos não exibidos neste espelho." if omitidos else None,
+    )
+
+
+def _linha_empenho(e: Any) -> list:
+    """Um documento de empenho. O empenhado sai LÍQUIDO das anulações: um
+    empenho devolvido que continuasse somando diria que há recurso onde não há."""
+    anulado = _dec(getattr(e, "valor_anulado", None)) or Decimal(0)
+    empenhado = (_dec(getattr(e, "valor_empenhado", None)) or Decimal(0)) - anulado
+    marca = ""
+    if anulado > 0:
+        marca = "anulado em parte" if empenhado > 0 else "anulado"
+    cabeca = " · ".join(
+        x
+        for x in [
+            _data(getattr(e, "data_empenho", None), "sem data"),
+            str(getattr(e, "numero_empenho", "") or ""),
+            marca,
+        ]
+        if x
+    )
+    esquerda: list = [Paragraph(escape(cabeca), VALOR)]
+    apoio = " · ".join(
+        _t(x, "")
+        for x in (
+            getattr(e, "ug_emitente", None),
+            getattr(e, "tipo_empenho", None),
+            getattr(e, "natureza_despesa", None),
+            getattr(e, "situacao", None),
+        )
+        if x
+    )
+    if apoio:
+        esquerda += [Spacer(1, 2), Paragraph(apoio, PEQUENO)]
+
+    direita: list = [_campo_direita("Empenhado", _brl(max(empenhado, Decimal(0))))]
+    pago = _dec(getattr(e, "valor_pago", None)) or Decimal(0)
+    if pago > 0:
+        direita += [Spacer(1, 3), _campo_direita("Pago", _brl(pago))]
+    return [esquerda, direita]
+
+
+def _bloco_empenhos(itens: list[Any], resumo: Any) -> list:
+    """Os documentos que reservaram o recurso no orçamento — saiu do papel?"""
+    if not itens:
+        return []
+    interno = UTIL - 2 * PAD_CARD
+    campos: list[list] = []
+    if resumo is not None:
+        campos = [
+            _campo("Empenhado", _brl(getattr(resumo, "valor_empenhado", None)), grande=True),
+            _campo("Pago", _brl(getattr(resumo, "valor_pago", None))),
+        ]
+        if (_dec(getattr(resumo, "valor_anulado", None)) or Decimal(0)) > 0:
+            campos.append(
+                _campo("Anulado", _brl(getattr(resumo, "valor_anulado", None)), tom="danger")
+            )
+        campos.append(_campo("Documentos", str(len(itens))))
+    cabecalho = [_grade(campos, interno, colunas=min(len(campos), 4))] if campos else None
+
+    omitidos = max(0, len(itens) - _MAX_EMPENHOS)
+    return _cards_de_linhas(
+        [_linha_empenho(e) for e in itens[:_MAX_EMPENHOS]],
+        titulo="Empenhos",
+        por_card=_EMPENHOS_POR_CARD,
+        proporcoes=(0.62, 0.38),
+        cabecalho=cabecalho,
+        nota=f"+ {omitidos} empenhos não exibidos neste espelho." if omitidos else None,
+    )
+
+
+def _bloco_emendas(itens: list[Any]) -> list:
+    """De quem é o dinheiro. O AUTOR lidera — é com o gabinete dele que se fala."""
+    if not itens:
+        return []
+    linhas: list[list] = []
+    for e in itens[:_MAX_EMENDAS]:
+        nome = _t(getattr(e, "parlamentar", None), "Autor não informado")
+        sigla = "/".join(
+            str(x) for x in (getattr(e, "partido", None), getattr(e, "uf_parlamentar", None)) if x
+        )
+        esquerda: list = [Paragraph(f"{nome} ({escape(sigla)})" if sigla else nome, EVENTO_TITULO)]
+        numero = getattr(e, "numero_emenda", None)
+        ano = getattr(e, "ano", None)
+        apoio = " · ".join(
+            x
+            for x in [
+                f"emenda {escape(str(numero))}" if numero else "",
+                str(ano) if ano else "",
+                _t(getattr(e, "tipo_emenda", None), ""),
+                _t(getattr(e, "cargo_parlamentar", None), ""),
+                _t(getattr(e, "funcao", None), ""),
+            ]
+            if x
+        )
+        if apoio:
+            esquerda += [Spacer(1, 2), Paragraph(apoio, PEQUENO)]
+
+        direita: list = []
+        for rotulo, bruto in (
+            ("Valor", getattr(e, "valor", None)),
+            ("Empenhado", getattr(e, "valor_empenhado", None)),
+            ("Pago", getattr(e, "valor_pago", None)),
+        ):
+            if (_dec(bruto) or Decimal(0)) > 0:
+                if direita:
+                    direita.append(Spacer(1, 3))
+                direita.append(_campo_direita(rotulo, _brl(bruto)))
+        linhas.append([esquerda, direita or [Paragraph("", PEQUENO)]])
+
+    omitidos = max(0, len(itens) - _MAX_EMENDAS)
+    return _cards_de_linhas(
+        linhas,
+        titulo="Emenda parlamentar",
+        por_card=_MAX_EMENDAS,
+        proporcoes=(0.62, 0.38),
+        nota=f"+ {omitidos} emendas não exibidas neste espelho." if omitidos else None,
+    )
 
 
 # ── Documento (banda da marca, rodapé, numeração) ───────────────────────────
@@ -1050,23 +1150,20 @@ def _banda(c: Canvas, altura: float, subtitulo: str, capa: bool) -> None:
             c.drawRightString(LARGURA - MARGEM, y_marca - 9, subtitulo)
 
 
-def _rodape(c: Canvas, gerado_em: str, url: str | None) -> None:
+def _rodape(c: Canvas, gerado_em: str) -> None:
     c.setStrokeColor(HAIRLINE)
     c.setLineWidth(0.6)
     c.line(MARGEM, RODAPE - 12, LARGURA - MARGEM, RODAPE - 12)
     c.setFillColor(INK_3)
     c.setFont(SANS, 7.2)
     c.drawString(MARGEM, RODAPE - 22, f"Hub Capture · espelho gerado em {gerado_em}")
-    if url:
-        c.setFont(SANS, 6.6)
-        c.drawString(MARGEM, RODAPE - 31, f"Fonte oficial: {url[:120]}")
 
 
 def _montar_documento(buffer: BytesIO, p: Proposta, gerado_em: str) -> BaseDocTemplate:
     identidade = " · ".join(
         x
         for x in [
-            p.numero_proposta or p.id_externo,
+            f"Proposta {p.numero_proposta}" if p.numero_proposta else "",
             humanizar_caixa(p.municipio_nome or p.municipio_ibge or ""),
         ]
         if x
@@ -1074,18 +1171,18 @@ def _montar_documento(buffer: BytesIO, p: Proposta, gerado_em: str) -> BaseDocTe
 
     def capa(c: Canvas, _doc: BaseDocTemplate) -> None:
         _banda(c, BANDA_CAPA, f"Emitido em {gerado_em}", capa=True)
-        _rodape(c, gerado_em, p.url_origem)
+        _rodape(c, gerado_em)
 
     def interna(c: Canvas, _doc: BaseDocTemplate) -> None:
         _banda(c, BANDA_INTERNA, identidade, capa=False)
-        _rodape(c, gerado_em, p.url_origem)
+        _rodape(c, gerado_em)
 
     doc = BaseDocTemplate(
         buffer,
         pagesize=A4,
         title=f"Espelho da proposta — {_titulo_proposta(p)}",
         author="Hub Capture",
-        subject=f"{p.fonte} · {p.numero_proposta or p.id_externo}",
+        subject=identidade,
         creator="Hub Capture",
         leftMargin=MARGEM,
         rightMargin=MARGEM,
@@ -1148,9 +1245,20 @@ def nome_arquivo(p: Proposta) -> str:
     return f"{limpo[:80].strip('-') or 'espelho-proposta'}.pdf"
 
 
-def gerar_pdf_proposta(p: Proposta, *, gerado_em: datetime | None = None) -> bytes:
-    """Espelho da proposta: uma peça pronta para circular fora do painel."""
+def gerar_pdf_proposta(
+    p: Proposta,
+    *,
+    gerado_em: datetime | None = None,
+    complementos: Complementos | None = None,
+) -> bytes:
+    """Espelho da proposta: uma peça pronta para circular fora do painel.
+
+    `complementos` traz o andamento, os empenhos e a emenda já lidos pelo
+    router — sem eles o documento sai só com a linha da proposta (é o que
+    acontece em qualquer chamada que não tenha uma sessão de banco à mão).
+    """
     momento = (gerado_em or datetime.now(UTC).astimezone()).strftime("%d/%m/%Y às %H:%M")
+    extras = complementos or Complementos()
     buffer = BytesIO()
     doc = _montar_documento(buffer, p, momento)
 
@@ -1164,7 +1272,7 @@ def gerar_pdf_proposta(p: Proposta, *, gerado_em: datetime | None = None) -> byt
             _card(
                 [Paragraph(escape(_recorte(p.resumo_ia)), CORPO)],
                 UTIL,
-                titulo="Resumo inteligente",
+                titulo="Resumo da proposta",
             ),
         ]
 
@@ -1180,13 +1288,16 @@ def gerar_pdf_proposta(p: Proposta, *, gerado_em: datetime | None = None) -> byt
         ),
         Spacer(1, GAP),
         _lado_a_lado(_bloco_dados_gerais(p), _bloco_situacao(p)),
-        Spacer(1, GAP),
     ]
-    elementos += [KeepTogether(_bloco_conferencia(p))]
 
-    anexo = _bloco_fonte_completa(p)
-    if anexo:
-        elementos += [Spacer(1, GAP)] + anexo
+    # Mesma ordem da tela de detalhe: andamento, empenhos e emenda.
+    for bloco in (
+        _bloco_andamento(extras.andamento),
+        _bloco_empenhos(extras.empenhos, extras.resumo_empenhos),
+        _bloco_emendas(extras.emendas),
+    ):
+        if bloco:
+            elementos += [Spacer(1, GAP)] + bloco
 
     doc.build(elementos, canvasmaker=_CanvasNumerado)
     return buffer.getvalue()

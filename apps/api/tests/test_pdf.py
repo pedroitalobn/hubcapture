@@ -11,6 +11,7 @@ from __future__ import annotations
 import base64
 import contextlib
 import re
+import uuid
 import zlib
 from datetime import date, datetime
 from decimal import Decimal
@@ -93,7 +94,7 @@ def test_espelho_completo_tem_as_secoes() -> None:
     texto = _texto_do_pdf(pdf.gerar_pdf_proposta(p))
     assert "HUB CAPTURE" in texto
     assert "ESPELHO DA PROPOSTA" in texto
-    for secao in ("VALOR TOTAL", "PRAZOS", "PEND", "DADOS GERAIS", "CONFER"):
+    for secao in ("VALOR TOTAL", "PRAZOS", "PEND", "DADOS GERAIS"):
         assert secao in texto, secao
 
 
@@ -159,15 +160,148 @@ def test_espelho_de_proposta_vazia_nao_quebra() -> None:
             {"pendencias": [{"descricao": f"pend {i} " * 20, "prazo": None} for i in range(40)]},
             id="muitas-pendencias",
         ),
-        pytest.param(
-            {"dados_fonte": {f"g{g}": {f"c{i}": "v" * 900 for i in range(20)} for g in range(5)}},
-            id="registro-fonte-gigante",
-        ),
     ],
 )
 def test_espelho_sobrevive_a_campos_gigantes(campos) -> None:
     """Nenhum registro real pode derrubar a exportação (LayoutError)."""
     conteudo = pdf.gerar_pdf_proposta(_proposta(**campos))
+    assert conteudo[:5] == b"%PDF-"
+
+
+# ── Complementos: andamento, empenhos e emenda ──────────────────────────────
+
+
+def _evento(**campos):
+    from src.schemas.andamento import EventoAndamento
+
+    base = dict(data=date(2026, 3, 4), tipo="parecer", titulo="Aprovar", tom="ok")
+    base.update(campos)
+    return EventoAndamento(**base)
+
+
+def _empenho(**campos):
+    from src.schemas.empenho import EmpenhoRead
+
+    base = dict(
+        id=uuid.uuid4(),
+        fonte="transferegov_esp",
+        id_externo="E1",
+        numero_empenho="2026NE000123",
+        data_empenho=date(2026, 2, 10),
+        valor_empenhado=Decimal("500000.00"),
+        valor_pago=Decimal("120000.00"),
+        ug_emitente="FUNDO NACIONAL DE SAÚDE",
+    )
+    base.update(campos)
+    return EmpenhoRead(**base)
+
+
+def _emenda(**campos):
+    from src.schemas.emenda import EmendaRead
+
+    base = dict(
+        id=uuid.uuid4(),
+        fonte="transferegov_esp",
+        id_externo="EM1",
+        numero_emenda="202612340001",
+        ano=2026,
+        parlamentar="FULANA DE OLIVEIRA",
+        partido="XYZ",
+        uf_parlamentar="RN",
+        valor=Decimal("1500000.00"),
+        valor_empenhado=Decimal("500000.00"),
+    )
+    base.update(campos)
+    return EmendaRead(**base)
+
+
+def test_espelho_traz_andamento_empenhos_e_emenda() -> None:
+    """O espelho é o espelho da TELA: o que o detalhe mostra, o PDF leva.
+
+    Era o defeito relatado — parecer, empenho e parlamentar autor apareciam na
+    tela e sumiam no documento que o gestor encaminhava.
+    """
+    from src.schemas.empenho import EmpenhoResumo
+
+    extras = pdf.Complementos(
+        andamento=[
+            _evento(titulo="Aprovar", ator="MARIA DA SILVA", detalhe="Concedente"),
+            _evento(
+                data=date(2026, 2, 10),
+                tipo="empenho",
+                titulo="Empenho emitido",
+                valor=Decimal("500000.00"),
+            ),
+        ],
+        empenhos=[_empenho()],
+        resumo_empenhos=EmpenhoResumo(
+            total=1,
+            valor_empenhado=Decimal("500000.00"),
+            valor_pago=Decimal("120000.00"),
+        ),
+        emendas=[_emenda()],
+    )
+    texto = _texto_do_pdf(
+        pdf.gerar_pdf_proposta(_proposta(numero_proposta="014275/2026"), complementos=extras)
+    )
+    assert "ANDAMENTO DA PROPOSTA" in texto
+    assert "Maria da Silva" in texto  # quem assinou o parecer
+    assert "PARECER" in texto
+    assert "EMPENHOS" in texto
+    assert "2026NE000123" in texto  # o documento de empenho
+    assert "EMENDA PARLAMENTAR" in texto
+    assert "Fulana de Oliveira (XYZ/RN)" in texto  # o autor lidera
+    assert "R$ 500.000,00" in texto
+
+
+def test_espelho_sem_complementos_nao_desenha_as_secoes() -> None:
+    """Sem parecer, empenho ou emenda o documento não abre seção vazia."""
+    texto = _texto_do_pdf(pdf.gerar_pdf_proposta(_proposta()))
+    assert "ANDAMENTO DA PROPOSTA" not in texto
+    assert "EMPENHOS" not in texto
+    assert "EMENDA PARLAMENTAR" not in texto
+
+
+def test_empenho_anulado_sai_liquido() -> None:
+    """Empenho devolvido não pode somar como recurso reservado."""
+    extras = pdf.Complementos(
+        empenhos=[
+            _empenho(valor_empenhado=Decimal("500000.00"), valor_anulado=Decimal("500000.00"))
+        ]
+    )
+    texto = _texto_do_pdf(pdf.gerar_pdf_proposta(_proposta(), complementos=extras))
+    assert "anulado" in texto
+    assert "R$ 0,00" in texto
+
+
+@pytest.mark.parametrize(
+    "extras",
+    [
+        pytest.param(
+            lambda: pdf.Complementos(
+                andamento=[
+                    _evento(titulo=f"passo {i} " * 20, texto="TEXTO " * 2000) for i in range(60)
+                ]
+            ),
+            id="andamento-gigante",
+        ),
+        pytest.param(
+            lambda: pdf.Complementos(
+                empenhos=[_empenho(ug_emitente="UG " * 200) for _ in range(50)]
+            ),
+            id="empenhos-demais",
+        ),
+        pytest.param(
+            lambda: pdf.Complementos(
+                emendas=[_emenda(parlamentar="NOME " * 300) for _ in range(30)]
+            ),
+            id="emendas-demais",
+        ),
+    ],
+)
+def test_complementos_gigantes_nao_derrubam_o_espelho(extras) -> None:
+    """Card não se parte entre páginas: lista longa vai em cards de poucas linhas."""
+    conteudo = pdf.gerar_pdf_proposta(_proposta(), complementos=extras())
     assert conteudo[:5] == b"%PDF-"
 
 
@@ -203,11 +337,38 @@ def test_nome_do_arquivo_e_legivel() -> None:
     assert pdf.nome_arquivo(_proposta(id_externo="  ")).endswith(".pdf")
 
 
-def test_rotulo_da_fonte_e_o_nome_do_produto() -> None:
-    """O espelho mostra "TransfereGov", não o id do connector."""
-    texto = _texto_do_pdf(pdf.gerar_pdf_proposta(_proposta(fonte="transferegov_disc")))
-    assert "TRANSFEREGOV" in texto
-    assert "TRANSFEREGOV_DISC" not in texto
+def test_espelho_nao_carrega_plumbing_nem_origem_do_dado() -> None:
+    """O documento é da PROPOSTA, não da integração que a coletou.
+
+    Fora do espelho: proveniência campo a campo, QR/link da fonte, dump do
+    registro bruto, identificador de integração e nome de fonte de dados — o
+    espelho circula fora do painel e nada disso é assunto de quem recebe.
+    """
+    texto = _texto_do_pdf(
+        pdf.gerar_pdf_proposta(
+            _proposta(
+                fonte="transferegov_disc",
+                id_externo="30011/2026",
+                numero_proposta="014275/2026",
+                url_origem="https://exemplo.gov.br/proposta/1",
+                proveniencia={"situacao": "scrape", "valor_total": "api"},
+                dados_fonte={"plano_acao": {"csv": {"NR_PROPOSTA": "014275/2026"}}},
+                execucao={"valor_global": "1000", "valor_empenhado": "800"},
+            )
+        )
+    )
+    for proibido in (
+        "CONFER",  # "Conferência e proveniência"
+        "PROVENI",
+        "TRANSFEREGOV",
+        "exemplo.gov.br",
+        "30011/2026",  # identificador na fonte
+        "DADOS COMPLETOS",  # anexo do registro bruto
+        "NR_PROPOSTA",
+        "FONTE OFICIAL",
+    ):
+        assert proibido not in texto.upper(), proibido
+    assert "014275/2026" in texto  # ...mas a referência do gestor continua
 
 
 @pytest.mark.parametrize(
