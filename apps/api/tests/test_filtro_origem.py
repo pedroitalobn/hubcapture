@@ -44,9 +44,12 @@ def test_fonte_fora_do_recorte_da_v1_ainda_e_filtravel() -> None:
 def test_origens_do_perfil_sao_grupos_e_nao_connectors() -> None:
     chaves = [o["chave"] for o in fontes_service.origens_do_perfil(["transferegov_ff", "fns"])]
     assert chaves == ["transferegov", "fns"]
-    # perfil sem fonte gravada enxerga o catálogo inteiro (filtro vazio é pior
-    # que filtro amplo)
-    assert [o["chave"] for o in fontes_service.origens_do_perfil(None)] == ["transferegov", "fns"]
+    # perfil sem fonte gravada enxerga o catálogo INTEIRO (filtro vazio é pior
+    # que filtro amplo) — e acompanha o catálogo, não uma lista fixa: grupo novo
+    # (o FNDE foi o último) entra no trilho sem tocar aqui
+    assert [o["chave"] for o in fontes_service.origens_do_perfil(None)] == list(
+        fontes_service.GRUPOS
+    )
     # só um grupo escolhido → só ele no trilho
     assert [o["chave"] for o in fontes_service.origens_do_perfil(["fns_propostas"])] == ["fns"]
 

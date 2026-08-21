@@ -284,8 +284,14 @@ def test_fontes_alvo_prioriza_filtro_area_perfil() -> None:
 
     # fonte explícita sempre vence
     assert _fontes_alvo("transferegov_ff", None, None) == ["transferegov_ff"]
-    # área recorta pelas fontes de captação da área (v1: TransfereGov serve todas)
+    # área recorta pelas fontes de CAPTAÇÃO da área: o TransfereGov serve todas
+    # e a saúde soma o FNS de propostas (o `fns` puro é recebidos, não entra)
     assert _fontes_alvo(None, "saude", None) == sorted(CAPTACAO_FONTES)
+    # educação não tem fonte setorial de CAPTAÇÃO (o FNDE publica repasse, não
+    # proposta) → sobram as do TransfereGov, que serve todas as áreas
+    from src.services import fontes as fontes_service
+
+    assert _fontes_alvo(None, "educacao", None) == sorted(fontes_service.TRANSFEREGOV)
     # fonte do perfil fora do recorte de captação (fpm é recebidos) → tudo
     assert _fontes_alvo(None, None, ["fpm"]) == list(CAPTACAO_FONTES)
     assert _fontes_alvo(None, None, ["transferegov_esp"]) == ["transferegov_esp"]

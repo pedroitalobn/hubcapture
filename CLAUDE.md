@@ -1188,9 +1188,6 @@ origem diz DE QUAL FONTE veio o registro. Mesmo desenho da §33 — vive no tril
   começava colado na borda e a lista tinha duas margens esquerdas. O feed também passou a
   nomear o município (§35 — o repasse costuma chegar da fonte sem ele) e a esconder a
   descrição que só repete o rótulo da fonte.
-- **`AREA_FONTES` cita o GRUPO FNS inteiro**: apontando só para `fns` (repasses), a área
-  saúde não alcançava nenhuma fonte de PROPOSTA do FNS — o recorte por área saía vazio do
-  lado da captação.
 - Regressão: `tests/test_filtro_origem.py` (normalização pura + captação, facetas,
   recebidos e Meu painel sob a mesma escolha de origem).
 
@@ -2182,9 +2179,17 @@ novo** — não um alerta genérico de "mudou alguma coisa".
 - **Registro** — `services/criterios_alerta.py::CRITERIOS` é a fonte de verdade
   (chave, rótulo, descrição, escopo, padrão). Dois escopos: `proposta`
   (monitorar uma proposta-chave) e `territorio` (monitorar um município).
-  Critérios de proposta: `parecer` (novo parecer ou veredito alterado),
-  `empenho`, `pagamento`, `publicacao`, `vencimento` (fim de vigência),
-  `situacao` (situação/movimentação), `prazo`, `pendencia`. De território:
+  Critérios de proposta: `parecer_novo` (parecer que ainda não existia),
+  `parecer` (veredito de um parecer já emitido mudou), `empenho` (empenho
+  emitido/valor empenhado), `empenho_pago` (pagamento/liquidação NOS
+  DOCUMENTOS), `pagamento` (pago/liberado no agregado da execução), `emenda`
+  (emenda aplicada à proposta ou valores dela), `publicacao` (proposta
+  publicada na fonte), `vencimento` (fim de vigência), `situacao`
+  (situação/movimentação), `prazo`, `pendencia`. Os pares
+  `parecer_novo`×`parecer`, `empenho`×`empenho_pago` e `pagamento`×`empenho_pago`
+  existem porque são avisos DIFERENTES para o gestor (emitir ≠ pagar; parecer
+  novo ≠ veredito virou), e cada um observa só o seu campo do snapshot. De
+  território:
   `nova_proposta`, `oportunidade`. Critério novo = uma entrada aqui — catálogo,
   validação da API e chips do front acompanham sozinhos.
 - **`criterios` NULL = os padrões** (`monitoramentos.criterios` e
@@ -2194,13 +2199,25 @@ novo** — não um alerta genérico de "mudou alguma coisa".
   religaria o ruído inteiro.
 - **Detecção por critério** (`services/detect_changes.py`, funções PURAS, sem
   banco): `snapshot()` fotografa o estado material da proposta (situação,
-  movimentação, prazos, pendências, publicação, empenhado/liberado/pago do
-  agregado e dos documentos, pareceres, fim de vigência) e `avaliar()` compara
-  com a foto anterior — `monitoramentos.snapshot` (jsonb) — devolvendo uma
-  `Mudanca(criterio, payload)` por critério. `CAMPOS_POR_CRITERIO` amarra campo
-  → critério; `podar()` remove do snapshot gravado os campos dos critérios
-  DESLIGADOS (guardar o zero de um dado não coletado viraria "3 pareceres novos"
-  no dia em que o usuário ligasse o critério).
+  movimentação, prazos, pendências, estado de publicação, empenhado/liberado/
+  pago do agregado e dos documentos, pareceres POR ID + veredito, emendas por id
+  e valores, fim de vigência) e `avaliar()` compara com a foto anterior —
+  `monitoramentos.snapshot` (jsonb) — devolvendo uma `Mudanca(criterio,
+  payload)` por critério. `CAMPOS_POR_CRITERIO` amarra campo → critério e
+  `CAMPOS_DE_APOIO` marca o que existe só para a FRASE do alerta (`dias_para_
+  vencer`, autores da emenda) — comparar esses geraria alerta diário sem fato
+  novo. `podar()` remove do snapshot gravado os campos dos critérios DESLIGADOS
+  (guardar o zero de um dado não coletado viraria "3 pareceres novos" no dia em
+  que o usuário ligasse o critério).
+- **Identidade, não posição**: parecer e emenda são casados por `id_externo` (ou
+  hash do conteúdo). Cair no índice da lista faria toda a coleta seguinte
+  parecer "tudo novo", porque a ordem muda entre rodadas — mesma disciplina da
+  §51. Parecer que SUMIU da fonte não é "novo parecer", e parecer que acabou de
+  entrar não conta como "veredito alterado" (sairia duplicado nos dois).
+- **Publicação é ESTADO**: `publicada` é derivada do texto/valor que a fonte
+  publica ("Publicado", uma data, ou `valor_publicado > 0`; "não publicado" e
+  variantes contam como não). Assim "passou a publicada" vira uma frase própria
+  em vez de um diff cru de campo.
 - **Sem linha de base não há alerta**: a 1ª varredura só fotografa, senão a
   proposta inteira "mudaria". A exceção é `vencimento`, que é ESTADO e não
   diferença — convênio a vencer dentro de `JANELA_VENCIMENTO_DIAS` (30) avisa já
@@ -2208,11 +2225,28 @@ novo** — não um alerta genérico de "mudou alguma coisa".
   (`dias_para_vencer` fica fora da comparação: mudaria todo dia e alertaria todo
   dia sem fato novo).
 - **Varredura** (`services/oportunidades.varredura`) ganhou a 3ª detecção,
-  `_mudancas_monitoradas`: lê o cache do território (pareceres e empenhos só
-  quando o critério pede — consulta ao vivo é papel da Captação) e cria os
-  alertas com `tipo = <critério>` e payload `{mudou, resumo, titulo,
+  `_mudancas_monitoradas`: lê o cache do território (pareceres, empenhos e
+  emendas só quando o critério pede — consulta ao vivo é papel da Captação) e
+  cria os alertas com `tipo = <critério>` e payload `{mudou, resumo, titulo,
   numero_proposta, municipio…}`. As buscas passam a filtrar `nova_proposta` e
   `oportunidade` pelos seus próprios critérios.
+- **FAVORITAR É ACOMPANHAR** (`monitoramentos.origem`, migration
+  `b2c3d4e5f8a0`): favoritar cria um monitoramento `origem='favorito'` com os
+  critérios padrão E com a fotografia tirada NA HORA
+  (`monitoramentos_service.acompanhar_favorita`) — sem a linha de base imediata,
+  a novidade que o cron trouxesse em seguida só serviria de baseline e passaria
+  em branco. `garantir_das_favoritas` adota na varredura as favoritas anteriores
+  à feature. Parar um acompanhamento implícito NÃO o ressuscita: o insert é
+  `ON CONFLICT DO NOTHING`, então é a AUSÊNCIA de linha que autoriza criar.
+- **O alerta nasce no CRON** (`jobs/alertas.py` + `jobs/refresh_diario`): logo
+  depois de o refresh diário atualizar o cache DAQUELE usuário, a varredura dele
+  roda na sua sessão RLS e os alertas saem pelos canais. Antes, a detecção só
+  acontecia quando alguém abria a central de Alertas — o oposto do que um alerta
+  serve. `varrer_todos()` existe para o cron externo (n8n) e lista os usuários a
+  partir de `usuarios` (fora do RLS) DE PROPÓSITO: `set_config(..., true)` deixa
+  a GUC do tenant como string VAZIA na conexão depois da transação, e aí o
+  `current_setting('app.usuario_id')::uuid` das policies estoura em qualquer
+  leitura sem tenant que reaproveite a conexão.
 - **API**: `GET /alerts/criteria?escopo=` devolve o catálogo (é ele que alimenta
   o multi-select). `POST /monitors` e `POST /monitors/searches` aceitam
   `criterios` (chave inválida = 422 pelo validator do schema). Não há PATCH: o
@@ -2223,7 +2257,8 @@ novo** — não um alerta genérico de "mudou alguma coisa".
   `lib/alertas.ts` carrega o catálogo UMA vez por sessão e dá o rótulo por chave
   (com retaguarda estática, inclusive o tipo legado `status`). Pontos de
   configuração: o formulário de "monitorar futuras propostas" e a nova seção
-  **Propostas monitoradas** em `app/panel/alerts`, e o botão 🔔 do detalhe
+  **Propostas monitoradas** em `app/panel/alerts` (que marca ★ favorita quando
+  o acompanhamento veio do favorito), e o botão 🔔 do detalhe
   (`app/panel/funding/[id]`), que agora abre o multi-select em vez de ficar
   desabilitado. `DynamicIsland` e o WhatsApp (`dispatch_alerts`) leem o mesmo
   rótulo e o `resumo` do payload — "vencimento" cru não diz ao gestor que o
@@ -2304,3 +2339,63 @@ discricionárias/legais**: a base sai inteira, um ZIP por tabela do modelo, em
   caminho real (carga global sem tenant → leitura sob a sessão RLS do gestor,
   com ordem por `data_proposta`, filtro de safra e o território de outro
   usuário fora da lista mesmo no escopo nacional).
+
+## 55. FNDE calibrado (SIMAD) + PAUSAR fonte pelo painel admin
+
+Duas coisas que andam juntas: a terceira fonte de recebidos entrou em operação, e
+o painel ganhou o interruptor que permite conviver com fonte de governo instável
+sem que cada coleta pague o preço dela.
+
+**FNDE — a consulta pública do SIMAD** (`connectors/fnde.py`, reescrito; o antigo
+era esqueleto com `ENDPOINT = "api/repasses"  # calibrar`, uma rota que nunca
+existiu — daí o 500 crônico em `sync_runs`). O FNDE **não publica API REST** das
+liberações: o que existe é um formulário POST do Oracle Web Toolkit, aberto e sem
+login, e — ao contrário de FNS e TransfereGov — ele responde DIRETO do IP deste
+servidor (sem Cloudflare, sem geobloqueio, sem egresso).
+
+O contrato, lido do formulário oficial (`internet_fnde.liberacoes_01_pc`):
+
+  1. POST `internet_fnde.liberacoes_result_pc` com `p_uf` (sigla) + `p_municipio`
+     (**IBGE de 6 dígitos**, sem o verificador — a mesma pegadinha do FNS, §30b) +
+     `p_ano` → LISTA DE ENTIDADES do município (CNPJ, razão social);
+  2. o MESMO POST com `p_cgc=<cnpj>` → as LIBERAÇÕES: data do pagamento, nº da
+     **OB**, valor, programa, banco/agência/conta.
+
+- **DOIS layouts de tabela na mesma página** e é aqui que um parse ingênuo perde
+  dado em silêncio: 7 colunas (Data, OB, Valor, Programa, Banco, Agência, C/C) e
+  8, quando o bloco tem parcela — o PDDE Qualidade insere "Parcela" ANTES de
+  "Programa". Lendo por POSIÇÃO, a parcela ("001") era gravada como nome do
+  programa. `_indice_colunas` mapeia pelo CABEÇALHO de cada bloco, e o subtítulo
+  ("PDDE - PROGRAMA DINHEIRO DIRETO NA ESCOLA") vira a `categoria` da linha.
+- **A DATA separa dado de enfeite**: cabeçalho, subtítulo e a linha de "Total:"
+  não abrem com data — mais robusto que contar colunas num HTML de 2004.
+- **ISO-8859-1** (o httpx adivinharia errado e embaralharia todo acento) e datas
+  em `19/JAN/2026` (mês PT abreviado) — os dois pontos de perda silenciosa.
+- **Teto e ordenação**: município grande devolve centenas de entidades (cada
+  escola tem sua UEx do PDDE) e cada drill é um POST. `ordenar_entidades` põe o
+  PODER PÚBLICO municipal (secretaria/prefeitura/fundo) à frente e `MAX_ENTIDADES`
+  limita a rodada: o dinheiro que responde "quanto a prefeitura recebeu" entra
+  sempre; a cauda entra nas coletas seguintes. Sem a ordenação, o teto se gastaria
+  nas primeiras APMs em ordem alfabética.
+- Registrado em `services/fontes.py` como grupo próprio (`fnde`) e em `RECEBIDOS`.
+  Validado ao vivo: Fortaleza/SME = R$ 98,9 mi em 2026 (8 OBs de salário-educação);
+  Apuiarés = 306 liberações em 3 exercícios.
+
+**PAUSAR fonte (painel admin)** — mesmo desenho dos módulos (§29), agora por
+CONNECTOR: estado em `configuracoes` sob `fonte_<id>`, default no catálogo
+`services/fontes.py::CATALOGO_FONTES`, cache TTL 10s (a coleta consulta em laço).
+
+- `esta_ativa(fonte)` / `filtrar_ativas(...)` são o acesso runtime; fonte FORA do
+  catálogo é considerada ATIVA — o catálogo governa o que se pode pausar, não o
+  que existe (connector novo não pode nascer mudo por esquecimento de cadastro).
+- Aplicado nas duas portas de coleta: `consulta_avulsa.live_search` e
+  `primeiro_sync.executar` (que é o que o refresh diário chama). Fonte pausada
+  não é tentada — não paga timeout nem enche `sync_runs` de incidente conhecido.
+- **`serpro` nasce PAUSADO** (`padrao=False`): a rota do painel Visão Geral
+  responde 404 e o Qlik não é extraível (§30). Ele continua registrado e sondável
+  no diagnóstico; só não entra nas rodadas.
+- API: `GET /admin/sources` passou a devolver `ativa`/`pausavel`/`label` por fonte
+  e `PUT /admin/sources/state` (`{fonte, ativa}`) alterna — a resposta do PUT já é
+  o diagnóstico novo, então a tela não recarrega nem mantém estado divergindo do
+  servidor. Fonte fora do catálogo = 422.
+- Web: coluna **Coleta** em `app/admin/sources` com o chip ativa/pausada.

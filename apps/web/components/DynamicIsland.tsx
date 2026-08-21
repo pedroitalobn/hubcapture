@@ -86,10 +86,13 @@ const TIPO_ALERTA: Record<string, string> = {
   situacao: "situação mudou",
   prazo: "prazo alterado",
   pendencia: "nova pendência",
+  parecer_novo: "novo parecer",
   parecer: "parecer atualizado",
   empenho: "empenho atualizado",
+  empenho_pago: "empenho pago",
   pagamento: "pagamento",
-  publicacao: "publicação",
+  emenda: "emenda aplicada",
+  publicacao: "proposta publicada",
   vencimento: "convênio vencendo",
   nova_proposta: "novo alerta",
   oportunidade: "novo alerta",
@@ -148,7 +151,9 @@ function historicoInicial(): Msg[] {
 
 function tituloDoAlerta(a: Alerta): string {
   const p = (a.payload ?? {}) as Record<string, string | undefined>;
-  return p.titulo ?? p.municipio_nome ?? p.municipio_ibge ?? "proposta do território";
+  return (
+    p.titulo ?? p.municipio_nome ?? p.municipio_ibge ?? "proposta do território"
+  );
 }
 
 export default function DynamicIsland() {
@@ -215,7 +220,10 @@ export default function DynamicIsland() {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     try {
       const fala = new SpeechSynthesisUtterance(
-        texto.replace(/[•*_#`→]/g, " ").replace(/\s+/g, " ").slice(0, 600),
+        texto
+          .replace(/[•*_#`→]/g, " ")
+          .replace(/\s+/g, " ")
+          .slice(0, 600),
       );
       fala.lang = "pt-BR";
       window.speechSynthesis.cancel();
@@ -275,7 +283,10 @@ export default function DynamicIsland() {
       } catch {
         setMensagens((m) => [
           ...m,
-          { autor: "copiloto", texto: "Falha ao falar com o Copiloto. Tente de novo." },
+          {
+            autor: "copiloto",
+            texto: "Falha ao falar com o Copiloto. Tente de novo.",
+          },
         ]);
       } finally {
         setStatusTool(null);
@@ -464,7 +475,11 @@ export default function DynamicIsland() {
                 </button>
                 <button
                   onClick={alternarVoz}
-                  title={vozAtiva ? "Desligar leitura em voz alta" : "Ler respostas em voz alta"}
+                  title={
+                    vozAtiva
+                      ? "Desligar leitura em voz alta"
+                      : "Ler respostas em voz alta"
+                  }
                   aria-label="Alternar voz"
                   className={`pressable rounded-full px-2 py-0.5 hover:bg-white/10 ${
                     vozAtiva ? "text-lime" : "text-white/40 hover:text-white"
@@ -578,7 +593,7 @@ export default function DynamicIsland() {
                         <span className="typing-dot" />
                       </span>
                       {statusTool
-                        ? TOOL_LABEL[statusTool] ?? "consultando…"
+                        ? (TOOL_LABEL[statusTool] ?? "consultando…")
                         : "pensando…"}
                     </span>
                   )}

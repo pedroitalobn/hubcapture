@@ -12,7 +12,7 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,8 +23,14 @@ from ...core.users import current_superuser
 from ...models.proposta import Proposta
 from ...models.sync_run import SyncRun
 from ...models.usuario import Usuario
-from ...schemas.config import DiagnosticoFontes, FonteDiagnostico, UltimaColeta
+from ...schemas.config import (
+    DiagnosticoFontes,
+    FonteDiagnostico,
+    FonteToggle,
+    UltimaColeta,
+)
 from ...services import config as config_service
+from ...services import fontes as fontes_service
 from ...services import consulta_avulsa, llm_providers
 from ..deps import get_platform_db
 
@@ -119,10 +125,20 @@ async def diagnostico_fontes(
             )
 
     saude = await asyncio.gather(*(_health(f) for f in fontes))
+    # estado de PAUSA por fonte (catálogo do painel; fora dele = sem toggle)
+    estado = await fontes_service.ativas(session)
+    rotulos = {f["chave"]: f["label"] for f in fontes_service.CATALOGO_FONTES}
 
     return DiagnosticoFontes(
         fontes=[
-            FonteDiagnostico(fonte=f, saudavel=ok, ultima_coleta=ultima.get(f))
+            FonteDiagnostico(
+                fonte=f,
+                saudavel=ok,
+                ultima_coleta=ultima.get(f),
+                ativa=estado.get(f, True),
+                pausavel=f in estado,
+                label=rotulos.get(f),
+            )
             for f, ok in zip(fontes, saude, strict=False)
         ],
         firecrawl_configurado=bool(await config_service.resolver("firecrawl_api_key")),
@@ -130,3 +146,26 @@ async def diagnostico_fontes(
         llm_configurado=await llm_providers.configurado(),
         emendas_api_key_configurada=bool(await config_service.resolver("emendas_api_key")),
     )
+
+
+@router.put("/admin/sources/state", response_model=DiagnosticoFontes)
+async def pausar_fonte(
+    body: FonteToggle,
+    _admin: Usuario = Depends(current_superuser),
+    session: AsyncSession = Depends(get_platform_db),
+) -> DiagnosticoFontes:
+    """Pausa (ou religa) uma fonte de coleta.
+
+    Fonte pausada continua registrada e sondável no diagnóstico — ela só sai
+    das RODADAS (live-search, primeiro sync, refresh diário). É o que permite
+    conviver com fonte de governo fora do ar sem que cada coleta pague o
+    timeout dela e sem encher `sync_runs` de incidente conhecido.
+    """
+    if body.fonte not in {f["chave"] for f in fontes_service.CATALOGO_FONTES}:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"fonte desconhecida no catálogo de pausa: {body.fonte}",
+        )
+    await fontes_service.definir_fonte(session, body.fonte, body.ativa)
+    await session.commit()
+    return await diagnostico_fontes(_admin=_admin, session=session)

@@ -310,6 +310,10 @@ async def live_search(
     fontes = plano_gates.filtrar_fontes(
         cfg_plano, _fontes_alvo(fonte, area, list(pref.fontes or []) if pref else None)
     )
+    # Fonte PAUSADA no painel admin sai da rodada: enquanto ela não é
+    # recalibrada, tentar só produz incidente em `sync_runs` e o timeout dela
+    # atrasa a resposta das que funcionam.
+    fontes = await fontes_service.filtrar_ativas(fontes)
 
     # 1) sob a sessão RLS: visibilidade dos municípios + o que precisa coletar
     pares = [(ibge, f) for ibge in alvos for f in fontes]

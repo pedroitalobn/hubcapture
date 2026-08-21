@@ -71,12 +71,17 @@ AREAS = (
     "meio_ambiente",
     "agricultura",
 )
-# `fontes_service.FNS` e não `{"fns"}`: o grupo tem DUAS metades — `fns`
-# (repasses) e `fns_propostas` (captação). Citando só a primeira, a área saúde
-# não alcançava nenhuma fonte de PROPOSTA do FNS: o recorte por área saía vazio
-# do lado da captação e a busca ao vivo por saúde nunca consultava o FNS.
+#: fontes SETORIAIS por área — o TransfereGov serve todas (não é setorial), e
+#: cada fundo entra na sua área com AS DUAS granularidades que publica: o FNS
+#: dá repasse (`fns`) e proposta (`fns_propostas`); o FNDE dá liberação.
+#: Sem isto, quem escolhe "educação" no onboarding nunca recebia o FNDE.
+_AREA_SETORIAIS: dict[str, set[str]] = {
+    "saude": {"fns", "fns_propostas"},
+    "educacao": {"fnde"},
+}
+
 AREA_FONTES: dict[str, set[str]] = {
-    area: set(fontes_service.TRANSFEREGOV) | (set(fontes_service.FNS) if area == "saude" else set())
+    area: set(fontes_service.TRANSFEREGOV) | _AREA_SETORIAIS.get(area, set())
     for area in AREAS
 }
 

@@ -39,7 +39,9 @@ from ..notifications import uniq
 from ..notifications.email_templates import alertas_resumo
 from . import config as config_service
 from . import criterios_alerta, detect_changes, plano_gates
+from . import emendas_proposta as emendas_service
 from . import empenhos_proposta as empenhos_service
+from . import monitoramentos as monitoramentos_service
 from . import pareceres as pareceres_service
 from .perfil import AREA_FONTES
 
@@ -59,14 +61,20 @@ async def _mudancas_monitoradas(
     """Um alerta por CRITÉRIO ligado que teve fato novo na proposta monitorada.
 
     A fotografia anterior vive em `monitoramentos.snapshot`; a atual é montada
-    do cache (a proposta e, só quando o critério pede, pareceres e empenhos —
-    consulta ao vivo é papel da Captação, não da varredura). O snapshot é
-    PODADO pelos critérios ligados: campo de critério desligado não vira linha
-    de base falsa quando o usuário ligar o critério depois.
+    do cache (a proposta e, só quando o critério pede, pareceres, empenhos e
+    emendas — consulta ao vivo é papel da Captação, não da varredura). O
+    snapshot é PODADO pelos critérios ligados: campo de critério desligado não
+    vira linha de base falsa quando o usuário ligar o critério depois.
+
+    Favoritar é acompanhar: antes de comparar, toda favorita sem monitoramento
+    ganha um (`origem='favorito'`), então a novidade que o cron trouxer numa
+    proposta favoritada vira alerta sem o gestor precisar configurar nada.
     """
     agora = datetime.now(UTC)
     criados: list[Alerta] = []
     canais: set[str] = set()
+
+    await monitoramentos_service.garantir_das_favoritas(session, usuario.id)
 
     monitores = (
         (
@@ -96,14 +104,19 @@ async def _mudancas_monitoradas(
             continue
 
         pareceres: list = []
-        if "parecer" in ligados and proposta.numero_plano_trabalho:
+        if ligados & {"parecer", "parecer_novo"} and proposta.numero_plano_trabalho:
             pareceres = await pareceres_service.listar(session, proposta.numero_plano_trabalho)
         empenhos: list = []
-        if ligados & {"empenho", "pagamento"}:
+        if ligados & {"empenho", "empenho_pago"}:
             empenhos = await empenhos_service.listar(session, proposta)
+        emendas: list = []
+        if "emenda" in ligados:
+            emendas = await emendas_service.listar(session, proposta)
 
         atual = detect_changes.podar(
-            detect_changes.snapshot(proposta, pareceres=pareceres, empenhos=empenhos),
+            detect_changes.snapshot(
+                proposta, pareceres=pareceres, empenhos=empenhos, emendas=emendas
+            ),
             ligados,
         )
         mudancas = detect_changes.avaliar(mon.snapshot, atual, ligados)

@@ -331,37 +331,110 @@ export default function PropostaDetalhePage() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* ── Cabeçalho compacto: contexto, não protagonismo ───────────── */}
-      <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-        {/* Hierarquia (seção 23): MUNICÍPIO → objeto → números → identificadores.
-            O município é a identidade do registro, então encabeça o header; o
-            código IBGE desce para linha de apoio e o id da fonte sai daqui. */}
-        <div className="min-w-0">
+      {/* ── CABEÇALHO EM TRÊS FAIXAS ─────────────────────────────────
+          O header vinha como uma pilha de linhas soltas do mesmo peso —
+          número, data, órgão, badge e pílulas de categoria empilhados sem
+          divisão, com o objeto em corpo de título disputando com o município.
+          Agora são faixas com papéis distintos:
+            1. navegação + ações (a barra de contexto da página);
+            2. identidade — MUNICÍPIO (§35) + estado da proposta + objeto;
+            3. referência — nº, data, órgão e categorias, em tipografia de
+               apoio, separadas por hairline.                              */}
+      <header className="flex flex-col gap-4 border-b border-hairline pb-5">
+        {/* ── 1. Barra de contexto: retorno à esquerda, ações à direita ─ */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           {/* O retorno é a pílula padrão (BotaoVoltar) — o link mono de 11px
               que ficava aqui era quase invisível. */}
           <BotaoVoltar href={voltarHref} rotulo={voltarRotulo} />
-          {/* Ponto 14: o código IBGE saiu daqui — é desambiguador, não
-              identidade, e segue rotulado em "Dados gerais". */}
-          <h1 className="page-title mt-2.5">{municipioPrincipal(p)}</h1>
+          {/* Ações agrupadas — nunca um botão grande solto no canto. Subiram
+              para a barra de contexto: no bloco de identidade competiam com o
+              título e, ao quebrar a linha, viravam uma quarta pilha. */}
+          {/* `shrink-0` aqui causava ROLAGEM HORIZONTAL da página abaixo de
+              ~375px: o grupo se recusava a encolher e o "Espelho PDF" saía
+              pela borda. Sem ele, os botões quebram entre si; largura cheia
+              no mobile (o retorno fica sozinho na 1ª linha) e alinhados à
+              direita a partir do sm, onde tudo cabe ao lado do "voltar". */}
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+            <Favorito
+              ativo={favorita}
+              onToggle={alternarFavorito}
+              comRotulo
+              tamanho={15}
+              className="fav-solid h-8"
+            />
+            {/* O quadro "Acompanhar e ser avisado" saiu (ponto 17), mas monitorar
+                não podia sair com ele: vira ação do cabeçalho, no canal painel.
+                Os demais canais seguem na central de Alertas. */}
+            <button
+              onClick={monitor ? () => setConfigurando((v) => !v) : monitorar}
+              aria-pressed={Boolean(monitor)}
+              title={
+                monitor
+                  ? "Escolher quais alterações devem virar alerta"
+                  : "Avisar quando algo mudar nesta proposta"
+              }
+              className={cx("btn btn-sm", monitor ? "btn-accent" : "btn-solid")}
+            >
+              {monitor ? "🔔 Monitorando" : "🔔 Monitorar"}
+            </button>
+            {/* atalho "P": o gestor exporta sem tirar a mão do teclado */}
+            <BotaoEspelho
+              propostaId={params.id}
+              atalho="p"
+              onResultado={(texto, tom) => setMsg({ tom, texto })}
+            />
+            {/* O link "Fonte oficial ↗" SAIU do cabeçalho: mandava o gestor
+                para FORA da plataforma para ver o que a página já mostra
+                (dados gerais, situação, prazos, execução e andamento). O
+                `url_origem` continua no registro (a API segue devolvendo),
+                só não é mais uma porta de saída no alto da página. */}
+          </div>
+        </div>
+
+        {/* ── 2. Identidade ────────────────────────────────────────────
+            Hierarquia (§35): MUNICÍPIO → objeto → números → identificadores.
+            O município é a identidade do registro, então encabeça o header; o
+            código IBGE desce para linha de apoio e o id da fonte sai daqui.
+            O estado da proposta acompanha o título NA MESMA LINHA — sozinho
+            numa linha própria ele virava só mais um degrau da pilha. */}
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
+            <h1 className="page-title">{municipioPrincipal(p)}</h1>
+            <StatusBadge tone={disponivel ? "success" : "neutral"}>
+              {disponivel ? "oportunidade disponível" : "cadastrada"}
+            </StatusBadge>
+          </div>
           {/* O objeto da proposta vem logo abaixo — nunca um identificador:
               antes o h1 caía para `id_externo` quando faltava título.
-              Com TETO de caracteres: a fonte não separa título de descrição, e
-              um objeto de 2 mil caracteres impresso aqui empurrava valor,
-              empenho e prazo para fora da dobra. O inteiro abre em janela. */}
-          <p className="mt-2 text-lg font-semibold leading-snug text-ink">
+              Corpo de TEXTO, não de título: em `text-lg font-semibold` ele
+              disputava com o município e empurrava o resto para fora da dobra.
+              Com TETO de caracteres, porque a fonte não separa título de
+              descrição — o inteiro abre em janela. */}
+          <p className="mt-2 max-w-[68ch] text-[0.9375rem] leading-relaxed text-ink-2">
             <TextoLimitado
               texto={humanizarCaixa(p.titulo ?? p.objeto)}
-              limite={180}
+              limite={150}
               titulo={municipioPrincipal(p)}
               rotulo="Objeto da proposta"
-              vazio="Proposta sem título na fonte"
+              vazio={
+                <span className="text-ink-3">Proposta sem título na fonte</span>
+              }
             />
           </p>
-          {/* Nº da proposta e data de criação: é assim que o gestor se refere a
-              ela ("14275/2026, de 26/03") e é o que ele digita para conferir no
-              portal da fonte. Dado de cabeçalho — diferente de `id_externo`/UUID,
-              que são plumbing e ficam em "Dados gerais". */}
-          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-2">
+        </div>
+
+        {/* ── 3. Referência ────────────────────────────────────────────
+            Nº da proposta, data de criação e órgão concedente: é assim que o
+            gestor se refere a ela ("14275/2026, de 26/03") e é o que ele digita
+            para conferir no portal da fonte. Dado de cabeçalho — diferente de
+            `id_externo`/UUID, que são plumbing e ficam em "Dados gerais".
+            Uma faixa só, com separadores, em vez de três linhas empilhadas.
+            A FONTE não entra aqui: é detalhe de ingestão, não identidade do
+            registro (§19). */}
+        <div className="meta-strip flex flex-wrap items-center gap-x-2 gap-y-2 border-t border-hairline pt-3 text-sm text-ink-2">
+          {/* nº + ⓘ são UM item da faixa: o ⓘ explica o número, não é um
+              metadado à parte, e assim não ganha separador entre os dois. */}
+          <span className="inline-flex items-center gap-2">
             {p.numero_proposta ? (
               // mesma pílula da lista e do feed: o gestor reconhece o número
               // pelo formato e daqui copia para colar no portal da fonte
@@ -372,35 +445,29 @@ export default function PropostaDetalhePage() {
               </span>
             )}
             <Hint chave="proposta.numero_proposta" className="align-middle" />
-            {p.data_proposta && (
-              <>
-                <span className="text-ink-3">·</span>
-                <span>
-                  criada em{" "}
-                  <span className="num text-ink">{formatDate(p.data_proposta)}</span>
-                </span>
-              </>
-            )}
-          </p>
-          {/* Órgão concedente: quem repassa o recurso. É o que define a porta de
-              entrada da proposta, então acompanha o número no cabeçalho em vez
-              de ficar só na grade de dados. */}
-          {p.orgao_superior && (
-            <p className="mt-1 text-sm text-ink-2">
-              {humanizarCaixa(p.orgao_superior)}
-            </p>
+          </span>
+          {p.data_proposta && (
+            <span>
+              criada em{" "}
+              <span className="num text-ink">{formatDate(p.data_proposta)}</span>
+            </span>
           )}
-          {/* Ponto 14: a FONTE saiu do cabeçalho — é detalhe de ingestão,
-              não identidade do registro (§19). Continua no link "Fonte
-              oficial ↗". */}
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink-2">
-            <StatusBadge tone={disponivel ? "success" : "neutral"}>
-              {disponivel ? "oportunidade disponível" : "cadastrada"}
-            </StatusBadge>
-          </div>
-          {/* pílulas de categoria (curadoria) — do que esta proposta trata */}
+          {/* No mobile o órgão QUEBRA em vez de truncar: sem cursor não há
+              tooltip, então o `title` não devolveria o que a reticência come.
+              Do sm para cima ele trunca e a faixa continua numa linha só. */}
+          {p.orgao_superior && (
+            <span className="min-w-0 sm:truncate" title={humanizarCaixa(p.orgao_superior)}>
+              {humanizarCaixa(p.orgao_superior)}
+            </span>
+          )}
+          {/* pílulas de categoria (curadoria) — do que esta proposta trata.
+              Encostadas à direita: são etiqueta do registro, não continuação
+              da referência, e assim a faixa não vira uma segunda pilha. */}
           {(p.categorias ?? []).length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            /* `sm:ml-auto` saiu: quando a faixa quebrava, os chips iam
+               parar sozinhos à direita de uma linha vazia, descolados do
+               registro. Fluindo, eles fecham a faixa onde ela terminar. */
+            <div className="meta-sem-sep flex flex-wrap items-center gap-1.5">
               {p.categorias!.map((c) => (
                 <span
                   key={c.slug}
@@ -411,47 +478,6 @@ export default function PropostaDetalhePage() {
                 </span>
               ))}
             </div>
-          )}
-        </div>
-        {/* Ações agrupadas — nunca um botão grande solto no canto */}
-        <div className="flex shrink-0 items-center gap-2">
-          <Favorito
-            ativo={favorita}
-            onToggle={alternarFavorito}
-            comRotulo
-            tamanho={15}
-            className="h-8 border border-hairline"
-          />
-          {/* O quadro "Acompanhar e ser avisado" saiu (ponto 17), mas monitorar
-              não podia sair com ele: vira ação do cabeçalho, no canal painel.
-              Os demais canais seguem na central de Alertas. */}
-          <button
-            onClick={monitor ? () => setConfigurando((v) => !v) : monitorar}
-            aria-pressed={Boolean(monitor)}
-            title={
-              monitor
-                ? "Escolher quais alterações devem virar alerta"
-                : "Avisar quando algo mudar nesta proposta"
-            }
-            className={cx("btn btn-sm", monitor ? "btn-accent" : "btn-ghost")}
-          >
-            {monitor ? "🔔 Monitorando" : "🔔 Monitorar"}
-          </button>
-          {/* atalho "P": o gestor exporta sem tirar a mão do teclado */}
-          <BotaoEspelho
-            propostaId={params.id}
-            atalho="p"
-            onResultado={(texto, tom) => setMsg({ tom, texto })}
-          />
-          {p.url_origem && (
-            <a
-              href={p.url_origem}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-ghost btn-sm"
-            >
-              Fonte oficial ↗
-            </a>
           )}
         </div>
       </header>
