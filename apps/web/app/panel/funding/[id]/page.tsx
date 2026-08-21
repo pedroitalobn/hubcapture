@@ -355,7 +355,7 @@ export default function PropostaDetalhePage() {
               onToggle={alternarFavorito}
               comRotulo
               tamanho={15}
-              className="h-8 border border-hairline"
+              className="fav-solid h-8"
             />
             {/* O quadro "Acompanhar e ser avisado" saiu (ponto 17), mas monitorar
                 não podia sair com ele: vira ação do cabeçalho, no canal painel.
@@ -368,7 +368,7 @@ export default function PropostaDetalhePage() {
                   ? "Escolher quais alterações devem virar alerta"
                   : "Avisar quando algo mudar nesta proposta"
               }
-              className={cx("btn btn-sm", monitor ? "btn-accent" : "btn-ghost")}
+              className={cx("btn btn-sm", monitor ? "btn-accent" : "btn-solid")}
             >
               {monitor ? "🔔 Monitorando" : "🔔 Monitorar"}
             </button>
@@ -378,16 +378,11 @@ export default function PropostaDetalhePage() {
               atalho="p"
               onResultado={(texto, tom) => setMsg({ tom, texto })}
             />
-            {p.url_origem && (
-              <a
-                href={p.url_origem}
-                target="_blank"
-                rel="noreferrer"
-                className="btn btn-ghost btn-sm"
-              >
-                Fonte oficial ↗
-              </a>
-            )}
+            {/* O link "Fonte oficial ↗" SAIU do cabeçalho: mandava o gestor
+                para FORA da plataforma para ver o que a página já mostra
+                (dados gerais, situação, prazos, execução e andamento). O
+                `url_origem` continua no registro (a API segue devolvendo),
+                só não é mais uma porta de saída no alto da página. */}
           </div>
         </div>
 
@@ -430,7 +425,7 @@ export default function PropostaDetalhePage() {
             `id_externo`/UUID, que são plumbing e ficam em "Dados gerais".
             Uma faixa só, com separadores, em vez de três linhas empilhadas.
             A FONTE não entra aqui: é detalhe de ingestão, não identidade do
-            registro (§19) — segue no link "Fonte oficial ↗". */}
+            registro (§19). */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-hairline pt-3 text-sm text-ink-2">
           {p.numero_proposta ? (
             // mesma pílula da lista e do feed: o gestor reconhece o número

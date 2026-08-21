@@ -130,7 +130,9 @@ export function BotaoEspelho({
       onClick={() => void exportar()}
       disabled={estado === "gerando"}
       title={titulo}
-      className={cx("btn btn-ghost btn-sm", className)}
+      // sólido: o formato "botao" só aparece no cabeçalho do registro, ao
+      // lado das demais ações — ali o contorno do ghost não se lê como botão
+      className={cx("btn btn-solid btn-sm", className)}
     >
       <Icone />
       {estado === "gerando"
