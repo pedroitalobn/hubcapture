@@ -13,6 +13,7 @@ import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { TextoLimitado } from "@/components/TextoLimitado";
 import {
   formatBRL,
+  formatBRLCompact,
   formatDate,
   formatDateTime,
   haQuantoTempo,
@@ -1320,16 +1321,43 @@ function CaptacaoExploracao() {
       {/* execução financeira (TransfereGov): quanto foi disponibilizado × usado */}
       {execucao && (
         <section className="stagger grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          {/* BRL compacto: em 6 colunas o valor por extenso não cabe e o .card
+              corta o que estoura; o valor cheio fica no tooltip (title) */}
           {(
             [
-              ["Transferências", String(execucao.transferencias), false],
-              ["Valor global", formatBRL(String(execucao.global)), false],
-              ["Empenhado", formatBRL(String(execucao.empenhado)), false],
-              ["Empenhado a utilizar", formatBRL(String(execucao.aUtilizar)), true],
-              ["Pago", formatBRL(String(execucao.pago)), false],
-              ["Saldo em conta", formatBRL(String(execucao.saldo)), false],
+              ["Transferências", String(execucao.transferencias), null, false],
+              [
+                "Valor global",
+                formatBRLCompact(String(execucao.global)),
+                formatBRL(String(execucao.global)),
+                false,
+              ],
+              [
+                "Empenhado",
+                formatBRLCompact(String(execucao.empenhado)),
+                formatBRL(String(execucao.empenhado)),
+                false,
+              ],
+              [
+                "Empenhado a utilizar",
+                formatBRLCompact(String(execucao.aUtilizar)),
+                formatBRL(String(execucao.aUtilizar)),
+                true,
+              ],
+              [
+                "Pago",
+                formatBRLCompact(String(execucao.pago)),
+                formatBRL(String(execucao.pago)),
+                false,
+              ],
+              [
+                "Saldo em conta",
+                formatBRLCompact(String(execucao.saldo)),
+                formatBRL(String(execucao.saldo)),
+                false,
+              ],
             ] as const
-          ).map(([rotulo, valor, destaque]) => (
+          ).map(([rotulo, valor, cheio, destaque]) => (
             <div
               key={rotulo}
               className={`card p-4 ${destaque ? "ring-1 ring-lime" : ""}`}
@@ -1338,7 +1366,10 @@ function CaptacaoExploracao() {
                   utilizar") empurra só o seu valor para baixo e a fileira de
                   números deixa de alinhar. */}
               <p className="field-label min-h-[2.2em] leading-tight">{rotulo}</p>
-              <p className={cx("value-lg mt-1", destaque && "tone-ok")}>
+              <p
+                className={cx("value-lg mt-1", destaque && "tone-ok")}
+                title={cheio ?? undefined}
+              >
                 {valor}
               </p>
               {destaque && (

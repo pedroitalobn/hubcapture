@@ -887,6 +887,16 @@ p {
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
   }
+  /* Degrau 1b — o KPI do StatCard: papel de hero num card pequeno. Encolhe
+     com a viewport e QUEBRA quando ainda assim não cabe — o .card tem
+     overflow:hidden, então valor que estoura é cortado, não rolado. */
+  .value-stat {
+    font-size: clamp(1.25rem, 1.1vw + 0.9rem, 1.75rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
   /* Degrau 2 — número de destaque dentro de uma seção */
   .value-lg {
     font-size: 1.25rem;
@@ -894,6 +904,7 @@ p {
     font-weight: 500;
     letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
   }
   /* Degrau 3 — valor corrente de um campo (substitui o text-sm solto) */
   .value-md {

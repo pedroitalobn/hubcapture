@@ -9,7 +9,12 @@ import { NumeroProposta } from "@/components/NumeroProposta";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
-import { formatBRL, humanizarCaixa, recortarTexto } from "@/lib/format";
+import {
+  formatBRL,
+  formatBRLCompact,
+  humanizarCaixa,
+  recortarTexto,
+} from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 // ── Panorama financeiro do território (números + gráfico) ───────────────────
@@ -190,16 +195,21 @@ function CardsFinanceiros({ resumo }: { resumo: ResumoPainelData }) {
   const cards = resumo.cards;
   return (
     <section className="stagger grid grid-cols-2 gap-4 md:grid-cols-4">
+      {/* BRL compacto no KPI (R$ 5,63 mi): por extenso não cabe no card de
+          2 colunas do celular e o .card corta o que estoura. O valor cheio
+          fica no tooltip (title). */}
       <StatCard
         tone="ink"
         label="Total geral"
-        value={formatBRL(cards.valor_conveniado)}
+        value={formatBRLCompact(cards.valor_conveniado)}
+        title={formatBRL(cards.valor_conveniado)}
         context={`${cards.transferencias} transferências`}
       />
       <StatCard
         tone="lime"
         label="Empenhado"
-        value={formatBRL(cards.valor_empenhado)}
+        value={formatBRLCompact(cards.valor_empenhado)}
+        title={formatBRL(cards.valor_empenhado)}
         context="reservado pelo concedente"
       />
       {/* "Publicado" vem da fonte ora como valor, ora como estado. Com
@@ -210,8 +220,13 @@ function CardsFinanceiros({ resumo }: { resumo: ResumoPainelData }) {
         label="Publicado"
         value={
           numBR(cards.valor_publicado) > 0
-            ? formatBRL(cards.valor_publicado)
+            ? formatBRLCompact(cards.valor_publicado)
             : String(cards.propostas_publicadas)
+        }
+        title={
+          numBR(cards.valor_publicado) > 0
+            ? formatBRL(cards.valor_publicado)
+            : undefined
         }
         context={
           numBR(cards.valor_publicado) > 0
@@ -222,7 +237,8 @@ function CardsFinanceiros({ resumo }: { resumo: ResumoPainelData }) {
       <StatCard
         tone="grad"
         label="Pago"
-        value={formatBRL(cards.valor_pago)}
+        value={formatBRLCompact(cards.valor_pago)}
+        title={formatBRL(cards.valor_pago)}
         context="efetivamente pago"
       />
     </section>

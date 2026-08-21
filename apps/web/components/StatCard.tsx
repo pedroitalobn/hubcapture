@@ -11,10 +11,12 @@ export interface StatCardProps {
   context?: string;
   icon?: ReactNode;
   tone?: StatTone;
+  /** Valor por extenso quando `value` é compacto (vira tooltip do número). */
+  title?: string;
 }
 
 /** KPI stat card flat: label mono em caixa-alta + valor grande em peso único. */
-export function StatCard({ label, value, context, icon, tone }: StatCardProps) {
+export function StatCard({ label, value, context, icon, tone, title }: StatCardProps) {
   return (
     <div className={`card card-hover p-5 ${tone ? `stat-${tone}` : ""}`}>
       <div className="flex items-center gap-2">
@@ -25,10 +27,7 @@ export function StatCard({ label, value, context, icon, tone }: StatCardProps) {
       </div>
       {/* key = valor: quando o recorte muda (ano, município), o número
           remonta e o anim-swap suaviza a troca em vez do corte seco */}
-      <div
-        key={value}
-        className="anim-swap mt-3 text-[28px] leading-none tracking-[-0.02em] tabular-nums"
-      >
+      <div key={value} className="anim-swap value-stat mt-3" title={title}>
         {value}
       </div>
       {context && (
