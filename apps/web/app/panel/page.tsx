@@ -13,8 +13,11 @@ import {
   formatBRL,
   formatBRLCompact,
   humanizarCaixa,
+  municipioPrincipal,
   recortarTexto,
 } from "@/lib/format";
+import { rotuloFonte } from "@/lib/fontes";
+import { paramFonte, useOrigem } from "@/lib/origem";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 // ── Panorama financeiro do território (números + gráfico) ───────────────────
@@ -59,6 +62,7 @@ function numBR(v?: string | number | null): number {
  *  conta recém-criada pagaria um summary vazio a cada carga. */
 function useResumoFinanceiro(anos: string[], habilitado: boolean) {
   const { selecionados } = useTerritorio();
+  const { selecionadas: origens } = useOrigem();
   const [resumo, setResumo] = useState<ResumoPainelData | null>(null);
   const [carregando, setCarregando] = useState(true);
 
@@ -71,6 +75,7 @@ function useResumoFinanceiro(anos: string[], habilitado: boolean) {
           query: {
             ano: anos.length ? anos : undefined,
             municipio: paramMunicipio(selecionados),
+            fonte: paramFonte(origens),
           },
         } as never,
       })
@@ -86,7 +91,7 @@ function useResumoFinanceiro(anos: string[], habilitado: boolean) {
         if (ok) setResumo(data as ResumoPainelData);
         setCarregando(false);
       });
-  }, [anos, selecionados, habilitado]);
+  }, [anos, selecionados, origens, habilitado]);
 
   return { resumo, carregando };
 }
@@ -283,7 +288,11 @@ interface Novidade {
   // safra do item (ano da proposta / do repasse) — o mesmo critério do filtro
   ano?: string | null;
   fonte: string;
+  /** nome da fonte como o gestor a chama (a API resolve; o slug nunca sai) */
+  fonte_rotulo?: string | null;
+  municipio_ibge?: string | null;
   municipio_nome?: string | null;
+  uf?: string | null;
   href: string;
   proposta_id?: string | null;
   numero_proposta?: string | null;
@@ -317,19 +326,13 @@ interface Alerta {
   lido: boolean;
 }
 
-const FONTE_LABEL: Record<string, string> = {
-  transferegov_ff: "TransfereGov FF",
-  transferegov_esp: "TransfereGov Especiais",
-  transferegov_voluntarias: "TransfereGov Voluntárias",
-  fpm: "FPM",
-  emendas: "Emendas",
-  fns: "FNS",
-  fnde: "FNDE",
-  siconfi: "Siconfi/CAUC",
-  sismob: "SISMOB",
-  simec: "SIMEC",
-  caixa: "CAIXA",
-};
+/** Descrição do item, salvo quando ela só repete o rótulo da fonte. */
+function descricaoUtil(n: Novidade): string | null {
+  const descricao = (n.descricao ?? "").trim();
+  if (!descricao) return null;
+  const fonte = (n.fonte_rotulo || rotuloFonte(n.fonte)).toLowerCase();
+  return fonte.includes(descricao.toLowerCase()) ? null : descricao;
+}
 
 function brl(v: number | string | null | undefined): string | null {
   const n = typeof v === "string" ? parseFloat(v) : v;
@@ -383,6 +386,8 @@ function MeuPainel() {
   const sincronizando = searchParams.get("sync") === "1";
   // recorte de município escolhido no trilho lateral (vazio = todo o território)
   const { selecionados } = useTerritorio();
+  // recorte de ORIGEM DO RECURSO, do mesmo trilho (vazio = todas as fontes)
+  const { selecionadas: origens } = useOrigem();
 
   const [data, setData] = useState<VisaoGeral | null>(null);
   const [novidades, setNovidades] = useState<Novidades | null>(null);
@@ -411,12 +416,17 @@ function MeuPainel() {
     );
   }, []);
 
-  // O recorte de município E a safra entram em TODA consulta do painel: trocar
-  // o território no trilho lateral ou o ano no filtro refaz visão geral,
-  // panorama e feed — todos no mesmo recorte.
+  // O recorte de município, a ORIGEM DO RECURSO e a safra entram em TODA
+  // consulta do painel: trocar o território ou a origem no trilho lateral, ou
+  // o ano no filtro, refaz visão geral, panorama e feed — todos no mesmo
+  // recorte. Filtro global que só vale em uma das telas lê como quebrado.
   const carregar = useCallback(async () => {
     const municipio = paramMunicipio(selecionados);
-    const query = { municipio, ano: anos.length ? anos : undefined };
+    const query = {
+      municipio,
+      fonte: paramFonte(origens),
+      ano: anos.length ? anos : undefined,
+    };
     const [{ data: vg }, { data: nov }] = await Promise.all([
       api.GET("/api/v1/profile/overview", { params: { query } }),
       api.GET("/api/v1/profile/feed", {
@@ -430,7 +440,7 @@ function MeuPainel() {
     // ausente — um nível a menos de defesa do que o próprio `?.` pretendia.
     // Sem o segundo `?.`, um feed sem `itens` derruba a tela inicial inteira.
     return (nov as Novidades | undefined)?.itens?.length ?? 0;
-  }, [selecionados, anos]);
+  }, [selecionados, origens, anos]);
 
   useEffect(() => {
     void carregar();
@@ -790,7 +800,7 @@ function MeuPainel() {
                     {falhas.length === 1 ? "fonte falhou" : "fontes falharam"} na
                     última coleta (
                     {falhas
-                      .map((f) => FONTE_LABEL[f.fonte ?? ""] ?? f.fonte)
+                      .map((f) => rotuloFonte(f.fonte) || f.fonte)
                       .join(", ")}
                     ). Novas tentativas rodam no próximo ciclo; você também pode
                     disparar uma busca nas páginas de cada dimensão.
@@ -826,18 +836,28 @@ function MeuPainel() {
                     key={i}
                     className="flex items-center gap-2 pr-3 row-interactive"
                   >
-                    {/* favoritar e exportar direto do painel (só propostas de
-                        captação — repasse não tem espelho) */}
-                    {n.proposta_id && (
-                      <span className="flex shrink-0 items-center gap-2 pl-4">
-                        <Favorito
-                          ativo={favoritas.has(n.proposta_id)}
-                          onToggle={() => alternarFavorita(n.proposta_id!)}
-                          rotuloOff="Favoritar esta proposta"
-                        />
-                        <BotaoEspelho propostaId={n.proposta_id} formato="icone" />
-                      </span>
-                    )}
+                    {/* Favoritar e exportar direto do painel — só propostas de
+                        captação (repasse não tem espelho nem favorita). A
+                        COLUNA, porém, existe em toda linha: sem ela as linhas
+                        de repasse começavam coladas na borda e a lista tinha
+                        duas margens esquerdas, com o texto do FNS desalinhado
+                        do das propostas. */}
+                    <span className="flex shrink-0 items-center gap-2 pl-4">
+                      {n.proposta_id ? (
+                        <>
+                          <Favorito
+                            ativo={favoritas.has(n.proposta_id)}
+                            onToggle={() => alternarFavorita(n.proposta_id!)}
+                            rotuloOff="Favoritar esta proposta"
+                          />
+                          <BotaoEspelho propostaId={n.proposta_id} formato="icone" />
+                        </>
+                      ) : (
+                        // o vão dos dois botões: 2rem cada (`.fav`/`.icon-btn`)
+                        // mais o gap-2 entre eles
+                        <span className="h-8 w-[4.5rem]" aria-hidden />
+                      )}
+                    </span>
                     <Link
                       href={n.href}
                       className="flex flex-1 flex-col gap-1 px-2 py-4 sm:flex-row sm:items-center sm:justify-between"
@@ -867,13 +887,20 @@ function MeuPainel() {
                           <span className="font-mono uppercase tracking-[0.04em]">
                             {n.tipo === "captacao" ? "Proposta" : "Recebido"}
                           </span>
-                          <span>{FONTE_LABEL[n.fonte] ?? n.fonte}</span>
-                          {n.municipio_nome && (
-                            <span>{humanizarCaixa(n.municipio_nome)}</span>
-                          )}
-                          {n.descricao && (
+                          <span>
+                            {n.fonte_rotulo || rotuloFonte(n.fonte)}
+                          </span>
+                          {/* o município lidera a identificação do registro
+                              (§35) e nunca sai como código cru — o repasse
+                              costuma chegar da fonte sem o nome */}
+                          <span>{municipioPrincipal(n)}</span>
+                          {/* a descrição do repasse costuma repetir o órgão que
+                              já está no rótulo da fonte ("Fundo Nacional de
+                              Saúde") — repetido, ele ocupa a linha sem
+                              informar nada */}
+                          {descricaoUtil(n) && (
                             <span className="truncate">
-                              {recortarTexto(humanizarCaixa(n.descricao), 80).trecho}
+                              {recortarTexto(humanizarCaixa(descricaoUtil(n)!), 80).trecho}
                             </span>
                           )}
                         </p>

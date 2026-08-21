@@ -1,3 +1,4 @@
+import { rotuloFonte } from "@/lib/fontes";
 import { formatBRL, formatDate } from "@/lib/format";
 import { StatusBadge } from "./StatusBadge";
 
@@ -60,8 +61,10 @@ export function Feed({ dias }: { dias: DiaGroup[] }) {
                   </StatusBadge>
                   {it.emenda && <StatusBadge tone="info">emenda</StatusBadge>}
                   <span className="truncate text-ink-2">
+                    {/* a fonte sai NOMEADA: `transferegov_disc` é id de
+                        integração, não linguagem do gestor (§35) */}
                     <span className="font-mono text-[12px] uppercase tracking-[-0.02em] text-ink">
-                      {it.fonte}
+                      {rotuloFonte(it.fonte) || it.fonte}
                     </span>
                     {it.descricao ? ` · ${it.descricao}` : ""}
                   </span>

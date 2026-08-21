@@ -59,7 +59,12 @@ class FiltrosProposta(BaseModel):
     uf: str | None = Field(
         default=None, min_length=2, max_length=2, description="unidade federativa"
     )
-    fonte: str | None = None
+    # ORIGEM DO RECURSO — o filtro global do trilho (§30 fala em GRUPO:
+    # "transferegov", "fns"). Repetir o parâmetro soma origens; connector id
+    # também é aceito, para link antigo e chamada direta continuarem valendo.
+    fonte: list[str] | None = Field(
+        default=None, description="origem(ns) do recurso — grupo ou connector id"
+    )
     area: str | None = Field(default=None, description="área de interesse (saude, educacao…)")
     situacao: str | None = None
     modalidade: str | None = Field(default=None, description="tipo de instrumento")

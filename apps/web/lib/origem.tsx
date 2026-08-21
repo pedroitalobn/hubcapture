@@ -1,85 +1,103 @@
 "use client";
 
 /**
- * Origem do recurso — QUAIS fontes de repasse o usuário quer ver agora.
+ * Origem do recurso — QUAIS fontes o usuário quer ver agora.
  *
- * Mesmo desenho do território (`lib/territorio.tsx`): a escolha vive no
- * trilho lateral, logo abaixo dos municípios, e vale para as telas de
- * recebidos inteiras — seleção MULTI (marcar FNS e FPM vê os dois), vazio =
- * todas. Persistida por navegador em `localStorage`; opção que sair do
- * catálogo é podada na carga, como o território poda IBGE fora do perfil.
+ * Mesmo desenho do território (`lib/territorio.tsx`): a escolha vive no trilho
+ * lateral, logo abaixo dos municípios, e vale para TODAS as lentes do painel —
+ * Meu painel (visão geral + feed), Captação e Recebidos. Seleção MULTI (marcar
+ * TransfereGov e FNS vê os dois), vazio = todas. Persistida por navegador em
+ * `localStorage`; opção que sair do perfil é podada na carga, como o território
+ * poda IBGE fora do onboarding.
+ *
+ * O catálogo vem do PERFIL (`GET /profile` → `origens`), não de uma lista fixa
+ * no front: o que o gestor marca é o GRUPO ("TransfereGov", "FNS") e a API é
+ * quem sabe quais connectors cada grupo cobre. A lista fixa que existia aqui
+ * oferecia fontes fora do recorte da v1 e reduzia o TransfereGov a UM dos seus
+ * cinco connectors — marcar a origem filtrava por um id que quase nenhum
+ * registro tinha, e a tela "não fazia nada".
  */
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useTerritorio } from "@/lib/territorio";
 
-/** Catálogo das origens de repasse (§13 — FONTES_REPASSE do backend). */
-export const ORIGENS: { id: string; rotulo: string }[] = [
-  { id: "fns", rotulo: "FNS" },
-  { id: "fnde", rotulo: "FNDE" },
-  { id: "fpm", rotulo: "FPM" },
-  { id: "emendas", rotulo: "Emendas" },
-  { id: "transferegov_ff", rotulo: "TransfereGov" },
-  { id: "caixa", rotulo: "CAIXA" },
-];
+export interface Origem {
+  chave: string;
+  label: string;
+  connectors?: string[];
+}
 
 const CHAVE = "hub_origem_recurso";
 
 interface OrigemCtx {
-  /** ids marcados; vazio = todas as origens */
+  /** Catálogo do perfil: as origens que ESTE usuário pode filtrar. */
+  origens: Origem[];
+  /** chaves marcadas; vazio = todas as origens */
   selecionadas: string[];
-  alternar: (id: string) => void;
+  alternar: (chave: string) => void;
   todas: () => void;
 }
 
 const Ctx = createContext<OrigemCtx>({
+  origens: [],
   selecionadas: [],
   alternar: () => {},
   todas: () => {},
 });
 
+function lerSalvas(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const bruto = window.localStorage.getItem(CHAVE);
+    const lista = bruto ? (JSON.parse(bruto) as unknown) : [];
+    return Array.isArray(lista) ? lista.map(String) : [];
+  } catch {
+    return []; // estado corrompido → volta para "todas"
+  }
+}
+
 export function OrigemProvider({ children }: { children: React.ReactNode }) {
-  const [selecionadas, setSelecionadas] = useState<string[]>([]);
+  const { perfil } = useTerritorio();
+  const [selecionadas, setSelecionadas] = useState<string[]>(lerSalvas);
+
+  const origens = useMemo<Origem[]>(() => perfil?.origens ?? [], [perfil]);
+
+  // O perfil manda: origem que saiu do onboarding (ou do plano) sai do recorte
+  // salvo — senão o painel ficaria filtrado por uma fonte que não existe mais.
+  // Marcar TODAS uma a uma equivale a nenhum filtro.
+  useEffect(() => {
+    if (!origens.length) return;
+    const validas = new Set(origens.map((o) => o.chave));
+    setSelecionadas((prev) => {
+      const limpo = prev.filter((c) => validas.has(c));
+      const efetivo = limpo.length === origens.length ? [] : limpo;
+      return efetivo.length === prev.length ? prev : efetivo;
+    });
+  }, [origens]);
 
   useEffect(() => {
     try {
-      const salvas = JSON.parse(localStorage.getItem(CHAVE) ?? "[]");
-      if (Array.isArray(salvas)) {
-        const validas = salvas.filter((s) => ORIGENS.some((o) => o.id === s));
-        if (validas.length) setSelecionadas(validas);
-      }
+      window.localStorage.setItem(CHAVE, JSON.stringify(selecionadas));
     } catch {
-      /* localStorage indisponível/corrompido: começa em "todas" */
+      /* sem persistência ainda funciona na sessão */
     }
-  }, []);
+  }, [selecionadas]);
 
   const valor = useMemo<OrigemCtx>(
     () => ({
+      origens,
       selecionadas,
-      alternar(id: string) {
+      alternar(chave: string) {
         setSelecionadas((atual) => {
-          const novas = atual.includes(id)
-            ? atual.filter((x) => x !== id)
-            : [...atual, id];
-          // marcar TODAS uma a uma = nenhum filtro; volta ao estado "todas"
-          const efetivas = novas.length === ORIGENS.length ? [] : novas;
-          try {
-            localStorage.setItem(CHAVE, JSON.stringify(efetivas));
-          } catch {
-            /* sem persistência ainda funciona na sessão */
-          }
-          return efetivas;
+          const novas = atual.includes(chave)
+            ? atual.filter((x) => x !== chave)
+            : [...atual, chave];
+          return novas.length === origens.length ? [] : novas;
         });
       },
-      todas() {
-        setSelecionadas([]);
-        try {
-          localStorage.setItem(CHAVE, "[]");
-        } catch {
-          /* idem */
-        }
-      },
+      todas: () => setSelecionadas([]),
     }),
-    [selecionadas],
+    [origens, selecionadas],
   );
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
@@ -87,4 +105,12 @@ export function OrigemProvider({ children }: { children: React.ReactNode }) {
 
 export function useOrigem(): OrigemCtx {
   return useContext(Ctx);
+}
+
+/**
+ * Valor do parâmetro `fonte` das chamadas de API: as origens escolhidas, ou
+ * `undefined` quando são todas (aí a API não aplica recorte de origem).
+ */
+export function paramFonte(selecionadas: string[]): string[] | undefined {
+  return selecionadas.length ? selecionadas : undefined;
 }

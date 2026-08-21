@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..ai import categorias as categorias_ai
 from ..models.proposta import Proposta
 from ..schemas.proposta import PropostaCanonica
+from . import fontes as fontes_service
 from ._territorio import Municipios
 from ._territorio import condicao as condicao_municipio
 from ._territorio import filtrar as filtrar_municipio
@@ -414,7 +415,7 @@ def _condicoes(
     *,
     municipio: Municipios,
     uf: str | None,
-    fonte: str | None,
+    fonte: fontes_service.Fontes,
     situacao: str | None,
     area: str | None,
     valor_min: Decimal | None,
@@ -436,8 +437,12 @@ def _condicoes(
         condicoes.append(recorte)
     if uf:
         condicoes.append(Proposta.uf == uf.upper())
-    if fonte:
-        condicoes.append(Proposta.fonte == fonte)
+    # origem do recurso: o painel manda GRUPO ("transferegov", "fns") e o banco
+    # guarda connector id — `fontes_service` expande antes de virar SQL, senão
+    # marcar TransfereGov pescaria só `transferegov_ff` (§30).
+    recorte_fonte = fontes_service.condicao(Proposta.fonte, fonte)
+    if recorte_fonte is not None:
+        condicoes.append(recorte_fonte)
     if situacao:
         condicoes.append(Proposta.situacao == situacao)
     if modalidade:
@@ -464,7 +469,7 @@ async def listar_pagina(
     *,
     municipio: Municipios = None,
     uf: str | None = None,
-    fonte: str | None = None,
+    fonte: fontes_service.Fontes = None,
     situacao: str | None = None,
     area: str | None = None,
     valor_min: Decimal | None = None,
@@ -636,6 +641,9 @@ _DIMENSOES: dict[str, object] = {
 }
 
 _ROTULOS: dict[str, dict[str, str]] = {
+    # a origem sai nomeada: `transferegov_disc` no dropdown é slug de
+    # integração, não linguagem do gestor (§35)
+    "fonte": dict(fontes_service.LABELS_CONNECTOR),
     "natureza_juridica": dict(NATUREZAS_JURIDICAS),
     "natureza_grupo": dict(GRUPOS_NATUREZA),
     "tipo": {"cadastrada": "Cadastradas", "disponivel": "Disponíveis"},
@@ -699,6 +707,10 @@ async def facetas(
     passaria a listar apenas a opção já escolhida.
     """
     dimensoes = {dim: filtros.get(dim) for dim in _DIMENSOES}
+    # a origem chega como GRUPO e a proposta guarda connector id: sem expandir,
+    # a interseção de `_casa` nunca casa e a faceta zera o recorte inteiro.
+    if dimensoes.get("fonte"):
+        dimensoes["fonte"] = fontes_service.connectors(dimensoes["fonte"])
     rows = await listar(session, area=area, q=q, valor_min=valor_min, valor_max=valor_max)
     # município não tem rótulo fixo — sai do próprio recorte (nome/UF)
     nomes_municipio = {
