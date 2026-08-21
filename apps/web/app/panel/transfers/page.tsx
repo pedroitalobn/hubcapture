@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DateRangePresets, presetToInicio, type RangePreset } from "@/components/DateRangePresets";
 import { Feed } from "@/components/Feed";
 import { PageHeader } from "@/components/PageHeader";
@@ -11,7 +11,7 @@ import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
 import { formatBRL, formatBRLCompact } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
-import { useOrigem } from "@/lib/origem";
+import { paramFonte, useOrigem } from "@/lib/origem";
 
 interface FonteResumo {
   fonte: string;
@@ -58,6 +58,10 @@ export default function RepassesPage() {
         query: {
           inicio: presetToInicio(preset),
           municipio: paramMunicipio(selecionados),
+          // a origem entra na CONSULTA, não numa peneira depois: filtrando só
+          // o feed no cliente, o "Total Pago" e a contagem de movimentações
+          // continuavam somando a fonte que o gestor tinha tirado da tela.
+          fonte: paramFonte(origens),
         },
       },
     });
@@ -67,7 +71,7 @@ export default function RepassesPage() {
       setData(vg as VisaoGeral);
     }
     setLoading(false);
-  }, [preset, selecionados]);
+  }, [preset, selecionados, origens]);
 
   useEffect(() => {
     void carregar();
@@ -92,13 +96,8 @@ export default function RepassesPage() {
   }
 
 
-  const feed = useMemo(() => {
-    const f = data?.feed ?? [];
-    if (origens.length === 0) return f;
-    return f
-      .map((d) => ({ ...d, itens: d.itens.filter((i) => origens.includes(i.fonte)) }))
-      .filter((d) => d.itens.length > 0);
-  }, [data, origens]);
+  // a API já devolve o recorte da origem — a lista é a que veio
+  const feed = data?.feed ?? [];
 
   return (
     <>

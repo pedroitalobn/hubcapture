@@ -1148,6 +1148,52 @@ visibilidade — o RLS segue sendo o limite: pedir um IBGE fora do território d
   mandam `paramMunicipio(...)` na chamada; o município **saiu** dos filtros locais da
   Captação (era single-select por aba) — é escolha global agora.
 
+### 33b. Recorte de ORIGEM DO RECURSO — o irmão do território (decisão travada)
+
+A outra metade do recorte global do painel: o território diz DE ONDE (município), a
+origem diz DE QUAL FONTE veio o registro. Mesmo desenho da §33 — vive no trilho lateral,
+é multi-seleção (vazio = todas), persiste por navegador e **nunca amplia visibilidade**
+(o RLS e o perfil seguem sendo o limite; o filtro só estreita).
+
+- **O vocabulário é o GRUPO, não o connector** (§30): o gestor marca "TransfereGov" ou
+  "FNS"; a expansão grupo → connector ids acontece na API (`services/fontes.py`:
+  `Fontes`/`connectors()`/`condicao()`/`filtrar()`, espelho de `_territorio.py`). O front
+  tinha uma lista FIXA de origens com fontes fora do recorte da v1 e com o TransfereGov
+  reduzido a `transferegov_ff` — marcar a origem filtrava por um id que quase nenhum
+  registro tinha, e a tela "não fazia nada". O catálogo agora vem do perfil
+  (`GET /profile` → `origens`), então só aparece o que aquele usuário tem.
+- **Contrato** — `fonte` é parâmetro REPETÍVEL (grupo ou connector id) em
+  `GET /proposals` (+`/facets`, `/summary`, `/report.csv`), `GET /transfers`
+  (+`/overview`, `/amendments/summary`, `/amendments/report.csv`), `GET /profile/overview`,
+  `GET /profile/feed`; em corpo JSON, `POST /proposals/live-search` já o aceita como lista.
+  Na captação ao vivo, origem escolhida que não produz proposta (o connector de repasse
+  do FNS) sai da rodada em silêncio; id que não é connector nenhum segue e vira status de
+  erro — pedido por fonte inexistente não pode responder "nada encontrado".
+- **Um filtro, uma tela só, nunca**: o recorte valia apenas em `panel/transfers` (e ali
+  peneirava o feed no CLIENTE, com o "Total Pago" continuando a somar a origem tirada da
+  tela). Agora entra na CONSULTA e vale para todas as lentes; o dropdown "Fonte" local da
+  Captação **saiu** (mesma disciplina do município na §33 — filtro em dois lugares
+  dessincroniza).
+- **Onde o recorte NÃO se aplica**: conformidade (Siconfi/CAUC) e obras (SISMOB/SIMEC/
+  CAIXA) não saem do catálogo de origens do gestor; aplicar o filtro nelas as zeraria
+  sempre, o que é mentira, não filtro.
+- **Web** — `lib/origem.tsx` (`OrigemProvider` + `useOrigem` + `paramFonte`, chave
+  `hub_origem_recurso`) e `components/OrigemRecursoFiltro.tsx`, que **não se desenha** com
+  menos de duas origens (chip que não muda a tela lê como controle quebrado).
+- **Fonte na tela sai NOMEADA** (§35): `services/fontes.LABELS_CONNECTOR` e o espelho
+  `lib/fontes.ts::rotuloFonte` — `transferegov_disc` é id de integração; o gestor lê
+  "TransfereGov — Discricionárias". `NovidadeItem.fonte_rotulo` leva o nome pronto no feed.
+- **A linha do feed tem UMA margem**: a coluna de ações (★ + espelho) existe em toda
+  linha, mesmo nas de repasse, que não têm nenhuma das duas — sem ela o item do FNS
+  começava colado na borda e a lista tinha duas margens esquerdas. O feed também passou a
+  nomear o município (§35 — o repasse costuma chegar da fonte sem ele) e a esconder a
+  descrição que só repete o rótulo da fonte.
+- **`AREA_FONTES` cita o GRUPO FNS inteiro**: apontando só para `fns` (repasses), a área
+  saúde não alcançava nenhuma fonte de PROPOSTA do FNS — o recorte por área saía vazio do
+  lado da captação.
+- Regressão: `tests/test_filtro_origem.py` (normalização pura + captação, facetas,
+  recebidos e Meu painel sob a mesma escolha de origem).
+
 ## 34. Espelho da proposta em PDF — atalho de exportação (compartilhar)
 
 A rota de PDF existia desde a §17, mas sem porta na UI (a §25 tirou o botão) e o

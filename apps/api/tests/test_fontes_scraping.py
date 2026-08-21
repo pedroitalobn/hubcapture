@@ -18,7 +18,8 @@ from src.services import fontes as fontes_service
 
 def test_grupos_do_onboarding_expandem_para_connectors() -> None:
     assert fontes_service.expandir(["transferegov"]) == list(fontes_service.TRANSFEREGOV)
-    assert fontes_service.expandir(["fns"]) == ["fns"]
+    # o grupo FNS tem DUAS metades: repasses (`fns`) e propostas (`fns_propostas`)
+    assert fontes_service.expandir(["fns"]) == list(fontes_service.FNS)
     # a escolha das duas cobre exatamente o recorte habilitado
     assert fontes_service.expandir(["transferegov", "fns"]) == list(fontes_service.HABILITADAS)
 
@@ -28,7 +29,7 @@ def test_expandir_aceita_connector_id_e_descarta_fonte_desligada() -> None:
     assert fontes_service.expandir(["transferegov_ff"]) == ["transferegov_ff"]
     # fonte fora do recorte (FPM, emendas, FNDE, obras) simplesmente não entra
     assert fontes_service.expandir(["fpm", "emendas", "fnde", "sismob"]) == []
-    assert fontes_service.expandir(["fns", "fpm"]) == ["fns"]
+    assert fontes_service.expandir(["fns", "fpm"]) == list(fontes_service.FNS)
     assert fontes_service.expandir(None) == []
 
 

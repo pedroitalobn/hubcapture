@@ -23,6 +23,8 @@ import {
   municipioPrincipal,
   municipioSecundario,
 } from "@/lib/format";
+import { rotuloFonte } from "@/lib/fontes";
+import { paramFonte, useOrigem } from "@/lib/origem";
 import { paramMunicipio, rotuloMunicipio, useTerritorio } from "@/lib/territorio";
 import { cx } from "@/components/ui";
 
@@ -111,7 +113,6 @@ type Filtros = {
   ano: string;
   mes: string;
   tipo: "" | "cadastrada" | "disponivel";
-  fonte: string;
   area: string;
   categoria: string;
   situacao: string;
@@ -135,7 +136,6 @@ const FILTROS_VAZIOS: Filtros = {
   ano: "",
   mes: "",
   tipo: "",
-  fonte: "",
   area: "",
   categoria: "",
   situacao: "",
@@ -321,6 +321,9 @@ function CaptacaoExploracao() {
   const [pastaPropostas, setPastaPropostas] = useState<Set<string>>(new Set());
   // território ativo: quais dos municípios do perfil estão em tela agora
   const { selecionados, ativos: municipiosAtivos } = useTerritorio();
+  // origem do recurso ativa: de QUAIS fontes o gestor quer ver agora. Como o
+  // território, é escolha GLOBAL do trilho — não um filtro desta tela.
+  const { selecionadas: origens } = useOrigem();
   const [abas, setAbas] = useState<Aba[]>(abasIniciais);
   const [abaAtiva, setAbaAtiva] = useState<string>(
     () => abasIniciais()[0]?.id ?? "aba-1",
@@ -355,7 +358,8 @@ function CaptacaoExploracao() {
       // desta tela — vazio quando o usuário está vendo todos os municípios.
       municipio: paramMunicipio(selecionados),
       uf: filtros.uf || undefined,
-      fonte: filtros.fonte || undefined,
+      // origem: idem território — vem do trilho, vazio = todas as fontes
+      fonte: paramFonte(origens),
       area: filtros.area || undefined,
       categoria: filtros.categoria || undefined,
       situacao: filtros.situacao || undefined,
@@ -372,7 +376,7 @@ function CaptacaoExploracao() {
       valor_max: filtros.valorMax || undefined,
       tipo: filtros.tipo || undefined,
     }),
-    [filtros, selecionados],
+    [filtros, selecionados, origens],
   );
 
   /**
@@ -789,8 +793,6 @@ function CaptacaoExploracao() {
       });
     if (filtros.ano)
       lista.push({ chave: "ano", rotulo: `Ano ${filtros.ano}`, limpar: { ano: "" } });
-    if (filtros.fonte)
-      lista.push({ chave: "fonte", rotulo: filtros.fonte, limpar: { fonte: "" } });
     if (filtros.area)
       lista.push({ chave: "area", rotulo: filtros.area.replace("_", " "), limpar: { area: "" } });
     if (filtros.valorMin)
@@ -825,7 +827,8 @@ function CaptacaoExploracao() {
           // o relatório sai no mesmo recorte da tela, território incluído
           municipio: selecionados,
           uf: filtros.uf,
-          fonte: filtros.fonte,
+          // origem: o recorte global do trilho, o mesmo que a tela está vendo
+          fonte: origens,
           area: filtros.area,
           categoria: filtros.categoria,
           situacao: filtros.situacao,
@@ -872,8 +875,14 @@ function CaptacaoExploracao() {
   // explica uma contagem que mudou — sem ele, "atualizei e agora são outras 5"
   // não tem como ser conferido na tela.
   const linhasColetadas = fontesStatus.reduce((t, f) => t + (f.registros ?? 0), 0);
+  // a fonte que falhou sai NOMEADA — "transferegov_disc fora do ar" é slug de
+  // integração; o gestor lê "TransfereGov — Discricionárias" (§35)
   const fontesErro = Array.from(
-    new Set(fontesStatus.filter((f) => f.status === "erro").map((f) => f.fonte)),
+    new Set(
+      fontesStatus
+        .filter((f) => f.status === "erro")
+        .map((f) => rotuloFonte(f.fonte) || f.fonte),
+    ),
   );
 
   return (
@@ -992,21 +1001,11 @@ function CaptacaoExploracao() {
             largura="w-24"
             aoMudar={(v) => setFiltros({ uf: v })}
           />
-          <label className="flex flex-col gap-1">
-            <span className="field-label">Fonte</span>
-            <select
-              value={filtros.fonte}
-              onChange={(e) => setFiltros({ fonte: e.target.value })}
-              className="input w-44"
-            >
-              <option value="">todas</option>
-              {(facetas.fonte ?? []).map((o) => (
-                <option key={o.valor} value={o.valor}>
-                  {o.rotulo} ({o.total})
-                </option>
-              ))}
-            </select>
-          </label>
+          {/* A ORIGEM DO RECURSO saiu daqui: é escolha global do trilho
+              lateral (`components/OrigemRecursoFiltro`), como o território
+              (§33). Um filtro em dois lugares dessincroniza — o dropdown local
+              recortava só esta tela e o Meu painel continuava mostrando as
+              outras fontes. */}
           <label className="flex flex-col gap-1">
             <span className="field-label">Ordenar por</span>
             <select

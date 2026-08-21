@@ -82,6 +82,10 @@ _MUNICIPIO_QUERY = Query(
 # feed): é a MESMA safra em todas as consultas, senão o painel mostra recortes
 # diferentes lado a lado. Multi-seleção como o município: repetir o parâmetro
 # soma safras (`?ano=2024&ano=2025`); omitir vale todos os anos.
+# Origem do recurso — o outro filtro global do trilho (§30): o valor é o GRUPO
+# ("transferegov", "fns"); repetir o parâmetro soma origens; omitir = todas.
+_FONTE_QUERY = Query(default=None, description="origem(ns) do recurso — grupo ou connector id")
+
 _ANO_QUERY = Query(
     default=None,
     description="safra(s) do recorte — repita o parâmetro para várias; omitir = todos os anos",
@@ -91,16 +95,20 @@ _ANO_QUERY = Query(
 @router.get("/profile/overview", response_model=VisaoGeralPerfil)
 async def visao_geral_perfil(
     municipio: list[str] | None = _MUNICIPIO_QUERY,
+    fonte: list[str] | None = _FONTE_QUERY,
     ano: list[str] | None = _ANO_QUERY,
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> VisaoGeralPerfil:
-    return await service.visao_geral(session, user, municipios_filtro=municipio, ano=ano)
+    return await service.visao_geral(
+        session, user, municipios_filtro=municipio, fontes_filtro=fonte, ano=ano
+    )
 
 
 @router.get("/profile/feed", response_model=NovidadesPerfil)
 async def novidades_perfil(
     municipio: list[str] | None = _MUNICIPIO_QUERY,
+    fonte: list[str] | None = _FONTE_QUERY,
     limite: int = Query(default=20, ge=1, le=200, description="tamanho da janela do feed"),
     ano: list[str] | None = _ANO_QUERY,
     user: Usuario = Depends(current_active_user),
@@ -113,5 +121,10 @@ async def novidades_perfil(
     não só os que sobraram das novidades mais recentes.
     """
     return await service.novidades(
-        session, user, limite=limite, municipios_filtro=municipio, ano=ano
+        session,
+        user,
+        limite=limite,
+        municipios_filtro=municipio,
+        fontes_filtro=fonte,
+        ano=ano,
     )

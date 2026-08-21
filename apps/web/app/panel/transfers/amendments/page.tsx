@@ -8,6 +8,7 @@ import { StatCard } from "@/components/StatCard";
 import { IconeAcao } from "@/components/icons";
 import { api, baixarCsv } from "@/lib/api/client";
 import { formatBRL, formatBRLCompact, formatDate } from "@/lib/format";
+import { paramFonte, useOrigem } from "@/lib/origem";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 interface EmendaItem {
@@ -68,18 +69,22 @@ function num(v?: string | null): number {
 
 export default function EmendasPage() {
   const { selecionados } = useTerritorio();
+  // origem do recurso: recorte global do trilho, como o território
+  const { selecionadas: origens } = useOrigem();
   const [resumo, setResumo] = useState<ResumoEmendas | null>(null);
   const [filtros, setFiltros] = useState<Filtros>(VAZIO);
   const [carregando, setCarregando] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
 
-  // o recorte de território do painel entra junto dos filtros da tela
+  // os recortes globais do painel (território e origem do recurso) entram
+  // junto dos filtros da tela
   const query = useMemo(
     () => ({
       ...Object.fromEntries(Object.entries(filtros).filter(([, v]) => v !== "")),
       municipio: paramMunicipio(selecionados),
+      fonte: paramFonte(origens),
     }),
-    [filtros, selecionados],
+    [filtros, selecionados, origens],
   );
 
   const carregar = useCallback(async () => {
@@ -103,7 +108,7 @@ export default function EmendasPage() {
     try {
       await baixarCsv(
         "/api/v1/transfers/amendments/report.csv",
-        { ...filtros, municipio: selecionados },
+        { ...filtros, municipio: selecionados, fonte: origens },
         "emendas.csv",
       );
     } catch {

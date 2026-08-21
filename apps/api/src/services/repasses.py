@@ -33,6 +33,7 @@ from ..schemas.repasse import (
     SerieAnoEmendas,
     VisaoGeral,
 )
+from . import fontes as fontes_service
 from . import municipios
 from ._sync import registrar_sync
 from ._territorio import Municipios
@@ -68,7 +69,7 @@ async def listar(
     session: AsyncSession,
     *,
     municipio: Municipios = None,
-    fonte: str | None = None,
+    fonte: fontes_service.Fontes = None,
     inicio: date | None = None,
     fim: date | None = None,
     emenda: bool | None = None,
@@ -79,8 +80,9 @@ async def listar(
     stmt = select(Repasse)
     # um município, vários (recorte do painel) ou nenhum (todo o território)
     stmt = filtrar_municipio(stmt, Repasse.municipio_ibge, municipio)
-    if fonte:
-        stmt = stmt.where(Repasse.fonte == fonte)
+    # origem do recurso: o trilho manda GRUPO ("fns"), o banco guarda connector
+    # id — expande antes do SQL (§30)
+    stmt = fontes_service.filtrar(stmt, Repasse.fonte, fonte)
     if inicio:
         stmt = stmt.where(Repasse.data_repasse >= inicio)
     if fim:
@@ -123,11 +125,17 @@ async def visao_geral(
     session: AsyncSession,
     *,
     municipio: Municipios = None,
+    fonte: fontes_service.Fontes = None,
     inicio: date | None = None,
     fim: date | None = None,
 ) -> VisaoGeral:
-    """Painel consolidado: KPI de total pago, cards por fonte e feed por data."""
-    rows = await listar(session, municipio=municipio, inicio=inicio, fim=fim)
+    """Painel consolidado: KPI de total pago, cards por fonte e feed por data.
+
+    `fonte` é o recorte de ORIGEM do trilho: o KPI, os cards e o feed falam do
+    MESMO conjunto. Filtrar só o feed no cliente (como a tela fazia) deixava o
+    total pago contando origem que o gestor tinha tirado da tela.
+    """
+    rows = await listar(session, municipio=municipio, fonte=fonte, inicio=inicio, fim=fim)
 
     total = Decimal(0)
     por_fonte_total: dict[str, Decimal] = defaultdict(lambda: Decimal(0))
@@ -247,6 +255,7 @@ async def listar_emendas(
     session: AsyncSession,
     *,
     municipio: Municipios = None,
+    fonte: fontes_service.Fontes = None,
     inicio: date | None = None,
     fim: date | None = None,
     orgao: str | None = None,
@@ -260,7 +269,14 @@ async def listar_emendas(
     Ano/modalidade/parlamentar vivem no jsonb `detalhe` → filtro em Python (o
     recorte já é do município pelo RLS, então o conjunto é pequeno)."""
     rows = await listar(
-        session, municipio=municipio, inicio=inicio, fim=fim, emenda=True, orgao=orgao, q=q
+        session,
+        municipio=municipio,
+        fonte=fonte,
+        inicio=inicio,
+        fim=fim,
+        emenda=True,
+        orgao=orgao,
+        q=q,
     )
     if ano:
         rows = [r for r in rows if ano_de(r) == str(ano)]
@@ -279,6 +295,9 @@ async def resumo_emendas(session: AsyncSession, **filtros) -> ResumoEmendas:
     universo = await listar_emendas(
         session,
         municipio=filtros.get("municipio"),
+        # a origem é recorte GLOBAL do painel (como o território), não um filtro
+        # da tela: fica no universo das opções também
+        fonte=filtros.get("fonte"),
         inicio=filtros.get("inicio"),
         fim=filtros.get("fim"),
     )

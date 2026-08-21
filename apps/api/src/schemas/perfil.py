@@ -43,6 +43,20 @@ class PlanoPerfil(BaseModel):
     modulos: list[str] | None = None  # módulos incluídos no plano; None = todos
 
 
+class OrigemFonte(BaseModel):
+    """Uma origem de recurso que o usuário pode filtrar no painel.
+
+    A escolha é sempre o GRUPO (§30) — "TransfereGov", "FNS" —, nunca o
+    connector: o gestor não precisa saber que TransfereGov são cinco rotas de
+    ingestão. `connectors` viaja só para o front poder rotular a origem de um
+    registro sem consultar a API de novo.
+    """
+
+    chave: str
+    label: str
+    connectors: list[str] = []
+
+
 class PerfilRead(BaseModel):
     """Identidade do usuário do ponto de vista da navegação."""
 
@@ -51,6 +65,11 @@ class PerfilRead(BaseModel):
     municipios: list[MunicipioPerfil] = []
     areas: list[str] = []
     fontes: list[str] = []
+    # catálogo do filtro "origem do recurso" do trilho — só as origens que ESTE
+    # perfil tem. Antes o front trazia uma lista fixa (com fontes fora do
+    # recorte da v1 e o TransfereGov reduzido a UM dos seus connectors), então
+    # marcar uma origem filtrava por um id que quase nenhum registro tinha.
+    origens: list[OrigemFonte] = []
     monitorar_ativo: bool = True
     # módulos EFETIVOS: ativos na plataforma (§29) ∩ incluídos no plano (§39)
     modulos: list[str] = []
@@ -143,8 +162,12 @@ class NovidadeItem(BaseModel):
     # do ano corrente.
     ano: str | None = None
     fonte: str
+    # nome da fonte como o gestor a chama ("TransfereGov — Discricionárias"):
+    # o slug do connector na tela é plumbing de integração (§35)
+    fonte_rotulo: str | None = None
     municipio_ibge: str | None = None
     municipio_nome: str | None = None
+    uf: str | None = None
     href: str
     # id da proposta (só p/ tipo 'captacao') — permite favoritar direto do painel
     proposta_id: str | None = None

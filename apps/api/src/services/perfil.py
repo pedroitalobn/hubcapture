@@ -37,6 +37,7 @@ from ..schemas.perfil import (
     MunicipioPerfil,
     NovidadeItem,
     NovidadesPerfil,
+    OrigemFonte,
     PerfilRead,
     PlanoPerfil,
     QuebraDimensao,
@@ -47,6 +48,7 @@ from ..schemas.perfil import (
 )
 from . import fontes as fontes_service
 from . import modulos as modulos_service
+from . import municipios as municipios_service
 from . import plano_gates
 from . import propostas as propostas_service
 from ._territorio import Municipios
@@ -69,8 +71,12 @@ AREAS = (
     "meio_ambiente",
     "agricultura",
 )
+# `fontes_service.FNS` e não `{"fns"}`: o grupo tem DUAS metades — `fns`
+# (repasses) e `fns_propostas` (captação). Citando só a primeira, a área saúde
+# não alcançava nenhuma fonte de PROPOSTA do FNS: o recorte por área saía vazio
+# do lado da captação e a busca ao vivo por saúde nunca consultava o FNS.
 AREA_FONTES: dict[str, set[str]] = {
-    area: set(fontes_service.TRANSFEREGOV) | ({"fns"} if area == "saude" else set())
+    area: set(fontes_service.TRANSFEREGOV) | (set(fontes_service.FNS) if area == "saude" else set())
     for area in AREAS
 }
 
@@ -146,6 +152,11 @@ async def get_perfil(session: AsyncSession, usuario: Usuario) -> PerfilRead:
         # fonte escolhida no onboarding que o plano deixou de incluir some da
         # navegação (o dado gravado fica; um upgrade a traz de volta)
         fontes=plano_gates.filtrar_fontes(cfg, fontes_pref),
+        # o filtro de origem do trilho oferece exatamente estas opções
+        origens=[
+            OrigemFonte.model_validate(o)
+            for o in fontes_service.origens_do_perfil(plano_gates.filtrar_fontes(cfg, fontes_pref))
+        ],
         monitorar_ativo=bool(pref.monitorar_ativo) if pref else True,
         modulos=[
             chave for chave, on in ativos.items() if on and plano_gates.modulo_liberado(cfg, chave)
@@ -328,6 +339,7 @@ async def visao_geral(
     usuario: Usuario,
     *,
     municipios_filtro: Municipios = None,
+    fontes_filtro: fontes_service.Fontes = None,
     ano: str | Sequence[str] | None = None,
 ) -> VisaoGeralPerfil:
     """'Meu painel' por dimensão. `municipios_filtro` recorta o território para
@@ -338,8 +350,15 @@ async def visao_geral(
     repetido), somando os recortes. Conformidade e obras são estado ATUAL do
     município, não fluxo anual: continuam inteiras e se anunciam assim
     (`recorte_ano=False`), em vez de fingir um recorte que não existe.
+
+    `fontes_filtro` é a ORIGEM DO RECURSO escolhida no trilho (grupo, §30) e
+    recorta as dimensões cujo dado vem dessas fontes — captação e recebidos.
+    Conformidade (Siconfi/CAUC) e obras (SISMOB/SIMEC/CAIXA) não saem do
+    catálogo de origens do gestor: aplicar o recorte nelas as zeraria sempre,
+    o que seria mentira, não filtro.
     """
     anos = _safras(ano)
+    origens = fontes_service.connectors(fontes_filtro)
     pref = await _preferencias(session, usuario.id)
     municipios = await _municipios(session, municipios_filtro)
     # O Meu painel é INDEPENDENTE dos módulos (§40): os módulos ligam/desligam
@@ -388,8 +407,10 @@ async def visao_geral(
     # jsonb, data da proposta, nº da proposta), então quem sabe filtrar é o
     # serviço de propostas — o MESMO critério da lista e do resumo da captação.
     propostas: list[Proposta] = []
-    if anos:
-        propostas = await propostas_service.listar(session, municipio=municipios_filtro, ano=anos)
+    if anos or origens:
+        propostas = await propostas_service.listar(
+            session, municipio=municipios_filtro, fonte=origens or None, ano=anos
+        )
         prop_n = len(propostas)
         prop_valor = sum((p.valor_total or Decimal(0) for p in propostas), Decimal(0))
     else:
@@ -413,9 +434,13 @@ async def visao_geral(
             propostas = list(
                 (
                     await session.execute(
-                        _no_territorio(
-                            select(Proposta).where(Proposta.excluido_em.is_(None)),
-                            Proposta.municipio_ibge,
+                        fontes_service.filtrar(
+                            _no_territorio(
+                                select(Proposta).where(Proposta.excluido_em.is_(None)),
+                                Proposta.municipio_ibge,
+                            ),
+                            Proposta.fonte,
+                            origens,
                         )
                     )
                 )
@@ -448,9 +473,13 @@ async def visao_geral(
     )
 
     # Recebidos (repasses) — safra é o ano do pagamento (sem data, a competência).
-    stmt_rep = _no_territorio(
-        select(func.count(Repasse.id), func.coalesce(func.sum(Repasse.valor), 0)),
-        Repasse.municipio_ibge,
+    stmt_rep = fontes_service.filtrar(
+        _no_territorio(
+            select(func.count(Repasse.id), func.coalesce(func.sum(Repasse.valor), 0)),
+            Repasse.municipio_ibge,
+        ),
+        Repasse.fonte,
+        origens,
     )
     if anos:
         stmt_rep = stmt_rep.where(
@@ -566,6 +595,7 @@ async def novidades(
     *,
     limite: int = 20,
     municipios_filtro: Municipios = None,
+    fontes_filtro: fontes_service.Fontes = None,
     ano: str | Sequence[str] | None = None,
 ) -> NovidadesPerfil:
     """Últimas novidades do território: propostas (captação) e verbas (recebidos).
@@ -575,6 +605,10 @@ async def novidades(
     quer ver agora) e o recorte fino do perfil (fontes escolhidas + fontes das
     áreas de interesse), intercalando os dois eixos por SAFRA, mais recente
     primeiro.
+
+    `fontes_filtro` é a origem do recurso do trilho: escolher FNS tira do feed
+    o que veio das demais fontes — e vale para os DOIS eixos (proposta e
+    repasse), porque a origem é do registro, não da lente.
 
     `ano` filtra pela safra do item — a mesma do resto do app (`ano_de` na
     captação, ano do pagamento nos recebidos) — e aceita VÁRIAS safras
@@ -586,7 +620,13 @@ async def novidades(
     """
     safras = set(_safras(ano))
     pref = await _preferencias(session, usuario.id)
+    # o recorte fino do perfil continua valendo; a ORIGEM escolhida no trilho
+    # (grupo, §30) INTERSECTA com ele — o filtro da tela nunca amplia o que o
+    # perfil deixa ver, só estreita.
     fontes = _fontes_do_perfil(pref)
+    origens = set(fontes_service.connectors(fontes_filtro))
+    if origens:
+        fontes = (fontes & origens) if fontes else origens
 
     stmt_p = (
         select(Proposta)
@@ -634,8 +674,10 @@ async def novidades(
             or (p.cache_atualizado_em.date() if p.cache_atualizado_em else None),
             ano=propostas_service.ano_de(p),
             fonte=p.fonte,
+            fonte_rotulo=fontes_service.rotulo_connector(p.fonte),
             municipio_ibge=p.municipio_ibge,
             municipio_nome=p.municipio_nome,
+            uf=p.uf,
             # detalhe da proposta (antes ia pra lista da Captação e "sumia")
             href=f"/panel/funding/{p.id}",
             proposta_id=str(p.id),
@@ -651,13 +693,18 @@ async def novidades(
             data=r.data_repasse,
             ano=_ano_do_repasse(r),
             fonte=r.fonte,
+            fonte_rotulo=fontes_service.rotulo_connector(r.fonte),
             municipio_ibge=r.municipio_ibge,
             municipio_nome=r.municipio_nome,
+            uf=r.uf,
             href="/panel/transfers",
         )
         for r in repasses[:limite]
     ]
     itens = sorted(itens, key=_ordem_novidade, reverse=True)[:limite]
+    # o município lidera a linha (§35) — o repasse costuma vir da fonte sem
+    # nome, e o feed mostrava a linha inteira sem território
+    itens = await municipios_service.enriquecer(session, itens)
 
     # Estado honesto da coleta: últimas execuções por fonte deste usuário.
     runs = (

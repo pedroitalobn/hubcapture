@@ -23,6 +23,11 @@ mais no core muda.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from typing import Any
+
+from sqlalchemy import ColumnElement, Select
+
 # TransfereGov é UM grupo para o usuário e cinco connectors para a ingestão.
 #
 # `serpro` está aqui de propósito: apesar do source_id, o que ele coleta é o
@@ -64,6 +69,28 @@ CAPTACAO: tuple[str, ...] = TRANSFEREGOV + ("fns_propostas",)
 RECEBIDOS: tuple[str, ...] = ("fns",)
 
 
+# Rótulo de cada CONNECTOR (o grupo tem o seu em GRUPOS). O painel mostra a
+# origem do registro linha a linha, e `transferegov_disc` cru na tela é
+# plumbing de integração vazando para o gestor (§35). Cobre também as fontes
+# fora do recorte da v1: o cache guarda o que elas já coletaram.
+LABELS_CONNECTOR: dict[str, str] = {
+    "transferegov_ff": "TransfereGov — Fundo a Fundo",
+    "transferegov_esp": "TransfereGov — Especiais",
+    "transferegov_voluntarias": "TransfereGov — Voluntárias",
+    "transferegov_disc": "TransfereGov — Discricionárias",
+    "serpro": "TransfereGov — Visão Geral",
+    "fns": "FNS — Fundo Nacional de Saúde",
+    "fns_propostas": "FNS — Fundo Nacional de Saúde",
+    "fnde": "FNDE",
+    "fpm": "FPM — Fundo de Participação",
+    "emendas": "Emendas parlamentares",
+    "siconfi": "Siconfi/CAUC",
+    "sismob": "SISMOB",
+    "simec": "SIMEC",
+    "caixa": "CAIXA",
+}
+
+
 def habilitada(fonte: str) -> bool:
     return fonte in HABILITADAS
 
@@ -100,6 +127,13 @@ def rotulo(fonte: str) -> str:
     return GRUPOS[chave]["label"] if chave else fonte
 
 
+def rotulo_connector(fonte: str | None) -> str:
+    """Connector id → nome legível da fonte daquele registro (nunca o slug)."""
+    if not fonte:
+        return ""
+    return LABELS_CONNECTOR.get(fonte, fonte)
+
+
 def catalogo() -> list[dict]:
     """Catálogo dos grupos, na ordem em que o onboarding os oferece."""
     return [
@@ -110,4 +144,75 @@ def catalogo() -> list[dict]:
             "connectors": list(grupo["connectors"]),
         }
         for chave, grupo in GRUPOS.items()
+    ]
+
+
+# ── Recorte de ORIGEM DO RECURSO (o filtro do painel) ───────────────────────
+# Espelho de `services/_territorio.py` para a outra dimensão global do painel:
+# lá o usuário escolhe QUAIS dos seus municípios ver agora, aqui QUAIS das suas
+# fontes. O vocabulário da escolha é o GRUPO ("transferegov", "fns") — que é o
+# que o usuário reconhece (§30) —, mas o dado gravado em `propostas.fonte` /
+# `repasses.fonte` é o connector id, então o filtro expande antes de virar SQL.
+# Marcar "TransfereGov" sem expandir pescaria só `transferegov_ff` e o painel
+# perderia as propostas do CSV das discricionárias — que são a maioria.
+
+#: um grupo, vários, connector ids, ou nada (= todas as fontes do usuário)
+Fontes = str | Sequence[str] | None
+
+
+def connectors(valor: Fontes) -> list[str]:
+    """Escolha do painel → connector ids (lista vazia = sem recorte).
+
+    Aceita grupo e connector id na mesma lista. Diferente de `expandir()`, um
+    connector id fora do recorte da v1 é PRESERVADO: o cache guarda dado de
+    fontes que já rodaram (fpm, emendas…) e filtrar por elas continua sendo
+    uma leitura legítima — o recorte de `HABILITADAS` governa a COLETA.
+    """
+    if valor is None:
+        return []
+    brutos: Sequence[Any] = [valor] if isinstance(valor, str) else list(valor)
+    saida: dict[str, None] = {}  # dedup preservando a ordem de escolha
+    for bruto in brutos:
+        escolha = str(bruto).strip()
+        if not escolha:
+            continue
+        alvos = GRUPOS[escolha]["connectors"] if escolha in GRUPOS else (escolha,)
+        for connector in alvos:
+            saida.setdefault(connector, None)
+    return list(saida)
+
+
+def condicao(coluna: ColumnElement[Any], valor: Fontes) -> ColumnElement[bool] | None:
+    """Condição SQL do recorte de origem, ou None quando não há recorte."""
+    escolhidos = connectors(valor)
+    return coluna.in_(escolhidos) if escolhidos else None
+
+
+def filtrar(stmt: Select[Any], coluna: ColumnElement[Any], valor: Fontes) -> Select[Any]:
+    """Aplica o recorte de origem na query (nenhuma, uma ou várias fontes)."""
+    recorte = condicao(coluna, valor)
+    return stmt.where(recorte) if recorte is not None else stmt
+
+
+def origens_do_perfil(fontes_perfil: Sequence[str] | None) -> list[dict]:
+    """Catálogo de origens que ESTE usuário pode filtrar, na ordem do catálogo.
+
+    O trilho do painel oferece grupo, não connector: o gestor pensa em "FNS",
+    não em `fns` × `fns_propostas`. Perfil sem fonte gravada (conta antiga, ou
+    onboarding que não escolheu) enxerga o catálogo inteiro — filtro vazio é
+    pior que filtro amplo.
+    """
+    escolhidas = set(fontes_perfil or [])
+    grupos = [
+        chave
+        for chave in GRUPOS
+        if not escolhidas or chave in escolhidas or escolhidas & set(GRUPOS[chave]["connectors"])
+    ]
+    return [
+        {
+            "chave": chave,
+            "label": GRUPOS[chave]["label"],
+            "connectors": list(GRUPOS[chave]["connectors"]),
+        }
+        for chave in grupos
     ]

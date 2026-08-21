@@ -5159,7 +5159,10 @@
           "fonte": {
             "anyOf": [
               {
-                "type": "string"
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
@@ -6151,6 +6154,17 @@
             "title": "Fonte",
             "type": "string"
           },
+          "fonte_rotulo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fonte Rotulo"
+          },
           "href": {
             "title": "Href",
             "type": "string"
@@ -6206,6 +6220,17 @@
           "titulo": {
             "title": "Titulo",
             "type": "string"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
           },
           "valor": {
             "anyOf": [
@@ -6713,6 +6738,33 @@
         "title": "OpcoesEmendas",
         "type": "object"
       },
+      "OrigemFonte": {
+        "description": "Uma origem de recurso que o usuário pode filtrar no painel.\n\nA escolha é sempre o GRUPO (§30) — \"TransfereGov\", \"FNS\" —, nunca o\nconnector: o gestor não precisa saber que TransfereGov são cinco rotas de\ningestão. `connectors` viaja só para o front poder rotular a origem de um\nregistro sem consultar a API de novo.",
+        "properties": {
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "connectors": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Connectors",
+            "type": "array"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chave",
+          "label"
+        ],
+        "title": "OrigemFonte",
+        "type": "object"
+      },
       "ParecerColeta": {
         "description": "Estado honesto da coleta — o gestor precisa distinguir 'não tem parecer'\nde 'não consegui consultar a fonte'.",
         "properties": {
@@ -7168,6 +7220,14 @@
               }
             ],
             "title": "Nome"
+          },
+          "origens": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OrigemFonte"
+            },
+            "title": "Origens",
+            "type": "array"
           },
           "papel": {
             "anyOf": [
@@ -15422,6 +15482,27 @@
             }
           },
           {
+            "description": "origem(ns) do recurso — grupo ou connector id",
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "origem(ns) do recurso — grupo ou connector id",
+              "title": "Fonte"
+            }
+          },
+          {
             "description": "tamanho da janela do feed",
             "in": "query",
             "name": "limite",
@@ -15564,6 +15645,27 @@
             }
           },
           {
+            "description": "origem(ns) do recurso — grupo ou connector id",
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "origem(ns) do recurso — grupo ou connector id",
+              "title": "Fonte"
+            }
+          },
+          {
             "description": "safra(s) do recorte — repita o parâmetro para várias; omitir = todos os anos",
             "in": "query",
             "name": "ano",
@@ -15665,18 +15767,23 @@
             }
           },
           {
+            "description": "origem(ns) do recurso — grupo ou connector id",
             "in": "query",
             "name": "fonte",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
+              "description": "origem(ns) do recurso — grupo ou connector id",
               "title": "Fonte"
             }
           },
@@ -16149,18 +16256,23 @@
             }
           },
           {
+            "description": "origem(ns) do recurso — grupo ou connector id",
             "in": "query",
             "name": "fonte",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
+              "description": "origem(ns) do recurso — grupo ou connector id",
               "title": "Fonte"
             }
           },
@@ -16551,18 +16663,23 @@
             }
           },
           {
+            "description": "origem(ns) do recurso — grupo ou connector id",
             "in": "query",
             "name": "fonte",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
+              "description": "origem(ns) do recurso — grupo ou connector id",
               "title": "Fonte"
             }
           },
@@ -16924,18 +17041,23 @@
             }
           },
           {
+            "description": "origem(ns) do recurso — grupo ou connector id",
             "in": "query",
             "name": "fonte",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
+              "description": "origem(ns) do recurso — grupo ou connector id",
               "title": "Fonte"
             }
           },
@@ -17610,18 +17732,23 @@
             }
           },
           {
+            "description": "origem(ns) do recurso — grupo ou connector id",
             "in": "query",
             "name": "fonte",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
                 }
               ],
+              "description": "origem(ns) do recurso — grupo ou connector id",
               "title": "Fonte"
             }
           },
@@ -17791,6 +17918,27 @@
               ],
               "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
+            }
+          },
+          {
+            "description": "origem(ns) do recurso — grupo ou connector id",
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "origem(ns) do recurso — grupo ou connector id",
+              "title": "Fonte"
             }
           },
           {
@@ -17971,6 +18119,27 @@
             }
           },
           {
+            "description": "origem(ns) do recurso — grupo ou connector id",
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "origem(ns) do recurso — grupo ou connector id",
+              "title": "Fonte"
+            }
+          },
+          {
             "in": "query",
             "name": "inicio",
             "required": false,
@@ -18146,6 +18315,27 @@
               ],
               "description": "códigos IBGE (repita o parâmetro para vários municípios)",
               "title": "Municipio"
+            }
+          },
+          {
+            "description": "origem(ns) do recurso — grupo ou connector id",
+            "in": "query",
+            "name": "fonte",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "origem(ns) do recurso — grupo ou connector id",
+              "title": "Fonte"
             }
           },
           {
