@@ -16,6 +16,10 @@ interface FonteDiag {
   fonte: string;
   saudavel: boolean;
   ultima_coleta?: UltimaColeta | null;
+  /** pausa: fonte pausada continua sondável, mas sai das rodadas de coleta */
+  ativa?: boolean;
+  pausavel?: boolean;
+  label?: string | null;
 }
 interface Diagnostico {
   fontes: FonteDiag[];
@@ -53,6 +57,7 @@ export default function AdminFontesPage() {
   const [msgLimpeza, setMsgLimpeza] = useState<string | null>(null);
   const [carregandoPacote, setCarregandoPacote] = useState(false);
   const [msgPacote, setMsgPacote] = useState<string | null>(null);
+  const [salvandoFonte, setSalvandoFonte] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -60,6 +65,17 @@ export default function AdminFontesPage() {
     if (data) setDiag(data as Diagnostico);
     setCarregando(false);
   }, []);
+
+  /** Pausa/religa a fonte. A resposta do PUT já é o diagnóstico novo — sem
+      recarregar a página, e sem estado local divergindo do servidor. */
+  async function alternarFonte(fonte: string, ativa: boolean) {
+    setSalvandoFonte(fonte);
+    const { data, error } = await api.PUT("/api/v1/admin/sources/state", {
+      body: { fonte, ativa },
+    });
+    if (!error && data) setDiag(data as Diagnostico);
+    setSalvandoFonte(null);
+  }
 
   const restaurar = useCallback(async () => {
     setZerando(true);
@@ -248,6 +264,7 @@ export default function AdminFontesPage() {
                   <th className="px-3 py-3">Última coleta</th>
                   <th className="px-3 py-3">Registros</th>
                   <th className="px-3 py-3">Erro</th>
+                  <th className="px-3 py-3 text-right">Coleta</th>
                 </tr>
               </thead>
               <tbody>
@@ -292,7 +309,31 @@ export default function AdminFontesPage() {
                         {f.ultima_coleta?.erro ?? "—"}
                       </span>
                     </td>
-                  </tr>
+                                      <td className="px-3 py-3 text-right">
+                      {f.pausavel ? (
+                        <button
+                          type="button"
+                          onClick={() => void alternarFonte(f.fonte, !(f.ativa ?? true))}
+                          disabled={salvandoFonte === f.fonte}
+                          className={`chip ${f.ativa ?? true ? "chip-active" : ""}`}
+                          aria-pressed={f.ativa ?? true}
+                          title={
+                            f.ativa ?? true
+                              ? "Pausar: a fonte sai das rodadas de coleta"
+                              : "Religar: a fonte volta às rodadas de coleta"
+                          }
+                        >
+                          {salvandoFonte === f.fonte
+                            ? "…"
+                            : f.ativa ?? true
+                              ? "ativa"
+                              : "pausada"}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-ink-3">—</span>
+                      )}
+                    </td>
+</tr>
                 ))}
               </tbody>
             </table>

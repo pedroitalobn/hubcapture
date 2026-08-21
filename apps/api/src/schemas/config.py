@@ -62,6 +62,19 @@ class FonteDiagnostico(BaseModel):
     fonte: str
     saudavel: bool  # health_check ao vivo (com timeout)
     ultima_coleta: UltimaColeta | None = None
+    # PAUSA (painel admin): fonte pausada não entra nas rodadas de coleta.
+    # `pausavel=False` = connector fora do catálogo de pausa — aparece no
+    # diagnóstico, mas não tem toggle (não se pausa o que não se cadastrou).
+    ativa: bool = True
+    pausavel: bool = False
+    label: str | None = None
+
+
+class FonteToggle(BaseModel):
+    """Payload do liga/desliga de uma fonte no painel admin."""
+
+    fonte: str
+    ativa: bool
 
 
 class DiagnosticoFontes(BaseModel):

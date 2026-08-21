@@ -2230,3 +2230,63 @@ discricionárias/legais**: a base sai inteira, um ZIP por tabela do modelo, em
   caminho real (carga global sem tenant → leitura sob a sessão RLS do gestor,
   com ordem por `data_proposta`, filtro de safra e o território de outro
   usuário fora da lista mesmo no escopo nacional).
+
+## 55. FNDE calibrado (SIMAD) + PAUSAR fonte pelo painel admin
+
+Duas coisas que andam juntas: a terceira fonte de recebidos entrou em operação, e
+o painel ganhou o interruptor que permite conviver com fonte de governo instável
+sem que cada coleta pague o preço dela.
+
+**FNDE — a consulta pública do SIMAD** (`connectors/fnde.py`, reescrito; o antigo
+era esqueleto com `ENDPOINT = "api/repasses"  # calibrar`, uma rota que nunca
+existiu — daí o 500 crônico em `sync_runs`). O FNDE **não publica API REST** das
+liberações: o que existe é um formulário POST do Oracle Web Toolkit, aberto e sem
+login, e — ao contrário de FNS e TransfereGov — ele responde DIRETO do IP deste
+servidor (sem Cloudflare, sem geobloqueio, sem egresso).
+
+O contrato, lido do formulário oficial (`internet_fnde.liberacoes_01_pc`):
+
+  1. POST `internet_fnde.liberacoes_result_pc` com `p_uf` (sigla) + `p_municipio`
+     (**IBGE de 6 dígitos**, sem o verificador — a mesma pegadinha do FNS, §30b) +
+     `p_ano` → LISTA DE ENTIDADES do município (CNPJ, razão social);
+  2. o MESMO POST com `p_cgc=<cnpj>` → as LIBERAÇÕES: data do pagamento, nº da
+     **OB**, valor, programa, banco/agência/conta.
+
+- **DOIS layouts de tabela na mesma página** e é aqui que um parse ingênuo perde
+  dado em silêncio: 7 colunas (Data, OB, Valor, Programa, Banco, Agência, C/C) e
+  8, quando o bloco tem parcela — o PDDE Qualidade insere "Parcela" ANTES de
+  "Programa". Lendo por POSIÇÃO, a parcela ("001") era gravada como nome do
+  programa. `_indice_colunas` mapeia pelo CABEÇALHO de cada bloco, e o subtítulo
+  ("PDDE - PROGRAMA DINHEIRO DIRETO NA ESCOLA") vira a `categoria` da linha.
+- **A DATA separa dado de enfeite**: cabeçalho, subtítulo e a linha de "Total:"
+  não abrem com data — mais robusto que contar colunas num HTML de 2004.
+- **ISO-8859-1** (o httpx adivinharia errado e embaralharia todo acento) e datas
+  em `19/JAN/2026` (mês PT abreviado) — os dois pontos de perda silenciosa.
+- **Teto e ordenação**: município grande devolve centenas de entidades (cada
+  escola tem sua UEx do PDDE) e cada drill é um POST. `ordenar_entidades` põe o
+  PODER PÚBLICO municipal (secretaria/prefeitura/fundo) à frente e `MAX_ENTIDADES`
+  limita a rodada: o dinheiro que responde "quanto a prefeitura recebeu" entra
+  sempre; a cauda entra nas coletas seguintes. Sem a ordenação, o teto se gastaria
+  nas primeiras APMs em ordem alfabética.
+- Registrado em `services/fontes.py` como grupo próprio (`fnde`) e em `RECEBIDOS`.
+  Validado ao vivo: Fortaleza/SME = R$ 98,9 mi em 2026 (8 OBs de salário-educação);
+  Apuiarés = 306 liberações em 3 exercícios.
+
+**PAUSAR fonte (painel admin)** — mesmo desenho dos módulos (§29), agora por
+CONNECTOR: estado em `configuracoes` sob `fonte_<id>`, default no catálogo
+`services/fontes.py::CATALOGO_FONTES`, cache TTL 10s (a coleta consulta em laço).
+
+- `esta_ativa(fonte)` / `filtrar_ativas(...)` são o acesso runtime; fonte FORA do
+  catálogo é considerada ATIVA — o catálogo governa o que se pode pausar, não o
+  que existe (connector novo não pode nascer mudo por esquecimento de cadastro).
+- Aplicado nas duas portas de coleta: `consulta_avulsa.live_search` e
+  `primeiro_sync.executar` (que é o que o refresh diário chama). Fonte pausada
+  não é tentada — não paga timeout nem enche `sync_runs` de incidente conhecido.
+- **`serpro` nasce PAUSADO** (`padrao=False`): a rota do painel Visão Geral
+  responde 404 e o Qlik não é extraível (§30). Ele continua registrado e sondável
+  no diagnóstico; só não entra nas rodadas.
+- API: `GET /admin/sources` passou a devolver `ativa`/`pausavel`/`label` por fonte
+  e `PUT /admin/sources/state` (`{fonte, ativa}`) alterna — a resposta do PUT já é
+  o diagnóstico novo, então a tela não recarrega nem mantém estado divergindo do
+  servidor. Fonte fora do catálogo = 422.
+- Web: coluna **Coleta** em `app/admin/sources` com o chip ativa/pausada.

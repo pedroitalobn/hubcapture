@@ -679,6 +679,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/sources/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Pausar Fonte
+         * @description Pausa (ou religa) uma fonte de coleta.
+         *
+         *     Fonte pausada continua registrada e sondável no diagnóstico — ela só sai
+         *     das RODADAS (live-search, primeiro sync, refresh diário). É o que permite
+         *     conviver com fonte de governo fora do ar sem que cada coleta pague o
+         *     timeout dela e sem encher `sync_runs` de incidente conhecido.
+         */
+        put: operations["pausar_fonte_api_v1_admin_sources_state_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users": {
         parameters: {
             query?: never;
@@ -3793,8 +3818,20 @@ export interface components {
         };
         /** FonteDiagnostico */
         FonteDiagnostico: {
+            /**
+             * Ativa
+             * @default true
+             */
+            ativa: boolean;
             /** Fonte */
             fonte: string;
+            /** Label */
+            label?: string | null;
+            /**
+             * Pausavel
+             * @default false
+             */
+            pausavel: boolean;
             /** Saudavel */
             saudavel: boolean;
             ultima_coleta?: components["schemas"]["UltimaColeta"] | null;
@@ -3826,6 +3863,16 @@ export interface components {
             registros?: number | null;
             /** Status */
             status: string;
+        };
+        /**
+         * FonteToggle
+         * @description Payload do liga/desliga de uma fonte no painel admin.
+         */
+        FonteToggle: {
+            /** Ativa */
+            ativa: boolean;
+            /** Fonte */
+            fonte: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -7259,6 +7306,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DiagnosticoFontes"];
+                };
+            };
+        };
+    };
+    pausar_fonte_api_v1_admin_sources_state_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FonteToggle"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiagnosticoFontes"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

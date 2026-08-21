@@ -69,8 +69,17 @@ AREAS = (
     "meio_ambiente",
     "agricultura",
 )
+#: fontes SETORIAIS por área — o TransfereGov serve todas (não é setorial), e
+#: cada fundo entra na sua área com AS DUAS granularidades que publica: o FNS
+#: dá repasse (`fns`) e proposta (`fns_propostas`); o FNDE dá liberação.
+#: Sem isto, quem escolhe "educação" no onboarding nunca recebia o FNDE.
+_AREA_SETORIAIS: dict[str, set[str]] = {
+    "saude": {"fns", "fns_propostas"},
+    "educacao": {"fnde"},
+}
+
 AREA_FONTES: dict[str, set[str]] = {
-    area: set(fontes_service.TRANSFEREGOV) | ({"fns"} if area == "saude" else set())
+    area: set(fontes_service.TRANSFEREGOV) | _AREA_SETORIAIS.get(area, set())
     for area in AREAS
 }
 

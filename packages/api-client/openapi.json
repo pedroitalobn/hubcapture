@@ -4095,9 +4095,30 @@
       },
       "FonteDiagnostico": {
         "properties": {
+          "ativa": {
+            "default": true,
+            "title": "Ativa",
+            "type": "boolean"
+          },
           "fonte": {
             "title": "Fonte",
             "type": "string"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "pausavel": {
+            "default": false,
+            "title": "Pausavel",
+            "type": "boolean"
           },
           "saudavel": {
             "title": "Saudavel",
@@ -4190,6 +4211,25 @@
           "status"
         ],
         "title": "FonteStatus",
+        "type": "object"
+      },
+      "FonteToggle": {
+        "description": "Payload do liga/desliga de uma fonte no painel admin.",
+        "properties": {
+          "ativa": {
+            "title": "Ativa",
+            "type": "boolean"
+          },
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fonte",
+          "ativa"
+        ],
+        "title": "FonteToggle",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -11785,6 +11825,53 @@
           }
         ],
         "summary": "Diagnostico Fontes",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/sources/state": {
+      "put": {
+        "description": "Pausa (ou religa) uma fonte de coleta.\n\nFonte pausada continua registrada e sondável no diagnóstico — ela só sai\ndas RODADAS (live-search, primeiro sync, refresh diário). É o que permite\nconviver com fonte de governo fora do ar sem que cada coleta pague o\ntimeout dela e sem encher `sync_runs` de incidente conhecido.",
+        "operationId": "pausar_fonte_api_v1_admin_sources_state_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FonteToggle"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticoFontes"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Pausar Fonte",
         "tags": [
           "admin"
         ]

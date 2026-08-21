@@ -93,6 +93,9 @@ async def executar(
         cfg_plano = plano_gates.SEM_RESTRICAO
     fontes_captacao = plano_gates.filtrar_fontes(cfg_plano, _fontes_captacao(fontes))
     fontes_recebidos = plano_gates.filtrar_fontes(cfg_plano, _fontes_recebidos(fontes))
+    # fonte pausada no painel admin não entra na rodada (§ pausa de fontes)
+    fontes_captacao = await fontes_service.filtrar_ativas(fontes_captacao)
+    fontes_recebidos = await fontes_service.filtrar_ativas(fontes_recebidos)
 
     for ibge in municipios:
         # 1) Captação — consulta-avulsa é cache-first e registra sync_runs.
