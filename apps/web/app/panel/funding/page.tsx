@@ -9,6 +9,8 @@ import { Favorito } from "@/components/Favorito";
 import { Hint } from "@/components/Hint";
 import { ModuloGate } from "@/components/ModuloGate";
 import { NumeroProposta } from "@/components/NumeroProposta";
+import { PageHeader } from "@/components/PageHeader";
+import { IconeAcao } from "@/components/icons";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { TextoLimitado } from "@/components/TextoLimitado";
 import {
@@ -875,10 +877,10 @@ function CaptacaoExploracao() {
 
   return (
     <>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="page-title">Propostas</h1>
-          <p className="mt-1 text-sm text-ink-2">
+      <PageHeader
+        titulo="Propostas"
+        descricao={
+          <>
             Propostas e oportunidades de{" "}
             {/* condiciona ao que JÁ carregou (não ao recorte salvo no
                 localStorage): antes do perfil chegar, cliente e servidor
@@ -892,12 +894,40 @@ function CaptacaoExploracao() {
             )}
             , das fontes oficiais (API + scraping). Atualiza sozinha uma vez por
             dia — use “Atualizar fontes” para consultar agora.
-          </p>
-        </div>
-        <Link href="/panel/funding/summary" className="btn btn-ghost btn-sm">
-          Ver resumo →
-        </Link>
-      </header>
+          </>
+        }
+        acoes={
+          <>
+            <Link href="/panel/funding/summary" className="btn btn-ghost btn-sm">
+              <IconeAcao nome="resumo" />
+              Ver resumo
+            </Link>
+            {/* A ação MAIS importante da tela (consultar as fontes agora)
+                vivia enterrada como ghost pequeno no meio da página; é ação
+                primária e mora no cabeçalho, onde toda tela põe a sua. */}
+            {!acompanhando && (
+              <button
+                onClick={() => void atualizarFontes()}
+                disabled={atualizando}
+                className="btn btn-primary"
+                title="Consulta as fontes oficiais agora e grava o que houver de novo. A lista já é atualizada sozinha uma vez por dia."
+              >
+                {atualizando ? (
+                  <>
+                    <span className="spinner" aria-hidden />
+                    Consultando fontes…
+                  </>
+                ) : (
+                  <>
+                    <IconeAcao nome="atualizar" />
+                    Atualizar fontes
+                  </>
+                )}
+              </button>
+            )}
+          </>
+        }
+      />
 
       {/* abas — várias frentes de trabalho ao mesmo tempo */}
       <div className="flex flex-wrap items-center gap-1.5">
@@ -1264,21 +1294,8 @@ function CaptacaoExploracao() {
           </select>
         </label>
 
-        <button
-          onClick={() => void atualizarFontes()}
-          disabled={atualizando}
-          className="btn btn-ghost btn-sm disabled:opacity-50"
-          title="Consulta as fontes oficiais agora e grava o que houver de novo. A lista já é atualizada sozinha uma vez por dia."
-        >
-          {atualizando ? (
-            <>
-              <span className="spinner" aria-hidden />
-              Consultando fontes…
-            </>
-          ) : (
-            "↻ Atualizar fontes"
-          )}
-        </button>
+        {/* o botão "Atualizar fontes" subiu para o cabeçalho da página (ação
+            primária); aqui fica só o estado honesto da coleta */}
 
         {/* idade do dado: a lista vem do banco, alimentado pelo sweep diário —
             sem o carimbo, "o número mudou" não tem como ser explicado */}
@@ -1358,7 +1375,7 @@ function CaptacaoExploracao() {
               ? "Nenhuma favorita ainda — favorite ★ uma proposta na busca para acompanhá-la aqui."
               : buscando
                 ? "Carregando propostas…"
-                : "Nenhuma proposta com esses filtros. Tente afrouxar o recorte ou ↻ Atualizar fontes."}
+                : "Nenhuma proposta com esses filtros. Tente afrouxar o recorte ou use “Atualizar fontes”, no topo da página."}
           </p>
         ) : (
           <div className="card overflow-hidden">

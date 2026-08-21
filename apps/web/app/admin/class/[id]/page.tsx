@@ -19,6 +19,7 @@ import { corpoEhHtml, markdownLeveParaHtml } from "@/components/CorpoConteudo";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Skeleton } from "@/components/Skeleton";
+import { BotaoVoltar } from "@/components/Voltar";
 import { Aviso } from "@/components/ui";
 
 /** Teto do PATCH de salvar: request que pendura vira erro, não espera infinita. */
@@ -321,9 +322,7 @@ export default function AdminHelpdeskEditorPage() {
     return (
       <div className="flex flex-col items-start gap-4">
         <Aviso tom="erro">{erro}</Aviso>
-        <Link href="/admin/class" className="btn btn-ghost btn-sm">
-          ← Class
-        </Link>
+        <BotaoVoltar href="/admin/class" rotulo="Class" />
       </div>
     );
   }
@@ -340,13 +339,8 @@ export default function AdminHelpdeskEditorPage() {
     <>
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <Link
-            href="/admin/class"
-            className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 hover:text-ink"
-          >
-            ← Class
-          </Link>
-          <h1 className="page-title mt-1.5">{artigo.titulo}</h1>
+          <BotaoVoltar href="/admin/class" rotulo="Class" />
+          <h1 className="page-title mt-2.5">{artigo.titulo}</h1>
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ink-2">
             <StatusBadge tone={artigo.publicado ? "success" : "neutral"}>
               {artigo.publicado ? "publicado" : "rascunho"}
