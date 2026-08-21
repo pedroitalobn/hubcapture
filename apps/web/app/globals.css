@@ -639,6 +639,23 @@ p {
   .btn-ghost:hover:not(:disabled) {
     border-color: var(--ink);
   }
+
+  /* SÓLIDO — o botão que parece botão: face própria, hairline e elevação.
+     O `.btn` já anima box-shadow e levanta 1px no hover; faltava alguém
+     acender essas duas propriedades. Use onde a ação é do usuário e precisa
+     ser encontrada (cabeçalho de registro), e não onde o botão acompanha um
+     texto (aí o ghost continua certo). */
+  .btn-solid {
+    background: var(--btn-face);
+    color: var(--ink);
+    border: 1px solid var(--hairline);
+    box-shadow: var(--elev-1);
+  }
+  .btn-solid:hover:not(:disabled) {
+    background: var(--btn-face-hover);
+    border-color: var(--ink-3);
+    box-shadow: var(--elev-2);
+  }
   .btn-sm {
     padding: 0.3125rem 0.75rem;
     font-size: 0.75rem;
@@ -849,6 +866,22 @@ p {
   }
   .brand-dot-pulse {
     animation: hc-glow-pulse 2.2s ease-in-out infinite;
+  }
+
+  /* ── Faixa de metadados que QUEBRA ────────────────────────────
+     Separador como `::before` do PRÓPRIO item, nunca um elemento solto:
+     solto, ele fica órfão no fim da linha quando o item que ele separava
+     desce para a seguinte (era o que acontecia no cabeçalho da proposta
+     a partir de ~700px, e o "|" sobrava pendurado). Como ponto, um
+     separador que ABRE linha ainda se lê como marcador de lista. */
+  .meta-strip > * + *::before {
+    content: "·";
+    margin-right: 0.5rem;
+    color: var(--ink-3);
+  }
+  /* Blocos que não são continuação da leitura (chips, ações) opta-se fora */
+  .meta-strip > .meta-sem-sep::before {
+    content: none;
   }
 
   /* Divisor hairline (só horizontal) */
@@ -1146,6 +1179,13 @@ p {
   --field-bg: rgba(255, 255, 255, 0.66);
   --field-bg-hover: rgba(255, 255, 255, 0.92);
   --field-bg-focus: #ffffff;
+  /* Face do botão SÓLIDO: o ghost (transparente + borda) não se lia como
+     botão — no cabeçalho da proposta os três controles pareciam texto com
+     contorno. A face é superfície própria + elevação, e por isso precisa de
+     token: no light é o branco do card sobre o bone; no dark, uma levantada
+     sobre o abyss (o --card do dark é a MESMA cor do canvas e sumiria). */
+  --btn-face: #ffffff;
+  --btn-face-hover: #e7e8e1;
   /* Anel de foco — no light o lime some no branco, então é tinta. */
   --focus-ring: color-mix(in srgb, var(--ink) 42%, transparent);
   /* Lavagem de hover em linha/lista: gradiente curto, não bloco chapado */
@@ -1167,6 +1207,8 @@ p {
     --field-bg: rgba(255, 255, 255, 0.035);
     --field-bg-hover: rgba(255, 255, 255, 0.06);
     --field-bg-focus: rgba(255, 255, 255, 0.08);
+    --btn-face: rgba(255, 255, 255, 0.07);
+    --btn-face-hover: rgba(255, 255, 255, 0.12);
     --focus-ring: color-mix(in srgb, var(--color-lime) 55%, transparent);
   }
 }
@@ -1174,6 +1216,8 @@ p {
   --field-bg: rgba(255, 255, 255, 0.035);
   --field-bg-hover: rgba(255, 255, 255, 0.06);
   --field-bg-focus: rgba(255, 255, 255, 0.08);
+  --btn-face: rgba(255, 255, 255, 0.07);
+  --btn-face-hover: rgba(255, 255, 255, 0.12);
   --focus-ring: color-mix(in srgb, var(--color-lime) 55%, transparent);
 }
 
@@ -1358,6 +1402,30 @@ html {
     transition-duration: 60ms;
   }
   .fav-on {
+    color: var(--warn);
+  }
+
+  /* A estrela com rótulo vive no cabeçalho ao lado dos botões sólidos — sem
+     a mesma face ela seria o único controle "solto" da fileira. Retangular
+     porque ali ela é um BOTÃO da barra, não o glifo redondo das listas. */
+  .fav-solid {
+    border-radius: 8px;
+    background: var(--btn-face);
+    color: var(--ink-2);
+    border: 1px solid var(--hairline);
+    box-shadow: var(--elev-1);
+  }
+  /* O tom âmbar do favorito (hover e ligado) é da família `.fav` e precisa
+     ser REAFIRMADO: `.fav-solid` vem depois no arquivo e, com a mesma
+     especificidade, apagaria a estrela acesa. */
+  .fav-solid:hover:not(:disabled) {
+    color: var(--warn);
+    background: color-mix(in srgb, var(--warn) 12%, transparent);
+    border-color: color-mix(in srgb, var(--warn) 45%, transparent);
+    box-shadow: var(--elev-2);
+    transform: translateY(-1px);
+  }
+  .fav-solid.fav-on {
     color: var(--warn);
   }
   .fav svg {
@@ -1665,6 +1733,16 @@ html[data-ui="v1"]::before {
   background: var(--card);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
+  box-shadow: none;
+}
+
+/* O botão sólido perde a elevação na v1 (superfícies flat) mas MANTÉM a face:
+   sem ela voltaria a ser o contorno que não se lia como botão — e isso é
+   defeito, não assinatura de versão. */
+[data-ui="v1"] .btn-solid,
+[data-ui="v1"] .btn-solid:hover:not(:disabled),
+[data-ui="v1"] .fav-solid,
+[data-ui="v1"] .fav-solid:hover:not(:disabled) {
   box-shadow: none;
 }
 [data-ui="v1"] .card::before,
