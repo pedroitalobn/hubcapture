@@ -35,6 +35,8 @@ export interface Perfil {
   municipios: MunicipioPerfil[];
   areas: string[];
   fontes?: string[];
+  /** Catálogo do filtro "origem do recurso" do trilho — grupos, não connectors. */
+  origens?: { chave: string; label: string; connectors?: string[] }[];
   modulos?: string[];
   /** Conta de demonstração (sandbox) — o painel mostra a faixa e esconde
    *  as ações que o backend bloqueia (zerar perfil, onboarding, senha). */

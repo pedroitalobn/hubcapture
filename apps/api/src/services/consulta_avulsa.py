@@ -26,7 +26,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..connectors.base import get_connector
+from ..connectors.base import available_sources, get_connector
 from ..core.config import settings
 from ..db.session import SessionLocal
 from ..ingestion.merge import merge_record
@@ -213,9 +213,25 @@ async def consulta_avulsa(
 CAPTACAO_FONTES: tuple[str, ...] = fontes_service.CAPTACAO
 
 
-def _fontes_alvo(fonte: str | None, area: str | None, fontes_perfil: list[str] | None) -> list[str]:
-    if fonte:
-        return [fonte]
+def _fontes_alvo(
+    fonte: fontes_service.Fontes, area: str | None, fontes_perfil: list[str] | None
+) -> list[str]:
+    # a origem escolhida no trilho chega como GRUPO — expande para connector id
+    # e mantém só o que produz proposta (marcar FNS não deve consultar o
+    # connector de repasse)
+    pedidas = fontes_service.connectors(fonte)
+    if pedidas:
+        # Origem escolhida que existe mas NÃO produz proposta (o connector de
+        # repasse do FNS, p.ex.) sai da rodada em silêncio — não é erro, é a
+        # outra metade daquele grupo. Se nenhuma sobrar, a rodada é vazia: cair
+        # no perfil aqui coletaria justamente a origem que o gestor tirou da
+        # tela.
+        #
+        # Id que não é connector nenhum SEGUE para a rodada, e é lá que vira
+        # status de erro: pedido por uma fonte inexistente não pode devolver
+        # "nada encontrado" como se a fonte tivesse respondido vazio.
+        conhecidas = set(available_sources())
+        return [f for f in pedidas if f in CAPTACAO_FONTES or f not in conhecidas]
     if area:
         from .perfil import AREA_FONTES
 
@@ -234,7 +250,7 @@ async def live_search(
     *,
     usuario_id: uuid.UUID,
     municipio: Municipios = None,
-    fonte: str | None = None,
+    fonte: fontes_service.Fontes = None,
     area: str | None = None,
     forcar: bool = False,
     somente_cache: bool = False,

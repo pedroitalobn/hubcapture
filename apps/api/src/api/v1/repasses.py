@@ -27,6 +27,12 @@ router = APIRouter(tags=["repasses"], dependencies=[Depends(require_modulo("rece
 FONTES_PADRAO = list(fontes_service.RECEBIDOS)
 
 
+# Origem do recurso — o filtro global do trilho. Repetir o parâmetro soma
+# origens; o valor é o GRUPO ("fns", "transferegov"), mas connector id também
+# vale (link antigo, chamada direta).
+_FONTE_QUERY = Query(default=None, description="origem(ns) do recurso — grupo ou connector id")
+
+
 class SyncRepassesRequest(BaseModel):
     municipio_ibge: str = Field(min_length=7, max_length=7)
     fontes: list[str] | None = None
@@ -37,6 +43,10 @@ class FiltrosEmendas(BaseModel):
 
     municipio: list[str] | None = Field(
         default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
+    )
+    # origem do recurso — o recorte global do trilho (grupo ou connector id)
+    fonte: list[str] | None = Field(
+        default=None, description="origem(ns) do recurso — grupo ou connector id"
     )
     inicio: date | None = None
     fim: date | None = None
@@ -52,7 +62,7 @@ async def listar_repasses(
     municipio: list[str] | None = Query(
         default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
     ),
-    fonte: str | None = Query(default=None),
+    fonte: list[str] | None = _FONTE_QUERY,
     inicio: date | None = Query(default=None),
     fim: date | None = Query(default=None),
     emenda: bool | None = Query(default=None, description="só repasses de emenda"),
@@ -108,11 +118,14 @@ async def visao_geral(
     municipio: list[str] | None = Query(
         default=None, description="códigos IBGE (repita o parâmetro para vários municípios)"
     ),
+    fonte: list[str] | None = _FONTE_QUERY,
     inicio: date | None = Query(default=None),
     fim: date | None = Query(default=None),
     session: AsyncSession = Depends(get_rls_db),
 ) -> VisaoGeral:
-    return await service.visao_geral(session, municipio=municipio, inicio=inicio, fim=fim)
+    return await service.visao_geral(
+        session, municipio=municipio, fonte=fonte, inicio=inicio, fim=fim
+    )
 
 
 @router.post("/transfers/sync", response_model=dict)

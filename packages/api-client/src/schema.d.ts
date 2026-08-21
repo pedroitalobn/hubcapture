@@ -4273,7 +4273,7 @@ export interface components {
              */
             categoria?: string | null;
             /** Fonte */
-            fonte?: string | null;
+            fonte?: string[] | null;
             /**
              * Forcar
              * @description ignora o cache e consulta as fontes agora (ação explícita)
@@ -4619,6 +4619,8 @@ export interface components {
             descricao?: string | null;
             /** Fonte */
             fonte: string;
+            /** Fonte Rotulo */
+            fonte_rotulo?: string | null;
             /** Href */
             href: string;
             /** Municipio Ibge */
@@ -4633,6 +4635,8 @@ export interface components {
             tipo: string;
             /** Titulo */
             titulo: string;
+            /** Uf */
+            uf?: string | null;
             /** Valor */
             valor?: string | null;
         };
@@ -4811,6 +4815,26 @@ export interface components {
             parlamentares: string[];
         };
         /**
+         * OrigemFonte
+         * @description Uma origem de recurso que o usuário pode filtrar no painel.
+         *
+         *     A escolha é sempre o GRUPO (§30) — "TransfereGov", "FNS" —, nunca o
+         *     connector: o gestor não precisa saber que TransfereGov são cinco rotas de
+         *     ingestão. `connectors` viaja só para o front poder rotular a origem de um
+         *     registro sem consultar a API de novo.
+         */
+        OrigemFonte: {
+            /** Chave */
+            chave: string;
+            /**
+             * Connectors
+             * @default []
+             */
+            connectors: string[];
+            /** Label */
+            label: string;
+        };
+        /**
          * ParecerColeta
          * @description Estado honesto da coleta — o gestor precisa distinguir 'não tem parecer'
          *     de 'não consegui consultar a fonte'.
@@ -4969,6 +4993,11 @@ export interface components {
             municipios: components["schemas"]["MunicipioPerfil"][];
             /** Nome */
             nome?: string | null;
+            /**
+             * Origens
+             * @default []
+             */
+            origens: components["schemas"]["OrigemFonte"][];
             /** Papel */
             papel?: string | null;
             plano?: components["schemas"]["PlanoPerfil"] | null;
@@ -9664,6 +9693,8 @@ export interface operations {
             query?: {
                 /** @description códigos IBGE (repita o parâmetro para vários municípios) */
                 municipio?: string[] | null;
+                /** @description origem(ns) do recurso — grupo ou connector id */
+                fonte?: string[] | null;
                 /** @description tamanho da janela do feed */
                 limite?: number;
                 /** @description safra(s) do recorte — repita o parâmetro para várias; omitir = todos os anos */
@@ -9731,6 +9762,8 @@ export interface operations {
             query?: {
                 /** @description códigos IBGE (repita o parâmetro para vários municípios) */
                 municipio?: string[] | null;
+                /** @description origem(ns) do recurso — grupo ou connector id */
+                fonte?: string[] | null;
                 /** @description safra(s) do recorte — repita o parâmetro para várias; omitir = todos os anos */
                 ano?: string[] | null;
             };
@@ -9767,7 +9800,8 @@ export interface operations {
                 municipio?: string[] | null;
                 /** @description unidade federativa */
                 uf?: string | null;
-                fonte?: string | null;
+                /** @description origem(ns) do recurso — grupo ou connector id */
+                fonte?: string[] | null;
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
                 situacao?: string | null;
@@ -9865,7 +9899,8 @@ export interface operations {
                 municipio?: string[] | null;
                 /** @description unidade federativa */
                 uf?: string | null;
-                fonte?: string | null;
+                /** @description origem(ns) do recurso — grupo ou connector id */
+                fonte?: string[] | null;
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
                 situacao?: string | null;
@@ -9957,7 +9992,8 @@ export interface operations {
                 municipio?: string[] | null;
                 /** @description unidade federativa */
                 uf?: string | null;
-                fonte?: string | null;
+                /** @description origem(ns) do recurso — grupo ou connector id */
+                fonte?: string[] | null;
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
                 situacao?: string | null;
@@ -10018,7 +10054,8 @@ export interface operations {
                 municipio?: string[] | null;
                 /** @description unidade federativa */
                 uf?: string | null;
-                fonte?: string | null;
+                /** @description origem(ns) do recurso — grupo ou connector id */
+                fonte?: string[] | null;
                 /** @description área de interesse (saude, educacao…) */
                 area?: string | null;
                 situacao?: string | null;
@@ -10276,7 +10313,8 @@ export interface operations {
             query?: {
                 /** @description códigos IBGE (repita o parâmetro para vários municípios) */
                 municipio?: string[] | null;
-                fonte?: string | null;
+                /** @description origem(ns) do recurso — grupo ou connector id */
+                fonte?: string[] | null;
                 inicio?: string | null;
                 fim?: string | null;
                 /** @description só repasses de emenda */
@@ -10318,6 +10356,8 @@ export interface operations {
             query?: {
                 /** @description códigos IBGE (repita o parâmetro para vários municípios) */
                 municipio?: string[] | null;
+                /** @description origem(ns) do recurso — grupo ou connector id */
+                fonte?: string[] | null;
                 inicio?: string | null;
                 fim?: string | null;
                 ano?: string | null;
@@ -10359,6 +10399,8 @@ export interface operations {
             query?: {
                 /** @description códigos IBGE (repita o parâmetro para vários municípios) */
                 municipio?: string[] | null;
+                /** @description origem(ns) do recurso — grupo ou connector id */
+                fonte?: string[] | null;
                 inicio?: string | null;
                 fim?: string | null;
                 ano?: string | null;
@@ -10400,6 +10442,8 @@ export interface operations {
             query?: {
                 /** @description códigos IBGE (repita o parâmetro para vários municípios) */
                 municipio?: string[] | null;
+                /** @description origem(ns) do recurso — grupo ou connector id */
+                fonte?: string[] | null;
                 inicio?: string | null;
                 fim?: string | null;
             };

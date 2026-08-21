@@ -12,7 +12,10 @@ import { api, clearTokens, getToken } from "@/lib/api/client";
 import { HelpProvider } from "@/lib/help";
 import { TerritorioProvider, useTerritorio } from "@/lib/territorio";
 import { OrigemProvider } from "@/lib/origem";
-import { OrigemRecursoFiltro } from "@/components/OrigemRecursoFiltro";
+import {
+  OrigemRecursoFiltro,
+  OrigemRecursoTitulo,
+} from "@/components/OrigemRecursoFiltro";
 
 // A navegação NÃO é por fonte de dados — é o ciclo do recurso público, sempre
 // recortado pelo território do usuário (via RLS). Cada item é uma LENTE sobre
@@ -159,10 +162,11 @@ function PainelShell({ children }: { children: React.ReactNode }) {
             )}
           </p>
           <TerritorioFiltro />
-          {/* Origem do recurso — de QUAL fonte o dinheiro veio (FNS, FPM…).
-              Multi-select: o recorte soma origens; vazio = todas. Vale para a
-              lente de recebidos, como o território vale para tudo. */}
-          <p className="label-mono mb-1.5 mt-4">Origem do recurso</p>
+          {/* Origem do recurso — de QUAL fonte veio o registro (TransfereGov,
+              FNS…). Multi-select: o recorte soma origens; vazio = todas. Vale
+              para TODAS as lentes, como o território — o Meu painel, a Captação
+              e os Recebidos leem o mesmo recorte. */}
+          <OrigemRecursoTitulo />
           <OrigemRecursoFiltro />
           {(perfil?.areas ?? []).length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
