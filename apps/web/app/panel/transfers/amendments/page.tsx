@@ -7,7 +7,7 @@ import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { IconeAcao } from "@/components/icons";
 import { api, baixarCsv } from "@/lib/api/client";
-import { formatBRL, formatDate } from "@/lib/format";
+import { formatBRL, formatBRLCompact, formatDate } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 interface EmendaItem {
@@ -206,14 +206,18 @@ export default function EmendasPage() {
       ) : (
         <>
           <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {/* BRL compacto no KPI: por extenso não cabe no card estreito e o
+                .card corta o que estoura; o valor cheio fica no tooltip */}
             <StatCard
               label="Empenhado"
-              value={formatBRL(resumo.empenhado)}
+              value={formatBRLCompact(resumo.empenhado)}
+              title={formatBRL(resumo.empenhado)}
               context={`${resumo.emendas} emendas`}
             />
             <StatCard
               label="Pago"
-              value={formatBRL(resumo.pago)}
+              value={formatBRLCompact(resumo.pago)}
+              title={formatBRL(resumo.pago)}
               context={`${resumo.percentual_executado.toFixed(0)}% executado`}
             />
             <StatCard

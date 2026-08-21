@@ -7,7 +7,7 @@ import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { api } from "@/lib/api/client";
-import { formatBRL, municipioPrincipal } from "@/lib/format";
+import { formatBRL, formatBRLCompact, municipioPrincipal } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 interface Obra {
@@ -211,10 +211,13 @@ function ObrasConteudo() {
             <StatCard label="Obras" value={String(data?.total ?? 0)} />
             <StatCard label="Em execução" value={String(data?.em_execucao ?? 0)} />
             <StatCard label="Concluídas" value={String(data?.concluidas ?? 0)} />
+            {/* BRL compacto no KPI: por extenso não cabe no card estreito e o
+                .card corta o que estoura; o valor cheio fica no tooltip */}
             <StatCard
               label="Investimento"
-              value={formatBRL(data?.valor_investimento_total)}
-              context={`repassado ${formatBRL(data?.valor_repassado_total)}`}
+              value={formatBRLCompact(data?.valor_investimento_total)}
+              title={formatBRL(data?.valor_investimento_total)}
+              context={`repassado ${formatBRLCompact(data?.valor_repassado_total)}`}
             />
           </div>
 

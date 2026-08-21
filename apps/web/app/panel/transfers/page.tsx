@@ -9,7 +9,7 @@ import { IconeAcao } from "@/components/icons";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
-import { formatBRL } from "@/lib/format";
+import { formatBRL, formatBRLCompact } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 import { useOrigem } from "@/lib/origem";
 
@@ -145,9 +145,12 @@ export default function RepassesPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {/* BRL compacto no KPI: por extenso não cabe no card estreito e o
+                .card corta o que estoura; o valor cheio fica no tooltip */}
             <StatCard
               label="Total Pago"
-              value={formatBRL(data?.total_pago)}
+              value={formatBRLCompact(data?.total_pago)}
+              title={formatBRL(data?.total_pago)}
               context={`${data?.movimentacoes ?? 0} movimentações`}
             />
             <StatCard
