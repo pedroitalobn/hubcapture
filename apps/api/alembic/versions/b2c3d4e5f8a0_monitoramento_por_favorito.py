@@ -1,7 +1,7 @@
 """monitoramentos.origem — favoritar já é acompanhar
 
 Revision ID: b2c3d4e5f8a0
-Revises: a1b2c3d4e5f7
+Revises: c6d7e8f9a0b1
 Create Date: 2026-08-20
 
 A proposta favoritada passa a gerar alerta quando o cron encontra novidade
@@ -16,7 +16,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "b2c3d4e5f8a0"
-down_revision: str | None = "a1b2c3d4e5f7"
+down_revision: str | None = "c6d7e8f9a0b1"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

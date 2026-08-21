@@ -40,14 +40,15 @@ async def _usuarios_ativos() -> list[uuid.UUID]:
     """Quem entra na varredura — a lista sai de `usuarios`, não das tabelas
     por-tenant.
 
-    ATENÇÃO (pegadinha do RLS): `monitoramentos`/`favoritos` só poderiam ser
-    lidos aqui com um tenant setado. Pior, `set_config(..., true)` deixa a GUC
-    como STRING VAZIA na conexão depois da transação, e aí o
-    `current_setting('app.usuario_id')::uuid` da policy estoura ("invalid input
-    syntax for type uuid") na primeira leitura sem tenant que pegue uma conexão
-    reusada — exatamente o que acontece logo depois do sweep rodar as sessões
-    RLS. `usuarios` está fora do RLS, então a listagem é segura; o que decide se
-    há algo a alertar é a própria varredura, já dentro do tenant.
+    ATENÇÃO (pegadinha do RLS): `monitoramentos`/`favoritos` estão sob FORCE RLS
+    e não têm policy de plataforma, então uma leitura sem tenant falha de duas
+    maneiras — devolve ZERO linhas (foi o que fez o refresh diário girar em
+    falso) ou estoura no cast, porque `set_config(..., true)` deixa a GUC do
+    tenant como STRING VAZIA na conexão depois da transação e
+    `current_setting('app.usuario_id')::uuid` não engole `''`. Justamente o
+    estado da conexão logo depois de o sweep rodar as sessões RLS. `usuarios`
+    está fora do RLS, então a listagem sai daí; quem decide se há algo a alertar
+    é a própria varredura, já dentro do tenant.
     """
     async with SessionLocal() as session:
         stmt = select(Usuario.id).where(Usuario.is_active.is_(True))
