@@ -4551,6 +4551,11 @@ export interface components {
              */
             id: string;
             /**
+             * Origem
+             * @default manual
+             */
+            origem: string;
+            /**
              * Proposta Id
              * Format: uuid
              */

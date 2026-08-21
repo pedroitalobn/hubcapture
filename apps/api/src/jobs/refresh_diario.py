@@ -28,6 +28,7 @@ from ..db.session import SessionLocal, engine
 from ..models.municipio_interesse import MunicipioInteresse
 from ..models.preferencias import PreferenciasUsuario
 from ..services import primeiro_sync
+from . import alertas as alertas_job
 
 log = logging.getLogger(__name__)
 
@@ -108,7 +109,7 @@ async def sweep() -> dict:
         try:
             alvos = await _usuarios_para_sincronizar()
             log.info("refresh diário: %d usuário(s) no sweep", len(alvos))
-            ok = falhas = 0
+            ok = falhas = alertas = 0
             for usuario_id, municipios, fontes, areas in alvos:
                 try:
                     # Reusa o MESMO caminho do 1º sync: cobre as 4 dimensões e
@@ -116,14 +117,37 @@ async def sweep() -> dict:
                     # da proposta — favoritos e pastas continuam apontando certo.
                     await primeiro_sync.executar(usuario_id, municipios, fontes, areas)
                     ok += 1
+                    # o cache acabou de mudar: é AQUI que o parecer novo, o
+                    # empenho pago e a emenda aplicada viram alerta (§53) — sem
+                    # isto o gestor só saberia se abrisse a central de Alertas
+                    try:
+                        alertas += await alertas_job.varrer_usuario(usuario_id)
+                    except Exception:  # noqa: BLE001 — alerta não derruba o sweep
+                        log.warning(
+                            "refresh diário: varredura de alertas falhou para %s",
+                            usuario_id,
+                            exc_info=True,
+                        )
                 except Exception:
                     falhas += 1
                     log.warning("refresh diário: usuário %s falhou", usuario_id, exc_info=True)
                 await asyncio.sleep(PAUSA_ENTRE_USUARIOS_S)
 
             dur = (datetime.now(UTC) - inicio).total_seconds()
-            log.info("refresh diário: concluído — %d ok, %d falha(s), %.0fs", ok, falhas, dur)
-            return {"status": "ok", "usuarios": len(alvos), "ok": ok, "falhas": falhas}
+            log.info(
+                "refresh diário: concluído — %d ok, %d falha(s), %d alerta(s), %.0fs",
+                ok,
+                falhas,
+                alertas,
+                dur,
+            )
+            return {
+                "status": "ok",
+                "usuarios": len(alvos),
+                "ok": ok,
+                "falhas": falhas,
+                "alertas": alertas,
+            }
         finally:
             await conn.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": LOCK_ID})
 

@@ -38,6 +38,8 @@ type Monitor = {
   ativo: boolean;
   canais?: string[] | null;
   criterios?: string[] | null;
+  // "favorito" = entrou por ter sido favoritada (favoritar é acompanhar)
+  origem?: string | null;
   ultimo_alerta_em?: string | null;
 };
 
@@ -108,7 +110,7 @@ function AlertasConteudo() {
   // cópia velha do closure e refaria a busca de título a cada recarga
   const titulosRef = useRef<Record<string, string>>({});
   const [editando, setEditando] = useState<string | null>(null);
-  const { rotulo } = useCriteriosAlerta();
+  const { rotuloPill } = useCriteriosAlerta();
 
   const carregar = useCallback(async () => {
     const [al, bu, mo] = await Promise.all([
@@ -427,9 +429,11 @@ function AlertasConteudo() {
         <section className="card p-5">
           <h2 className="label-mono mb-3">Propostas monitoradas</h2>
           <p className="mb-3 text-sm text-ink-2">
-            Cada proposta avisa só as alterações marcadas — parecer, empenho,
-            pagamento, publicação, vencimento do convênio, situação, prazos e
-            pendências.
+            Cada proposta avisa só as alterações marcadas — novo parecer,
+            parecer atualizado, valor empenhado, empenho pago, pagamento, emenda
+            aplicada, publicação, vencimento do convênio, situação, prazos e
+            pendências. As favoritas entram aqui sozinhas: a coleta diária já
+            gera o alerta.
           </p>
           <ul className="space-y-2">
             {monitores.map((m) => (
@@ -438,12 +442,22 @@ function AlertasConteudo() {
                 className="rounded-lg border border-hairline px-3 py-2 text-sm"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <Link
-                    href={`/panel/funding/${m.proposta_id}`}
-                    className="font-medium hover:underline"
-                  >
-                    {titulos[m.proposta_id] ?? "Proposta monitorada"}
-                  </Link>
+                  <span className="flex items-center gap-2">
+                    <Link
+                      href={`/panel/funding/${m.proposta_id}`}
+                      className="font-medium hover:underline"
+                    >
+                      {titulos[m.proposta_id] ?? "Proposta monitorada"}
+                    </Link>
+                    {m.origem === "favorito" && (
+                      <span
+                        className="font-mono text-[10px] uppercase text-ink-3"
+                        title="Acompanhada por ser favorita"
+                      >
+                        ★ favorita
+                      </span>
+                    )}
+                  </span>
                   <div className="flex items-center gap-2">
                     <span className="text-xs">
                       <ResumoCriterios escopo="proposta" valor={m.criterios} />
@@ -512,14 +526,12 @@ function AlertasConteudo() {
                 <p className="text-sm font-medium">
                   <span
                     className={`mr-2 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase ${
-                      a.tipo === "oportunidade"
-                        ? "bg-warn/10 text-warn"
-                        : a.tipo === "nova_proposta"
-                          ? "bg-ok/10 text-ok"
-                          : "bg-surface-2 text-ink-2"
+                      a.tipo === "oportunidade" || a.tipo === "nova_proposta"
+                        ? "bg-ok/10 text-ok"
+                        : "bg-surface-2 text-ink-2"
                     }`}
                   >
-                    {rotulo(a.tipo)}
+                    {rotuloPill(a.tipo)}
                   </span>
                   {descricao(a)}
                 </p>

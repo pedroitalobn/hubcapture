@@ -61,6 +61,9 @@ class MonitoramentoRead(BaseModel):
     id: uuid.UUID
     proposta_id: uuid.UUID
     ativo: bool
+    # `manual` (o gestor clicou em monitorar) | `favorito` (favoritar já é
+    # acompanhar) — a tela precisa dizer por que a proposta é acompanhada
+    origem: str = "manual"
     canais: list[str] | None = None
     criterios: list[str] | None = None
     ultimo_alerta_em: datetime | None = None

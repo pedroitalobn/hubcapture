@@ -33,14 +33,26 @@ export const ALERTA_TIPO_LABEL: Record<string, string> = {
   situacao: "Situação e movimentação",
   prazo: "Prazos",
   pendencia: "Pendências",
-  parecer: "Atualização de pareceres",
+  parecer_novo: "Novo parecer",
+  parecer: "Parecer atualizado",
   empenho: "Valor empenhado",
-  pagamento: "Pagamento",
-  publicacao: "Publicação",
+  empenho_pago: "Empenho pago",
+  pagamento: "Pagamento (desembolso)",
+  emenda: "Emenda aplicada",
+  publicacao: "Proposta publicada",
   vencimento: "Vencimento do convênio",
   nova_proposta: "Novo alerta",
-  oportunidade: "Oportunidade",
+  oportunidade: "Novo alerta",
 };
+
+/**
+ * Tipos de escopo TERRITÓRIO. Na PÍLULA da lista eles colapsam num rótulo só
+ * ("Novo alerta"): qualificar a espécie da oportunidade ali não ajuda o gestor
+ * — a frase ao lado já diz o que apareceu e onde. O rótulo específico do
+ * catálogo continua valendo onde ele DECIDE algo: o multi-select de critérios.
+ */
+const TIPOS_TERRITORIO = new Set(["nova_proposta", "oportunidade"]);
+const PILL_TERRITORIO = "Novo alerta";
 
 // O catálogo é o mesmo para o app inteiro: uma chamada por sessão, compartilhada
 // entre as telas que montam o multi-select (Alertas e detalhe da proposta).
@@ -81,13 +93,17 @@ export function useCriteriosAlerta(escopo?: EscopoCriterio) {
   const doEscopo = escopo
     ? criterios.filter((c) => c.escopo === escopo)
     : criterios;
+  const rotulo = (chave?: string | null) =>
+    criterios.find((c) => c.chave === chave)?.rotulo ??
+    ALERTA_TIPO_LABEL[chave ?? ""] ??
+    chave ??
+    "Alerta";
   return {
     criterios: doEscopo,
-    rotulo: (chave?: string | null) =>
-      criterios.find((c) => c.chave === chave)?.rotulo ??
-      ALERTA_TIPO_LABEL[chave ?? ""] ??
-      chave ??
-      "Alerta",
+    rotulo,
+    // rótulo da PÍLULA: território vira "Novo alerta" (sem espécie)
+    rotuloPill: (chave?: string | null) =>
+      TIPOS_TERRITORIO.has(chave ?? "") ? PILL_TERRITORIO : rotulo(chave),
   };
 }
 
@@ -97,6 +113,7 @@ export function padroesDe(criterios: CriterioAlerta[]): string[] {
 }
 
 export function alertaTipoLabel(tipo?: string | null): string {
+  if (TIPOS_TERRITORIO.has(tipo ?? "")) return PILL_TERRITORIO;
   return ALERTA_TIPO_LABEL[tipo ?? ""] ?? tipo ?? "Alerta";
 }
 
