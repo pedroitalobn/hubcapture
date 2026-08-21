@@ -10,6 +10,7 @@ consolidado de `/proposals/summary` e o "baixar relatório" de
 
 from __future__ import annotations
 
+import logging
 import uuid
 from decimal import Decimal
 from typing import Annotated
@@ -27,12 +28,15 @@ from ...schemas.proposta import (
     PropostasPagina,
     ResumoCaptacao,
 )
+from ...services import andamento as andamento_service
 from ...services import municipios as municipios_service
 from ...services import pdf as pdf_service
 from ...services import plano_gates
 from ...services import propostas as propostas_service
 from ...services.modulos import require_modulo
 from ..deps import get_rls_db
+
+logger = logging.getLogger(__name__)
 
 # O módulo "captação" cobre a EXPLORAÇÃO ativa — filtros específicos (lista/
 # facetas/relatório) e a consulta ao vivo às fontes (live-search, em
@@ -200,6 +204,45 @@ async def obter_proposta(
     return enriquecidas[0]
 
 
+async def _complementos(
+    session: AsyncSession,
+    proposta_id: uuid.UUID,
+    user: Usuario,
+) -> pdf_service.Complementos:
+    """Andamento, empenhos e emenda para o espelho.
+
+    Best-effort de propósito: incidente de fonte não pode impedir a exportação
+    — o documento sai com o que houver, como a tela faz. Cada leitura é
+    independente para que a falha de uma não leve as outras junto.
+    """
+    extras = pdf_service.Complementos()
+
+    try:
+        pagina = await andamento_service.linha_do_tempo(session, proposta_id, usuario_id=user.id)
+        if pagina is not None:
+            extras.andamento = list(pagina.itens)
+    except Exception:  # noqa: BLE001 — fonte fora do ar não derruba o espelho
+        logger.warning("espelho: andamento indisponível", exc_info=True)
+
+    try:
+        empenhos = await andamento_service.empenhos(session, proposta_id, usuario_id=user.id)
+        if empenhos is not None:
+            itens, resumo, _coleta = empenhos
+            extras.empenhos, extras.resumo_empenhos = list(itens), resumo
+    except Exception:  # noqa: BLE001
+        logger.warning("espelho: empenhos indisponíveis", exc_info=True)
+
+    try:
+        emendas = await andamento_service.emendas(session, proposta_id, usuario_id=user.id)
+        if emendas is not None:
+            itens, _coleta = emendas
+            extras.emendas = list(itens)
+    except Exception:  # noqa: BLE001
+        logger.warning("espelho: emenda indisponível", exc_info=True)
+
+    return extras
+
+
 @router.get("/proposals/{proposta_id}/pdf")
 async def exportar_pdf(
     proposta_id: uuid.UUID,
@@ -215,6 +258,13 @@ async def exportar_pdf(
     row = await propostas_service.obter(session, proposta_id)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PROPOSTA_NAO_ENCONTRADA")
+    # O espelho é o espelho da TELA (§34): andamento, empenhos e emenda saem da
+    # mesma leitura que o detalhe faz — cache-first, com coleta na fonte quando
+    # o cache está vencido. Antes o PDF levava só a linha da proposta e chegava
+    # ao gabinete sem parecer, sem empenho e sem o parlamentar autor, com tudo
+    # isso à vista na tela de quem clicou.
+    complementos = await _complementos(session, proposta_id, user)
+
     # O espelho abre pelo município (§35) — se o cache não tem o nome, resolve
     # pelo território do usuário. `expunge` desliga a linha da sessão: o
     # preenchimento é só para o documento, não vira UPDATE.
@@ -224,7 +274,7 @@ async def exportar_pdf(
     row.municipio_nome = row.municipio_nome or nome_municipio
     row.uf = row.uf or uf_municipio or municipios_service.uf_do_ibge(row.municipio_ibge)
 
-    conteudo = pdf_service.gerar_pdf_proposta(row)
+    conteudo = pdf_service.gerar_pdf_proposta(row, complementos=complementos)
     nome = pdf_service.nome_arquivo(row)
     return Response(
         content=conteudo,
