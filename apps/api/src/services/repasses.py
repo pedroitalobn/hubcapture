@@ -433,7 +433,10 @@ async def sync_municipio(
         iniciado = datetime.now(UTC)
         try:
             connector = get_connector(fonte)
-            registros = await connector.collect(municipio_ibge, since=_since())
+            registros = await connector.collect(
+                municipio_ibge,
+                since=await _since_para(session, fonte, municipio_ibge),
+            )
             n = 0
             for record in registros:
                 await upsert(session, normalize_repasse(record))
@@ -465,3 +468,29 @@ async def sync_municipio(
 
 def _since() -> date:
     return date(date.today().year, 1, 1)
+
+
+#: profundidade da PRIMEIRA coleta de um município — os exercícios "antigos"
+#: que o gestor espera encontrar ao entrar (3 anos é o teto dos connectors)
+ANOS_PRIMEIRA_COLETA = 3
+
+
+async def _since_para(session: AsyncSession, fonte: str, municipio_ibge: str) -> date:
+    """Janela da coleta: primeira vez = histórico; as demais = exercício atual.
+
+    O modelo é por demanda: o município entra quando um usuário o escolhe, e a
+    PRIMEIRA coleta puxa os exercícios anteriores de uma vez (o gestor abre a
+    tela esperando ver o histórico, não só o ano corrente). Depois disso o
+    cron diário só atualiza o exercício atual — recoletar 3 anos todo dia
+    triplicaria o custo do egresso sem fato novo (exercício fechado não muda).
+    """
+    ja_tem = (
+        await session.execute(
+            select(Repasse.id)
+            .where(Repasse.fonte == fonte, Repasse.municipio_ibge == municipio_ibge)
+            .limit(1)
+        )
+    ).first()
+    if ja_tem:
+        return _since()
+    return date(date.today().year - (ANOS_PRIMEIRA_COLETA - 1), 1, 1)
