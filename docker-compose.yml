@@ -58,6 +58,9 @@ services:
       DATABASE_MIGRATOR_URL: postgresql+asyncpg://${POSTGRES_USER:-hubcapture}:${POSTGRES_PASSWORD:-postgres_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
       # 06:00 UTC ≈ 03:00 em Brasília — fora do horário de uso.
       REFRESH_DIARIO_HORA_UTC: ${REFRESH_DIARIO_HORA_UTC:-6}
+      # Fortaleza-size: a coleta do FNS por proposta (drill + detalhe via
+      # egresso) não cabe em 5 min — o teto padrão derrubava a coleta INTEIRA
+      COLETA_TIMEOUT_SECONDS: ${COLETA_TIMEOUT_SECONDS:-900}
       REFRESH_DIARIO_ATIVO: ${REFRESH_DIARIO_ATIVO:-1}
     # Sobrescreve o entrypoint da api (que sobe o uvicorn) — aqui o processo é o
     # agendador. Sem `--` o módulo herdaria o boot HTTP e subiria uma 2ª API.
@@ -123,6 +126,7 @@ services:
     environment:
       # dentro da rede do compose o host do banco é "postgres" (não localhost)
       DB_HOST: postgres
+      COLETA_TIMEOUT_SECONDS: ${COLETA_TIMEOUT_SECONDS:-900}
       DATABASE_URL: postgresql+asyncpg://hubcapture_app:${APP_DB_PASSWORD:-app_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
       DATABASE_MIGRATOR_URL: postgresql+asyncpg://${POSTGRES_USER:-hubcapture}:${POSTGRES_PASSWORD:-postgres_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
     expose:
