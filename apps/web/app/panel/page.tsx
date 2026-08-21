@@ -296,6 +296,8 @@ interface Novidade {
   href: string;
   proposta_id?: string | null;
   numero_proposta?: string | null;
+  /** referência do repasse na fonte (nº da OB) — ocupa o lugar da pílula */
+  documento?: string | null;
 }
 interface SyncRunStatus {
   fonte?: string | null;
@@ -863,12 +865,16 @@ function MeuPainel() {
                       className="flex flex-1 flex-col gap-1 px-2 py-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="min-w-0">
-                        {/* O nº abre o item: é por ele que o gestor localiza a
-                            proposta no meio do feed (§35). Sem número — caso
-                            dos repasses — a linha começa direto no título. */}
+                        {/* A REFERÊNCIA abre o item: é por ela que o gestor
+                            localiza o registro no meio do feed (§35). Na
+                            proposta é o nº; no repasse, o nº da OB — que é o
+                            que ele confere no extrato. Antes o repasse abria
+                            direto no título e a linha ficava desalinhada das
+                            de proposta: o card mudava de forma conforme a
+                            origem do recurso. */}
                         <p className="flex min-w-0 items-center gap-2">
                           <NumeroProposta
-                            numero={n.numero_proposta}
+                            numero={n.numero_proposta ?? n.documento}
                             tamanho="sm"
                             copiavel={false}
                           />

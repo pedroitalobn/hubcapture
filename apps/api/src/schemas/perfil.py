@@ -171,6 +171,12 @@ class NovidadeItem(BaseModel):
     href: str
     # id da proposta (só p/ tipo 'captacao') — permite favoritar direto do painel
     proposta_id: str | None = None
+    # REFERÊNCIA do registro na fonte, em pílula (§44). Na proposta é o
+    # `numero_proposta`; no repasse é o número da OB, que é o que o gestor
+    # confere no extrato. Sem ele, a linha de repasse abria direto no título e
+    # ficava desalinhada das linhas de proposta no mesmo feed — o card mudava
+    # de forma conforme a origem do recurso.
+    documento: str | None = None
     # NR_PROPOSTA: a referência que o gestor procura no feed (§35). Não
     # confundir com `proposta_id` (UUID interno, que nunca aparece na tela).
     numero_proposta: str | None = None

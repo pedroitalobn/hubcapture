@@ -13,6 +13,7 @@ from collections import Counter
 from collections.abc import Sequence
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from urllib.parse import urlencode
 from typing import Any
 
 from sqlalchemy import ColumnElement, Select, and_, delete, func, or_, select, update
@@ -714,7 +715,24 @@ async def novidades(
             municipio_ibge=r.municipio_ibge,
             municipio_nome=r.municipio_nome,
             uf=r.uf,
-            href="/panel/transfers",
+            # o repasse não tem página própria — mas mandar TODOS para a
+            # mesma URL nua fazia a tela abrir no recorte padrão, sem relação
+            # com a linha clicada ("nada carrega"). O link leva o município e
+            # a origem daquele lançamento, então a lente abre no contexto dele.
+            href=(
+                "/panel/transfers?"
+                + urlencode(
+                    {
+                        k: v
+                        for k, v in (
+                            ("municipio", r.municipio_ibge),
+                            ("fonte", fontes_service.grupo_de(r.fonte) or r.fonte),
+                        )
+                        if v
+                    }
+                )
+            ),
+            documento=r.documento,
         )
         for r in repasses[:limite]
     ]

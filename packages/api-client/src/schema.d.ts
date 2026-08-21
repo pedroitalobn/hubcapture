@@ -4617,6 +4617,8 @@ export interface components {
             data?: string | null;
             /** Descricao */
             descricao?: string | null;
+            /** Documento */
+            documento?: string | null;
             /** Fonte */
             fonte: string;
             /** Fonte Rotulo */

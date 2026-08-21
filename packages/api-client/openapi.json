@@ -6195,6 +6195,17 @@
             ],
             "title": "Descricao"
           },
+          "documento": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Documento"
+          },
           "fonte": {
             "title": "Fonte",
             "type": "string"
