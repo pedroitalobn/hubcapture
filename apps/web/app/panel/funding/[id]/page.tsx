@@ -349,7 +349,12 @@ export default function PropostaDetalhePage() {
           {/* Ações agrupadas — nunca um botão grande solto no canto. Subiram
               para a barra de contexto: no bloco de identidade competiam com o
               título e, ao quebrar a linha, viravam uma quarta pilha. */}
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {/* `shrink-0` aqui causava ROLAGEM HORIZONTAL da página abaixo de
+              ~375px: o grupo se recusava a encolher e o "Espelho PDF" saía
+              pela borda. Sem ele, os botões quebram entre si; largura cheia
+              no mobile (o retorno fica sozinho na 1ª linha) e alinhados à
+              direita a partir do sm, onde tudo cabe ao lado do "voltar". */}
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
             <Favorito
               ativo={favorita}
               onToggle={alternarFavorito}
@@ -426,43 +431,43 @@ export default function PropostaDetalhePage() {
             Uma faixa só, com separadores, em vez de três linhas empilhadas.
             A FONTE não entra aqui: é detalhe de ingestão, não identidade do
             registro (§19). */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-hairline pt-3 text-sm text-ink-2">
-          {p.numero_proposta ? (
-            // mesma pílula da lista e do feed: o gestor reconhece o número
-            // pelo formato e daqui copia para colar no portal da fonte
-            <NumeroProposta numero={p.numero_proposta} />
-          ) : (
+        <div className="meta-strip flex flex-wrap items-center gap-x-2 gap-y-2 border-t border-hairline pt-3 text-sm text-ink-2">
+          {/* nº + ⓘ são UM item da faixa: o ⓘ explica o número, não é um
+              metadado à parte, e assim não ganha separador entre os dois. */}
+          <span className="inline-flex items-center gap-2">
+            {p.numero_proposta ? (
+              // mesma pílula da lista e do feed: o gestor reconhece o número
+              // pelo formato e daqui copia para colar no portal da fonte
+              <NumeroProposta numero={p.numero_proposta} />
+            ) : (
+              <span>
+                Proposta <span className="num text-ink-3">sem nº na fonte</span>
+              </span>
+            )}
+            <Hint chave="proposta.numero_proposta" className="align-middle" />
+          </span>
+          {p.data_proposta && (
             <span>
-              Proposta <span className="num text-ink-3">sem nº na fonte</span>
+              criada em{" "}
+              <span className="num text-ink">{formatDate(p.data_proposta)}</span>
             </span>
           )}
-          <Hint chave="proposta.numero_proposta" className="align-middle" />
-          {p.data_proposta && (
-            <>
-              <span aria-hidden className="text-hairline">
-                |
-              </span>
-              <span>
-                criada em{" "}
-                <span className="num text-ink">{formatDate(p.data_proposta)}</span>
-              </span>
-            </>
-          )}
+          {/* No mobile o órgão QUEBRA em vez de truncar: sem cursor não há
+              tooltip, então o `title` não devolveria o que a reticência come.
+              Do sm para cima ele trunca e a faixa continua numa linha só. */}
           {p.orgao_superior && (
-            <>
-              <span aria-hidden className="text-hairline">
-                |
-              </span>
-              <span className="min-w-0 truncate" title={humanizarCaixa(p.orgao_superior)}>
-                {humanizarCaixa(p.orgao_superior)}
-              </span>
-            </>
+            <span className="min-w-0 sm:truncate" title={humanizarCaixa(p.orgao_superior)}>
+              {humanizarCaixa(p.orgao_superior)}
+            </span>
           )}
           {/* pílulas de categoria (curadoria) — do que esta proposta trata.
               Encostadas à direita: são etiqueta do registro, não continuação
               da referência, e assim a faixa não vira uma segunda pilha. */}
           {(p.categorias ?? []).length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 sm:ml-auto">
+            /* `sm:ml-auto` saiu: quando a faixa quebrava, os chips iam
+               parar sozinhos à direita de uma linha vazia, descolados do
+               registro. Fluindo, eles fecham a faixa onde ela terminar. */
+            <div className="meta-sem-sep flex flex-wrap items-center gap-1.5">
               {p.categorias!.map((c) => (
                 <span
                   key={c.slug}

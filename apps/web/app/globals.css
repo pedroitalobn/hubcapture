@@ -868,6 +868,22 @@ p {
     animation: hc-glow-pulse 2.2s ease-in-out infinite;
   }
 
+  /* ── Faixa de metadados que QUEBRA ────────────────────────────
+     Separador como `::before` do PRÓPRIO item, nunca um elemento solto:
+     solto, ele fica órfão no fim da linha quando o item que ele separava
+     desce para a seguinte (era o que acontecia no cabeçalho da proposta
+     a partir de ~700px, e o "|" sobrava pendurado). Como ponto, um
+     separador que ABRE linha ainda se lê como marcador de lista. */
+  .meta-strip > * + *::before {
+    content: "·";
+    margin-right: 0.5rem;
+    color: var(--ink-3);
+  }
+  /* Blocos que não são continuação da leitura (chips, ações) opta-se fora */
+  .meta-strip > .meta-sem-sep::before {
+    content: none;
+  }
+
   /* Divisor hairline (só horizontal) */
   .hairline-rule {
     border: 0;
