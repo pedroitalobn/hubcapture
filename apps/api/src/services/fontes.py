@@ -37,7 +37,9 @@ TRANSFEREGOV: tuple[str, ...] = (
     "transferegov_disc",
     "serpro",
 )
-FNS: tuple[str, ...] = ("fns",)
+# `fns` produz REPASSES (recebidos); `fns_propostas` produz PROPOSTAS
+# (captação) — a mesma API do ConsultaFNS em duas granularidades.
+FNS: tuple[str, ...] = ("fns", "fns_propostas")
 
 GRUPOS: dict[str, dict] = {
     "transferegov": {
@@ -47,7 +49,7 @@ GRUPOS: dict[str, dict] = {
     },
     "fns": {
         "label": "FNS — Fundo Nacional de Saúde",
-        "descricao": "Repasses do Fundo Nacional de Saúde ao município",
+        "descricao": "Propostas e repasses do Fundo Nacional de Saúde ao município",
         "connectors": FNS,
     },
 }
@@ -56,10 +58,10 @@ GRUPOS: dict[str, dict] = {
 HABILITADAS: tuple[str, ...] = TRANSFEREGOV + FNS
 
 #: fontes cujo connector produz PROPOSTAS (eixo captação)
-CAPTACAO: tuple[str, ...] = TRANSFEREGOV
+CAPTACAO: tuple[str, ...] = TRANSFEREGOV + ("fns_propostas",)
 
 #: fontes cujo connector produz REPASSES (eixo recebidos)
-RECEBIDOS: tuple[str, ...] = FNS
+RECEBIDOS: tuple[str, ...] = ("fns",)
 
 
 def habilitada(fonte: str) -> bool:

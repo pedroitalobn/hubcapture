@@ -260,6 +260,17 @@ def ano_de(p: Proposta) -> str | None:
     exercicio = str(_execucao(p).get("ano") or "")[:4]
     if exercicio.isdigit() and _ano_plausivel(int(exercicio)):
         return exercicio
+    # Especiais: o módulo publica `ano_plano_acao` — é o ano do plano de ação,
+    # a criação daquela captação. Fundo a fundo não publica ano nenhum; o
+    # início de vigência do plano é o sinal que existe. Sem estes dois, TODA
+    # proposta FF/ESP ficava "sem safra" e sumia das contagens filtradas por
+    # ano do painel — com o dado à vista no registro-fonte.
+    ano_pa = _campo_fonte(p.dados_fonte, "ano_plano_acao")
+    if ano_pa and str(ano_pa)[:4].isdigit() and _ano_plausivel(int(str(ano_pa)[:4])):
+        return str(ano_pa)[:4]
+    vigencia = str(_campo_fonte(p.dados_fonte, "data_inicio_vigencia_plano_acao") or "")
+    if vigencia[:4].isdigit() and _ano_plausivel(int(vigencia[:4])):
+        return vigencia[:4]
     return None
 
 

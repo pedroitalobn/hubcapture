@@ -49,8 +49,11 @@ TTL_BLOQUEIO = 30 * 60
 #: tentativas por provider. Provider remoto tem limite de taxa e uma coleta de
 #: município dispara dezenas de chamadas seguidas: sem esta segunda tentativa um
 #: 429 isolado apagava a seção inteira da proposta no painel.
-TENTATIVAS = 2
+TENTATIVAS = 3
 ESPERA = 2.0
+#: espera quando o provider devolve 429 — o limite é por minuto; a janela
+#: precisa virar (esperar pouco só queima a tentativa)
+ESPERA_LIMITE = 35.0
 
 #: assinaturas de desafio da Cloudflare no CORPO (o header nem sempre volta)
 _MARCAS_DESAFIO = (
@@ -172,7 +175,10 @@ async def get_json(url: str) -> Any:
             except Exception as exc:
                 erros.append(f"{nome} (tentativa {tentativa}): {type(exc).__name__}: {exc}")
                 if tentativa < TENTATIVAS:
-                    await asyncio.sleep(ESPERA)
+                    # 429 é limite POR MINUTO do provider: esperar 2s só queima
+                    # a tentativa — a janela precisa VIRAR para liberar
+                    espera = ESPERA_LIMITE if "429" in str(exc) else ESPERA
+                    await asyncio.sleep(espera)
         if r is None:
             continue
         for desembrulha, chave in ((_do_markdown, "markdown"), (_do_html, "rawHtml")):
