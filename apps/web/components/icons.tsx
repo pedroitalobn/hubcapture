@@ -176,3 +176,96 @@ export function IconeNav({
     </svg>
   );
 }
+
+/* ─────────────────────────────────────────────── Ícones de AÇÃO ──────────
+   Os botões de ação carregavam setas de CARACTERE ("←", "↻", "↓") — cada tela
+   com um desenho, nenhum alinhado à métrica do texto. O registro abaixo dá a
+   cada verbo recorrente do app um glifo único, no mesmo padrão dos da
+   navegação (24 de viewBox, traço 1.5, `currentColor`). */
+
+export type NomeAcao =
+  | "voltar"
+  | "avancar"
+  | "varrer"
+  | "atualizar"
+  | "exportar"
+  | "resumo";
+
+const GLIFOS_ACAO: Record<NomeAcao, React.ReactNode> = {
+  // Voltar — seta cheia para a esquerda (o retorno de tela)
+  voltar: (
+    <>
+      <path d="M19 12H5" />
+      <path d="m11 6-6 6 6 6" />
+    </>
+  ),
+  // Avançar — o par da volta, para links "ver mais adiante"
+  avancar: (
+    <>
+      <path d="M5 12h14" />
+      <path d="m13 6 6 6-6 6" />
+    </>
+  ),
+  // Varrer — o radar da varredura de alertas
+  varrer: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="4.5" />
+      <path d="m12 12 5.6-5.6" />
+      <path d="M12 12h.01" />
+    </>
+  ),
+  // Atualizar — consultar as fontes agora (refresh)
+  atualizar: (
+    <>
+      <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+      <path d="M21 3v5h-5" />
+    </>
+  ),
+  // Exportar — baixar o recorte (CSV, PDF)
+  exportar: (
+    <>
+      <path d="M12 4v10.5" />
+      <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
+      <path d="M4.5 19.5h15" />
+    </>
+  ),
+  // Resumo — as barras do consolidado
+  resumo: (
+    <>
+      <path d="M4 20h16" />
+      <path d="M7 16v-5" />
+      <path d="M12 16V6" />
+      <path d="M17 16v-8" />
+    </>
+  ),
+};
+
+/**
+ * Glifo de 16px para dentro de botões e links de ação (`.btn` já tem `gap`).
+ * Decorativo (`aria-hidden`) — o rótulo do botão é quem nomeia a ação.
+ */
+export function IconeAcao({
+  nome,
+  className,
+}: {
+  nome: NomeAcao;
+  className?: string;
+}) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      {GLIFOS_ACAO[nome]}
+    </svg>
+  );
+}

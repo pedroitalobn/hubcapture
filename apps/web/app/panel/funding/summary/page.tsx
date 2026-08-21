@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
@@ -128,18 +129,11 @@ export default function ResumoCaptacaoPage() {
 
   return (
     <>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="page-title">Resumo da captação</h1>
-          <p className="mt-1 text-sm text-ink-2">
-            Consolidado do que o seu território já conveniou, o que foi
-            desembolsado e o que ainda está aberto.
-          </p>
-        </div>
-        <Link href="/panel/funding" className="btn btn-ghost btn-sm">
-          ← Voltar à captação
-        </Link>
-      </header>
+      <PageHeader
+        voltar={{ href: "/panel/funding", rotulo: "Captação" }}
+        titulo="Resumo da captação"
+        descricao="Consolidado do que o seu território já conveniou, o que foi desembolsado e o que ainda está aberto."
+      />
 
       <div className="card flex flex-col gap-3 p-4">
         <div className="flex flex-wrap items-center gap-1.5">

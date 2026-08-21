@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
+import { IconeAcao } from "@/components/icons";
 import { api, baixarCsv } from "@/lib/api/client";
 import { formatBRL, formatDate } from "@/lib/format";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
@@ -142,18 +144,11 @@ export default function EmendasPage() {
 
   return (
     <>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="page-title">Emendas parlamentares</h1>
-          <p className="mt-1 text-sm text-ink-2">
-            O que os parlamentares destinaram ao seu território — empenhado,
-            pago e a execução por modalidade, área e autor.
-          </p>
-        </div>
-        <Link href="/panel/transfers" className="btn btn-ghost btn-sm">
-          ← Recursos recebidos
-        </Link>
-      </header>
+      <PageHeader
+        voltar={{ href: "/panel/transfers", rotulo: "Recursos recebidos" }}
+        titulo="Emendas parlamentares"
+        descricao="O que os parlamentares destinaram ao seu território — empenhado, pago e a execução por modalidade, área e autor."
+      />
 
       <div className="card flex flex-col gap-3 p-4">
         <div className="flex flex-wrap items-end gap-3">
@@ -171,7 +166,8 @@ export default function EmendasPage() {
           {select("parlamentar", "Parlamentar", resumo?.opcoes.parlamentares ?? [], "w-56")}
           {select("orgao", "Órgão", resumo?.opcoes.orgaos ?? [], "w-56")}
           <button onClick={() => void exportar()} className="btn btn-ghost btn-sm mb-1">
-            ↓ Exportar
+            <IconeAcao nome="exportar" />
+            Exportar
           </button>
         </div>
         {ativos.length > 0 && (

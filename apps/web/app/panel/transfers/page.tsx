@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DateRangePresets, presetToInicio, type RangePreset } from "@/components/DateRangePresets";
 import { Feed } from "@/components/Feed";
+import { PageHeader } from "@/components/PageHeader";
+import { IconeAcao } from "@/components/icons";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
@@ -100,15 +102,21 @@ export default function RepassesPage() {
 
   return (
     <>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="page-title">Recursos recebidos</h1>
-        <div className="flex items-center gap-3">
-          <Link href="/panel/transfers/amendments" className="btn btn-ghost btn-sm">
-            Emendas →
-          </Link>
-          <DateRangePresets value={preset} onChange={setPreset} />
-        </div>
-      </header>
+      <PageHeader
+        titulo="Recursos recebidos"
+        acoes={
+          <>
+            <Link
+              href="/panel/transfers/amendments"
+              className="btn btn-ghost btn-sm"
+            >
+              Emendas
+              <IconeAcao nome="avancar" />
+            </Link>
+            <DateRangePresets value={preset} onChange={setPreset} />
+          </>
+        }
+      />
 
       <form onSubmit={sincronizar} className="card flex flex-wrap items-end gap-3 p-5">
         <label className="flex flex-col gap-1.5">

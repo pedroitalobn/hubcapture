@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -16,6 +15,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { TextoExpansivel } from "@/components/TextoExpansivel";
 import { TextoLimitado } from "@/components/TextoLimitado";
+import { BotaoVoltar } from "@/components/Voltar";
 import { Aviso, Dado, cx } from "@/components/ui";
 import {
   diasAte,
@@ -301,9 +301,7 @@ export default function PropostaDetalhePage() {
     return (
       <div className="flex flex-col items-start gap-4">
         <Aviso tom="erro">{erro}</Aviso>
-        <Link href={voltarHref} className="btn btn-ghost btn-sm">
-          {voltarParaPainel ? "← Voltar ao meu painel" : "← Voltar à captação"}
-        </Link>
+        <BotaoVoltar href={voltarHref} rotulo={voltarRotulo} />
       </div>
     );
   }
@@ -339,15 +337,12 @@ export default function PropostaDetalhePage() {
             O município é a identidade do registro, então encabeça o header; o
             código IBGE desce para linha de apoio e o id da fonte sai daqui. */}
         <div className="min-w-0">
-          <Link
-            href={voltarHref}
-            className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-2 transition-colors hover:text-ink"
-          >
-            ← {voltarRotulo}
-          </Link>
+          {/* O retorno é a pílula padrão (BotaoVoltar) — o link mono de 11px
+              que ficava aqui era quase invisível. */}
+          <BotaoVoltar href={voltarHref} rotulo={voltarRotulo} />
           {/* Ponto 14: o código IBGE saiu daqui — é desambiguador, não
               identidade, e segue rotulado em "Dados gerais". */}
-          <h1 className="page-title mt-1.5">{municipioPrincipal(p)}</h1>
+          <h1 className="page-title mt-2.5">{municipioPrincipal(p)}</h1>
           {/* O objeto da proposta vem logo abaixo — nunca um identificador:
               antes o h1 caía para `id_externo` quando faltava título.
               Com TETO de caracteres: a fonte não separa título de descrição, e

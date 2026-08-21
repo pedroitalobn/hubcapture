@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api/client";
 import { ModuloGate } from "@/components/ModuloGate";
+import { PageHeader } from "@/components/PageHeader";
+import { IconeAcao } from "@/components/icons";
+import { Aviso } from "@/components/ui";
 import { CriteriosAlerta, ResumoCriterios } from "@/components/CriteriosAlerta";
 import { descreverAlerta, useCriteriosAlerta } from "@/lib/alertas";
 import { municipioPrincipal, recortarTexto } from "@/lib/format";
@@ -86,7 +89,10 @@ function AlertasConteudo() {
   const [buscas, setBuscas] = useState<Busca[]>([]);
   const [soNaoLidos, setSoNaoLidos] = useState(true);
   const [varrendo, setVarrendo] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{
+    tom: "ok" | "info" | "erro";
+    texto: string;
+  } | null>(null);
 
   // formulário de nova busca (monitorar futuras propostas)
   const [novoIbge, setNovoIbge] = useState("");
@@ -178,8 +184,8 @@ function AlertasConteudo() {
       (data as { alertas_criados?: number } | undefined)?.alertas_criados ?? 0;
     setMsg(
       n > 0
-        ? `${n} novo(s) alerta(s) encontrado(s).`
-        : "Nada novo desde a última varredura.",
+        ? { tom: "ok", texto: `${n} novo(s) alerta(s) encontrado(s).` }
+        : { tom: "info", texto: "Nada novo desde a última varredura." },
     );
     await carregar();
     setVarrendo(false);
@@ -205,7 +211,7 @@ function AlertasConteudo() {
       },
     });
     if (!error) {
-      setMsg("Monitoramento de futuras propostas ativado.");
+      setMsg({ tom: "ok", texto: "Monitoramento de futuras propostas ativado." });
       setNovaArea("");
       await carregar();
     }
@@ -234,7 +240,10 @@ function AlertasConteudo() {
       },
     });
     if (error) {
-      setMsg("Não foi possível salvar os critérios agora — tente novamente.");
+      setMsg({
+        tom: "erro",
+        texto: "Não foi possível salvar os critérios agora — tente novamente.",
+      });
       await carregar();
     }
   }
@@ -267,24 +276,32 @@ function AlertasConteudo() {
 
   return (
     <>
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="page-title">Alertas</h1>
-          <p className="mt-1 text-sm text-ink-2">
-            Mudanças nas propostas monitoradas, novas propostas do território e
-            oportunidades não aproveitadas.
-          </p>
-        </div>
-        <button
-          onClick={varrer}
-          disabled={varrendo}
-          className="btn btn-primary"
-        >
-          {varrendo ? "Varrendo…" : "Varrer agora"}
-        </button>
-      </header>
+      <PageHeader
+        titulo="Alertas"
+        descricao="Mudanças nas propostas monitoradas, novas propostas do território e oportunidades não aproveitadas."
+        acoes={
+          <button
+            onClick={varrer}
+            disabled={varrendo}
+            className="btn btn-primary"
+            title="Consulta agora o que mudou nas propostas e no território"
+          >
+            {varrendo ? (
+              <>
+                <span className="spinner" aria-hidden />
+                Varrendo…
+              </>
+            ) : (
+              <>
+                <IconeAcao nome="varrer" />
+                Varrer agora
+              </>
+            )}
+          </button>
+        }
+      />
 
-      {msg && <p className="text-sm text-ink-2">{msg}</p>}
+      {msg && <Aviso tom={msg.tom}>{msg.texto}</Aviso>}
 
       {/* monitorar FUTURAS propostas */}
       <section className="card p-5">

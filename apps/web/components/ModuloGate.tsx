@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { SkeletonCards } from "@/components/Skeleton";
+import { IconeAcao } from "@/components/icons";
 
 /** Envolve uma lente do painel cujo módulo pode estar desligado no painel admin
  * OU fora do plano do usuário (§39). A API do eixo responde 404 (plataforma) ou
@@ -57,6 +58,7 @@ export function ModuloGate({
           : "Este módulo foi desligado pela administração da plataforma. Um administrador pode reativá-lo a qualquer momento."}
       </p>
       <Link href="/panel" className="btn btn-primary">
+        <IconeAcao nome="voltar" />
         Voltar ao meu painel
       </Link>
     </div>
