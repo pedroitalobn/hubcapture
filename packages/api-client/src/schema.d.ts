@@ -5434,13 +5434,19 @@ export interface components {
         /**
          * RepassesPorDia
          * @description Item do feed agrupado por data, com subtotal do dia.
+         *
+         *     `data` é opcional porque nem toda fonte publica a data do pagamento: o FNS
+         *     entrega o AGREGADO do exercício (quanto o município recebeu no ano, por
+         *     tipo), sem OB nem dia. Quando falta, `competencia` diz de que exercício é o
+         *     grupo — sem os dois o lançamento simplesmente sumia da tela, com o valor
+         *     contado no card da fonte: o gestor via R$ 70 mi no total do FNS e um feed
+         *     que não mencionava o FNS em lugar nenhum.
          */
         RepassesPorDia: {
-            /**
-             * Data
-             * Format: date
-             */
-            data: string;
+            /** Competencia */
+            competencia?: string | null;
+            /** Data */
+            data?: string | null;
             /** Itens */
             itens: components["schemas"]["RepasseRead"][];
             /** Subtotal */

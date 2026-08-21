@@ -12,7 +12,9 @@ interface RepasseItem {
 }
 
 interface DiaGroup {
-  data: string;
+  /** ausente quando a fonte não publica a data do pagamento (FNS: agregado do ano) */
+  data?: string | null;
+  competencia?: string | null;
   subtotal: string;
   itens: RepasseItem[];
 }
@@ -35,11 +37,17 @@ export function Feed({ dias }: { dias: DiaGroup[] }) {
   return (
     <div className="flex flex-col gap-4">
       {dias.map((dia) => (
-        <div key={dia.data} className="card p-5">
+        <div key={dia.data ?? `exercicio-${dia.competencia}`} className="card p-5">
           <div className="mb-3 flex items-baseline justify-between border-b border-hairline pb-2.5">
-            <span className="tracking-tight">{formatDate(dia.data)}</span>
+            {/* Sem data, o grupo é o EXERCÍCIO — e o rótulo do subtotal muda
+                junto: "pago no dia" num agregado anual seria mentira. */}
+            <span className="tracking-tight">
+              {dia.data
+                ? formatDate(dia.data)
+                : `Exercício ${dia.competencia ?? "—"}`}
+            </span>
             <span className="font-mono text-[12px] tracking-[-0.02em] text-ink-3">
-              PAGO NO DIA{" "}
+              {dia.data ? "PAGO NO DIA" : "TOTAL DO EXERCÍCIO"}{" "}
               <span className="tabular-nums text-ink">{formatBRL(dia.subtotal)}</span>
             </span>
           </div>

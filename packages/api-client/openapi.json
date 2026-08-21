@@ -8538,12 +8538,30 @@
         "type": "object"
       },
       "RepassesPorDia": {
-        "description": "Item do feed agrupado por data, com subtotal do dia.",
+        "description": "Item do feed agrupado por data, com subtotal do dia.\n\n`data` é opcional porque nem toda fonte publica a data do pagamento: o FNS\nentrega o AGREGADO do exercício (quanto o município recebeu no ano, por\ntipo), sem OB nem dia. Quando falta, `competencia` diz de que exercício é o\ngrupo — sem os dois o lançamento simplesmente sumia da tela, com o valor\ncontado no card da fonte: o gestor via R$ 70 mi no total do FNS e um feed\nque não mencionava o FNS em lugar nenhum.",
         "properties": {
+          "competencia": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Competencia"
+          },
           "data": {
-            "format": "date",
-            "title": "Data",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
           },
           "itens": {
             "items": {
@@ -8559,7 +8577,6 @@
           }
         },
         "required": [
-          "data",
           "subtotal",
           "itens"
         ],

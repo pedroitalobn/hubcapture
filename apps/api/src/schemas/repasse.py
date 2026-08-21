@@ -62,9 +62,18 @@ class FonteResumo(BaseModel):
 
 
 class RepassesPorDia(BaseModel):
-    """Item do feed agrupado por data, com subtotal do dia."""
+    """Item do feed agrupado por data, com subtotal do dia.
 
-    data: date
+    `data` é opcional porque nem toda fonte publica a data do pagamento: o FNS
+    entrega o AGREGADO do exercício (quanto o município recebeu no ano, por
+    tipo), sem OB nem dia. Quando falta, `competencia` diz de que exercício é o
+    grupo — sem os dois o lançamento simplesmente sumia da tela, com o valor
+    contado no card da fonte: o gestor via R$ 70 mi no total do FNS e um feed
+    que não mencionava o FNS em lugar nenhum.
+    """
+
+    data: date | None = None
+    competencia: str | None = None
     subtotal: Decimal
     itens: list[RepasseRead]
 

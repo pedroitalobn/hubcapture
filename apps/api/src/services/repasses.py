@@ -11,7 +11,7 @@ from collections import defaultdict
 from datetime import UTC, date, datetime
 from decimal import Decimal
 
-from sqlalchemy import or_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -81,10 +81,38 @@ async def listar(
     stmt = filtrar_municipio(stmt, Repasse.municipio_ibge, municipio)
     if fonte:
         stmt = stmt.where(Repasse.fonte == fonte)
+    # Janela por data — mas lançamento SEM data não pode ser excluído pelo
+    # filtro: o FNS publica o agregado do EXERCÍCIO (sem OB, sem dia) e ficava
+    # fora até dos cards de total por fonte, como se a fonte não tivesse
+    # trazido nada. Quando ele tem competência, ela decide se cabe na janela;
+    # sem competência alguma, entra (é melhor mostrar com "sem data" do que
+    # esconder dinheiro que a fonte publicou).
     if inicio:
-        stmt = stmt.where(Repasse.data_repasse >= inicio)
+        stmt = stmt.where(
+            or_(
+                Repasse.data_repasse >= inicio,
+                and_(
+                    Repasse.data_repasse.is_(None),
+                    or_(
+                        Repasse.competencia.is_(None),
+                        Repasse.competencia >= str(inicio.year),
+                    ),
+                ),
+            )
+        )
     if fim:
-        stmt = stmt.where(Repasse.data_repasse <= fim)
+        stmt = stmt.where(
+            or_(
+                Repasse.data_repasse <= fim,
+                and_(
+                    Repasse.data_repasse.is_(None),
+                    or_(
+                        Repasse.competencia.is_(None),
+                        Repasse.competencia <= str(fim.year),
+                    ),
+                ),
+            )
+        )
     if emenda is not None:
         stmt = stmt.where(Repasse.emenda.is_(emenda))
     if orgao:
@@ -133,6 +161,9 @@ async def visao_geral(
     por_fonte_total: dict[str, Decimal] = defaultdict(lambda: Decimal(0))
     por_fonte_qtd: dict[str, int] = defaultdict(int)
     por_dia: dict[date, list[Repasse]] = defaultdict(list)
+    # lançamentos SEM data do pagamento (o FNS publica o agregado do
+    # exercício): agrupados pela competência, para não sumirem do feed
+    por_exercicio: dict[str, list[Repasse]] = defaultdict(list)
 
     for r in rows:
         s = _signed(r.valor, r.natureza)
@@ -141,6 +172,8 @@ async def visao_geral(
         por_fonte_qtd[r.fonte] += 1
         if r.data_repasse is not None:
             por_dia[r.data_repasse].append(r)
+        else:
+            por_exercicio[str(r.competencia or "sem competência")].append(r)
 
     fontes = [
         FonteResumo(fonte=f, total=por_fonte_total[f], movimentacoes=por_fonte_qtd[f])
@@ -157,6 +190,22 @@ async def visao_geral(
             ),
         )
         for d in sorted(por_dia, reverse=True)
+    ]
+    # os grupos por exercício entram DEPOIS dos datados: quem tem dia é mais
+    # específico e responde "o que caiu esta semana"; o agregado do ano é
+    # contexto, não novidade
+    feed += [
+        RepassesPorDia(
+            data=None,
+            competencia=comp,
+            subtotal=sum((_signed(r.valor, r.natureza) for r in por_exercicio[comp]), Decimal(0)),
+            itens=await municipios.enriquecer(
+                session,
+                [RepasseRead.model_validate(r) for r in por_exercicio[comp]],
+                mapa=mapa,
+            ),
+        )
+        for comp in sorted(por_exercicio, reverse=True)
     ]
     return VisaoGeral(
         total_pago=total,
