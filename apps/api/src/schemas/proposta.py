@@ -6,7 +6,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, computed_field
+from pydantic import BaseModel, ConfigDict, computed_field, field_validator
 
 
 class PropostaCanonica(BaseModel):
@@ -16,6 +16,24 @@ class PropostaCanonica(BaseModel):
     id_externo: str
     numero_proposta: str | None = None
     numero_plano_trabalho: str | None = None
+
+    # Fontes (FF/Especiais) às vezes devolvem identificadores como número puro
+    # (ex.: numero_plano_trabalho=28431). O Pydantic 2 não coage int→str, então
+    # normalizamos aqui em vez de deixar a coleta inteira quebrar por 1 campo.
+    @field_validator(
+        "id_externo",
+        "numero_proposta",
+        "numero_plano_trabalho",
+        "emenda",
+        mode="before",
+    )
+    @classmethod
+    def _identificador_como_texto(cls, v):
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, (int, float)):
+            return str(int(v) if float(v).is_integer() else v)
+        return v
     titulo: str | None = None
     objeto: str | None = None
     orgao_superior: str | None = None
