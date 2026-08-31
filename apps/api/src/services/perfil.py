@@ -615,6 +615,7 @@ async def novidades(
     municipios_filtro: Municipios = None,
     fontes_filtro: fontes_service.Fontes = None,
     ano: str | Sequence[str] | None = None,
+    estado: str | None = None,
 ) -> NovidadesPerfil:
     """Últimas novidades do território: propostas (captação) e verbas (recebidos).
 
@@ -635,6 +636,13 @@ async def novidades(
     permanentemente vazios, porque a janela nunca alcançava esses itens. `anos`
     volta sempre com o território inteiro, para o filtro não perder as opções
     que ele mesmo escondeu.
+
+    `estado` é o recorte dos CARDS do painel (empenhado/publicado/pago, §06):
+    clicar no card mostra as propostas que compõem aquele número. Ele vale só
+    para o eixo captação — repasse é dinheiro que já caiu, não tem empenho nem
+    publicação —, então com o filtro ligado o feed é só de propostas. Como o
+    ano, é aplicado ANTES da janela: filtrar depois deixaria o recorte
+    permanentemente vazio quando a janela não alcançasse os itens.
     """
     safras = set(_safras(ano))
     pref = await _preferencias(session, usuario.id)
@@ -678,6 +686,10 @@ async def novidades(
     if safras:
         propostas = [p for p in propostas if propostas_service.ano_de(p) in safras]
         repasses = [r for r in repasses if _ano_do_repasse(r) in safras]
+
+    if estado in propostas_service.ESTADOS_FINANCEIROS:
+        propostas = await propostas_service.filtrar_por_estado(session, propostas, estado)
+        repasses = []
 
     itens = [
         NovidadeItem(

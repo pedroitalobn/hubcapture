@@ -91,6 +91,13 @@ _ANO_QUERY = Query(
     description="safra(s) do recorte — repita o parâmetro para várias; omitir = todos os anos",
 )
 
+# Estado financeiro — o recorte que os CARDS do painel viraram (ponto 06): o
+# card deixou de ser só leitura e filtra a lista abaixo dele.
+_ESTADO_QUERY = Query(
+    default=None,
+    description="recorte dos cards: empenhado | publicado | pago (omitir = todas)",
+)
+
 
 @router.get("/profile/overview", response_model=VisaoGeralPerfil)
 async def visao_geral_perfil(
@@ -111,6 +118,7 @@ async def novidades_perfil(
     fonte: list[str] | None = _FONTE_QUERY,
     limite: int = Query(default=20, ge=1, le=200, description="tamanho da janela do feed"),
     ano: list[str] | None = _ANO_QUERY,
+    estado: str | None = _ESTADO_QUERY,
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> NovidadesPerfil:
@@ -119,6 +127,9 @@ async def novidades_perfil(
     `limite` controla a profundidade da janela e `ano`, a safra: o filtro entra
     ANTES da janela, então escolher um ano anterior traz os itens daquele ano —
     não só os que sobraram das novidades mais recentes.
+
+    `estado` é o recorte dos cards do painel (empenhado/publicado/pago): clicar
+    no card lista as propostas que compõem aquele número.
     """
     return await service.novidades(
         session,
@@ -127,4 +138,5 @@ async def novidades_perfil(
         municipios_filtro=municipio,
         fontes_filtro=fonte,
         ano=ano,
+        estado=estado,
     )

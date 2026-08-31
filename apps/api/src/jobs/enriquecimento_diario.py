@@ -148,6 +148,11 @@ async def _carimbar_execucao_webapp(session, proposta_id, item: dict) -> None:
         "valor_pago": _decimal_br(rep.get("valor_desembolsado")),
         "situacao_publicacao": ex.get("situacao_publicacao"),
         "webapp": {
+            # a MESMA situação também fica carimbada aqui: é o que permite a
+            # tela dizer que o "Publicado" exibido veio da consulta ao vivo, e
+            # não do pacote (~mensal). Sem a marca, divergência com o portal
+            # vira discussão sem evidência (§56).
+            "situacao_publicacao": ex.get("situacao_publicacao"),
             "situacao_instrumento": ex.get("situacao_instrumento"),
             "empenhado": ex.get("empenhado_flag"),
             "situacao_siafi": ex.get("situacao_siafi"),

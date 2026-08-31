@@ -2399,3 +2399,72 @@ CONNECTOR: estado em `configuracoes` sob `fonte_<id>`, default no catálogo
   o diagnóstico novo, então a tela não recarrega nem mantém estado divergindo do
   servidor. Fonte fora do catálogo = 422.
 - Web: coluna **Coleta** em `app/admin/sources` com o chip ativa/pausada.
+
+## 56. Feedback do gestor 28/08 — publicação tri-estado, empenho conciliado, documentos
+
+Rodada de correções vinda do uso real (documento "Alterações no Hub Capture —
+28/08"). Quatro delas mudam REGRA e não só texto; ficam registradas porque cada
+uma nasceu de a tela afirmar mais do que a fonte disse.
+
+- **Publicação é TRI-ESTADO** (`services/publicacao.py`, fonte única da regra):
+  `publicado` · `nao_publicado` · **`sem_informacao`**. A regra antiga era "todo
+  texto que não começa por 'não' é publicado", então um `sim` — o valor do campo
+  VIZINHO ("Empenhado sim"), capturado pelo scraping ao lado do rótulo
+  "Publicação" — virava "Publicado" numa proposta que o TransfereGov dava como
+  Não Publicado. Agora só marcador afirmativo, DATA de publicação ou valor > 0
+  contam; o desconhecido não vira afirmação. Três correções na mesma cadeia:
+  (1) `normalizer._situacao_publicacao` resolve a coluna BOOLEANA (`PUBLICADO:
+  sim` → "Publicado") onde o nome da coluna ainda é conhecido, e recusa `sim`
+  numa coluna que deveria trazer a situação; (2) o regex do webapp
+  (`pareceres_siconv`) percorre TODOS os casamentos de "Publicação" e fica com o
+  primeiro que é resposta à pergunta — a página tem outros; (3) a API entrega o
+  computado `PropostaRead.publicacao` (estado + rótulo + data + **origem**:
+  consulta ao vivo × pacote × relatório), e a tela não interpreta mais texto cru.
+  Divergência com o portal passa a ser diagnosticável em vez de discutível.
+- **Empenho tem DUAS origens e o painel usa as duas**: o agregado da
+  execução (`execucao.valor_empenhado`, do pacote/painel, ~mensal) e a soma das
+  NOTAS (`proposta_empenhos`). O detalhe já conciliava; o resumo do painel, não —
+  proposta cujo empenho só existia em nota ficava fora do card "Empenhado" com o
+  documento à vista na página dela. `empenhos_proposta.totais_por_proposta`
+  agrega os documentos do recorte em UMA consulta e `propostas.resumo` usa como
+  retaguarda (o agregado VENCE: somar os dois contaria o mesmo dinheiro duas
+  vezes). Pelo mesmo motivo a seção "Empenhos" não afirma mais "nenhum empenho
+  emitido" quando o agregado informa empenho: o que falta é o documento, não a
+  reserva orçamentária.
+- **Documentos digitalizados** (`proposta_documentos`, migration `c1d2e3f4a5b6`):
+  publicou → cadê o arquivo. A lista vive na MESMA página de detalhe do webapp
+  SIconv que já visitamos (`parse_documentos`, sem navegação nova, também no
+  lote do enriquecimento). Guardamos a REFERÊNCIA (nome, data, URL na fonte),
+  nunca os bytes — o arquivo é público na origem e cachear binário de terceiro
+  cria acervo que ninguém pediu para manter. A espécie sai do NOME por palavra
+  inteira (`normalizer_documento.classificar`; "contrato" está dentro de
+  "subcontratado"), e a publicação lidera a lista. `GET /proposals/{id}/documents`
+  com o gate por endpoint da §40; seção `components/DocumentosProposta.tsx` no
+  detalhe. Fonte sem essa lista responde `fonte_nao_suportada` — que é diferente
+  de "esta proposta não tem documento", e a tela precisa dessa diferença.
+- **Os cards do painel viram FILTRO** (ponto 06): total · empenhado · publicado ·
+  pago deixaram de ser leitura pura — clicar recorta o feed pelas propostas que
+  compõem o número (`propostas.estados_de`/`filtrar_por_estado`,
+  `GET /profile/feed?estado=`). Os totais continuam sendo os do TERRITÓRIO: card
+  que se recalculasse ao ser clicado apagaria o próprio rótulo e prenderia o
+  gestor no recorte (mesma disciplina das facetas). Recorte ligado esconde os
+  repasses — dinheiro que já caiu não tem empenho nem publicação. Estado
+  desconhecido devolve tudo, nunca vazio.
+
+Junto vieram as correções de superfície: o critério de alerta **"Oportunidades
+não aproveitadas" foi RETIRADO** (repasse sem proposta na mesma fonte é o normal
+do repasse constitucional — disparava sempre; alertas já gravados seguem legíveis
+por `criterios_alerta.RETIRADOS`); o critério `publicacao` virou **"Publicação"**
+e cada fato ganhou sua frase (o alerta saía rotulado "Proposta publicada" com o
+texto "publicação atualizado(s)" para uma proposta NÃO publicada); e o **"Detalhe
+técnico (para a administração)"** — rota, exceção, parâmetro a calibrar — só
+aparece para `is_superuser` (`lib/admin.ts::useEhAdmin`), com o gestor lendo
+"Não foi possível consultar a fonte agora". Textos de mecânica saíram do
+cabeçalho da Captação e do título da lista do painel.
+
+**Fora desta rodada, por decisão do cliente**: o funcionamento das abas
+Oportunidades e Regularidade (Fase 2 do `docs/PLANO_MELHORIAS_APP.md`, §2.5/§2.7).
+**Pendente de calibração ao vivo** (exige máquina com saída para gov.br): a
+extração da lista de documentos e a confirmação da causa raiz do "Publicado"
+divergente — o endurecimento acima cobre as duas hipóteses, mas só o probe contra
+a fonte fecha a questão.

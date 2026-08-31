@@ -157,9 +157,13 @@ async def test_alertas_seguem_o_recorte_por_payload_ou_proposta(seed_user, seed_
         await conn.execute(text("SELECT set_config('app.usuario_id', :uid, true)"), {"uid": str(u)})
         await conn.execute(
             text(
-                "INSERT INTO alertas (usuario_id, proposta_id, tipo, payload) VALUES "
-                "(:u, NULL, 'oportunidade', '{\"municipio_ibge\":\"2311801\"}'::jsonb), "
-                "(:u, :p, 'status', '{\"mudou\":{}}'::jsonb)"
+                # `lido` é NOT NULL sem default no banco (o default é do ORM):
+                # INSERT cru precisa dizer o valor. Os dois tipos aqui são
+                # LEGADOS de propósito — o de-para de leitura tem que continuar
+                # servindo o alerta que já está gravado (§56).
+                "INSERT INTO alertas (usuario_id, proposta_id, tipo, payload, lido) VALUES "
+                "(:u, NULL, 'oportunidade', '{\"municipio_ibge\":\"2311801\"}'::jsonb, false), "
+                "(:u, :p, 'status', '{\"mudou\":{}}'::jsonb, false)"
             ),
             {"u": u, "p": proposta_sp.id},
         )

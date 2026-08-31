@@ -60,6 +60,8 @@ ABA_REPASSES = (
 
 TIMEOUT_MS = 60_000
 MAX_PARECERES = 30  # trava: uma proposta não tem centenas de pareceres
+MAX_DOCUMENTOS = 60  # idem para a lista de documentos digitalizados
+SOURCE_ID_DOCUMENTO = "siconv_documento"
 
 # Os rótulos da página, na ordem em que aparecem. O TEXTO do parecer não está
 # aqui: ele mora num `<textarea name="parecer">`, que o inner_text da página
@@ -118,13 +120,37 @@ _RE_EMPENHO = re.compile(
 # Cabeçalho do detalhe do instrumento — os rótulos que respondem as três
 # perguntas do gestor (empenhou? publicou? pagou?) mais a referência SIAFI.
 _RE_EXECUCAO = (
-    ("situacao_instrumento", re.compile(r"Situação\s+(?!no SIAFI|de Contratação)([A-Za-zÀ-ú ]{3,40}?)\s+Empenhado\b")),
+    (
+        "situacao_instrumento",
+        re.compile(
+            r"Situação\s+(?!no SIAFI|de Contratação)([A-Za-zÀ-ú ]{3,40}?)\s+Empenhado\b"
+        ),
+    ),
     ("empenhado_flag", re.compile(r"Empenhado\s+(sim|não)\b", re.I)),
-    ("situacao_publicacao", re.compile(r"Publicação\s+([A-Za-zÀ-ú ]{3,40}?)\s+(?:Regime|Código|Situação|Número)")),
     ("situacao_siafi", re.compile(r"Situação no SIAFI\s+(.{3,60}?)\s+Subtipo")),
     ("instrumento", re.compile(r"Código do Instrumento\s+(\d+)")),
     ("processo", re.compile(r"Número do Processo\s+(\S+)")),
 )
+
+# A PUBLICAÇÃO sai por caminho próprio (ponto 09). O rótulo "Publicação" aparece
+# mais de uma vez na página (a lista de documentos tem um arquivo chamado
+# "Publicação…"), e o primeiro casamento podia trazer o valor do campo VIZINHO
+# — o `sim` do "Empenhado sim" ao lado. Percorremos TODOS os casamentos e
+# ficamos com o primeiro que é resposta a "saiu ou não saiu?"; nenhum sendo,
+# não gravamos nada, que é melhor que gravar a resposta de outra pergunta.
+_RE_PUBLICACAO = re.compile(
+    r"Publicaç(?:ão|ao)\s+([A-Za-zÀ-ú/0-9 ]{2,40}?)\s+(?:Regime|Código|Situação|Número|Data)"
+)
+
+
+def _situacao_publicacao(plano: str) -> str | None:
+    from ..services import publicacao
+
+    for m in _RE_PUBLICACAO.finditer(plano):
+        valor = m.group(1).strip()
+        if publicacao.estado(valor) != publicacao.SEM_INFORMACAO:
+            return valor
+    return None
 
 # Resumo da "Listagem de Repasses": total, desembolsado (o PAGO de verdade),
 # a desembolsar e a data do último desembolso (ausente quando nada saiu).
@@ -143,6 +169,9 @@ def _parse_execucao(corpo: str) -> dict:
         m = rx.search(plano)
         if m:
             saida[chave] = m.group(1).strip()
+    publicacao = _situacao_publicacao(plano)
+    if publicacao:
+        saida["situacao_publicacao"] = publicacao
     return saida
 
 
@@ -157,6 +186,85 @@ def _parse_repasses(corpo: str) -> dict:
         "valor_a_desembolsar": c["a_pagar"],
         "data_ultimo_desembolso": c["ultimo"],
     }
+
+
+# ── Lista de Documentos Digitalizados ──────────────────────────────────────
+# O arquivo que comprova o ato (a publicação, o contrato assinado, o ofício ao
+# legislativo) está NA MESMA página de detalhe que já visitamos — no fim, numa
+# tabela "Nome Arquivo | Data Upload | Baixar". Não custa navegação nova.
+#
+# O parse é do HTML e não do inner_text porque o que interessa junto do nome é
+# o LINK: sem ele o gestor lê que o documento existe e continua sem o documento.
+_MARCA_DOCUMENTOS = re.compile(r"documentos?\s+digitalizados?", re.I)
+_LINHA = re.compile(r"<tr\b.*?</tr>", re.I | re.S)
+_CELULA = re.compile(r"<t[dh]\b[^>]*>(.*?)</t[dh]>", re.I | re.S)
+_TAGS = re.compile(r"<[^>]+>")
+_DATA_BR = re.compile(r"\b(\d{2}/\d{2}/\d{4})\b")
+_HREF = re.compile(r"""href\s*=\s*['"]([^'"]+)['"]""", re.I)
+_ACAO_JS = re.compile(r"""['"]([^'"]*\.do\?[^'"]+)['"]""", re.I)
+
+
+def _texto_da_celula(html_bruto: str) -> str:
+    return " ".join(html_.unescape(_TAGS.sub(" ", html_bruto)).split())
+
+
+def _url_da_linha(linha: str) -> str | None:
+    """O link de download da linha, absoluto. Âncora morta (`#`, `javascript:`)
+    não conta como link: o alvo real, nessas páginas, vem no onclick."""
+    for bruto in _HREF.findall(linha):
+        alvo = bruto.strip()
+        if alvo and not alvo.startswith("#") and not alvo.lower().startswith("javascript:"):
+            return _absoluta(alvo)
+    m = _ACAO_JS.search(linha)
+    return _absoluta(m.group(1)) if m else None
+
+
+def _absoluta(alvo: str) -> str:
+    if alvo.startswith("http"):
+        return alvo
+    return f"{BASE}/{alvo.lstrip('/')}"
+
+
+def parse_documentos(html_pagina: str) -> list[dict]:
+    """Linhas da lista de documentos digitalizados da página de detalhe.
+
+    Tolerante de propósito: a tabela é Struts de 2004, sem id nem classe. O que
+    define uma linha VÁLIDA é ter um nome de arquivo e uma data — cabeçalho,
+    rodapé e "Nenhum registro" não têm as duas coisas e caem fora sozinhos.
+    """
+    marca = _MARCA_DOCUMENTOS.search(html_pagina)
+    if not marca:
+        return []
+    trecho = html_pagina[marca.end() :]
+    saida: list[dict] = []
+    for linha in _LINHA.findall(trecho):
+        celulas = [_texto_da_celula(c) for c in _CELULA.findall(linha)]
+        celulas = [c for c in celulas if c]
+        if len(celulas) < 2:
+            continue
+        datas = [c for c in celulas if _DATA_BR.fullmatch(c)]
+        if not datas:
+            continue
+        # o nome é a célula mais longa que não é data nem rótulo de botão
+        candidatos = [
+            c
+            for c in celulas
+            if not _DATA_BR.fullmatch(c) and c.lower() not in ("baixar", "detalhar", "excluir")
+        ]
+        if not candidatos:
+            continue
+        nome = max(candidatos, key=len)
+        saida.append(
+            {
+                "nome": nome,
+                "data_upload": datas[0],
+                "url": _url_da_linha(linha),
+                "_scraper": "playwright",
+            }
+        )
+        if len(saida) >= MAX_DOCUMENTOS:
+            break
+    return saida
 
 
 class ParecerSiconvConnector:
@@ -273,6 +381,41 @@ class ParecerSiconvConnector:
                 await browser.close()
         return saida
 
+    async def documentos_por_id_proposta(self, id_proposta: str) -> list[dict]:
+        """Documentos digitalizados da proposta — a lista da própria página de
+        detalhe (publicação, contrato assinado, ofício ao legislativo).
+
+        Mesmo rito de sessão dos pareceres. Não há aba a visitar: a tabela vive
+        no fim do detalhe, então a página que já abrimos basta.
+        """
+        id_proposta = str(id_proposta).strip()
+        if not id_proposta.isdigit():
+            raise ValueError(
+                f"idProposta do SIconv deve ser o id numérico interno (veio {id_proposta!r})"
+            )
+        from playwright.async_api import async_playwright
+
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(
+                args=["--no-sandbox", "--disable-dev-shm-usage"]
+            )
+            try:
+                pg = await (await browser.new_context(locale="pt-BR")).new_page()
+                await pg.goto(ENTRADA, wait_until="networkidle", timeout=TIMEOUT_MS)
+                await pg.goto(
+                    f"{DETALHE}?idProposta={id_proposta}&destino=&idConvenio=",
+                    wait_until="networkidle",
+                    timeout=TIMEOUT_MS,
+                )
+                if "Login" in (await pg.title()):
+                    raise RuntimeError(
+                        "o acesso livre do Transferegov não abriu a proposta "
+                        "(caiu na tela de login) — o rito do guest pode ter mudado"
+                    )
+                return parse_documentos(await pg.content())
+            finally:
+                await browser.close()
+
     async def coletar_lote(
         self, ids_proposta: list[str], *, incluir_empenhos: bool = True
     ) -> dict[str, dict]:
@@ -304,6 +447,7 @@ class ParecerSiconvConnector:
                     item: dict = {
                         "pareceres": [],
                         "empenhos": [],
+                        "documentos": [],
                         "execucao": {},
                         "repasses": {},
                         "erro": None,
@@ -318,6 +462,8 @@ class ParecerSiconvConnector:
                         if "Login" in (await pg.title()):
                             raise RuntimeError("sessão de acesso livre caiu no login")
                         item["execucao"] = _parse_execucao(await pg.inner_text("body"))
+                        # a lista de documentos está NESTA página — de graça
+                        item["documentos"] = parse_documentos(await pg.content())
                         await pg.goto(
                             ABA_PARECERES, wait_until="networkidle", timeout=TIMEOUT_MS
                         )

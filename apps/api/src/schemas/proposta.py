@@ -64,6 +64,22 @@ class CategoriaTag(BaseModel):
     rotulo: str
 
 
+class PublicacaoRead(BaseModel):
+    """"Saiu ou não saiu?" — a resposta em três estados, nunca em dois.
+
+    `sem_informacao` é resposta: a fonte não disse. Espremer isso em "não
+    publicado" (ou, pior, em "publicado") é o que fazia a tela afirmar o que
+    o portal desmentia.
+    """
+
+    estado: str  # publicado | nao_publicado | sem_informacao
+    rotulo: str
+    valor: str | None = None
+    data: date | None = None
+    #: de onde veio o dado exibido (consulta ao vivo, pacote, relatório)
+    origem: str | None = None
+
+
 class PropostaRead(BaseModel):
     """Representação da proposta devolvida pela API."""
 
@@ -128,6 +144,33 @@ class PropostaRead(BaseModel):
         from ..services.propostas import classificar_natureza_juridica
 
         return classificar_natureza_juridica((self.execucao or {}).get("natureza_juridica"))
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def publicacao(self) -> PublicacaoRead:
+        """Estado da publicação do instrumento, já resolvido (ponto 09).
+
+        A regra de leitura é uma só e mora na API (`services/publicacao`): o
+        front que decidisse por conta própria acabaria discordando do alerta e
+        do PDF, que é como "Publicado" apareceu numa proposta que a fonte dava
+        como não publicada.
+        """
+        from ..services import publicacao as publicacao_service
+
+        ex = self.execucao or {}
+        estado = publicacao_service.do_execucao(ex)
+        return PublicacaoRead(
+            estado=estado,
+            rotulo=publicacao_service.ROTULOS[estado],
+            valor=ex.get("valor_publicado"),
+            data=publicacao_service.data_publicacao(ex),
+            # sem estado não há dado exibido, logo não há origem a atribuir
+            origem=(
+                publicacao_service.origem(ex)
+                if estado != publicacao_service.SEM_INFORMACAO
+                else None
+            ),
+        )
 
     @computed_field  # type: ignore[prop-decorator]
     @property

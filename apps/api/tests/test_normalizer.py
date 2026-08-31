@@ -149,3 +149,20 @@ def test_publicado_entra_na_execucao_como_valor_e_como_situacao() -> None:
 
     exec_situacao = _montar_execucao({"PUBLICACAO": "Publicado"})
     assert exec_situacao and exec_situacao["situacao_publicacao"] == "Publicado"
+
+
+def test_coluna_booleana_de_publicacao_vira_situacao() -> None:
+    """Ponto 09: `situacao_publicacao` casa colunas de dois feitios — a que traz
+    a situação por extenso e a BOOLEANA (`PUBLICADO: sim`). O sim/não só faz
+    sentido junto do nome da coluna, então é aqui que ele vira texto."""
+    from src.ingestion.normalizer import _montar_execucao
+
+    assert _montar_execucao({"PUBLICADO": "sim"}) == {"situacao_publicacao": "Publicado"}
+    assert _montar_execucao({"publicacao": "nao"}) == {"situacao_publicacao": "Não publicado"}
+    assert _montar_execucao({"situacao_publicacao": "Não Publicado"}) == {
+        "situacao_publicacao": "Não Publicado"
+    }
+    # `sim` numa coluna que deveria trazer a SITUAÇÃO é campo trocado (o
+    # "Empenhado sim" que o scraping capturou ao lado do rótulo "Publicação"):
+    # não entra, porque ausência é melhor do que afirmação errada.
+    assert _montar_execucao({"situacao_publicacao": "sim"}) is None

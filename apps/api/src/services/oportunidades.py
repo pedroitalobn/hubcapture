@@ -1,6 +1,6 @@
-"""Varredura do usuário: mudanças monitoradas + futuras propostas + oportunidades.
+"""Varredura do usuário: mudanças nas propostas monitoradas + futuras propostas.
 
-Três detecções, todas na sessão RLS do próprio usuário e todas recortadas pelos
+Duas detecções, ambas na sessão RLS do próprio usuário e ambas recortadas pelos
 CRITÉRIOS que o usuário escolheu ao configurar o monitoramento (§53) — sem isso
 o painel alertava toda e qualquer alteração:
 
@@ -12,10 +12,11 @@ o painel alertava toda e qualquer alteração:
 1. **nova_proposta** — para cada `monitoramentos_busca` ativo, propostas do
    município (recortadas por fonte/área) que entraram no cache DEPOIS do último
    alerta da busca geram um alerta cada; o cursor `ultimo_alerta_em` avança.
-2. **oportunidade** — o alerta do fluxograma "recursos disponíveis com
-   propostas não cadastradas": município que RECEBE repasses de uma fonte mas
-   não tem nenhuma proposta de captação dessa fonte. Dedup por alerta não-lido
-   igual (mesmo município+fonte).
+
+O alerta **oportunidade** ("recebeu recurso da fonte X sem proposta cadastrada
+em X") foi RETIRADO: a ausência de proposta numa fonte é o normal do repasse
+constitucional, então o aviso disparava sempre e virou ruído de fundo na
+central. Os alertas já gravados continuam legíveis (`criterios_alerta.RETIRADOS`).
 
 Ao final, os alertas criados são despachados por email/WhatsApp conforme os
 `canais` das buscas (painel é implícito — o alerta já está no banco).
@@ -25,14 +26,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.alerta import Alerta
 from ..models.monitoramento import Monitoramento, MonitoramentoBusca
-from ..models.municipio_interesse import MunicipioInteresse
 from ..models.proposta import Proposta
-from ..models.repasse import Repasse
 from ..models.usuario import Usuario
 from ..notifications import email as email_notif
 from ..notifications import uniq
@@ -158,20 +157,6 @@ async def _buscas_ativas(session: AsyncSession, usuario: Usuario) -> list[Monito
     )
 
 
-def _criterios_do_territorio(buscas: list[MonitoramentoBusca]) -> set[str]:
-    """União dos critérios de território das buscas ativas.
-
-    Sem nenhuma busca configurada valem os padrões — a varredura de
-    oportunidade nasceu independente das buscas e continua assim.
-    """
-    if not buscas:
-        return criterios_alerta.padroes(criterios_alerta.ESCOPO_TERRITORIO)
-    ligados: set[str] = set()
-    for b in buscas:
-        ligados |= criterios_alerta.efetivos(b.criterios, criterios_alerta.ESCOPO_TERRITORIO)
-    return ligados
-
-
 async def _novas_propostas(
     session: AsyncSession, usuario: Usuario, buscas: list[MonitoramentoBusca]
 ) -> tuple[list[Alerta], set[str]]:
@@ -215,73 +200,6 @@ async def _novas_propostas(
     return criados, canais
 
 
-async def _oportunidades(session: AsyncSession, usuario: Usuario) -> list[Alerta]:
-    """Alertas 'oportunidade': repasses recebidos sem proposta cadastrada da fonte."""
-    criados: list[Alerta] = []
-    municipios = (
-        (
-            await session.execute(
-                select(MunicipioInteresse).where(MunicipioInteresse.usuario_id == usuario.id)
-            )
-        )
-        .scalars()
-        .all()
-    )
-    # payloads de alertas de oportunidade não lidos (dedupe)
-    abertos = (
-        (
-            await session.execute(
-                select(Alerta.payload).where(
-                    Alerta.usuario_id == usuario.id,
-                    Alerta.tipo == "oportunidade",
-                    Alerta.lido.is_(False),
-                )
-            )
-        )
-        .scalars()
-        .all()
-    )
-    ja_abertos = {(p.get("municipio_ibge"), p.get("fonte")) for p in abertos if isinstance(p, dict)}
-
-    for m in municipios:
-        fontes_recebendo = (
-            await session.execute(
-                select(Repasse.fonte, func.sum(Repasse.valor))
-                .where(Repasse.municipio_ibge == m.ibge)
-                .group_by(Repasse.fonte)
-            )
-        ).all()
-        if not fontes_recebendo:
-            continue
-        fontes_com_proposta = set(
-            (
-                await session.execute(
-                    select(Proposta.fonte).where(Proposta.municipio_ibge == m.ibge).distinct()
-                )
-            )
-            .scalars()
-            .all()
-        )
-        for fonte, total in fontes_recebendo:
-            if fonte in fontes_com_proposta or (m.ibge, fonte) in ja_abertos:
-                continue
-            alerta = Alerta(
-                usuario_id=usuario.id,
-                proposta_id=None,
-                tipo="oportunidade",
-                payload={
-                    "municipio_ibge": m.ibge,
-                    "municipio_nome": m.nome,
-                    "fonte": fonte,
-                    "valor_recebido": str(total) if total is not None else None,
-                    "motivo": "recursos recebidos sem proposta de captação cadastrada",
-                },
-            )
-            session.add(alerta)
-            criados.append(alerta)
-    return criados
-
-
 def _linha(alerta: Alerta) -> str:
     p = alerta.payload or {}
     municipio = p.get("municipio_nome") or p.get("municipio_ibge") or "seu município"
@@ -290,7 +208,7 @@ def _linha(alerta: Alerta) -> str:
         return f"{criterios_alerta.rotulo(alerta.tipo)} em {municipio}: {titulo} — {p['resumo']}"
     if alerta.tipo == "nova_proposta":
         return f"Nova proposta em {municipio}: {p.get('titulo')} ({p.get('fonte')})"
-    if alerta.tipo == "oportunidade":
+    if alerta.tipo == "oportunidade":  # retirado; alerta antigo ainda é despachável
         return (
             f"Oportunidade em {municipio}: recursos da fonte {p.get('fonte')} "
             "recebidos sem proposta de captação cadastrada"
@@ -314,27 +232,18 @@ async def _despachar(usuario: Usuario, alertas: list[Alerta], canais: set[str]) 
 
 
 async def varredura(session: AsyncSession, usuario: Usuario) -> int:
-    """Roda as três detecções e despacha. Retorna o nº de alertas criados."""
+    """Roda as duas detecções e despacha. Retorna o nº de alertas criados."""
     mudancas, canais = await _mudancas_monitoradas(session, usuario)
     buscas = await _buscas_ativas(session, usuario)
-    do_territorio = _criterios_do_territorio(buscas)
     novos, canais_busca = await _novas_propostas(session, usuario, buscas)
     canais |= canais_busca
-    oportunidades = (
-        await _oportunidades(session, usuario) if "oportunidade" in do_territorio else []
-    )
-    # oportunidades saem também por email/wpp quando o usuário tem opt-in
-    if oportunidades and usuario.optin_wpp:
-        canais.add("wpp")
-    if oportunidades:
-        canais.add("email")
     # canal fora do plano (§39) não despacha — o alerta continua no painel
     cfg = await plano_gates.config_do_usuario(session, usuario.id)
     if not plano_gates.feature_liberada(cfg, "alertas_email"):
         canais.discard("email")
     if not plano_gates.feature_liberada(cfg, "alertas_wpp"):
         canais.discard("wpp")
-    todos = mudancas + novos + oportunidades
+    todos = mudancas + novos
     await session.flush()
     await _despachar(usuario, todos, canais)
     return len(todos)

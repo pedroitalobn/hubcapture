@@ -336,6 +336,85 @@ async def test_proposta_sem_numero_diz_que_falta_chave(
         assert service.chaves_da_proposta(proposta) == {}
 
 
+# ── o empenho das NOTAS entra no painel (§56, ponto 12 do feedback) ────────
+async def test_empenho_so_em_nota_entra_no_card_do_painel(
+    seed_user, seed_municipio, seed_proposta, monkeypatch
+) -> None:
+    """A proposta cujo empenho só existe em NOTA ficava fora do card
+    "Empenhado" do Meu painel — com o documento à vista na página dela. O
+    resumo passa a usar os documentos como retaguarda do agregado da fonte."""
+
+    class ConnectorFake:
+        async def collect_por_proposta(self, chaves):
+            return [LINHA]
+
+    monkeypatch.setattr(
+        "src.services.empenhos_proposta.EmpenhoEspecialConnector", lambda: ConnectorFake()
+    )
+    from src.db.session import rls_session
+    from src.services import propostas as prop_service
+
+    uid = await seed_user("cardempenho@x.com")
+    await seed_municipio(uid, "3550308")
+    # A: só NOTA (sem agregado na execução) — é a que sumia do card
+    so_nota = await seed_proposta(
+        "transferegov_esp", "123456", "3550308", numero_proposta="14275/2026"
+    )
+    # B: só AGREGADO (a fonte publica o total, sem documento)
+    await seed_proposta(
+        "transferegov_disc",
+        "999",
+        "3550308",
+        numero_proposta="30011/2026",
+        execucao=json.dumps({"valor_empenhado": "700000.00", "valor_pago": "100000.00"}),
+    )
+
+    async with rls_session(uid) as s:
+        await andamento.empenhos(s, so_nota, atualizar=True, usuario_id=uid)
+    async with rls_session(uid) as s:
+        cards = (await prop_service.resumo(s))["cards"]
+
+    # 1.500.000 da nota + 700.000 do agregado
+    assert cards["valor_empenhado"] == Decimal("2200000.00")
+    # 500.000 pagos na nota + 100.000 do agregado
+    assert cards["valor_pago"] == Decimal("600000.00")
+    assert cards["valor_a_utilizar"] == Decimal("1600000.00")
+
+
+async def test_agregado_da_fonte_vence_os_documentos(
+    seed_user, seed_municipio, seed_proposta, monkeypatch
+) -> None:
+    """Com as duas origens, o agregado manda — somar os dois contaria o mesmo
+    dinheiro duas vezes."""
+
+    class ConnectorFake:
+        async def collect_por_proposta(self, chaves):
+            return [LINHA]
+
+    monkeypatch.setattr(
+        "src.services.empenhos_proposta.EmpenhoEspecialConnector", lambda: ConnectorFake()
+    )
+    from src.db.session import rls_session
+    from src.services import propostas as prop_service
+
+    uid = await seed_user("duasorigens@x.com")
+    await seed_municipio(uid, "3550308")
+    pid = await seed_proposta(
+        "transferegov_esp",
+        "123456",
+        "3550308",
+        numero_proposta="14275/2026",
+        execucao=json.dumps({"valor_empenhado": "900000.00"}),
+    )
+
+    async with rls_session(uid) as s:
+        await andamento.empenhos(s, pid, atualizar=True, usuario_id=uid)
+    async with rls_session(uid) as s:
+        cards = (await prop_service.resumo(s))["cards"]
+
+    assert cards["valor_empenhado"] == Decimal("900000.00")
+
+
 async def _carregar(session, pid: uuid.UUID):
     from sqlalchemy import select
 

@@ -26,6 +26,7 @@ from .pasta import Pasta, PastaProposta
 from .plano import Plano
 from .preferencias import PreferenciasUsuario
 from .proposta import Proposta
+from .proposta_documento import PropostaDocumento
 from .proposta_embedding import PropostaEmbedding
 from .proposta_emenda import PropostaEmenda
 from .proposta_empenho import PropostaEmpenho
@@ -61,6 +62,7 @@ __all__ = [
     "Plano",
     "PreferenciasUsuario",
     "Proposta",
+    "PropostaDocumento",
     "PropostaEmbedding",
     "PropostaEmenda",
     "PropostaEmpenho",

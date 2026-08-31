@@ -20,7 +20,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..ai import categorias as categorias_ai
 from ..models.proposta import Proposta
 from ..schemas.proposta import PropostaCanonica
+from . import empenhos_proposta as empenhos_service
 from . import fontes as fontes_service
+from . import publicacao as publicacao_service
 from ._territorio import Municipios
 from ._territorio import condicao as condicao_municipio
 from ._territorio import filtrar as filtrar_municipio
@@ -759,23 +761,76 @@ def _desembolsado(p: Proposta) -> Decimal:
 
 
 # "Publicado" na fonte vem ora como VALOR, ora como SITUAÇÃO (§ pontos 08/13
-# do feedback). Estas duas funções leem os dois sentidos sem escolher por conta
-# própria: o valor manda quando existe; senão vale o estado da publicação.
-_NAO_PUBLICADO = ("nao", "não", "n", "false", "0", "sem publicacao", "nao publicado")
-
-
+# do feedback). A leitura é TRI-ESTADO e mora num lugar só (`publicacao.py`):
+# aqui a pergunta é binária ("conta como publicada?"), e só o estado `publicado`
+# conta. O que a fonte não respondeu NÃO é publicado — era assim que um `sim`
+# do campo vizinho virava "Publicado" na tela (ponto 09 do feedback).
 def _valor_publicado(p: Proposta) -> Decimal:
     return _dec(_execucao(p).get("valor_publicado"))
 
 
 def esta_publicada(p: Proposta) -> bool:
     """A proposta/convênio foi publicado? (valor > 0 ou situação afirmativa)."""
-    if _valor_publicado(p) > 0:
-        return True
-    bruto = str(_execucao(p).get("situacao_publicacao") or "").strip().lower()
-    if not bruto:
-        return False
-    return not any(bruto.startswith(n) for n in _NAO_PUBLICADO)
+    return publicacao_service.do_execucao(_execucao(p)) == publicacao_service.PUBLICADO
+
+
+def _empenhado_de(p: Proposta, docs: dict) -> Decimal:
+    """Empenhado da proposta: o agregado da fonte; sem ele, a soma das notas.
+
+    A ordem importa e não é arbitrária — o agregado é o número que a própria
+    fonte publica para a transferência; a soma dos documentos é reconstrução
+    nossa. Somar os dois duplicaria o mesmo dinheiro.
+    """
+    agregado = _dec(_execucao(p).get("valor_empenhado"))
+    if agregado:
+        return agregado
+    resumo_docs = docs.get(p.id)
+    return (resumo_docs.valor_empenhado or Decimal(0)) if resumo_docs else Decimal(0)
+
+
+def _pago_de(p: Proposta, docs: dict) -> Decimal:
+    """Pago da proposta, com a mesma precedência do empenhado."""
+    agregado = _dec(_execucao(p).get("valor_pago"))
+    if agregado:
+        return agregado
+    resumo_docs = docs.get(p.id)
+    return (resumo_docs.valor_pago or Decimal(0)) if resumo_docs else Decimal(0)
+
+
+# ── estado financeiro: o recorte que os cards do Meu painel viraram ────────
+# Os quatro cards (total · empenhado · publicado · pago) deixaram de ser
+# leitura e viraram FILTRO (ponto 06 do feedback): clicar em "Empenhado" mostra
+# as propostas que compõem aquele número. O recorte é derivado — empenho tem
+# duas origens (§56) e publicação é tri-estado (§56) —, então mora aqui, no
+# mesmo lugar em que o resumo soma, para o filtro nunca discordar do card.
+ESTADOS_FINANCEIROS = ("empenhado", "publicado", "pago")
+
+
+def estados_de(p: Proposta, docs: dict | None = None) -> set[str]:
+    """Em quais dos cards do painel esta proposta entra."""
+    docs = docs or {}
+    estados: set[str] = set()
+    if _empenhado_de(p, docs) > 0:
+        estados.add("empenhado")
+    if esta_publicada(p) or _valor_publicado(p) > 0:
+        estados.add("publicado")
+    if _pago_de(p, docs) > 0:
+        estados.add("pago")
+    return estados
+
+
+async def filtrar_por_estado(
+    session: AsyncSession, rows: list[Proposta], estado: str | None
+) -> list[Proposta]:
+    """Recorta a lista pelo estado financeiro (None/desconhecido = tudo).
+
+    Estado desconhecido devolve a lista INTEIRA em vez de vazio: o filtro é do
+    painel, e um valor novo no front não pode esvaziar a tela do gestor.
+    """
+    if not estado or estado not in ESTADOS_FINANCEIROS:
+        return rows
+    docs = await empenhos_service.totais_por_proposta(session, rows)
+    return [p for p in rows if estado in estados_de(p, docs)]
 
 
 def _fim_vigencia(p: Proposta) -> date | None:
@@ -800,8 +855,16 @@ async def resumo(session: AsyncSession, **filtros) -> dict:
     # `rows` já vem recortado pela(s) safra(s) — aqui só decidimos a abertura
     safra_unica = len(set(_escolhidos(filtros.get("ano")))) == 1
 
-    empenhado = sum((_dec(_execucao(p).get("valor_empenhado")) for p in rows), Decimal(0))
-    pago = sum((_dec(_execucao(p).get("valor_pago")) for p in rows), Decimal(0))
+    # Empenho tem DUAS origens e o card precisa das duas (§56): o agregado da
+    # execução financeira (pacote/painel da fonte, ~mensal) e a soma das NOTAS
+    # de empenho. Sem esta retaguarda, proposta cujo empenho só existe em nota
+    # ficava fora do "Empenhado" do painel — com o documento à vista na página
+    # dela. Uma consulta para o recorte inteiro; a regra por proposta é a mesma
+    # do detalhe.
+    docs = await empenhos_service.totais_por_proposta(session, rows)
+
+    empenhado = sum((_empenhado_de(p, docs) for p in rows), Decimal(0))
+    pago = sum((_pago_de(p, docs) for p in rows), Decimal(0))
     publicado = sum((_valor_publicado(p) for p in rows), Decimal(0))
     publicadas = sum(1 for p in rows if esta_publicada(p))
     conveniado = sum((_valor_global(p) for p in rows), Decimal(0))

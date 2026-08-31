@@ -13,6 +13,7 @@ em que o empenho não aparecia.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
@@ -105,6 +106,49 @@ async def listar(session: AsyncSession, proposta: Proposta) -> list[PropostaEmpe
         )
     )
     return list((await session.execute(stmt)).scalars().all())
+
+
+async def totais_por_proposta(
+    session: AsyncSession, propostas: Sequence[Proposta]
+) -> dict[uuid.UUID, EmpenhoResumo]:
+    """Totais dos DOCUMENTOS de empenho para VÁRIAS propostas, em uma consulta.
+
+    O painel soma o agregado da execução financeira (`execucao.valor_empenhado`,
+    do pacote/painel da fonte, ~mensal). Empenho recém-emitido só existe nas
+    NOTAS — e a proposta que só tinha nota ficava fora do card "Empenhado",
+    mesmo com o documento à vista na página dela. Aqui os documentos viram
+    total por proposta para o resumo poder usá-los como retaguarda, com a mesma
+    regra do detalhe (líquido das anulações).
+
+    O casamento é o mesmo de `listar` (número da proposta OU do plano de ação),
+    então um documento que case pelas duas chaves conta UMA vez por proposta.
+    """
+    por_numero: dict[str, set[uuid.UUID]] = {}
+    por_plano: dict[str, set[uuid.UUID]] = {}
+    for p in propostas:
+        ch = chaves_da_proposta(p)
+        if ch.get("numero_proposta"):
+            por_numero.setdefault(ch["numero_proposta"], set()).add(p.id)
+        if ch.get("id_plano_acao"):
+            por_plano.setdefault(ch["id_plano_acao"], set()).add(p.id)
+    if not por_numero and not por_plano:
+        return {}
+
+    condicoes = []
+    if por_numero:
+        condicoes.append(PropostaEmpenho.numero_proposta.in_(por_numero))
+    if por_plano:
+        condicoes.append(PropostaEmpenho.numero_plano_acao.in_(por_plano))
+
+    rows = (await session.execute(select(PropostaEmpenho).where(or_(*condicoes)))).scalars().all()
+    agrupado: dict[uuid.UUID, list[PropostaEmpenho]] = {}
+    for e in rows:
+        alvos = por_numero.get(e.numero_proposta or "", set()) | por_plano.get(
+            e.numero_plano_acao or "", set()
+        )
+        for pid in alvos:
+            agrupado.setdefault(pid, []).append(e)
+    return {pid: resumir(itens) for pid, itens in agrupado.items()}
 
 
 def resumir(itens: list[EmpenhoRead] | list[PropostaEmpenho]) -> EmpenhoResumo:

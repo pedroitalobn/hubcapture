@@ -7,6 +7,7 @@ import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { CriteriosAlerta } from "@/components/CriteriosAlerta";
 import { Hint } from "@/components/Hint";
 import { AndamentoProposta } from "@/components/AndamentoProposta";
+import { DocumentosProposta } from "@/components/DocumentosProposta";
 import { EmendasProposta } from "@/components/EmendasProposta";
 import { Favorito } from "@/components/Favorito";
 import { EmpenhosProposta } from "@/components/EmpenhosProposta";
@@ -67,6 +68,16 @@ type Proposta = {
   prazo_final?: string | null;
   dias_restantes?: number | null;
   natureza_juridica?: string | null;
+  /** Estado da publicação já RESOLVIDO pela API (§56) — a tela não interpreta
+   *  o texto cru da fonte: era assim que "sim" (do campo vizinho) virava
+   *  "Publicado" numa proposta que o portal dava como não publicada. */
+  publicacao?: {
+    estado: "publicado" | "nao_publicado" | "sem_informacao";
+    rotulo: string;
+    valor?: string | null;
+    data?: string | null;
+    origem?: string | null;
+  } | null;
   cache_atualizado_em?: string | null;
   execucao?: {
     valor_global?: string | null;
@@ -328,6 +339,14 @@ export default function PropostaDetalhePage() {
     p.execucao?.valor_empenhado ?? resumoEmpenhos?.valor_empenhado ?? null;
   const temEmpenhado = num(valorEmpenhado) > 0;
   const valorPago = p.execucao?.valor_pago ?? resumoEmpenhos?.valor_pago ?? null;
+  // O estado vem RESOLVIDO da API; a retaguarda cobre só a resposta antiga em
+  // cache no navegador (a tela nunca volta a interpretar o texto cru da fonte).
+  const publicacao = p.publicacao ?? {
+    estado: "sem_informacao" as const,
+    rotulo: "Sem informação na fonte",
+    origem: null,
+    data: null,
+  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -548,10 +567,11 @@ export default function PropostaDetalhePage() {
             )}
           </div>
 
-          {/* PUBLICADO (ponto 13). A fonte usa o termo nos dois sentidos: o
-              valor publicado do convênio e o estado da publicação no DOU. O
-              valor manda quando existe; senão vale o estado, que ainda é a
-              resposta que o gestor procura ("saiu ou não saiu?"). */}
+          {/* PUBLICADO (pontos 13 e 09). A fonte usa o termo nos dois sentidos:
+              o valor publicado do convênio e o estado da publicação no DOU. O
+              valor manda quando existe; senão vale o ESTADO resolvido pela API
+              — e "sem informação" é uma resposta legítima, que a tela agora
+              distingue de "não publicado" em vez de afirmar o que não sabe. */}
           <div className="field">
             <span className="field-label">Publicado</span>
             {num(p.execucao?.valor_publicado) > 0 ? (
@@ -563,20 +583,23 @@ export default function PropostaDetalhePage() {
                   valor publicado na fonte
                 </span>
               </>
-            ) : p.execucao?.situacao_publicacao ? (
-              <>
-                <span className="value-lg">
-                  {humanizarCaixa(String(p.execucao.situacao_publicacao))}
-                </span>
-                <span className="num mt-1 text-xs text-ink-3">
-                  situação da publicação
-                </span>
-              </>
-            ) : (
+            ) : publicacao.estado === "sem_informacao" ? (
               <>
                 <span className="value-hero text-ink-3">—</span>
                 <span className="num mt-1 text-xs text-ink-3">
                   sem publicação informada na fonte
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="value-lg">{publicacao.rotulo}</span>
+                {/* A origem é o que torna a divergência com o portal
+                    diagnosticável: pacote (~mensal) e consulta ao vivo
+                    discordam por alguns dias, e isso não é defeito. */}
+                <span className="num mt-1 text-xs text-ink-3">
+                  {publicacao.data
+                    ? `publicado em ${formatDate(publicacao.data)}`
+                    : publicacao.origem ?? "situação da publicação"}
                 </span>
               </>
             )}
@@ -845,6 +868,13 @@ export default function PropostaDetalhePage() {
       <AndamentoProposta proposta={p} podeConsultarFonte={podeExplorar} />
 
       <EmpenhosProposta proposta={p} podeConsultarFonte={podeExplorar} />
+
+      {/* O documento vem logo abaixo do empenho: publicou → cadê o arquivo? */}
+      <DocumentosProposta
+        proposta={p}
+        publicado={publicacao.estado === "publicado"}
+        podeConsultarFonte={podeExplorar}
+      />
 
       <EmendasProposta proposta={p} podeConsultarFonte={podeExplorar} />
     </div>

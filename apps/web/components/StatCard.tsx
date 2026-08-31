@@ -13,12 +13,45 @@ export interface StatCardProps {
   tone?: StatTone;
   /** Valor por extenso quando `value` é compacto (vira tooltip do número). */
   title?: string;
+  /** Com `onClick` o card vira BOTÃO de filtro (ponto 06): clicar recorta a
+   *  lista abaixo dele. Sem `onClick` continua sendo leitura pura — o card
+   *  não ganha afordância de clique que não leva a lugar nenhum. */
+  onClick?: () => void;
+  /** Estado do filtro que este card representa (só com `onClick`). */
+  ativo?: boolean;
 }
 
 /** KPI stat card flat: label mono em caixa-alta + valor grande em peso único. */
-export function StatCard({ label, value, context, icon, tone, title }: StatCardProps) {
+export function StatCard({
+  label,
+  value,
+  context,
+  icon,
+  tone,
+  title,
+  onClick,
+  ativo = false,
+}: StatCardProps) {
+  // Botão de verdade quando clicável: teclado, foco e leitor de tela vêm de
+  // graça, e o estado do filtro sai por `aria-pressed` — um `div` com onClick
+  // deixaria o filtro inacessível para quem não usa mouse.
+  const Elemento = onClick ? "button" : "div";
   return (
-    <div className={`card card-hover p-5 ${tone ? `stat-${tone}` : ""}`}>
+    <Elemento
+      {...(onClick
+        ? { type: "button" as const, onClick, "aria-pressed": ativo }
+        : {})}
+      className={`card p-5 ${tone ? `stat-${tone}` : ""} ${
+        onClick
+          ? `w-full cursor-pointer text-left transition-transform duration-200 hover:-translate-y-0.5 ${
+              // O card ativo tem tinta cheia da marca por baixo: um anel lime
+              // sumiria dentro dele. O contorno usa a TINTA do card (ink), que
+              // contrasta nos quatro tons e nos dois temas.
+              ativo ? "outline outline-2 outline-offset-2 outline-ink" : "card-hover"
+            }`
+          : "card-hover"
+      }`}
+    >
       <div className="flex items-center gap-2">
         {icon}
         <span className={`label-mono ${tone ? "text-inherit opacity-75" : ""}`}>
@@ -39,6 +72,6 @@ export function StatCard({ label, value, context, icon, tone, title }: StatCardP
           {context}
         </div>
       )}
-    </div>
+    </Elemento>
   );
 }
