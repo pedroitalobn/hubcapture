@@ -165,9 +165,37 @@ def _montar_execucao(plano: dict) -> dict | None:
         for c in candidatos:
             if c in normalizado and normalizado[c] not in (None, ""):
                 v = normalizado[c]
+                if destino == "situacao_publicacao":
+                    v = _situacao_publicacao(c, v)
+                    if v is None:
+                        continue
                 execucao[destino] = str(v) if destino.startswith(("valor", "saldo")) else v
                 break
     return execucao or None
+
+
+# `situacao_publicacao` casa colunas de dois FEITIOS: as que trazem a situação
+# por extenso ("Não Publicado") e as BOOLEANAS ("PUBLICADO: sim"). O sim/não só
+# tem sentido junto do nome da coluna — depois do de-para ele viraria um texto
+# solto, e um `sim` solto foi lido como "publicado" mesmo vindo do campo vizinho
+# (ponto 09). A ambiguidade se resolve aqui, onde a coluna ainda é conhecida.
+_BOOLEANAS = ("publicado", "publicacao")
+_SIM = ("sim", "s", "true", "1", "t")
+_NAO = ("nao", "n", "false", "0", "f")
+
+
+def _situacao_publicacao(coluna: str, valor: Any) -> Any | None:
+    texto = str(valor).strip().lower()
+    if coluna in _BOOLEANAS and texto in _SIM:
+        return "Publicado"
+    if coluna in _BOOLEANAS and texto in _NAO:
+        return "Não publicado"
+    if texto in _SIM + _NAO:
+        # `sim`/`não` numa coluna que deveria trazer a SITUAÇÃO é sinal de
+        # campo trocado (o "Empenhado sim" da página ao lado do rótulo
+        # "Publicação"). Não entra: ausência é melhor que afirmação errada.
+        return None
+    return valor
 
 
 def _ci(d: Any) -> dict:

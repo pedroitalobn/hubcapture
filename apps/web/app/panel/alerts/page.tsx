@@ -280,7 +280,7 @@ function AlertasConteudo() {
     <>
       <PageHeader
         titulo="Alertas"
-        descricao="Mudanças nas propostas monitoradas, novas propostas do território e oportunidades não aproveitadas."
+        descricao="Mudanças nas propostas monitoradas e novas propostas do seu território."
         acoes={
           <button
             onClick={varrer}

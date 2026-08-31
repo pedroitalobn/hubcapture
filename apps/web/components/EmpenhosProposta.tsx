@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
+import { useEhAdmin } from "@/lib/admin";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatBRL, formatDate, humanizarCaixa } from "@/lib/format";
 
@@ -50,11 +51,17 @@ function num(v?: string | null): number {
 }
 
 interface Props {
-  proposta: { id: string };
+  /** A execução vem junto porque a seção precisa saber o que a faixa de
+   *  destaque está mostrando: sem isso ela afirmava "nenhum empenho emitido"
+   *  logo abaixo de um "Empenhado R$ 500.000" — a mesma tela dizendo as duas
+   *  coisas. Os dois números têm origens diferentes (§56), e é isso que o
+   *  texto passa a explicar. */
+  proposta: { id: string; execucao?: { valor_empenhado?: string | null } | null };
   podeConsultarFonte?: boolean;
 }
 
 export function EmpenhosProposta({ proposta, podeConsultarFonte = true }: Props) {
+  const admin = useEhAdmin();
   const [itens, setItens] = useState<Empenho[]>([]);
   const [resumo, setResumo] = useState<EmpenhoResumo | null>(null);
   const [coleta, setColeta] = useState<Coleta | null>(null);
@@ -85,6 +92,9 @@ export function EmpenhosProposta({ proposta, podeConsultarFonte = true }: Props)
   // Sem empenho e sem incidente: a proposta ainda não teve recurso reservado.
   // Isso é informação, não vazio — o gestor precisa saber que não saiu do papel.
   const semEmpenho = !carregando && itens.length === 0 && coleta?.status === "ok";
+  // …a não ser que a FONTE informe empenho no agregado. Aí "nenhum empenho
+  // emitido" é falso: o que falta é o documento, não a reserva orçamentária.
+  const agregado = num(proposta.execucao?.valor_empenhado);
 
   return (
     <section className="card p-5">
@@ -112,11 +122,13 @@ export function EmpenhosProposta({ proposta, podeConsultarFonte = true }: Props)
         <p className="text-sm text-ink-3">Carregando…</p>
       ) : coleta?.status === "erro" ? (
         <div className="flex flex-col gap-1">
-          {/* Falha de fonte não é conteúdo para o gestor: a tela diz só "sem
-              dados"; o texto cru do connector fica atrás de um clique, para
-              quem vai calibrar (Administração → Configurações → Fontes). */}
-          <p className="text-sm text-ink-3">Sem dados.</p>
-          {coleta.erro && (
+          {/* Falha de fonte não é conteúdo para o gestor: a tela diz que não
+              consultou; o texto cru do connector aparece só para a
+              administração (Administração → Configurações → Fontes). */}
+          <p className="text-sm text-ink-3">
+            Não foi possível consultar a fonte agora.
+          </p>
+          {admin && coleta.erro && (
             <details className="text-xs text-ink-3">
               <summary className="cursor-pointer select-none">
                 Detalhe técnico (para a administração)
@@ -130,6 +142,16 @@ export function EmpenhosProposta({ proposta, podeConsultarFonte = true }: Props)
         </div>
       ) : coleta?.status === "sem_chave" ? (
         <p className="text-sm text-ink-3">Sem dados.</p>
+      ) : semEmpenho && agregado > 0 ? (
+        <p className="text-sm text-ink-3">
+          A fonte informa <strong className="font-medium text-ink">{formatBRL(
+            proposta.execucao?.valor_empenhado,
+          )}</strong>{" "}
+          empenhados para esta proposta, mas ainda não publicou as notas de
+          empenho na consulta de documentos. O valor da faixa acima vem desse
+          total informado pela fonte; o detalhe nota a nota aparece aqui quando
+          a fonte publicar.
+        </p>
       ) : semEmpenho ? (
         <p className="text-sm text-ink-3">
           Nenhum empenho emitido até agora — o recurso desta proposta ainda não foi

@@ -39,17 +39,19 @@ export const ALERTA_TIPO_LABEL: Record<string, string> = {
   empenho_pago: "Empenho pago",
   pagamento: "Pagamento (desembolso)",
   emenda: "Emenda aplicada",
-  publicacao: "Proposta publicada",
+  publicacao: "Publicação",
   vencimento: "Vencimento do convênio",
   nova_proposta: "Novo alerta",
+  // retirado do produto (§56): só existe para os alertas já gravados
   oportunidade: "Novo alerta",
 };
 
 /**
  * Tipos de escopo TERRITÓRIO. Na PÍLULA da lista eles colapsam num rótulo só
- * ("Novo alerta"): qualificar a espécie da oportunidade ali não ajuda o gestor
- * — a frase ao lado já diz o que apareceu e onde. O rótulo específico do
- * catálogo continua valendo onde ele DECIDE algo: o multi-select de critérios.
+ * ("Novo alerta"): qualificar a espécie ali não ajuda o gestor — a frase ao
+ * lado já diz o que apareceu e onde. O rótulo específico do catálogo continua
+ * valendo onde ele DECIDE algo: o multi-select de critérios. `oportunidade`
+ * segue no conjunto para os alertas ANTIGOS, que continuam na central.
  */
 const TIPOS_TERRITORIO = new Set(["nova_proposta", "oportunidade"]);
 const PILL_TERRITORIO = "Novo alerta";

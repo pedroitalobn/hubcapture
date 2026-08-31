@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
+import { useEhAdmin } from "@/lib/admin";
 import { formatBRL, humanizarCaixa } from "@/lib/format";
 
 /**
@@ -60,6 +61,7 @@ interface Props {
 }
 
 export function EmendasProposta({ proposta, podeConsultarFonte = true }: Props) {
+  const admin = useEhAdmin();
   const [itens, setItens] = useState<Emenda[]>([]);
   const [coleta, setColeta] = useState<Coleta | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -113,11 +115,13 @@ export function EmendasProposta({ proposta, podeConsultarFonte = true }: Props) 
         <p className="text-sm text-ink-3">Carregando…</p>
       ) : coleta?.status === "erro" ? (
         <div className="flex flex-col gap-1.5">
-          <p className="text-sm text-ink-3">Sem dados.</p>
+          <p className="text-sm text-ink-3">
+            Não foi possível consultar a fonte agora.
+          </p>
           {/* O texto cru do connector (rota, parâmetro, exceção) é para quem
-              vai calibrar, não para o gestor: fica atrás de um clique em vez
-              de ocupar a seção com um parágrafo técnico. */}
-          {coleta.erro && (
+              vai calibrar — e SÓ para quem calibra: para o gestor era um
+              parágrafo técnico no meio da proposta, com cara de erro do app. */}
+          {admin && coleta.erro && (
             <details className="text-xs text-ink-3">
               <summary className="cursor-pointer select-none">
                 Detalhe técnico (para a administração)

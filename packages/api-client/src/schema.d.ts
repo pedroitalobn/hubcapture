@@ -2126,6 +2126,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/proposals/{proposta_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Documentos Da Proposta
+         * @description Documentos digitalizados: a publicação, o contrato assinado, os ofícios.
+         *
+         *     É o arquivo que comprova o ato — quando a proposta sai publicada, é isso
+         *     que o gestor precisa em mãos (ponto 10 do feedback).
+         */
+        get: operations["documentos_da_proposta_api_v1_proposals__proposta_id__documents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/proposals/{proposta_id}/opinions": {
         parameters: {
             query?: never;
@@ -3457,6 +3480,76 @@ export interface components {
             quantidade: number;
             /** Valor */
             valor: string;
+        };
+        /**
+         * DocumentoColeta
+         * @description Estado da consulta — "não consegui" nunca pode virar "não tem".
+         *
+         *     `sem_chave` é o caso em que a proposta não expõe o idProposta interno do
+         *     SIconv: não dá nem para perguntar, e isso é diferente de perguntar e a
+         *     fonte responder vazio.
+         */
+        DocumentoColeta: {
+            /** Erro */
+            erro?: string | null;
+            /**
+             * Status
+             * @default ok
+             */
+            status: string;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+        };
+        /**
+         * DocumentoPagina
+         * @description Resposta do endpoint: os documentos e o estado da consulta.
+         */
+        DocumentoPagina: {
+            /**
+             * @default {
+             *       "status": "ok",
+             *       "total": 0
+             *     }
+             */
+            coleta: components["schemas"]["DocumentoColeta"];
+            /**
+             * Itens
+             * @default []
+             */
+            itens: components["schemas"]["DocumentoRead"][];
+        };
+        /** DocumentoRead */
+        DocumentoRead: {
+            /** Cache Atualizado Em */
+            cache_atualizado_em?: string | null;
+            /** Data Upload */
+            data_upload?: string | null;
+            /** Fonte */
+            fonte: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Id Externo */
+            id_externo: string;
+            /** Municipio Ibge */
+            municipio_ibge?: string | null;
+            /** Municipio Nome */
+            municipio_nome?: string | null;
+            /** Nome */
+            nome: string;
+            /** Numero Proposta */
+            numero_proposta?: string | null;
+            /** Tipo */
+            tipo?: string | null;
+            /** Uf */
+            uf?: string | null;
+            /** Url */
+            url?: string | null;
         };
         /** EmailTesteIn */
         EmailTesteIn: {
@@ -5236,6 +5329,15 @@ export interface components {
             proveniencia?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * @description Estado da publicação do instrumento, já resolvido (ponto 09).
+             *
+             *     A regra de leitura é uma só e mora na API (`services/publicacao`): o
+             *     front que decidisse por conta própria acabaria discordando do alerta e
+             *     do PDF, que é como "Publicado" apareceu numa proposta que a fonte dava
+             *     como não publicada.
+             */
+            readonly publicacao: components["schemas"]["PublicacaoRead"];
             /** Resumo Ia */
             resumo_ia?: string | null;
             /** Situacao */
@@ -5363,6 +5465,26 @@ export interface components {
             rotulo: string;
             /** Tipo Auth */
             tipo_auth: string;
+        };
+        /**
+         * PublicacaoRead
+         * @description "Saiu ou não saiu?" — a resposta em três estados, nunca em dois.
+         *
+         *     `sem_informacao` é resposta: a fonte não disse. Espremer isso em "não
+         *     publicado" (ou, pior, em "publicado") é o que fazia a tela afirmar o que
+         *     o portal desmentia.
+         */
+        PublicacaoRead: {
+            /** Data */
+            data?: string | null;
+            /** Estado */
+            estado: string;
+            /** Origem */
+            origem?: string | null;
+            /** Rotulo */
+            rotulo: string;
+            /** Valor */
+            valor?: string | null;
         };
         /**
          * QuebraDimensao
@@ -10201,6 +10323,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmpenhoPagina"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    documentos_da_proposta_api_v1_proposals__proposta_id__documents_get: {
+        parameters: {
+            query?: {
+                /** @description forçar coleta na fonte */
+                atualizar?: boolean;
+            };
+            header?: never;
+            path: {
+                proposta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoPagina"];
                 };
             };
             /** @description Validation Error */

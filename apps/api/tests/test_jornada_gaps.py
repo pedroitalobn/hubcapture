@@ -227,8 +227,11 @@ async def test_varredura_detecta_nova_proposta(seed_user, seed_municipio) -> Non
         assert len(alertas) == 1
 
 
-# ── varredura: oportunidade (repasse sem proposta cadastrada) ───────────────
-async def test_varredura_detecta_oportunidade(seed_user, seed_municipio, seed_repasse) -> None:
+# ── o alerta 'oportunidade' foi RETIRADO (§56) ─────────────────────────────
+async def test_repasse_sem_proposta_nao_alerta(seed_user, seed_municipio, seed_repasse) -> None:
+    """Recurso recebido de uma fonte sem proposta cadastrada nela era o alerta
+    "oportunidade não aproveitada". Disparava para todo repasse constitucional —
+    virou ruído e saiu do produto; a varredura não emite mais nada por isso."""
     from src.models.usuario import Usuario
 
     u = await seed_user("oport@x.com")
@@ -236,15 +239,12 @@ async def test_varredura_detecta_oportunidade(seed_user, seed_municipio, seed_re
     await seed_repasse("fns", "R1", "3550308", valor="500000")
     async with rls_session(u) as s:
         usuario = (await s.execute(select(Usuario).where(Usuario.id == u))).scalar_one()
-        criados = await oport_service.varredura(s, usuario)
-        assert criados == 1
-        alerta = (await s.execute(select(Alerta).where(Alerta.tipo == "oportunidade"))).scalar_one()
-        assert alerta.proposta_id is None
-        assert alerta.payload["fonte"] == "fns"
-
-        # dedupe: rodar de novo com o alerta ainda não lido não duplica
-        criados2 = await oport_service.varredura(s, usuario)
-        assert criados2 == 0
+        assert await oport_service.varredura(s, usuario) == 0
+        assert (
+            (await s.execute(select(Alerta).where(Alerta.tipo == "oportunidade")))
+            .scalars()
+            .all()
+        ) == []
 
 
 # ── busca em tempo real (live-search multi-fonte, best-effort) ──────────────

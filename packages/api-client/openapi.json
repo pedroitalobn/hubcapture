@@ -2962,6 +2962,175 @@
         "title": "DistribuicaoItem",
         "type": "object"
       },
+      "DocumentoColeta": {
+        "description": "Estado da consulta — \"não consegui\" nunca pode virar \"não tem\".\n\n`sem_chave` é o caso em que a proposta não expõe o idProposta interno do\nSIconv: não dá nem para perguntar, e isso é diferente de perguntar e a\nfonte responder vazio.",
+        "properties": {
+          "erro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erro"
+          },
+          "status": {
+            "default": "ok",
+            "title": "Status",
+            "type": "string"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "title": "DocumentoColeta",
+        "type": "object"
+      },
+      "DocumentoPagina": {
+        "description": "Resposta do endpoint: os documentos e o estado da consulta.",
+        "properties": {
+          "coleta": {
+            "$ref": "#/components/schemas/DocumentoColeta",
+            "default": {
+              "status": "ok",
+              "total": 0
+            }
+          },
+          "itens": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DocumentoRead"
+            },
+            "title": "Itens",
+            "type": "array"
+          }
+        },
+        "title": "DocumentoPagina",
+        "type": "object"
+      },
+      "DocumentoRead": {
+        "properties": {
+          "cache_atualizado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Atualizado Em"
+          },
+          "data_upload": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Upload"
+          },
+          "fonte": {
+            "title": "Fonte",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "id_externo": {
+            "title": "Id Externo",
+            "type": "string"
+          },
+          "municipio_ibge": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Ibge"
+          },
+          "municipio_nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipio Nome"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "numero_proposta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Proposta"
+          },
+          "tipo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "id",
+          "fonte",
+          "id_externo",
+          "nome"
+        ],
+        "title": "DocumentoRead",
+        "type": "object"
+      },
       "EmailTesteIn": {
         "properties": {
           "destinatario": {
@@ -8039,6 +8208,11 @@
             ],
             "title": "Proveniencia"
           },
+          "publicacao": {
+            "$ref": "#/components/schemas/PublicacaoRead",
+            "description": "Estado da publicação do instrumento, já resolvido (ponto 09).\n\nA regra de leitura é uma só e mora na API (`services/publicacao`): o\nfront que decidisse por conta própria acabaria discordando do alerta e\ndo PDF, que é como \"Publicado\" apareceu numa proposta que a fonte dava\ncomo não publicada.",
+            "readOnly": true
+          },
           "resumo_ia": {
             "anyOf": [
               {
@@ -8134,6 +8308,7 @@
           "categorias",
           "tipo",
           "natureza_juridica",
+          "publicacao",
           "ano",
           "valor_global",
           "prazo_final",
@@ -8333,6 +8508,59 @@
           "disponivel"
         ],
         "title": "ProvedorInfo",
+        "type": "object"
+      },
+      "PublicacaoRead": {
+        "description": "\"Saiu ou não saiu?\" — a resposta em três estados, nunca em dois.\n\n`sem_informacao` é resposta: a fonte não disse. Espremer isso em \"não\npublicado\" (ou, pior, em \"publicado\") é o que fazia a tela afirmar o que\no portal desmentia.",
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "estado": {
+            "title": "Estado",
+            "type": "string"
+          },
+          "origem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origem"
+          },
+          "rotulo": {
+            "title": "Rotulo",
+            "type": "string"
+          },
+          "valor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor"
+          }
+        },
+        "required": [
+          "estado",
+          "rotulo"
+        ],
+        "title": "PublicacaoRead",
         "type": "object"
       },
       "QuebraDimensao": {
@@ -17640,6 +17868,67 @@
           }
         ],
         "summary": "Empenhos Da Proposta",
+        "tags": [
+          "andamento"
+        ]
+      }
+    },
+    "/api/v1/proposals/{proposta_id}/documents": {
+      "get": {
+        "description": "Documentos digitalizados: a publicação, o contrato assinado, os ofícios.\n\nÉ o arquivo que comprova o ato — quando a proposta sai publicada, é isso\nque o gestor precisa em mãos (ponto 10 do feedback).",
+        "operationId": "documentos_da_proposta_api_v1_proposals__proposta_id__documents_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposta Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "forçar coleta na fonte",
+            "in": "query",
+            "name": "atualizar",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "forçar coleta na fonte",
+              "title": "Atualizar",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentoPagina"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Documentos Da Proposta",
         "tags": [
           "andamento"
         ]

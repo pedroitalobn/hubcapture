@@ -194,10 +194,37 @@ function GraficoAprovadoDesembolsado({
   );
 }
 
+/** Recorte financeiro do painel: qual card está filtrando (null = todos). */
+export type EstadoFinanceiro = "empenhado" | "publicado" | "pago" | null;
+
+const ESTADO_ROTULO: Record<Exclude<EstadoFinanceiro, null>, string> = {
+  empenhado: "com empenho",
+  publicado: "publicadas",
+  pago: "com pagamento",
+};
+
 /** Faixa de KPIs financeiros — cores cheias da marca, uma por card, para o
- *  bloco contrastar com o canvas e com os cards brancos do restante. */
-function CardsFinanceiros({ resumo }: { resumo: ResumoPainelData }) {
+ *  bloco contrastar com o canvas e com os cards brancos do restante.
+ *
+ *  Os cards são também o FILTRO da lista abaixo (ponto 06 do feedback): o
+ *  gestor lia "R$ 4,95 mi empenhado" e não tinha como ver QUAIS propostas
+ *  compõem o número. Clicar recorta o feed; clicar de novo (ou em "Total
+ *  geral") volta ao território inteiro. Os totais continuam sendo os do
+ *  território, não os do recorte: um card que se recalculasse ao ser clicado
+ *  apagaria o próprio rótulo e prenderia o gestor no recorte escolhido —
+ *  mesma disciplina das facetas da captação. */
+function CardsFinanceiros({
+  resumo,
+  estado,
+  onEstado,
+}: {
+  resumo: ResumoPainelData;
+  estado: EstadoFinanceiro;
+  onEstado: (novo: EstadoFinanceiro) => void;
+}) {
   const cards = resumo.cards;
+  const alternar = (alvo: EstadoFinanceiro) => () =>
+    onEstado(estado === alvo ? null : alvo);
   return (
     <section className="stagger grid grid-cols-2 gap-4 md:grid-cols-4">
       {/* BRL compacto no KPI (R$ 5,63 mi): por extenso não cabe no card de
@@ -208,7 +235,11 @@ function CardsFinanceiros({ resumo }: { resumo: ResumoPainelData }) {
         label="Total geral"
         value={formatBRLCompact(cards.valor_conveniado)}
         title={formatBRL(cards.valor_conveniado)}
-        context={`${cards.transferencias} transferências`}
+        context={
+          estado ? "ver tudo" : `${cards.transferencias} transferências`
+        }
+        onClick={() => onEstado(null)}
+        ativo={estado === null}
       />
       <StatCard
         tone="lime"
@@ -216,6 +247,8 @@ function CardsFinanceiros({ resumo }: { resumo: ResumoPainelData }) {
         value={formatBRLCompact(cards.valor_empenhado)}
         title={formatBRL(cards.valor_empenhado)}
         context="reservado pelo concedente"
+        onClick={alternar("empenhado")}
+        ativo={estado === "empenhado"}
       />
       {/* "Publicado" vem da fonte ora como valor, ora como estado. Com
           valor, mostra o valor; sem ele, a contagem de publicadas — R$ 0,00
@@ -238,6 +271,8 @@ function CardsFinanceiros({ resumo }: { resumo: ResumoPainelData }) {
             ? "publicado pela fonte"
             : "propostas publicadas"
         }
+        onClick={alternar("publicado")}
+        ativo={estado === "publicado"}
       />
       <StatCard
         tone="grad"
@@ -245,6 +280,8 @@ function CardsFinanceiros({ resumo }: { resumo: ResumoPainelData }) {
         value={formatBRLCompact(cards.valor_pago)}
         title={formatBRL(cards.valor_pago)}
         context="efetivamente pago"
+        onClick={alternar("pago")}
+        ativo={estado === "pago"}
       />
     </section>
   );
@@ -404,6 +441,10 @@ function MeuPainel() {
   // servidor, que não tem acesso a ele — erro de hidratação; a restauração
   // acontece no efeito abaixo.
   const [anos, setAnos] = useState<string[]>([]);
+  // Recorte dos cards financeiros (ponto 06). Não persiste entre sessões: é um
+  // recorte de leitura do momento, ao contrário do território e da origem, que
+  // são configuração do usuário.
+  const [estado, setEstado] = useState<EstadoFinanceiro>(null);
   const prefCarregada = useRef(false);
   // Panorama financeiro (gráfico + faixa de KPIs) — só consulta depois que o
   // perfil confirmou território.
@@ -432,7 +473,9 @@ function MeuPainel() {
     const [{ data: vg }, { data: nov }] = await Promise.all([
       api.GET("/api/v1/profile/overview", { params: { query } }),
       api.GET("/api/v1/profile/feed", {
-        params: { query: { ...query, limite: FEED_LIMITE } },
+        params: {
+          query: { ...query, limite: FEED_LIMITE, estado: estado ?? undefined },
+        },
       }),
     ]);
     if (vg) setData(vg as VisaoGeral);
@@ -442,7 +485,7 @@ function MeuPainel() {
     // ausente — um nível a menos de defesa do que o próprio `?.` pretendia.
     // Sem o segundo `?.`, um feed sem `itens` derruba a tela inicial inteira.
     return (nov as Novidades | undefined)?.itens?.length ?? 0;
-  }, [selecionados, origens, anos]);
+  }, [selecionados, origens, anos, estado]);
 
   useEffect(() => {
     void carregar();
@@ -758,7 +801,11 @@ function MeuPainel() {
           {carregandoResumo && !resumo ? (
             <SkeletonCards />
           ) : resumo ? (
-            <CardsFinanceiros resumo={resumo} />
+            <CardsFinanceiros
+              resumo={resumo}
+              estado={estado}
+              onEstado={setEstado}
+            />
           ) : null}
 
           {semSafra.length > 0 && (
@@ -772,9 +819,23 @@ function MeuPainel() {
 
           <section className="anim-fade-up flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h2 className="tracking-tight">
-                Propostas{" "}
-                <span className="text-ink-3">(filtro conforme o ano)</span>
+              <h2 className="flex flex-wrap items-baseline gap-2 tracking-tight">
+                Propostas
+                {/* O recorte tem que estar VISÍVEL na lista, e não só no card
+                    clicado: sem isso o gestor rola a página, esquece o clique
+                    e lê a lista curta como "sumiram propostas". */}
+                {estado && (
+                  <button
+                    type="button"
+                    onClick={() => setEstado(null)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[-0.02em] text-ink-2 transition-colors hover:border-ink-2 hover:text-ink"
+                    title="Remover o recorte e ver tudo"
+                  >
+                    <span className="brand-dot" aria-hidden />
+                    {ESTADO_ROTULO[estado]}
+                    <span aria-hidden>×</span>
+                  </button>
+                )}
               </h2>
               {aguardandoDados && (
                 <span className="label-mono animate-pulse">
@@ -806,6 +867,18 @@ function MeuPainel() {
                       .join(", ")}
                     ). Novas tentativas rodam no próximo ciclo; você também pode
                     disparar uma busca nas páginas de cada dimensão.
+                  </p>
+                ) : estado ? (
+                  <p>
+                    Nenhuma proposta {ESTADO_ROTULO[estado]} no recorte atual —{" "}
+                    <button
+                      type="button"
+                      onClick={() => setEstado(null)}
+                      className="underline underline-offset-2"
+                    >
+                      ver todas
+                    </button>
+                    .
                   </p>
                 ) : anos.length ? (
                   <p>

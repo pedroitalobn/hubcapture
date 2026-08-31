@@ -41,7 +41,9 @@ def test_catalogo_separa_escopos() -> None:
     proposta = criterios_alerta.chaves(criterios_alerta.ESCOPO_PROPOSTA)
     territorio = criterios_alerta.chaves(criterios_alerta.ESCOPO_TERRITORIO)
     assert {"parecer", "empenho", "pagamento", "publicacao", "vencimento"} <= proposta
-    assert territorio == {"nova_proposta", "oportunidade"}
+    # "oportunidade" foi RETIRADO do catálogo (§56) e não volta ao multi-select
+    assert territorio == {"nova_proposta"}
+    assert "oportunidade" not in criterios_alerta.chaves()
     assert not proposta & territorio
 
 
@@ -236,7 +238,7 @@ async def test_busca_sem_nova_proposta_nao_alerta(seed_user, seed_municipio, see
             area=None,
             fonte=None,
             canais=["painel"],
-            criterios=["oportunidade"],  # quer oportunidade, não proposta nova
+            criterios=[],  # vigia o território, mas não quer aviso de proposta nova
         )
     await seed_proposta("transferegov_ff", "NOVA-1", "3550308")
     async with rls_session(u) as s:
@@ -244,12 +246,14 @@ async def test_busca_sem_nova_proposta_nao_alerta(seed_user, seed_municipio, see
         tipos = [a.tipo for a in (await s.execute(select(Alerta))).scalars().all()]
         assert "nova_proposta" not in tipos
         busca = (await s.execute(select(MonitoramentoBusca))).scalar_one()
-        assert busca.criterios == ["oportunidade"]
+        assert busca.criterios == []
 
 
-async def test_oportunidade_desligada_na_busca_nao_alerta(
+async def test_repasse_sem_proposta_nao_gera_mais_alerta(
     seed_user, seed_municipio, seed_repasse
 ) -> None:
+    """O alerta 'oportunidade' foi retirado: repasse sem proposta é o normal do
+    repasse constitucional, e o aviso disparava sempre (§56)."""
     u = await seed_user("semoport@x.com")
     await seed_municipio(u, "3550308")
     await seed_repasse("fns", "R1", "3550308", valor="500000")
@@ -404,6 +408,50 @@ def test_proposta_publicada_e_estado_nao_so_texto() -> None:
     assert (
         detect_changes.snapshot(
             _proposta(execucao={"situacao_publicacao": "Não publicado"}), hoje=date(2026, 1, 1)
+        )["publicada"]
+        is False
+    )
+
+
+def test_alerta_de_publicacao_nao_anuncia_publicacao_que_nao_houve() -> None:
+    """Ponto 11: o alerta saía rotulado "Proposta publicada" com o texto
+    "publicação atualizado(s)" para uma proposta NÃO publicada. O critério
+    cobre três fatos; cada um agora tem a sua frase."""
+    p = _proposta()
+    base = detect_changes.snapshot(p, hoje=date(2026, 1, 1)) | {
+        "publicada": False,
+        "publicacao_situacao": None,
+        "publicacao_valor": None,
+    }
+    # a fonte passou a informar a situação — e ela é NEGATIVA
+    depois = detect_changes.snapshot(
+        _proposta(execucao={"situacao_publicacao": "Não Publicado"}), hoje=date(2026, 1, 1)
+    )
+    assert depois["publicada"] is False
+    (aviso,) = detect_changes.avaliar(base, depois, {"publicacao"})
+    resumo = aviso.payload["resumo"]
+    assert "Não Publicado" in resumo
+    assert "Proposta publicada" not in resumo
+    # e a pílula do alerta não afirma publicação
+    assert criterios_alerta.rotulo("publicacao") == "Publicação"
+
+
+def test_publicacao_le_tri_estado_e_nao_chuta() -> None:
+    """Ponto 09: "sim" (o valor do campo VIZINHO, capturado por engano) não
+    pode virar "publicado" — a proposta aparecia no Hub como publicada e no
+    TransfereGov como Não Publicado."""
+    from src.services import publicacao
+
+    assert publicacao.estado("sim") == publicacao.SEM_INFORMACAO
+    assert publicacao.estado("Publicado") == publicacao.PUBLICADO
+    assert publicacao.estado("Não Publicado") == publicacao.NAO_PUBLICADO
+    assert publicacao.estado("Publicação Pendente") == publicacao.NAO_PUBLICADO
+    assert publicacao.estado(None, "150000") == publicacao.PUBLICADO
+    assert publicacao.estado("22/06/2026") == publicacao.PUBLICADO
+    # o snapshot do alerta lê pela MESMA régua da tela
+    assert (
+        detect_changes.snapshot(
+            _proposta(execucao={"situacao_publicacao": "sim"}), hoje=date(2026, 1, 1)
         )["publicada"]
         is False
     )

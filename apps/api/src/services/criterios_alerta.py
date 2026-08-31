@@ -10,7 +10,7 @@ Dois escopos, porque as duas configurações são de naturezas diferentes:
 - `proposta`  → monitorar uma proposta-chave (`monitoramentos`): o que mudou
   NELA (parecer, empenho, pagamento, publicação, vigência, situação…).
 - `territorio` → monitorar um município (`monitoramentos_busca`): o que aparece
-  no território (proposta nova, oportunidade não aproveitada).
+  no território (proposta nova).
 
 `criterios = NULL` (coluna vazia) significa "os padrões do registro" — é o que
 vale para todo monitoramento criado antes desta feature, então ninguém deixa de
@@ -84,11 +84,15 @@ CRITERIOS: tuple[Criterio, ...] = (
         escopo=ESCOPO_PROPOSTA,
     ),
     Criterio(
+        # O rótulo é a PÍLULA do alerta na central. "Proposta publicada"
+        # afirmava a publicação em cima de qualquer mexida no campo — inclusive
+        # numa proposta ainda não publicada (ponto 11). O critério cobre o
+        # assunto; o fato específico vai na frase (`detect_changes`).
         chave="publicacao",
-        rotulo="Proposta publicada",
+        rotulo="Publicação",
         descricao=(
-            "Publicação do instrumento na fonte — passou a publicada, ou a "
-            "situação/valor de publicação mudou."
+            "Publicação do instrumento na fonte — passou a publicada, deixou de "
+            "constar, ou a situação/valor de publicação mudou."
         ),
         escopo=ESCOPO_PROPOSTA,
     ),
@@ -124,14 +128,6 @@ CRITERIOS: tuple[Criterio, ...] = (
         descricao="Proposta que aparece nas fontes para o município monitorado.",
         escopo=ESCOPO_TERRITORIO,
     ),
-    Criterio(
-        chave="oportunidade",
-        rotulo="Oportunidades não aproveitadas",
-        descricao=(
-            "Recursos recebidos de uma fonte sem nenhuma proposta de captação cadastrada nela."
-        ),
-        escopo=ESCOPO_TERRITORIO,
-    ),
 )
 
 _POR_CHAVE = {c.chave: c for c in CRITERIOS}
@@ -139,6 +135,12 @@ _POR_CHAVE = {c.chave: c for c in CRITERIOS}
 # Tipos de alerta que existiam antes do registro (o `tipo` gravado em alertas
 # antigos). Só para o de-para de leitura — não são escolhíveis.
 LEGADOS = {"status": "situacao"}
+
+# Critérios RETIRADOS do produto. Não se escolhem nem se emitem mais, mas o
+# alerta já gravado continua no painel do usuário — e alerta sem rótulo apareceria
+# como o slug cru. O de-para de leitura vive aqui, não numa entrada fantasma do
+# catálogo (que voltaria a aparecer no multi-select).
+RETIRADOS = {"oportunidade": "Oportunidade não aproveitada"}
 
 
 def catalogo(escopo: str | None = None) -> list[Criterio]:
@@ -187,4 +189,6 @@ def efetivos(escolhidos: list[str] | None, escopo: str) -> set[str]:
 def rotulo(chave: str | None) -> str:
     alvo = LEGADOS.get(chave or "", chave or "")
     criterio = _POR_CHAVE.get(alvo)
-    return criterio.rotulo if criterio else (chave or "Alerta")
+    if criterio:
+        return criterio.rotulo
+    return RETIRADOS.get(alvo) or (chave or "Alerta")

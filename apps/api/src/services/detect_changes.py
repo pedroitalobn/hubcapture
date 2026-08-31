@@ -18,6 +18,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
+from . import publicacao as publicacao_service
 from .criterios_alerta import JANELA_VENCIMENTO_DIAS
 
 # Campos do snapshot que cada critério observa. Campo fora desta tabela existe
@@ -164,19 +165,11 @@ def _veredito(p: Any) -> str:
 
 
 # publicação vem da fonte ora como texto ("Publicado"/"Não publicado"), ora
-# como data, ora só como valor publicado — §28 coletou os dois sentidos
-_NAO_PUBLICADO = ("nao public", "não public", "sem public", "aguardando public")
-
-
+# como data, ora só como valor publicado — §28 coletou os dois sentidos. A
+# leitura é a MESMA da tela (`services/publicacao`): duas regras separadas
+# fariam o alerta discordar da página que ele manda o gestor abrir.
 def _esta_publicada(situacao: Any, valor: Any) -> bool:
-    texto = str(situacao or "").strip().lower()
-    if texto:
-        if any(marcador in texto for marcador in _NAO_PUBLICADO):
-            return False
-        if "public" in texto or _data(situacao) is not None:
-            return True
-    montante = _decimal(valor)
-    return bool(montante and montante > 0)
+    return publicacao_service.esta_publicada(situacao, valor)
 
 
 def snapshot(
@@ -257,6 +250,39 @@ def _legivel_veredito(valor: Any) -> str:
     return " · ".join(partes) or "—"
 
 
+def _frase_publicacao(diff: dict[str, Any], depois: dict[str, Any]) -> str:
+    """O que aconteceu com a PUBLICAÇÃO — sem prometer o que não aconteceu.
+
+    O alerta saía rotulado "Proposta publicada" com o texto "publicação
+    atualizado(s)" para uma proposta que NÃO tinha sido publicada (ponto 11 do
+    feedback): o critério cobre três fatos diferentes e a frase genérica não
+    distinguia nenhum deles. Agora cada fato tem a sua frase, e a mudança de
+    ESTADO (que é a notícia) vem antes das outras duas.
+    """
+    if "publicada" in diff:
+        return (
+            "Proposta publicada na fonte"
+            if diff["publicada"]["depois"]
+            else "Proposta deixou de constar como publicada na fonte"
+        )
+    if "publicacao_situacao" in diff:
+        antes = str(diff["publicacao_situacao"]["antes"] or "").strip()
+        atual = str(diff["publicacao_situacao"]["depois"] or "").strip()
+        estado = publicacao_service.ROTULOS[publicacao_service.estado(atual)]
+        if not antes:
+            return f"A fonte passou a informar a situação da publicação: {atual} ({estado})"
+        if not atual:
+            return "A fonte deixou de informar a situação da publicação"
+        return f"Situação da publicação: {antes} → {atual}"
+    if "publicacao_valor" in diff:
+        antes = diff["publicacao_valor"]["antes"]
+        atual = diff["publicacao_valor"]["depois"]
+        if antes in (None, ""):
+            return f"Valor publicado informado pela fonte: {atual}"
+        return f"Valor publicado: {antes} → {atual}"
+    return "Publicação atualizada na fonte"
+
+
 def _frase(criterio: str, diff: dict[str, Any], depois: dict[str, Any], extra: dict) -> str:
     if criterio == "parecer_novo":
         novos = extra.get("pareceres_novos") or []
@@ -278,12 +304,8 @@ def _frase(criterio: str, diff: dict[str, Any], depois: dict[str, Any], extra: d
         if extra.get("emendas_novas"):
             return f"Emenda aplicada à proposta{quem}"
         return f"Valores da emenda atualizados{quem}"
-    if criterio == "publicacao" and "publicada" in diff:
-        return (
-            "Proposta publicada na fonte"
-            if diff["publicada"]["depois"]
-            else "Proposta deixou de constar como publicada na fonte"
-        )
+    if criterio == "publicacao":
+        return _frase_publicacao(diff, depois)
     if criterio == "vencimento":
         dias = depois.get("dias_para_vencer")
         fim = depois.get("fim_vigencia")

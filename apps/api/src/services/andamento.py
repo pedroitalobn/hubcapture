@@ -29,6 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.proposta import Proposta
 from ..schemas.andamento import AndamentoColeta, AndamentoPagina, EventoAndamento
 from ..schemas.parecer import ParecerRead
+from . import documentos_proposta as documentos_service
 from . import emendas_proposta as emendas_service
 from . import empenhos_proposta as empenhos_service
 from . import pareceres as pareceres_service
@@ -317,6 +318,28 @@ async def empenhos(
     if proposta is None:
         return None
     return await empenhos_service.por_proposta(
+        session, proposta, atualizar=atualizar, usuario_id=usuario_id
+    )
+
+
+async def documentos(
+    session: AsyncSession,
+    proposta_id: uuid.UUID,
+    *,
+    atualizar: bool = False,
+    usuario_id: uuid.UUID | None = None,
+):
+    """Documentos digitalizados da proposta (`None` = fora do território)."""
+    proposta = (
+        await session.execute(
+            select(Proposta).where(
+                Proposta.id == proposta_id, Proposta.excluido_em.is_(None)
+            )
+        )
+    ).scalar_one_or_none()
+    if proposta is None:
+        return None
+    return await documentos_service.por_proposta(
         session, proposta, atualizar=atualizar, usuario_id=usuario_id
     )
 

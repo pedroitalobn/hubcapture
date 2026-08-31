@@ -902,8 +902,7 @@ function CaptacaoExploracao() {
             ) : (
               "todo o seu território"
             )}
-            , das fontes oficiais (API + scraping). Atualiza sozinha uma vez por
-            dia — use “Atualizar fontes” para consultar agora.
+            .
           </>
         }
         acoes={

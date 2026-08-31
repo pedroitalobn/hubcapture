@@ -202,3 +202,66 @@ async def test_painel_soma_varias_safras(
     dims = {d.chave: d for d in vg.dimensoes}
     assert dims["captacao"].href == "/panel/funding?ano=2024&ano=2026"
     assert all(q.href.endswith("&ano=2024&ano=2026") for q in dims["captacao"].quebras)
+
+
+# ── recorte dos CARDS financeiros (ponto 06 do feedback) ────────────────────
+async def test_cards_do_painel_recortam_o_feed(
+    seed_user, seed_municipio, seed_proposta, seed_repasse
+) -> None:
+    """Clicar em "Empenhado" lista as propostas que compõem aquele número.
+
+    Antes, o card era leitura pura: o gestor lia "R$ 4,95 mi empenhado" e não
+    tinha caminho nenhum para as propostas por trás do valor.
+    """
+    u = await seed_user("cards@a.com")
+    await seed_municipio(u, "3550308")
+    await seed_proposta(
+        "transferegov_ff",
+        "com-empenho",
+        "3550308",
+        "Com empenho",
+        data_proposta=date(2026, 2, 1),
+        execucao=json.dumps({"valor_empenhado": "500000.00"}),
+    )
+    await seed_proposta(
+        "transferegov_ff",
+        "publicada",
+        "3550308",
+        "Publicada",
+        data_proposta=date(2026, 2, 2),
+        execucao=json.dumps({"situacao_publicacao": "Publicado"}),
+    )
+    await seed_proposta(
+        "transferegov_ff",
+        "paga",
+        "3550308",
+        "Paga",
+        data_proposta=date(2026, 2, 3),
+        execucao=json.dumps({"valor_pago": "120000.00"}),
+    )
+    await seed_repasse("fpm", "r1", "3550308", data_repasse="2026-02-10")
+
+    async def titulos(session, recorte: str) -> set[str]:
+        feed = await service.novidades(session, _FakeUser(u), estado=recorte)
+        return {i.titulo for i in feed.itens}
+
+    async with rls_session(u) as s:
+        assert await titulos(s, "empenhado") == {"Com empenho"}
+        assert await titulos(s, "publicado") == {"Publicada"}
+        assert await titulos(s, "pago") == {"Paga"}
+        # sem recorte, tudo volta — inclusive o repasse (que não tem empenho
+        # nem publicação e por isso fica de fora quando há recorte)
+        completo = await service.novidades(s, _FakeUser(u))
+        assert len(completo.itens) == 4
+
+
+async def test_recorte_desconhecido_nao_esvazia_o_painel(
+    seed_user, seed_municipio, seed_proposta
+) -> None:
+    """Valor novo vindo do front não pode zerar a tela do gestor."""
+    u = await seed_user("cards2@a.com")
+    await seed_municipio(u, "3550308")
+    await seed_proposta("transferegov_ff", "p1", "3550308", data_proposta=date(2026, 2, 1))
+    async with rls_session(u) as s:
+        nov = await service.novidades(s, _FakeUser(u), estado="inventado")
+    assert len(nov.itens) == 1
