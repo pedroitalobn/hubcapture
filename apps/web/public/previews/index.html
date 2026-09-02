@@ -43,11 +43,21 @@ td:first-child{color:var(--t1);font-weight:600;white-space:nowrap}
 </head>
 <body>
 <div class="wrap">
-  <h1>Redesign do painel — três direções para validar</h1>
+  <h1>Redesign do painel — direções para validar</h1>
   <p class="lead">Mesma tela (Meu painel), mesmos dados e as mesmas interações em três linguagens visuais. Tudo funciona: troque a safra, clique num KPI para filtrar a lista, use as abas, a busca, ⌘K e o Copiloto. Os dados são de exemplo, plausíveis para Mossoró/RN.</p>
   <p class="meta">O vocabulário do setor (empenhado, publicado, pago, valor global) é mantido em todas. A diferença é só de UI/UX.</p>
 
   <div class="grid">
+    <article class="card" style="outline:2px solid #43CF9B">
+      <div class="thumb" style="background:#031918"><i style="left:34%;top:18%;width:14%;height:26%;background:#DDF6EC"></i><i style="left:50%;top:18%;width:14%;height:26%;background:#DDF6EC"></i><i style="left:66%;top:18%;width:14%;height:26%;background:#DDF6EC"></i><i style="left:82%;top:18%;width:12%;height:26%;background:#43CF9B"></i><i style="left:34%;top:52%;width:38%;height:36%;background:#DDF6EC"></i><i style="left:74%;top:52%;width:20%;height:36%;background:#DDF6EC"></i></div>
+      <div class="body">
+        <span class="tag" style="background:#DDF6EC;color:#1C6555">Aprovada com ressalvas → D</span>
+        <h2>Hub Capture (C + ressalvas)</h2>
+        <p>A estrutura da C com a identidade final: acento <b>#43CF9B</b>, escuro <b>#031918</b>, auxiliares <b>#1C6555 / #1B6255</b>; H1–H3 em caixa alta; Archivo nos títulos e Inter no corpo (sai a Nunito arredondada).</p>
+        <ul><li>Sidebar escura com item ativo no acento</li><li>Mesmas interações da C, responsiva</li><li>Guia do design system com tokens prontos</li></ul>
+        <div class="acts"><a class="bt" href="/previews/hub.html">Abrir D</a><a class="bt o" href="/previews/guia.html">Guia do design system</a></div>
+      </div>
+    </article>
     <article class="card">
       <div class="thumb a"><i style="left:34%;top:18%;width:14%;height:26%"></i><i style="left:50%;top:18%;width:14%;height:26%"></i><i style="left:66%;top:18%;width:14%;height:26%"></i><i class="h" style="left:82%;top:18%;width:12%;height:26%"></i><i style="left:34%;top:52%;width:38%;height:36%"></i><i style="left:74%;top:52%;width:20%;height:36%"></i></div>
       <div class="body">
@@ -82,14 +92,14 @@ td:first-child{color:var(--t1);font-weight:600;white-space:nowrap}
 
   <div class="tbl">
   <table>
-    <tr><th></th><th>A · Balcão</th><th>B · Aurora</th><th>C · NiceAdmin</th></tr>
-    <tr><td>Fonte</td><td>Public Sans</td><td>Plus Jakarta Sans</td><td>Open Sans + Nunito + Poppins</td></tr>
-    <tr><td>Primária</td><td>verde #007867</td><td>azul #3385F0</td><td>azul #4154f1 + marinho #012970</td></tr>
-    <tr><td>Superfície</td><td>cards r12, hairline + sombra curta, sidebar grafite</td><td>painéis quadrados em grade, outline 1px, sem sombra</td><td>cards r5 com sombra azulada, fundo #f6f9ff</td></tr>
-    <tr><td>KPI</td><td>ícone + número 30/700 + delta + sparkline</td><td>título · avatar 48 · número 28/500 · link</td><td>"Título | safra" · círculo 64px · número · "▲ 59% vs 2025"</td></tr>
-    <tr><td>Gráfico</td><td>colunas</td><td>linha + área</td><td>área com gradiente</td></tr>
-    <tr><td>Modo escuro</td><td>sim</td><td>sim</td><td>não</td></tr>
-    <tr><td>Sensação</td><td>institucional, sóbrio</td><td>enterprise, "planilha de painéis"</td><td>familiar, admin clássico</td></tr>
+    <tr><th></th><th>A · Balcão</th><th>B · Aurora</th><th>C · NiceAdmin</th><th>D · Hub (aprovada)</th></tr>
+    <tr><td>Fonte</td><td>Public Sans</td><td>Plus Jakarta Sans</td><td>Open Sans + Nunito + Poppins</td><td>Archivo (H1–H3 caixa alta) + Inter</td></tr>
+    <tr><td>Primária</td><td>verde #007867</td><td>azul #3385F0</td><td>azul #4154f1 + marinho #012970</td><td>verde #1C6555 · acento #43CF9B · escuro #031918</td></tr>
+    <tr><td>Superfície</td><td>cards r12, hairline + sombra curta, sidebar grafite</td><td>painéis quadrados em grade, outline 1px, sem sombra</td><td>cards r5 com sombra azulada, fundo #f6f9ff</td><td>cards r5 com sombra suave, fundo #F3F7F5, sidebar escura</td></tr>
+    <tr><td>KPI</td><td>ícone + número 30/700 + delta + sparkline</td><td>título · avatar 48 · número 28/500 · link</td><td>"Título | safra" · círculo 64px · número · "▲ 59% vs 2025"</td><td>igual à C, com ícones nas cores da marca</td></tr>
+    <tr><td>Gráfico</td><td>colunas</td><td>linha + área</td><td>área com gradiente</td><td>área com gradiente (verde)</td></tr>
+    <tr><td>Modo escuro</td><td>sim</td><td>sim</td><td>não</td><td>não (sidebar já é escura)</td></tr>
+    <tr><td>Sensação</td><td>institucional, sóbrio</td><td>enterprise, "planilha de painéis"</td><td>familiar, admin clássico</td><td>a C, com a identidade da marca</td></tr>
   </table>
   </div>
 
