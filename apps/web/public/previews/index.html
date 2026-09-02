@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Redesign do painel · Hub Capture</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#f4f6f8;--paper:#fff;--t1:#1c252e;--t2:#637381;--t3:#919eab;--ln:rgba(145,158,171,.24);--sh:0 1px 2px rgba(145,158,171,.16),0 12px 24px -4px rgba(145,158,171,.14)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--t1);font-family:"Public Sans",ui-sans-serif,system-ui,sans-serif;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:56px 24px 80px}
+h1{font-size:34px;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.15}
+.lead{margin:14px 0 0;max-width:70ch;color:var(--t2);font-size:16px}
+.meta{margin-top:12px;font-size:13px;color:var(--t3)}
+.grid{margin-top:36px;display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.card{background:var(--paper);border:1px solid var(--ln);border-radius:14px;box-shadow:var(--sh);overflow:hidden;display:flex;flex-direction:column}
+.thumb{height:150px;position:relative;overflow:hidden}
+.thumb.a{background:linear-gradient(135deg,#1c252e 0 26%,#f9fafb 26%)}
+.thumb.b{background:linear-gradient(90deg,#fff 0 26%,#c3d3db 26% calc(26% + 1px),#fff calc(26% + 1px))}
+.thumb.c{background:linear-gradient(90deg,#fff 0 26%,#f6f9ff 26%)}
+.thumb i{position:absolute;border-radius:6px;display:block}
+.thumb.a i{background:#fff;border:1px solid #dde5ec}.thumb.a i.h{background:#007867;border:0}
+.thumb.b i{background:#fff;outline:1px solid #c3d3db;border-radius:0}.thumb.b i.h{background:#3385f0;border-radius:0}
+.thumb.c i{background:#fff;box-shadow:0 0 14px rgba(1,41,112,.12)}.thumb.c i.h{background:#4154f1}
+.body{padding:20px 22px 22px;display:flex;flex-direction:column;gap:10px;flex:1}
+.tag{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3)}
+h2{margin:0;font-size:21px;font-weight:700}
+p{margin:0;color:var(--t2);font-size:14px}
+ul{margin:4px 0 0;padding-left:18px;color:var(--t2);font-size:13.5px}
+li{margin:2px 0}
+.acts{margin-top:auto;padding-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.bt{display:inline-flex;align-items:center;height:40px;padding:0 16px;border-radius:9px;font-weight:700;font-size:14px;text-decoration:none;color:#fff;background:var(--t1)}
+.bt.o{background:transparent;color:var(--t1);border:1px solid var(--ln)}
+table{margin-top:40px;width:100%;border-collapse:collapse;background:var(--paper);border:1px solid var(--ln);border-radius:14px;overflow:hidden;font-size:14px;box-shadow:var(--sh)}
+th{background:#eef1f4;text-align:left;padding:12px 16px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--t2)}
+td{padding:12px 16px;border-top:1px dashed var(--ln);vertical-align:top;color:var(--t2)}
+td:first-child{color:var(--t1);font-weight:600;white-space:nowrap}
+.note{margin-top:28px;font-size:13.5px;color:var(--t3);max-width:80ch}
+.tbl{overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Redesign do painel — três direções para validar</h1>
+  <p class="lead">Mesma tela (Meu painel), mesmos dados e as mesmas interações em três linguagens visuais. Tudo funciona: troque a safra, clique num KPI para filtrar a lista, use as abas, a busca, ⌘K e o Copiloto. Os dados são de exemplo, plausíveis para Mossoró/RN.</p>
+  <p class="meta">O vocabulário do setor (empenhado, publicado, pago, valor global) é mantido em todas. A diferença é só de UI/UX.</p>
+
+  <div class="grid">
+    <article class="card">
+      <div class="thumb a"><i style="left:34%;top:18%;width:14%;height:26%"></i><i style="left:50%;top:18%;width:14%;height:26%"></i><i style="left:66%;top:18%;width:14%;height:26%"></i><i class="h" style="left:82%;top:18%;width:12%;height:26%"></i><i style="left:34%;top:52%;width:38%;height:36%"></i><i style="left:74%;top:52%;width:20%;height:36%"></i></div>
+      <div class="body">
+        <span class="tag">Alternativa A</span>
+        <h2>Balcão</h2>
+        <p>Gramática do MUI Minimal em tom institucional: sidebar grafite, cards brancos com hairline, verde profundo <b>#007867</b> como cor de ação, Public Sans.</p>
+        <ul><li>KPI com variação vs. safra anterior e sparkline</li><li>Modo claro e escuro</li><li>Chips de estado com ponto (funciona sem cor)</li></ul>
+        <div class="acts"><a class="bt" href="/previews/balcao.html">Abrir A</a><a class="bt o" href="/previews/direcao.html">Documento da direção</a></div>
+      </div>
+    </article>
+    <article class="card">
+      <div class="thumb b"><i style="left:30%;top:14%;width:16%;height:30%"></i><i style="left:47%;top:14%;width:16%;height:30%"></i><i style="left:64%;top:14%;width:16%;height:30%"></i><i style="left:81%;top:14%;width:16%;height:30%"></i><i style="left:30%;top:46%;width:44%;height:42%"></i><i style="left:75%;top:46%;width:22%;height:42%"></i><i class="h" style="left:33%;top:20%;width:6%;height:6%"></i></div>
+      <div class="body">
+        <span class="tag">Alternativa B</span>
+        <h2>Aurora</h2>
+        <p>Tema Aurora (ThemeWagon / MUI): painéis quadrados tilados em grade com outline de 1px, sem sombra; azul <b>#3385F0</b>; Plus Jakarta Sans. Cara de ferramenta enterprise.</p>
+        <ul><li>Gráfico de linha com área</li><li>KPI no molde AnalyticKPI (avatar + valor + link)</li><li>Modo claro e escuro</li></ul>
+        <div class="acts"><a class="bt" href="/previews/aurora.html">Abrir B</a></div>
+      </div>
+    </article>
+    <article class="card">
+      <div class="thumb c"><i style="left:32%;top:16%;width:14%;height:28%"></i><i style="left:48%;top:16%;width:14%;height:28%"></i><i style="left:64%;top:16%;width:14%;height:28%"></i><i style="left:80%;top:16%;width:14%;height:28%"></i><i style="left:32%;top:52%;width:40%;height:36%"></i><i style="left:74%;top:52%;width:20%;height:36%"></i><i class="h" style="left:35%;top:22%;width:6%;height:12%;border-radius:50%"></i></div>
+      <div class="body">
+        <span class="tag">Alternativa C</span>
+        <h2>NiceAdmin</h2>
+        <p>NiceAdmin (BootstrapMade / port MUI-Next.js): azul <b>#4154f1</b> e marinho <b>#012970</b>, fundo #f6f9ff, cards com sombra suave, Open Sans + Nunito + Poppins. O admin clássico que todo gestor já viu.</p>
+        <ul><li>Info-card com ícone em círculo de 64px</li><li>Área com gradiente (estilo ApexCharts)</li><li>Só tema claro (como o original)</li></ul>
+        <div class="acts"><a class="bt" href="/previews/niceadmin.html">Abrir C</a></div>
+      </div>
+    </article>
+  </div>
+
+  <div class="tbl">
+  <table>
+    <tr><th></th><th>A · Balcão</th><th>B · Aurora</th><th>C · NiceAdmin</th></tr>
+    <tr><td>Fonte</td><td>Public Sans</td><td>Plus Jakarta Sans</td><td>Open Sans + Nunito + Poppins</td></tr>
+    <tr><td>Primária</td><td>verde #007867</td><td>azul #3385F0</td><td>azul #4154f1 + marinho #012970</td></tr>
+    <tr><td>Superfície</td><td>cards r12, hairline + sombra curta, sidebar grafite</td><td>painéis quadrados em grade, outline 1px, sem sombra</td><td>cards r5 com sombra azulada, fundo #f6f9ff</td></tr>
+    <tr><td>KPI</td><td>ícone + número 30/700 + delta + sparkline</td><td>título · avatar 48 · número 28/500 · link</td><td>"Título | safra" · círculo 64px · número · "▲ 59% vs 2025"</td></tr>
+    <tr><td>Gráfico</td><td>colunas</td><td>linha + área</td><td>área com gradiente</td></tr>
+    <tr><td>Modo escuro</td><td>sim</td><td>sim</td><td>não</td></tr>
+    <tr><td>Sensação</td><td>institucional, sóbrio</td><td>enterprise, "planilha de painéis"</td><td>familiar, admin clássico</td></tr>
+  </table>
+  </div>
+
+  <p class="note">B e C foram construídas a partir do código-fonte dos templates (tokens, fontes, raios e sombras copiados, não estimados). Depois da escolha, a virada entra no app pelos tokens de <code>globals.css</code> + fontes + <code>StatCard</code>/<code>StatusBadge</code>/linha de lista, atrás da flag <code>ui_versao</code> do painel admin — publicável e reversível sem redeploy.</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,1232 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Balcão do Hub Capture · Hub Capture (preview)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;700;800&family=Public+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   BALCÃO — redesign do Hub Capture na linguagem do MUI Minimal
+   Paleta, raios, sombras e tipografia calcados no template Minimal
+   (minimals.cc): Public Sans + Barlow, verde #00A76F, cards r16 com
+   sombra difusa cinza-azulada, divisores tracejados, chips soft 16%.
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  /* — paleta Minimal (valores do template) — */
+  --p-lighter:#C8FAD6; --p-light:#5BE49B; --p-main:#00A76F; --p-dark:#007867; --p-darker:#004B50;
+  --sec-lighter:#EFD6FF; --sec-main:#8E33FF; --sec-darker:#27097A;
+  --i-lighter:#CAFDF5; --i-light:#61F3F3; --i-main:#00B8D9; --i-dark:#006C9C; --i-darker:#003768;
+  --s-lighter:#D3FCD2; --s-light:#77ED8B; --s-main:#22C55E; --s-dark:#118D57; --s-darker:#065E49;
+  --w-lighter:#FFF5CC; --w-light:#FFD666; --w-main:#FFAB00; --w-dark:#B76E00; --w-darker:#7A4100;
+  --e-lighter:#FFE9D5; --e-light:#FFAC82; --e-main:#FF5630; --e-dark:#B71D18; --e-darker:#7A0916;
+  --g100:#F9FAFB; --g200:#F4F6F8; --g300:#DFE3E8; --g400:#C4CDD5;
+  --g500:#919EAB; --g600:#637381; --g700:#454F5B; --g800:#1C252E; --g900:#141A21;
+
+  /* — tokens do documento — */
+  --bg:#F9FAFB; --paper:#FFFFFF; --neutral:#F4F6F8;
+  --tx:#1C252E; --tx2:#637381; --tx3:#919EAB;
+  --line:rgba(145,158,171,.2);
+  --card-sh:0 0 2px 0 rgba(145,158,171,.2), 0 12px 24px -4px rgba(145,158,171,.12);
+  --card-sh-lg:0 0 2px 0 rgba(145,158,171,.2), 0 20px 40px -4px rgba(145,158,171,.24);
+  --sans:"Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --disp:"Barlow", "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --r:16px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141A21; --paper:#1C252E; --neutral:#28323D;
+    --tx:#FFFFFF; --tx2:#919EAB; --tx3:#7d8b98;
+    --line:rgba(145,158,171,.24);
+    --card-sh:0 0 2px 0 rgba(0,0,0,.2), 0 12px 24px -4px rgba(0,0,0,.36);
+    --card-sh-lg:0 0 2px 0 rgba(0,0,0,.2), 0 20px 40px -4px rgba(0,0,0,.48);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141A21; --paper:#1C252E; --neutral:#28323D;
+  --tx:#FFFFFF; --tx2:#919EAB; --tx3:#7d8b98;
+  --line:rgba(145,158,171,.24);
+  --card-sh:0 0 2px 0 rgba(0,0,0,.2), 0 12px 24px -4px rgba(0,0,0,.36);
+  --card-sh-lg:0 0 2px 0 rgba(0,0,0,.2), 0 20px 40px -4px rgba(0,0,0,.48);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:var(--sans);font-size:16px;line-height:1.57;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 100px}
+h1,h2,h3{margin:0;font-family:var(--disp);letter-spacing:-.01em;text-wrap:balance}
+p{margin:0}
+a{color:var(--p-dark)}
+.tbl-scroll{overflow-x:auto}
+
+/* ── hero ─────────────────────────────────────────────────────── */
+.hero{position:relative;margin-top:32px;border-radius:24px;overflow:hidden;background:var(--paper);box-shadow:var(--card-sh);padding:56px 48px 48px}
+.hero::before{content:"";position:absolute;inset:0;background:
+  radial-gradient(60% 90% at 88% -10%, rgba(0,167,111,.16), transparent 70%),
+  radial-gradient(50% 80% at -6% 110%, rgba(0,184,217,.12), transparent 70%);pointer-events:none}
+.hero > *{position:relative}
+.over{font-size:12px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--p-dark)}
+.hero h1{margin-top:16px;font-size:clamp(40px,6vw,60px);font-weight:800;line-height:1.06}
+.hero h1 em{font-style:normal;color:var(--p-main)}
+.hero .lead{margin-top:20px;max-width:64ch;font-size:18px;color:var(--tx2)}
+.hero-chips{margin-top:28px;display:flex;flex-wrap:wrap;gap:10px}
+.hchip{display:inline-flex;align-items:center;gap:8px;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;background:var(--neutral);color:var(--tx2)}
+.hchip b{color:var(--tx);font-weight:700}
+
+section{padding-top:72px}
+.sec-h{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.sec-h h2{font-size:32px;font-weight:800;line-height:1.2}
+.sec-h span{font-size:14px;font-weight:600;color:var(--tx3)}
+.sec-lead{margin-top:14px;max-width:70ch;font-size:16px;color:var(--tx2)}
+
+/* ── herança do Minimal ───────────────────────────────────────── */
+.heranca{margin-top:32px;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.her{background:var(--paper);border-radius:var(--r);box-shadow:var(--card-sh);padding:24px;display:flex;flex-direction:column;gap:10px}
+.her-ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:rgba(0,167,111,.08);color:var(--p-dark)}
+.her h3{font-family:var(--sans);font-size:16px;font-weight:700}
+.her p{font-size:14px;color:var(--tx2)}
+
+/* ── paleta ───────────────────────────────────────────────────── */
+.ramp-wrap{margin-top:32px;display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(310px,1fr))}
+.ramp{background:var(--paper);border-radius:var(--r);box-shadow:var(--card-sh);padding:20px}
+.ramp-h{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ramp-h b{font-size:15px;font-weight:700}
+.ramp-h span{font-size:13px;font-weight:600;color:var(--tx3)}
+.ramp-b{margin-top:14px;display:flex;border-radius:10px;overflow:hidden;height:52px}
+.ramp-b i{flex:1;display:grid;place-items:end center;padding-bottom:5px;font-size:9.5px;font-weight:700;letter-spacing:.02em}
+.ramp p{margin-top:12px;font-size:13.5px;color:var(--tx2)}
+
+.mapa{margin-top:26px;width:100%;border-collapse:collapse;background:var(--paper);border-radius:var(--r);box-shadow:var(--card-sh);overflow:hidden;font-size:14.5px}
+.mapa th{text-align:left;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--tx2);background:var(--neutral);padding:14px 20px;white-space:nowrap}
+.mapa td{padding:16px 20px;border-bottom:1px dashed var(--line);vertical-align:middle}
+.mapa tr:last-child td{border-bottom:0}
+.mapa td:first-child{white-space:nowrap}
+.mapa b{font-weight:700}
+.mapa .sub{display:block;font-size:13px;color:var(--tx2);margin-top:2px}
+
+/* chips soft (Minimal Label) — usados no documento e no mock */
+.lb{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 9px;border-radius:6px;font-size:12px;font-weight:700;line-height:1;white-space:nowrap}
+.lb-p{background:rgba(0,167,111,.16);color:var(--p-dark)}
+.lb-s{background:rgba(34,197,94,.16);color:var(--s-dark)}
+.lb-w{background:rgba(255,171,0,.16);color:var(--w-dark)}
+.lb-e{background:rgba(255,86,48,.16);color:var(--e-dark)}
+.lb-i{background:rgba(0,184,217,.16);color:var(--i-dark)}
+.lb-n{background:rgba(145,158,171,.16);color:var(--tx2)}
+.lb::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:0 0 auto}
+.lb.sem::before{display:none}
+
+/* ── tipografia ───────────────────────────────────────────────── */
+.specs{margin-top:32px;display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.spec{background:var(--paper);border-radius:var(--r);box-shadow:var(--card-sh);padding:28px}
+.spec-tag{font-size:12px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--p-dark)}
+.spec p.d{margin-top:16px;font-size:14px;color:var(--tx2)}
+.pesos{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px}
+.peso{border-radius:6px;background:var(--neutral);padding:4px 9px;font-size:12px;font-weight:600;color:var(--tx2)}
+
+.escala{margin-top:26px;width:100%;border-collapse:collapse;background:var(--paper);border-radius:var(--r);box-shadow:var(--card-sh);overflow:hidden;font-size:14.5px}
+.escala th{text-align:left;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--tx2);background:var(--neutral);padding:14px 20px;white-space:nowrap}
+.escala td{padding:15px 20px;border-bottom:1px dashed var(--line);vertical-align:top}
+.escala tr:last-child td{border-bottom:0}
+.escala .old-v{color:var(--tx3);text-decoration:line-through;text-decoration-color:rgba(255,86,48,.5)}
+.escala .new-v{font-weight:700}
+
+/* ── pares antes/depois ───────────────────────────────────────── */
+.pares{margin-top:32px;display:grid;gap:24px}
+.par{background:var(--paper);border-radius:var(--r);box-shadow:var(--card-sh);overflow:hidden}
+.par-h{padding:22px 24px 18px}
+.par-h h3{font-family:var(--sans);font-size:18px;font-weight:700}
+.par-h p{margin-top:6px;font-size:14.5px;color:var(--tx2);max-width:82ch}
+.par-b{display:grid;grid-template-columns:1fr 1fr;border-top:1px dashed var(--line)}
+@media (max-width:800px){.par-b{grid-template-columns:1fr}}
+.par-l{padding:24px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.par-l+.par-l{border-left:1px dashed var(--line)}
+@media (max-width:800px){.par-l+.par-l{border-left:0;border-top:1px dashed var(--line)}}
+.par-l.antes{background:#222f30}
+.par-l.depois{background:var(--g100)}
+.par-tag{font-size:11px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px;color:#7e8b8b}
+.par-l.depois .par-tag{color:var(--p-dark)}
+.par-tag::before{content:"";width:16px;height:2px;background:currentColor}
+.par-n{margin-top:auto;font-size:13.5px;line-height:1.5}
+.par-l.antes .par-n{color:#8fa09b}
+.par-l.depois .par-n{color:var(--tx2)}
+
+/* ── telas ────────────────────────────────────────────────────── */
+.tela{margin-top:32px}
+.tela-bar{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-bottom:16px}
+.tela-bar h3{font-size:22px;font-weight:800;margin-right:auto}
+.tela-bar .obs{font-size:13.5px;color:var(--tx3);font-weight:600}
+.tg{display:inline-flex;background:var(--neutral);border-radius:10px;padding:4px;gap:4px}
+.tg button{font:inherit;font-size:13px;font-weight:700;border:0;background:transparent;color:var(--tx2);padding:7px 16px;border-radius:7px;cursor:pointer;transition:background .2s,color .2s,box-shadow .2s}
+.tg button[aria-pressed="true"]{background:var(--paper);color:var(--tx);box-shadow:0 1px 2px rgba(145,158,171,.24)}
+.tg button:focus-visible{outline:2px solid var(--p-main);outline-offset:2px}
+.frame{border-radius:20px;overflow:hidden;box-shadow:var(--card-sh-lg);background:var(--paper)}
+.fr-top{display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--neutral)}
+.fr-top i{width:10px;height:10px;border-radius:50%;background:rgba(145,158,171,.4);display:block}
+.fr-url{margin-left:10px;font-size:12px;font-weight:600;color:var(--tx3)}
+.fr-body{overflow-x:auto;background:#F9FAFB}
+.nota{margin-top:14px;font-size:13.5px;color:var(--tx3)}
+
+/* ══════════════════════════════════════════════════════════════
+   .mn — o app no sistema Minimal
+   ══════════════════════════════════════════════════════════════ */
+.mn{
+  --bgm:#F9FAFB; --pp:#FFFFFF; --nt:#F4F6F8;
+  --t1:#1C252E; --t2:#637381; --t3:#919EAB; --ln:rgba(145,158,171,.2);
+  --sh:0 0 2px 0 rgba(145,158,171,.2), 0 12px 24px -4px rgba(145,158,171,.12);
+  background:var(--bgm);color:var(--t1);font-family:var(--sans);min-width:1000px;
+  display:grid;grid-template-columns:264px 1fr
+}
+.mn *{box-sizing:border-box}
+/* sidebar */
+.sb{background:var(--pp);border-right:1px dashed var(--ln);padding:20px 16px;display:flex;flex-direction:column;gap:3px}
+.logo{display:flex;align-items:center;gap:10px;padding:4px 8px 22px;font-family:var(--disp);font-size:18px;font-weight:800;letter-spacing:-.01em}
+.logo i{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--p-light),var(--p-main));display:grid;place-items:center;flex:0 0 auto}
+.sb-cap{padding:14px 12px 8px;font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--t3)}
+.it{display:flex;align-items:center;gap:14px;height:44px;padding:0 12px;border-radius:8px;font-size:14px;font-weight:600;color:var(--t2);text-decoration:none}
+.it svg{flex:0 0 auto;opacity:.9}
+.it.on{background:rgba(0,167,111,.08);color:var(--p-dark);font-weight:700}
+.it .badge{margin-left:auto;background:var(--e-main);color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 7px;min-width:20px;text-align:center}
+.sb-terr{margin-top:auto;border-radius:12px;background:var(--nt);padding:14px}
+.sb-terr b{display:block;font-size:14px;font-weight:700}
+.sb-terr span{font-size:12.5px;color:var(--t3)}
+.sb-terr button{margin-top:10px;width:100%;border:1px solid rgba(145,158,171,.32);background:var(--pp);border-radius:8px;padding:6px;font:inherit;font-size:12.5px;font-weight:700;color:var(--t1);cursor:pointer}
+/* topbar */
+.tb{grid-column:2;display:flex;align-items:center;gap:14px;padding:0 32px;height:72px;background:rgba(249,250,251,.85);backdrop-filter:blur(8px);position:relative}
+.tb .search{flex:1;max-width:380px;display:flex;align-items:center;gap:10px;height:40px;border-radius:8px;background:var(--nt);padding:0 14px;font-size:14px;color:var(--t3)}
+.tb .sp{margin-left:auto;display:flex;align-items:center;gap:14px}
+.ic-btn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--t2);position:relative;background:transparent}
+.ic-btn .dot{position:absolute;top:7px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--e-main);border:2px solid var(--bgm)}
+.av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--i-light),var(--i-main));display:grid;place-items:center;color:#003768;font-weight:800;font-size:14px}
+/* conteúdo */
+.ct{grid-column:2;padding:8px 32px 40px;display:flex;flex-direction:column;gap:24px;min-width:0}
+.pg-h{display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap}
+.pg-h h1{font-family:var(--disp);font-size:28px;font-weight:800;letter-spacing:-.01em}
+.crumb{font-size:13.5px;color:var(--t3);margin-top:4px;font-weight:500}
+.pg-act{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.bt{border:0;border-radius:8px;padding:0 16px;height:40px;font:inherit;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+.bt-p{background:var(--p-main);color:#fff;box-shadow:0 8px 16px 0 rgba(0,167,111,.24)}
+.bt-o{background:transparent;color:var(--t1);border:1px solid rgba(145,158,171,.32)}
+.bt-s{background:rgba(145,158,171,.08);color:var(--t1)}
+.bt-sm{height:32px;font-size:13px;padding:0 12px}
+
+/* alerta de topo (Minimal Alert soft) */
+.al{display:flex;gap:14px;padding:16px 20px;border-radius:12px;background:rgba(255,171,0,.12);color:var(--w-darker)}
+.al svg{flex:0 0 auto;color:var(--w-dark);margin-top:1px}
+.al b{font-size:15px;font-weight:700;display:block}
+.al p{font-size:14px;margin-top:3px;opacity:.86}
+.al .bt{margin-left:auto;align-self:center;background:var(--w-dark);color:#fff;flex:0 0 auto}
+
+/* KPI — a jornada do dinheiro em escada de tom */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.kp{border-radius:var(--r);padding:24px;position:relative;overflow:hidden;box-shadow:var(--sh);display:flex;flex-direction:column;gap:0}
+.kp .ico{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;margin-bottom:18px}
+.kp .rot{font-size:14px;font-weight:700;line-height:1.3}
+.kp .num{font-family:var(--disp);font-size:36px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:6px}
+.kp .exp{font-size:13.5px;margin-top:8px;line-height:1.45;opacity:.78}
+.kp .of{font-size:12px;font-weight:600;margin-top:12px;opacity:.6}
+.kp .bolha{position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;background:currentColor;opacity:.07}
+.kp.k1{background:var(--pp);color:var(--t1)}
+.kp.k1 .ico{background:rgba(145,158,171,.16);color:var(--t2)}
+.kp.k2{background:var(--i-lighter);color:var(--i-darker)}
+.kp.k2 .ico{background:rgba(0,184,217,.24);color:var(--i-dark)}
+.kp.k3{background:var(--p-lighter);color:var(--p-darker)}
+.kp.k3 .ico{background:rgba(0,167,111,.24);color:var(--p-dark)}
+.kp.k4{background:linear-gradient(135deg,var(--p-main),var(--p-dark));color:#fff;box-shadow:0 12px 24px -4px rgba(0,167,111,.32)}
+.kp.k4 .ico{background:rgba(255,255,255,.24);color:#fff}
+.kp.k4 .of,.kp.k4 .exp{opacity:.82}
+
+/* blocos */
+.g2{display:grid;grid-template-columns:1.5fr 1fr;gap:24px;align-items:start}
+.bx{background:var(--pp);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.bx-h{padding:24px 24px 16px;display:flex;align-items:center;gap:12px}
+.bx-h h2{font-family:var(--sans);font-size:18px;font-weight:700;margin-right:auto}
+.bx-h .sub{font-size:13.5px;color:var(--t3);font-weight:500;display:block;margin-top:2px}
+.bx-h a{font-size:13.5px;font-weight:700;color:var(--p-dark);text-decoration:none}
+.bx-p{padding:0 24px 24px}
+
+/* gráfico estilo Minimal */
+.ch{position:relative;height:200px;padding:10px 0 26px;background:
+  repeating-linear-gradient(to top, transparent 0 41px, rgba(145,158,171,.24) 41px 42px);
+  background-position:0 -26px;background-size:100% 168px}
+.ch-in{display:flex;align-items:flex-end;gap:26px;height:100%;position:relative}
+.ch-col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:9px}
+.ch-bars{display:flex;align-items:flex-end;gap:7px;height:100%;width:100%;justify-content:center}
+.ch-bars i{width:22px;border-radius:6px 6px 0 0;display:block}
+.ch-col span{font-size:12.5px;font-weight:600;color:var(--t3);position:absolute;bottom:-24px}
+.ch-leg{display:flex;gap:22px;justify-content:flex-end;margin-bottom:4px}
+.ch-leg span{font-size:13px;font-weight:600;color:var(--t2);display:inline-flex;align-items:center;gap:7px}
+.ch-leg i{width:10px;height:10px;border-radius:50%}
+
+/* linha de registro */
+.rw{display:flex;gap:16px;align-items:center;padding:16px 24px;border-top:1px dashed var(--ln);text-decoration:none;color:inherit}
+.rw:first-of-type{border-top:0}
+.rw-th{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto}
+.rw-c{flex:1;min-width:0}
+.rw-t{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.rw-t b{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.rw-d{font-size:13.5px;color:var(--t2);margin-top:3px;line-height:1.45}
+.rw-m{font-size:12.5px;color:var(--t3);margin-top:5px;display:flex;flex-wrap:wrap;gap:4px 14px;font-weight:500}
+.rw-r{text-align:right;flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+.mo{font-family:var(--disp);font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1.2}
+.mo small{display:block;font-family:var(--sans);font-size:12px;font-weight:500;color:var(--t3);letter-spacing:0;margin-top:1px}
+.ref{display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;background:rgba(145,158,171,.12);color:var(--t2);font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* filtros */
+.fl{background:var(--pp);border-radius:var(--r);box-shadow:var(--sh);padding:18px 20px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.inp{display:flex;align-items:center;gap:10px;height:44px;border-radius:8px;border:1px solid rgba(145,158,171,.28);padding:0 14px;font-size:14px;color:var(--t3);background:var(--pp);font-weight:500}
+.inp.gr{flex:1;min-width:260px}
+.inp b{color:var(--t1);font-weight:600}
+.tabs{display:flex;gap:26px;padding:0 24px;border-bottom:1px solid var(--ln)}
+.tab-i{padding:16px 0;font-size:14px;font-weight:700;color:var(--t2);border-bottom:2px solid transparent;display:flex;align-items:center;gap:8px;cursor:pointer}
+.tab-i.on{color:var(--t1);border-bottom-color:var(--t1)}
+.tab-i .n{border-radius:6px;background:rgba(145,158,171,.16);padding:1px 7px;font-size:12px}
+.tab-i.on .n{background:rgba(0,167,111,.16);color:var(--p-dark)}
+
+/* tabela */
+.tb2{width:100%;border-collapse:collapse;font-size:14px}
+.tb2 th{text-align:left;background:var(--nt);color:var(--t2);font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;padding:14px 20px;white-space:nowrap}
+.tb2 th:first-child{border-radius:8px 0 0 8px}
+.tb2 th:last-child{border-radius:0 8px 8px 0}
+.tb2 td{padding:16px 20px;border-bottom:1px dashed var(--ln);vertical-align:top}
+.tb2 tr:last-child td{border-bottom:0}
+.tb2 .r{text-align:right;font-variant-numeric:tabular-nums}
+
+/* barra de execução (LinearProgress Minimal) */
+.pg{height:8px;border-radius:4px;background:rgba(145,158,171,.16);overflow:hidden;display:flex}
+.pg i{display:block;height:100%}
+.pg-leg{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:14px;font-size:13.5px;color:var(--t2);font-weight:500}
+.pg-leg b{font-weight:800;font-family:var(--disp);font-size:15px;color:var(--t1);font-variant-numeric:tabular-nums;display:block;margin-top:1px}
+.pg-leg i{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:7px}
+
+/* detalhe */
+.dh{background:var(--pp);border-radius:var(--r);box-shadow:var(--sh);padding:28px}
+.dh h1{font-family:var(--disp);font-size:30px;font-weight:800;letter-spacing:-.015em;line-height:1.16}
+.dh .obj{margin-top:10px;font-size:16px;color:var(--t2);max-width:72ch}
+.dh .meta{margin-top:16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;font-size:13.5px;color:var(--t3);font-weight:500}
+.tri{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:24px}
+.tri > div{border-radius:12px;padding:20px;background:var(--nt)}
+.tri .r1{font-size:14px;font-weight:700}
+.tri .r2{font-family:var(--disp);font-size:30px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:6px}
+.tri .r3{font-size:13px;color:var(--t2);margin-top:4px}
+.tri .b2{background:var(--i-lighter);color:var(--i-darker)}
+.tri .b2 .r3{color:var(--i-dark)}
+.tri .b3{background:var(--p-lighter);color:var(--p-darker)}
+.tri .b3 .r3{color:var(--p-dark)}
+/* timeline */
+.tl{position:relative;padding-left:30px}
+.tl::before{content:"";position:absolute;left:7px;top:8px;bottom:8px;width:2px;background:rgba(145,158,171,.24)}
+.ev{position:relative;padding-bottom:22px}
+.ev:last-child{padding-bottom:0}
+.ev::before{content:"";position:absolute;left:-29px;top:4px;width:16px;height:16px;border-radius:50%;background:var(--pp);border:3px solid var(--t3)}
+.ev.ok::before{border-color:var(--s-main)}
+.ev.wr::before{border-color:var(--w-main)}
+.ev.er::before{border-color:var(--e-main)}
+.ev .d{font-size:12.5px;font-weight:700;color:var(--t3)}
+.ev .t{font-size:15px;font-weight:700;margin-top:2px}
+.ev .p{font-size:13.5px;color:var(--t2);margin-top:4px;max-width:60ch;line-height:1.5}
+.quote{margin-top:8px;border-left:3px solid rgba(145,158,171,.24);padding-left:12px;font-size:13.5px;color:var(--t2);font-style:italic}
+.doc{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px dashed var(--ln);font-size:14px;font-weight:600}
+.doc:first-of-type{border-top:0}
+.doc small{display:block;font-weight:500;font-size:12.5px;color:var(--t3);margin-top:1px}
+.doc .ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto}
+
+/* ══════════════════════════════════════════════════════════════
+   .old — reprodução do Bancada v2 (o app de hoje)
+   ══════════════════════════════════════════════════════════════ */
+.old{
+  --s:#222f30; --hl:#4d5757; --i:#fff; --i2:#b9c6c2; --i3:#7e8b8b; --lm:#cef79e; --aq:#8be0d4;
+  background:radial-gradient(46rem 30rem at 88% -12%, rgba(206,247,158,.09), transparent 62%),
+             radial-gradient(40rem 28rem at -12% 108%, rgba(139,224,212,.08), transparent 58%), var(--s);
+  color:var(--i);font-family:var(--sans);min-width:1000px;display:grid;grid-template-columns:264px 1fr
+}
+.old *{box-sizing:border-box}
+.old .sb{background:rgba(43,56,57,.55);border-right:1px solid var(--hl)}
+.old .logo{color:var(--i)}
+.old .logo i{background:linear-gradient(120deg,var(--lm),var(--aq))}
+.old .sb-cap{color:var(--i3);font-family:"Public Sans",monospace}
+.old .it{font-size:12.5px;font-weight:400;font-family:ui-monospace,monospace;color:var(--i2);height:38px}
+.old .it.on{background:linear-gradient(120deg,var(--lm),var(--aq));color:#222f30}
+.old .sb-terr{background:transparent;border:1px solid var(--hl)}
+.old .sb-terr b{color:var(--i)}.old .sb-terr span{color:var(--i3)}
+.old .sb-terr button{background:transparent;border-color:var(--hl);color:var(--i2)}
+.old .ct{color:var(--i)}
+.old .pg-h h1{font-family:var(--sans);font-weight:500;font-size:34px;letter-spacing:-.025em}
+.old .crumb{color:var(--i3);font-size:13px}
+.old .bt{font-family:ui-monospace,monospace;font-size:12.5px;font-weight:500;text-transform:uppercase;letter-spacing:-.02em;border-radius:8px;height:36px}
+.old .bt-p{background:#fff;color:#222f30;box-shadow:none}
+.old .bt-o{border:1px solid var(--i2);color:var(--i)}
+.old .cd{background:rgba(255,255,255,.045);border:1px solid var(--hl);border-radius:16px;padding:20px;position:relative;overflow:hidden;backdrop-filter:blur(18px)}
+.old .cd::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(90deg,transparent,rgba(206,247,158,.55),rgba(139,224,212,.45),transparent)}
+.old .lab{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--i3)}
+.old .val{font-size:26px;font-weight:400;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums}
+.old .ctx{font-size:11px;color:var(--i3);margin-top:4px}
+.old .k-ink{background:#fff;color:#222f30;border-color:transparent}
+.old .k-lime{background:var(--lm);color:#222f30;border-color:transparent}
+.old .k-aqua{background:var(--aq);color:#222f30;border-color:transparent}
+.old .k-grad{background:linear-gradient(120deg,var(--lm),var(--aq));color:#222f30;border-color:transparent}
+.old .k-ink .lab,.old .k-ink .ctx,.old .k-lime .lab,.old .k-lime .ctx,
+.old .k-aqua .lab,.old .k-aqua .ctx,.old .k-grad .lab,.old .k-grad .ctx{color:rgba(34,47,48,.7)}
+.old .rw{border-top:1px solid var(--hl);padding:15px 18px}
+.old .rw:first-of-type{border-top:0}
+.old .ref{font-family:ui-monospace,monospace;font-size:11px;background:transparent;border:1px solid var(--hl);color:var(--i2);border-radius:999px;height:auto;padding:1px 8px}
+.old .rw-t b{font-size:14px;font-weight:400;color:var(--i)}
+.old .rw-m{font-size:12px;color:var(--i3);margin-top:2px}
+.old .rw-m .mn2{font-family:ui-monospace,monospace;text-transform:uppercase;letter-spacing:.04em}
+.old .mo{font-family:var(--sans);font-size:14px;font-weight:400}
+.old .mo small{display:none}
+.old .dtm{font-family:ui-monospace,monospace;font-size:12px;color:var(--i3)}
+.old .sit{font-family:ui-monospace,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.04em;border-radius:999px;padding:2px 8px;border:1px solid var(--hl);color:var(--i2);white-space:nowrap}
+.old .tb2 th{background:transparent;font-family:ui-monospace,monospace;font-size:11px;font-weight:400;color:var(--i3);border-bottom:1px solid var(--hl);padding:12px 14px}
+.old .tb2 td{border-bottom:1px solid var(--hl);color:var(--i2);font-size:13px;padding:12px 14px}
+.old .tb2 .mo{color:var(--i)}
+.old .inp{border:1px solid var(--hl);background:transparent;color:var(--i3);height:38px;border-radius:8px;font-size:13px}
+
+/* ── dark mode strip ──────────────────────────────────────────── */
+.dk{margin-top:26px;border-radius:var(--r);background:#141A21;padding:28px;box-shadow:var(--card-sh)}
+.dk h3{font-family:var(--sans);font-size:15px;font-weight:700;color:#fff}
+.dk p{font-size:13.5px;color:#919EAB;margin-top:4px}
+.dk-row{margin-top:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.dk-c{border-radius:14px;padding:18px;background:#1C252E}
+.dk-c .r{font-size:13px;font-weight:700;color:#919EAB}
+.dk-c .v{font-family:var(--disp);font-size:26px;font-weight:800;color:#fff;margin-top:4px;font-variant-numeric:tabular-nums}
+.dk-c.a{background:rgba(0,184,217,.16)} .dk-c.a .v{color:#61F3F3} .dk-c.a .r{color:#61F3F3;opacity:.8}
+.dk-c.b{background:rgba(0,167,111,.16)} .dk-c.b .v{color:#5BE49B} .dk-c.b .r{color:#5BE49B;opacity:.8}
+.dk-c.c{background:linear-gradient(135deg,#00A76F,#007867)} .dk-c.c .v{color:#fff} .dk-c.c .r{color:rgba(255,255,255,.72)}
+@media (max-width:700px){.dk-row,.kpis{grid-template-columns:repeat(2,1fr)}}
+
+/* ── regras + passos ──────────────────────────────────────────── */
+.rgs{margin-top:32px;display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.rg{background:var(--paper);border-radius:var(--r);box-shadow:var(--card-sh);padding:24px}
+.rg .n{width:34px;height:34px;border-radius:10px;background:rgba(0,167,111,.12);color:var(--p-dark);display:grid;place-items:center;font-weight:800;font-size:14px;font-family:var(--disp)}
+.rg h3{font-family:var(--sans);font-size:16.5px;font-weight:700;margin-top:14px}
+.rg p{font-size:14px;color:var(--tx2);margin-top:7px}
+.psx{margin-top:32px;background:var(--paper);border-radius:var(--r);box-shadow:var(--card-sh);overflow:hidden}
+.ps{display:flex;gap:20px;padding:20px 24px;border-top:1px dashed var(--line);align-items:flex-start}
+.ps:first-child{border-top:0}
+.ps-n{flex:0 0 32px;height:32px;border-radius:8px;background:var(--neutral);color:var(--tx2);display:grid;place-items:center;font-size:13px;font-weight:800}
+.ps b{font-size:15.5px;font-weight:700}
+.ps p{font-size:14px;color:var(--tx2);margin-top:4px}
+.ps .fx{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;background:rgba(145,158,171,.16);color:var(--tx2);padding:2px 7px;border-radius:6px}
+footer{margin-top:72px;background:var(--paper);border-radius:var(--r);box-shadow:var(--card-sh);padding:28px 32px;font-size:14.5px;color:var(--tx2)}
+footer b{color:var(--tx)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="over">Proposta de redesign · Hub Capture</p>
+  <h1>Balcão: o painel na linguagem do <em>Minimal</em>.</h1>
+  <p class="lead">O sistema atual foi desenhado como bancada de laboratório — canvas escuro, cards de vidro, rótulos em mono caixa-alta de 11px, tudo em peso 400. Para um prefeito ou um assessor de gabinete, isso significa varrer a tela inteira para achar um valor e um prazo. O <b>Balcão</b> adota a gramática do MUI Minimal: superfície branca, cantos de 16, sombra difusa, chips soft e a escada de verdes do <b>#00A76F</b> — e usa essa clareza para uma coisa só: fazer número, prazo e situação aparecerem antes de tudo — com o vocabulário oficial do setor intacto.</p>
+  <div class="hero-chips">
+    <span class="hchip"><b>Público</b> gestores públicos, sem repertório técnico</span>
+    <span class="hchip"><b>Base visual</b> MUI Minimal (minimals.cc)</span>
+    <span class="hchip"><b>Tipografia</b> Public Sans + Barlow</span>
+    <span class="hchip"><b>Primária</b> #00A76F</span>
+  </div>
+</header>
+
+<!-- ══════ 1. HERANÇA ══════ -->
+<section>
+  <div class="sec-h"><h2>O que vem do Minimal</h2><span>e o que adaptamos ao Hub</span></div>
+  <p class="sec-lead">Adotamos a gramática inteira do template — não só a paleta. Isso dá previsibilidade: qualquer tela nova já nasce coerente, e a decisão de design vira consulta a uma regra, não a gosto.</p>
+  <div class="heranca">
+    <div class="her">
+      <span class="her-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg></span>
+      <h3>Superfície branca, r16, sombra difusa</h3>
+      <p>Card opaco com <code>0 12px 24px -4px rgba(145,158,171,.12)</code>. Sai o vidro, saem as auroras animadas e a grade técnica do fundo.</p>
+    </div>
+    <div class="her">
+      <span class="her-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h10M4 17h7"/></svg></span>
+      <h3>Divisor tracejado</h3>
+      <p>O <code>1px dashed rgba(145,158,171,.2)</code> do Minimal separa linhas de lista e seções sem o peso de uma régua sólida.</p>
+    </div>
+    <div class="her">
+      <span class="her-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="8" width="18" height="8" rx="4"/></svg></span>
+      <h3>Chip soft a 16%</h3>
+      <p>Estado com fundo em 16% de alpha e texto no tom escuro da mesma cor. Legível, discreto, e a cor já quer dizer algo.</p>
+    </div>
+    <div class="her">
+      <span class="her-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5M20 19H4"/><rect x="7" y="11" width="3.5" height="8" rx="1"/><rect x="14" y="7" width="3.5" height="12" rx="1"/></svg></span>
+      <h3>Widget de número</h3>
+      <p>Ícone em círculo tingido, rótulo, número grande. É a peça que resolve o "não vejo os números" — e vira a base do painel.</p>
+    </div>
+    <div class="her">
+      <span class="her-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 17V9M12 17V5M19 17v-4"/></svg></span>
+      <h3>Escada de tons</h3>
+      <p>Cada cor tem <i>lighter / light / main / dark / darker</i>. Usamos a escada para contar a jornada do dinheiro, não para decorar.</p>
+    </div>
+    <div class="her">
+      <span class="her-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V6a2 2 0 012-2h9l5 5v11a2 2 0 01-2 2z"/><path d="M8 13h8M8 17h5"/></svg></span>
+      <h3>Adaptação nossa</h3>
+      <p>O Minimal apoia cards brancos sobre fundo branco. Num app de tabela e lista isso perde separação: usamos o <code>grey.100</code> como canvas.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ 2. PALETA ══════ -->
+<section>
+  <div class="sec-h"><h2>Paleta</h2><span>as rampas do Minimal, com significado atribuído</span></div>
+  <p class="sec-lead">O verde <b>#00A76F</b> assume o comando — o que mantém a marca na mesma família do lime atual, mas com contraste para carregar texto e botão. As demais rampas não são decorativas: cada uma responde a uma pergunta que o gestor faz.</p>
+
+  <div class="ramp-wrap">
+    <div class="ramp">
+      <div class="ramp-h"><b>Primary — verde</b><span>marca · navegação · dinheiro que chegou</span></div>
+      <div class="ramp-b">
+        <i style="background:#C8FAD6;color:#004B50">C8FAD6</i><i style="background:#5BE49B;color:#004B50">5BE49B</i>
+        <i style="background:#00A76F;color:#fff">00A76F</i><i style="background:#007867;color:#fff">007867</i><i style="background:#004B50;color:#fff">004B50</i>
+      </div>
+      <p>Logo, item ativo do menu, botão principal e o card "já caiu na conta".</p>
+    </div>
+    <div class="ramp">
+      <div class="ramp-h"><b>Info — ciano</b><span>a caminho</span></div>
+      <div class="ramp-b">
+        <i style="background:#CAFDF5;color:#003768">CAFDF5</i><i style="background:#61F3F3;color:#003768">61F3F3</i>
+        <i style="background:#00B8D9;color:#fff">00B8D9</i><i style="background:#006C9C;color:#fff">006C9C</i><i style="background:#003768;color:#fff">003768</i>
+      </div>
+      <p>Em análise, em tramitação, dinheiro reservado mas ainda não pago.</p>
+    </div>
+    <div class="ramp">
+      <div class="ramp-h"><b>Warning — âmbar</b><span>prazo</span></div>
+      <div class="ramp-b">
+        <i style="background:#FFF5CC;color:#7A4100">FFF5CC</i><i style="background:#FFD666;color:#7A4100">FFD666</i>
+        <i style="background:#FFAB00;color:#7A4100">FFAB00</i><i style="background:#B76E00;color:#fff">B76E00</i><i style="background:#7A4100;color:#fff">7A4100</i>
+      </div>
+      <p>Sempre tempo: vence em N dias, aguardando resposta, vigência acabando.</p>
+    </div>
+    <div class="ramp">
+      <div class="ramp-h"><b>Error — vermelho</b><span>depende de você</span></div>
+      <div class="ramp-b">
+        <i style="background:#FFE9D5;color:#7A0916">FFE9D5</i><i style="background:#FFAC82;color:#7A0916">FFAC82</i>
+        <i style="background:#FF5630;color:#fff">FF5630</i><i style="background:#B71D18;color:#fff">B71D18</i><i style="background:#7A0916;color:#fff">7A0916</i>
+      </div>
+      <p>Pendência aberta, prazo estourado, documento faltando, proposta reprovada.</p>
+    </div>
+    <div class="ramp">
+      <div class="ramp-h"><b>Success — verde-claro</b><span>concluído</span></div>
+      <div class="ramp-b">
+        <i style="background:#D3FCD2;color:#065E49">D3FCD2</i><i style="background:#77ED8B;color:#065E49">77ED8B</i>
+        <i style="background:#22C55E;color:#fff">22C55E</i><i style="background:#118D57;color:#fff">118D57</i><i style="background:#065E49;color:#fff">065E49</i>
+      </div>
+      <p>Aprovada, publicada, pago. Fica no chip; o card do painel usa a primária.</p>
+    </div>
+    <div class="ramp">
+      <div class="ramp-h"><b>Grey</b><span>texto e superfície</span></div>
+      <div class="ramp-b">
+        <i style="background:#F9FAFB;color:#637381">F9FAFB</i><i style="background:#F4F6F8;color:#637381">F4F6F8</i>
+        <i style="background:#DFE3E8;color:#454F5B">DFE3E8</i><i style="background:#919EAB;color:#fff">919EAB</i>
+        <i style="background:#637381;color:#fff">637381</i><i style="background:#1C252E;color:#fff">1C252E</i>
+      </div>
+      <p>Canvas <code>F9FAFB</code>, cards brancos, texto <code>1C252E</code> e secundário <code>637381</code> — 5,7:1, acima do mínimo.</p>
+    </div>
+  </div>
+
+  <div class="tbl-scroll">
+  <table class="mapa">
+    <tr><th>Estado na tela</th><th>Cor</th><th>O que o gestor entende</th></tr>
+    <tr><td><span class="lb lb-i">Em análise</span></td><td>info</td><td><b>Está com o governo.</b><span class="sub">Nada a fazer agora — acompanhar.</span></td></tr>
+    <tr><td><span class="lb lb-w">Vence em 12 dias</span></td><td>warning</td><td><b>Tem relógio correndo.</b><span class="sub">Todo prazo, sem exceção, é âmbar.</span></td></tr>
+    <tr><td><span class="lb lb-e">Pendência</span></td><td>error</td><td><b>Depende de você.</b><span class="sub">Vermelho nunca aparece sem uma ação possível ao lado.</span></td></tr>
+    <tr><td><span class="lb lb-s">Publicada</span></td><td>success</td><td><b>Andou.</b><span class="sub">Aprovada, publicada no Diário, paga.</span></td></tr>
+    <tr><td><span class="lb lb-p">Emenda</span></td><td>primary</td><td><b>Origem do recurso.</b><span class="sub">Marcação de categoria, não de estado.</span></td></tr>
+    <tr><td><span class="lb lb-n sem">Sem informação</span></td><td>grey</td><td><b>A fonte não informou.</b><span class="sub">Nunca confundir "não informado" com "zero".</span></td></tr>
+  </table>
+  </div>
+
+  <div class="dk">
+    <h3>O modo escuro continua — agora no dark do Minimal</h3>
+    <p>Fundo <code style="background:rgba(255,255,255,.1);color:#919EAB">#141A21</code>, cards <code style="background:rgba(255,255,255,.1);color:#919EAB">#1C252E</code> e as mesmas rampas em variante <i>light</i>. Sem canvas verde-petróleo e sem aurora.</p>
+    <div class="dk-row">
+      <div class="dk-c"><p class="r">Valor global</p><p class="v">R$ 18,4 mi</p></div>
+      <div class="dk-c a"><p class="r">Empenhado</p><p class="v">R$ 4,95 mi</p></div>
+      <div class="dk-c b"><p class="r">Publicado</p><p class="v">R$ 2,10 mi</p></div>
+      <div class="dk-c c"><p class="r">Pago</p><p class="v">R$ 1,28 mi</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ 3. TIPOGRAFIA ══════ -->
+<section>
+  <div class="sec-h"><h2>Tipografia</h2><span>a troca que o redesign exige</span></div>
+  <p class="sec-lead">Hoje o app roda <b>Inter Tight + Roboto Mono em peso único 400</b>, com rótulos em mono caixa-alta de 11px. Sem variação de peso não existe hierarquia: título, rótulo e valor chegam ao olho com a mesma força. O par do Minimal resolve os dois problemas — <b>Public Sans</b> tem sete pesos e foi desenhada para legibilidade em serviço público; <b>Barlow</b> entra só onde precisa de presença: título de página e número grande.</p>
+
+  <div class="specs">
+    <div class="spec">
+      <p class="spec-tag">Barlow · números e títulos</p>
+      <p style="font-family:var(--disp);font-weight:800;font-size:46px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:14px;line-height:1.1">R$ 4.951.320</p>
+      <p style="font-family:var(--disp);font-weight:700;font-size:26px;margin-top:6px">Propostas de Mossoró</p>
+      <p class="d">Grotesca estreita com algarismos tabulares: cabe mais dígito na mesma largura e as colunas de dinheiro alinham sozinhas.</p>
+      <div class="pesos"><span class="peso">600 semibold</span><span class="peso">700 bold</span><span class="peso">800 extrabold</span></div>
+    </div>
+    <div class="spec">
+      <p class="spec-tag">Public Sans · toda a interface</p>
+      <p style="font-size:22px;font-weight:700;margin-top:14px;line-height:1.35">Empenhado</p>
+      <p style="font-size:16px;margin-top:6px;color:var(--tx2)">Reservado pelo concedente e ainda não pago ao município.</p>
+      <p class="d">Rótulo, descrição, botão, menu, tabela. A mesma face em cinco pesos constrói toda a hierarquia sem trocar de família.</p>
+      <div class="pesos"><span class="peso">400</span><span class="peso">500</span><span class="peso">600</span><span class="peso">700</span><span class="peso">800</span></div>
+    </div>
+    <div class="spec">
+      <p class="spec-tag">O mono sai do sistema</p>
+      <p style="margin-top:14px;font-family:ui-monospace,monospace;font-size:15px;color:var(--tx3);text-decoration:line-through;text-decoration-color:rgba(255,86,48,.6)">Nº 14275/2026 · EMPENHADO · IBGE 2408003</p>
+      <p style="margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span class="ref" style="font-family:var(--sans)">14275/2026</span><span style="font-size:14px;color:var(--tx2)">vira chip com número tabular</span></p>
+      <p class="d">Identificador não precisa de máquina de escrever: precisa de fundo próprio, dígito tabular e clique para copiar. Roboto Mono deixa de ser dependência.</p>
+    </div>
+  </div>
+
+  <div class="tbl-scroll">
+  <table class="escala">
+    <tr><th>Papel</th><th>Hoje</th><th>Proposto</th><th>Por quê</th></tr>
+    <tr><td><b>Rótulo de dado</b></td><td class="old-v">11px mono CAIXA-ALTA, #7e8b8b</td><td class="new-v">14px / 700 / caixa de frase</td><td>Caixa-alta apaga o contorno da palavra — é o modo mais lento de ler.</td></tr>
+    <tr><td><b>Valor de destaque</b></td><td class="old-v">26px / 400</td><td class="new-v">36px Barlow / 800</td><td>O número é a resposta da tela; ele lidera ou não serve.</td></tr>
+    <tr><td><b>Descrição</b></td><td class="old-v">12px, cinza fraco (3,1:1)</td><td class="new-v">13,5–14px, #637381 (5,7:1)</td><td>É o texto que explica o dado a quem não é técnico.</td></tr>
+    <tr><td><b>Título de página</b></td><td class="old-v">34px / 500</td><td class="new-v">28px Barlow / 800</td><td>Menor e mais firme: o espaço vai para o dado, não para o cabeçalho.</td></tr>
+    <tr><td><b>Botão</b></td><td class="old-v">13px mono CAIXA-ALTA</td><td class="new-v">14px / 700 / caixa de frase</td><td>"Buscar nas fontes agora" é uma frase, não uma etiqueta de painel.</td></tr>
+    <tr><td><b>Item de menu</b></td><td class="old-v">12,5px mono</td><td class="new-v">14px / 600 (700 no ativo)</td><td>O menu é lido de relance, não decifrado.</td></tr>
+  </table>
+  </div>
+</section>
+
+<!-- ══════ 4. COMPONENTES ══════ -->
+<section>
+  <div class="sec-h"><h2>Peça por peça</h2><span>o app de hoje à esquerda, o Balcão à direita</span></div>
+  <p class="sec-lead">Quatro decisões do sistema atual que custam tempo de leitura em toda tela do painel.</p>
+
+  <div class="pares">
+
+    <div class="par">
+      <div class="par-h"><h3>1 · O card de número</h3>
+        <p>Hoje: rótulo mono de 11px, valor em peso 400 e uma linha de contexto em 11px. Mesmo rótulo, mesmo número — o que muda é tamanho, peso, ícone e a cor com significado.</p></div>
+      <div class="par-b">
+        <div class="par-l antes">
+          <span class="par-tag">Hoje</span>
+          <div class="old" style="display:block;min-width:0;background:transparent">
+            <div class="cd k-lime">
+              <div class="lab">Empenhado</div><div class="val">R$ 4,95 mi</div><div class="ctx">reservado pelo concedente</div>
+            </div>
+          </div>
+          <p class="par-n">Rótulo com 40% do tamanho do corpo do texto. A cor cheia da marca é decorativa: lime não quer dizer nada em si.</p>
+        </div>
+        <div class="par-l depois">
+          <span class="par-tag">Balcão</span>
+          <div class="mn" style="display:block;min-width:0;background:transparent">
+            <div class="kp k2" style="box-shadow:none">
+              <span class="bolha"></span>
+              <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="6" width="19" height="13" rx="3"/><path d="M2.5 10h19"/><path d="M7 15h3"/></svg></span>
+              <p class="rot">Empenhado</p>
+              <p class="num">R$ 4,95 mi</p>
+              <p class="exp">Reservado pelo concedente · 12 propostas</p>
+            </div>
+          </div>
+          <p class="par-n">Ícone em círculo tingido, rótulo oficial em 14/700, número em Barlow 36/800 e a linha de contexto legível (13,5px). O jargão do setor permanece — é a forma que muda.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="par">
+      <div class="par-h"><h3>2 · A situação</h3>
+        <p>Hoje a situação é texto cru da fonte numa pílula de borda cinza. Quatro estados que exigem reações opostas têm exatamente a mesma aparência.</p></div>
+      <div class="par-b">
+        <div class="par-l antes">
+          <span class="par-tag">Hoje</span>
+          <div class="old" style="display:block;min-width:0;background:transparent">
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <span class="sit">Em análise</span><span class="sit">Aprovada</span><span class="sit">Pendência</span><span class="sit">Vigência encerrada</span><span class="sit">—</span>
+            </div>
+          </div>
+          <p class="par-n">10px, mono, caixa-alta, borda cinza. E o traço "—" some no fundo: "não informado" vira indistinguível de "zero".</p>
+        </div>
+        <div class="par-l depois">
+          <span class="par-tag">Balcão</span>
+          <div style="display:flex;flex-wrap:wrap;gap:10px">
+            <span class="lb lb-i">Em análise</span><span class="lb lb-s">Aprovada</span>
+            <span class="lb lb-e">Pendência</span><span class="lb lb-w">Vence em 12 dias</span>
+            <span class="lb lb-n sem">Sem informação</span>
+          </div>
+          <p style="font-size:14px;color:var(--tx2)">Cor <b>e</b> forma: todo chip carrega um ponto colorido — funciona para daltônicos e em impressão preto-e-branco.</p>
+          <p class="par-n">O chip usa o vocabulário da situação; o prazo entra como estado próprio ("Vence em 12 dias") em vez de data solta.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="par">
+      <div class="par-h"><h3>3 · A linha da lista</h3>
+        <p>Hoje tudo tem o mesmo peso: título, fonte de dados, município, valor e data disputam a atenção. O valor — o dado que decide — sai em 14px comum no fim da linha, e o prazo não aparece.</p></div>
+      <div class="par-b">
+        <div class="par-l antes" style="padding:24px 12px">
+          <span class="par-tag" style="margin-left:12px">Hoje</span>
+          <div class="old" style="display:block;min-width:0;background:transparent">
+            <div class="rw" style="display:flex;gap:12px;align-items:center;padding:14px 12px">
+              <div class="rw-c">
+                <p class="rw-t"><span class="ref">Nº 14275/2026</span><b>Aquisição de veículo para transporte sanitário destinad…</b></p>
+                <p class="rw-m" style="display:flex;gap:10px;flex-wrap:wrap"><span class="mn2">Proposta</span><span>TransfereGov — Fundo a Fundo</span><span>Mossoró/RN</span></p>
+              </div>
+              <span class="mo">R$ 350.000,00</span><span class="dtm">26/03/2026</span>
+            </div>
+          </div>
+          <p class="par-n">Sem hierarquia, o olho não sabe onde pousar — e o objeto truncado no meio da frase não diz o que a proposta é.</p>
+        </div>
+        <div class="par-l depois" style="padding:24px 12px">
+          <span class="par-tag" style="margin-left:12px">Balcão</span>
+          <div class="mn" style="display:block;min-width:0;background:transparent">
+            <div class="rw" style="padding:14px 12px">
+              <span class="rw-th" style="background:rgba(0,184,217,.16);color:var(--i-dark)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 13l2-5h9l3 5"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M3 13v4h2M9 17h6M19 17h2v-4l-4-1"/></svg></span>
+              <div class="rw-c">
+                <p class="rw-t"><b>Veículo para transporte sanitário</b><span class="ref">14275/2026</span></p>
+                <p class="rw-d">Van adaptada para levar pacientes da zona rural às consultas na sede.</p>
+                <p class="rw-m"><span>Mossoró/RN</span><span>TransfereGov · Fundo a Fundo</span><span>criada em 26/03/2026</span></p>
+              </div>
+              <div class="rw-r"><span class="mo">R$ 350.000<small>valor da proposta</small></span><span class="lb lb-w">Vence em 12 dias</span></div>
+            </div>
+          </div>
+          <p class="par-n">Ícone por área (saúde, obra, educação), título curto e humano, objeto completo virando descrição, valor em Barlow 19/800 com legenda, e o prazo como estado — não como data solta.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="par">
+      <div class="par-h"><h3>4 · O fundo e a moldura</h3>
+        <p>Auroras animadas, grade técnica e cards translúcidos com <code>backdrop-filter</code>: o texto assenta sobre um fundo que se move e muda de tom conforme a posição na página.</p></div>
+      <div class="par-b">
+        <div class="par-l antes">
+          <span class="par-tag">Hoje</span>
+          <div class="old" style="display:block;min-width:0;border-radius:12px;padding:18px">
+            <div class="cd">
+              <div class="lab">Valor global</div><div class="val">R$ 1.200.000,00</div><div class="ctx">contrapartida R$ 60.000,00</div>
+            </div>
+          </div>
+          <p class="par-n">Metadado a 3,1:1 de contraste — abaixo do mínimo de acessibilidade (4,5:1). E o blur do vidro custa repintura em toda rolagem.</p>
+        </div>
+        <div class="par-l depois">
+          <span class="par-tag">Balcão</span>
+          <div class="mn" style="display:block;min-width:0;background:transparent">
+            <div class="bx" style="padding:22px">
+              <p style="font-size:14px;font-weight:700">Valor global</p>
+              <p style="font-family:var(--disp);font-size:32px;font-weight:800;letter-spacing:-.02em;margin-top:5px;font-variant-numeric:tabular-nums">R$ 1.200.000,00</p>
+              <p style="font-size:13.5px;color:var(--tx2);margin-top:6px">Contrapartida: <b style="color:var(--tx);font-weight:700">R$ 60.000,00</b></p>
+            </div>
+          </div>
+          <p class="par-n">Superfície opaca, sombra difusa, zero blur. Todo texto acima de 4,5:1 — inclusive o secundário.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════ 5. TELAS ══════ -->
+<section>
+  <div class="sec-h"><h2>As telas</h2><span>mesmo conteúdo, mesmas rotas, mesmos dados</span></div>
+  <p class="sec-lead">Use o botão para alternar entre o app de hoje e o Balcão.</p>
+
+  <!-- TELA 1 -->
+  <div class="tela" id="t1">
+    <div class="tela-bar">
+      <h3>Meu painel</h3>
+      <div class="tg" role="group" aria-label="Versão da tela Meu painel">
+        <button type="button" data-alvo="t1" data-ver="novo" aria-pressed="true">Balcão</button>
+        <button type="button" data-alvo="t1" data-ver="velho" aria-pressed="false">Hoje</button>
+      </div>
+    </div>
+    <div class="frame">
+      <div class="fr-top"><i></i><i></i><i></i><span class="fr-url">hubcapture.app/panel</span></div>
+      <div class="fr-body">
+
+        <div class="mn" id="t1-novo">
+          <aside class="sb">
+            <div class="logo"><i><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M4 19V9M12 19V5M20 19v-7"/></svg></i> Hub Capture</div>
+            <p class="sb-cap">Visão geral</p>
+            <a class="it on" href="#t1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg> Meu painel</a>
+            <a class="it" href="#t2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg> Propostas</a>
+            <a class="it" href="#t3"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4l2.4 5.2 5.6.6-4.2 3.8 1.2 5.6L12 16.4 7 19.2l1.2-5.6L4 9.8l5.6-.6z"/></svg> Minhas propostas</a>
+            <p class="sb-cap">O município</p>
+            <a class="it" href="#t3"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M6 21V9l6-4 6 4v12"/><path d="M10 21v-5h4v5"/></svg> Recursos recebidos</a>
+            <a class="it" href="#t3"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.4 8.2-8 9-4.6-.8-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg> Alertas <span class="badge">2</span></a>
+            <a class="it" href="#t3"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 15a3 3 0 01-3 3H8l-4 3V6a3 3 0 013-3h10a3 3 0 013 3z"/></svg> Copiloto</a>
+            <div class="sb-terr"><b>Mossoró/RN</b><span>+ 2 municípios no perfil</span><button>Trocar recorte</button></div>
+          </aside>
+
+          <div class="tb">
+            <span class="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg> Buscar proposta, programa ou órgão…</span>
+            <span class="sp">
+              <span class="ic-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9z"/><path d="M10.5 21h3"/></svg><span class="dot"></span></span>
+              <span class="av">PB</span>
+            </span>
+          </div>
+
+          <main class="ct">
+            <div class="pg-h">
+              <div><h1>Bom dia, Mossoró</h1><p class="crumb">Dados atualizados há 2 horas · TransfereGov e Fundo Nacional de Saúde</p></div>
+              <div class="pg-act">
+                <span class="inp bt-sm" style="height:40px;border-radius:8px">Ano: <b>2026</b> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></span>
+                <button class="bt bt-p"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 11-3-6.7M21 4v5h-5"/></svg> Buscar agora</button>
+              </div>
+            </div>
+
+            <div class="al">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.2l3.2 2"/></svg>
+              <div><b>2 propostas precisam de você nesta semana</b>
+              <p>A 14275/2026 vence em 12 dias e a 30011/2026 tem uma pendência aberta desde 04/08.</p></div>
+              <button class="bt bt-sm">Ver as duas</button>
+            </div>
+
+            <div class="kpis">
+              <div class="kp k1">
+                <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M6 21V9l6-4 6 4v12"/><path d="M10 21v-5h4v5"/></svg></span>
+                <p class="rot">Valor global</p><p class="num">R$ 18,4 mi</p>
+              </div>
+              <div class="kp k2"><span class="bolha"></span>
+                <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="6" width="19" height="13" rx="3"/><path d="M2.5 10h19M7 15h3"/></svg></span>
+                <p class="rot">Empenhado</p><p class="num">R$ 4,95 mi</p>
+              </div>
+              <div class="kp k3"><span class="bolha"></span>
+                <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h11l3 3v13H5z"/><path d="M8 11h8M8 15h5"/></svg></span>
+                <p class="rot">Publicado</p><p class="num">R$ 2,10 mi</p>
+              </div>
+              <div class="kp k4"><span class="bolha"></span>
+                <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M14.6 9.8c-.6-.8-1.6-1.1-2.6-1.1-1.4 0-2.4.7-2.4 1.9 0 2.6 5 1.4 5 4 0 1.3-1.1 2-2.6 2-1.1 0-2.1-.4-2.7-1.2"/></svg></span>
+                <p class="rot">Pago</p><p class="num">R$ 1,28 mi</p>
+              </div>
+            </div>
+
+            <div class="g2">
+              <div class="bx">
+                <div class="bx-h"><div><h2>Últimos movimentos</h2><span class="sub">propostas e repasses do seu território</span></div><a href="#t2">Ver todas →</a></div>
+                <a class="rw" href="#t3">
+                  <span class="rw-th" style="background:rgba(0,184,217,.16);color:#006C9C"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 13l2-5h9l3 5"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M3 13v4h2M9 17h6M19 17h2v-4l-4-1"/></svg></span>
+                  <div class="rw-c">
+                    <p class="rw-t"><b>Veículo para transporte sanitário</b><span class="ref">14275/2026</span><span class="lb lb-p sem">Novo</span></p>
+                    <p class="rw-d">Van adaptada para levar pacientes da zona rural às consultas na sede.</p>
+                    <p class="rw-m"><span>Mossoró/RN</span><span>TransfereGov · Fundo a Fundo</span></p>
+                  </div>
+                  <div class="rw-r"><span class="mo">R$ 350.000<small>valor da proposta</small></span><span class="lb lb-w">Vence em 12 dias</span></div>
+                </a>
+                <a class="rw" href="#t3">
+                  <span class="rw-th" style="background:rgba(255,86,48,.16);color:#B71D18"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 20h18M5 20V10l7-5 7 5v10"/><path d="M9 20v-6h6v6"/></svg></span>
+                  <div class="rw-c">
+                    <p class="rw-t"><b>Quadra poliesportiva coberta</b><span class="ref">30011/2026</span></p>
+                    <p class="rw-d">Construção no bairro Santo Antônio, com vestiário e arquibancada.</p>
+                    <p class="rw-m"><span>Mossoró/RN</span><span>TransfereGov · Discricionárias</span></p>
+                  </div>
+                  <div class="rw-r"><span class="mo">R$ 1.200.000<small>valor da proposta</small></span><span class="lb lb-e">Pendência</span></div>
+                </a>
+                <a class="rw" href="#t3">
+                  <span class="rw-th" style="background:rgba(34,197,94,.16);color:#118D57"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M7 7.5h7.5a2.5 2.5 0 010 5H9a2.5 2.5 0 000 5h8"/></svg></span>
+                  <div class="rw-c">
+                    <p class="rw-t"><b>Piso de Atenção Primária</b><span class="ref">OB 800123</span></p>
+                    <p class="rw-d">Repasse mensal do Fundo Nacional de Saúde ao fundo municipal.</p>
+                    <p class="rw-m"><span>Mossoró/RN</span><span>recebido em 19/01/2026</span></p>
+                  </div>
+                  <div class="rw-r"><span class="mo">R$ 96.420<small>pago</small></span><span class="lb lb-s">Pago</span></div>
+                </a>
+              </div>
+
+              <div class="bx">
+                <div class="bx-h"><div><h2>Aprovado × desembolsado</h2><span class="sub">últimos 4 anos</span></div></div>
+                <div class="bx-p">
+                  <div class="ch-leg"><span><i style="background:#DFE3E8"></i>Aprovado</span><span><i style="background:#00A76F"></i>Desembolsado</span></div>
+                  <div class="ch"><div class="ch-in">
+                    <div class="ch-col"><div class="ch-bars"><i style="height:46%;background:#DFE3E8"></i><i style="height:20%;background:#00A76F"></i></div><span>2023</span></div>
+                    <div class="ch-col"><div class="ch-bars"><i style="height:62%;background:#DFE3E8"></i><i style="height:35%;background:#00A76F"></i></div><span>2024</span></div>
+                    <div class="ch-col"><div class="ch-bars"><i style="height:80%;background:#DFE3E8"></i><i style="height:52%;background:#00A76F"></i></div><span>2025</span></div>
+                    <div class="ch-col"><div class="ch-bars"><i style="height:100%;background:#DFE3E8"></i><i style="height:28%;background:#00A76F"></i></div><span>2026</span></div>
+                  </div></div>
+                  <p style="font-size:14px;color:var(--tx2);margin-top:22px;line-height:1.5">Em 2026, <b style="color:var(--tx);font-weight:700">R$ 3,2 mi dos R$ 18,4 mi</b> aprovados já chegaram ao município.</p>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+
+        <!-- HOJE -->
+        <div class="old" id="t1-velho" hidden>
+          <aside class="sb">
+            <div class="logo"><i></i> Hub Capture</div>
+            <p class="sb-cap">Navegação</p>
+            <a class="it on" href="#t1">▤ Meu painel</a><a class="it" href="#t2">▤ Propostas</a>
+            <a class="it" href="#t3">▤ Minhas Propostas</a><a class="it" href="#t3">▤ Recursos recebidos</a>
+            <a class="it" href="#t3">▤ Alertas</a><a class="it" href="#t3">▤ Copiloto</a>
+            <div class="sb-terr"><b>Mossoró/RN</b><span>+2 municípios</span><button>Trocar recorte</button></div>
+          </aside>
+          <div class="tb" style="background:transparent"></div>
+          <main class="ct">
+            <div class="pg-h">
+              <div><h1>Meu painel</h1><p class="crumb">Território: Mossoró/RN · Papel: Executivo</p></div>
+              <div class="pg-act"><span class="inp">Ano: 2026</span><button class="bt bt-o">Atualizar fontes</button></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+              <div class="cd"><div class="lab">Nº de propostas</div><div class="val">34</div><div class="ctx">no território</div></div>
+              <div class="cd"><div class="lab">Recebidos</div><div class="val">R$ 3,2 mi</div><div class="ctx">no ano</div></div>
+              <div class="cd" style="grid-column:span 2"><div class="lab">Aprovado × desembolsado por ano</div>
+                <div style="display:flex;align-items:flex-end;gap:10px;height:60px;margin-top:14px">
+                  <div style="display:flex;gap:2px;align-items:flex-end;height:100%"><i style="width:12px;height:46%;background:rgba(255,255,255,.7);border-radius:2px 2px 0 0;display:block"></i><i style="width:12px;height:20%;background:#cef79e;border-radius:2px 2px 0 0;display:block"></i></div>
+                  <div style="display:flex;gap:2px;align-items:flex-end;height:100%"><i style="width:12px;height:62%;background:rgba(255,255,255,.7);border-radius:2px 2px 0 0;display:block"></i><i style="width:12px;height:35%;background:#cef79e;border-radius:2px 2px 0 0;display:block"></i></div>
+                  <div style="display:flex;gap:2px;align-items:flex-end;height:100%"><i style="width:12px;height:80%;background:rgba(255,255,255,.7);border-radius:2px 2px 0 0;display:block"></i><i style="width:12px;height:52%;background:#cef79e;border-radius:2px 2px 0 0;display:block"></i></div>
+                  <div style="display:flex;gap:2px;align-items:flex-end;height:100%"><i style="width:12px;height:100%;background:rgba(255,255,255,.7);border-radius:2px 2px 0 0;display:block"></i><i style="width:12px;height:28%;background:#cef79e;border-radius:2px 2px 0 0;display:block"></i></div>
+                </div>
+                <div class="ctx" style="margin-top:10px">▊ aprovado &nbsp; <span style="color:#cef79e">▊ desembolsado</span></div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+              <div class="cd k-ink"><div class="lab">Total geral</div><div class="val">R$ 18,4 mi</div><div class="ctx">34 transferências</div></div>
+              <div class="cd k-lime"><div class="lab">Empenhado</div><div class="val">R$ 4,95 mi</div><div class="ctx">reservado pelo concedente</div></div>
+              <div class="cd k-aqua"><div class="lab">Publicado</div><div class="val">R$ 2,10 mi</div><div class="ctx">publicado pela fonte</div></div>
+              <div class="cd k-grad"><div class="lab">Pago</div><div class="val">R$ 1,28 mi</div><div class="ctx">efetivamente pago</div></div>
+            </div>
+            <h2 style="font-family:var(--sans);font-weight:500;font-size:20px;letter-spacing:-.02em">Propostas</h2>
+            <div class="cd" style="padding:0">
+              <div class="rw" style="display:flex;gap:12px;align-items:center">
+                <div class="rw-c"><p class="rw-t"><span class="ref">Nº 14275/2026</span><b>Aquisição de veículo para transporte sanitário destinad…</b></p>
+                <p class="rw-m" style="display:flex;gap:10px"><span class="mn2">Proposta</span><span>TransfereGov — Fundo a Fundo</span><span>Mossoró/RN</span></p></div>
+                <span class="mo">R$ 350.000,00</span><span class="dtm">26/03/2026</span></div>
+              <div class="rw" style="display:flex;gap:12px;align-items:center">
+                <div class="rw-c"><p class="rw-t"><span class="ref">Nº 30011/2026</span><b>Construção de quadra poliesportiva coberta no bairro Sa…</b></p>
+                <p class="rw-m" style="display:flex;gap:10px"><span class="mn2">Proposta</span><span>TransfereGov — Discricionárias</span><span>Mossoró/RN</span></p></div>
+                <span class="mo">R$ 1.200.000,00</span><span class="dtm">14/02/2026</span></div>
+              <div class="rw" style="display:flex;gap:12px;align-items:center">
+                <div class="rw-c"><p class="rw-t"><span class="ref">Nº 800123</span><b>Piso de Atenção Primária</b></p>
+                <p class="rw-m" style="display:flex;gap:10px"><span class="mn2">Recebido</span><span>Fundo Nacional de Saúde</span><span>Mossoró/RN</span></p></div>
+                <span class="mo">R$ 96.420,00</span><span class="dtm">19/01/2026</span></div>
+            </div>
+          </main>
+        </div>
+
+      </div>
+    </div>
+    <p class="nota">Dados de exemplo, plausíveis para Mossoró/RN — não são os números reais de nenhuma conta.</p>
+  </div>
+
+  <!-- TELA 2 -->
+  <div class="tela" id="t2" style="margin-top:64px">
+    <div class="tela-bar">
+      <h3>Propostas</h3>
+      <div class="tg" role="group" aria-label="Versão da tela Propostas">
+        <button type="button" data-alvo="t2" data-ver="novo" aria-pressed="true">Balcão</button>
+        <button type="button" data-alvo="t2" data-ver="velho" aria-pressed="false">Hoje</button>
+      </div>
+    </div>
+    <div class="frame">
+      <div class="fr-top"><i></i><i></i><i></i><span class="fr-url">hubcapture.app/panel/funding</span></div>
+      <div class="fr-body">
+
+        <div class="mn" id="t2-novo">
+          <aside class="sb">
+            <div class="logo"><i><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M4 19V9M12 19V5M20 19v-7"/></svg></i> Hub Capture</div>
+            <p class="sb-cap">Visão geral</p>
+            <a class="it" href="#t1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg> Meu painel</a>
+            <a class="it on" href="#t2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg> Propostas</a>
+            <a class="it" href="#t3"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4l2.4 5.2 5.6.6-4.2 3.8 1.2 5.6L12 16.4 7 19.2l1.2-5.6L4 9.8l5.6-.6z"/></svg> Minhas propostas</a>
+            <p class="sb-cap">O município</p>
+            <a class="it" href="#t3"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M6 21V9l6-4 6 4v12"/><path d="M10 21v-5h4v5"/></svg> Recursos recebidos</a>
+            <a class="it" href="#t3"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.4 8.2-8 9-4.6-.8-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg> Alertas <span class="badge">2</span></a>
+            <div class="sb-terr"><b>Mossoró/RN</b><span>+ 2 municípios no perfil</span><button>Trocar recorte</button></div>
+          </aside>
+
+          <div class="tb">
+            <span class="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg> Buscar proposta, programa ou órgão…</span>
+            <span class="sp"><span class="ic-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9z"/><path d="M10.5 21h3"/></svg><span class="dot"></span></span><span class="av">PB</span></span>
+          </div>
+
+          <main class="ct">
+            <div class="pg-h">
+              <div><h1>Propostas de Mossoró</h1><p class="crumb">34 propostas · dados de 2 horas atrás</p></div>
+              <div class="pg-act"><button class="bt bt-o"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg> Baixar planilha</button><button class="bt bt-p">Buscar agora</button></div>
+            </div>
+
+            <div class="bx">
+              <div class="tabs">
+                <span class="tab-i on">Todas <span class="n">34</span></span>
+                <span class="tab-i" style="color:#B71D18">Precisam de mim <span class="n" style="background:rgba(255,86,48,.16);color:#B71D18">2</span></span>
+                <span class="tab-i" style="color:#B76E00">Vencendo <span class="n" style="background:rgba(255,171,0,.16);color:#B76E00">5</span></span>
+                <span class="tab-i">Já pagas <span class="n">6</span></span>
+                <span class="tab-i">★ Acompanhando <span class="n">4</span></span>
+              </div>
+              <div style="padding:20px 24px;display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+                <span class="inp gr"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg> Buscar por nº, programa ou órgão…</span>
+                <span class="inp">Área: <b>Todas</b> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></span>
+                <span class="inp">Órgão: <b>Todos</b> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></span>
+                <span class="inp">Ano: <b>2026</b> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></span>
+              </div>
+              <div class="tbl-scroll" style="padding:0 12px 12px">
+              <table class="tb2">
+                <thead><tr><th>Proposta</th><th>Situação</th><th class="r">Valor</th><th class="r">Já reservado</th><th>Prazo</th><th></th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div style="display:flex;gap:14px">
+                        <span class="rw-th" style="background:rgba(0,184,217,.16);color:#006C9C"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 13l2-5h9l3 5"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M3 13v4h2M9 17h6M19 17h2v-4l-4-1"/></svg></span>
+                        <span><span class="rw-t"><b>Veículo para transporte sanitário</b><span class="ref">14275/2026</span></span>
+                        <p class="rw-d" style="max-width:44ch">Van adaptada para pacientes da zona rural.</p>
+                        <p class="rw-m"><span>Ministério da Saúde</span><span>Fundo a Fundo</span></p></span>
+                      </div>
+                    </td>
+                    <td><span class="lb lb-i">Em análise</span></td>
+                    <td class="r"><span class="mo">R$ 350.000<small>valor total</small></span></td>
+                    <td class="r"><span class="mo" style="color:var(--tx3)">—<small>nada ainda</small></span></td>
+                    <td><span class="lb lb-w">12 dias</span><p style="font-size:12.5px;color:var(--tx3);margin-top:6px;font-weight:600">13/09/2026</p></td>
+                    <td class="r"><span style="color:var(--tx3)">⋯</span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div style="display:flex;gap:14px">
+                        <span class="rw-th" style="background:rgba(255,86,48,.16);color:#B71D18"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 20h18M5 20V10l7-5 7 5v10"/><path d="M9 20v-6h6v6"/></svg></span>
+                        <span><span class="rw-t"><b>Quadra poliesportiva coberta</b><span class="ref">30011/2026</span></span>
+                        <p class="rw-d" style="max-width:44ch">Bairro Santo Antônio, com vestiário.</p>
+                        <p class="rw-m"><span>Ministério do Esporte</span><span>Discricionárias</span></p></span>
+                      </div>
+                    </td>
+                    <td><span class="lb lb-e">Pendência</span><p style="font-size:12.5px;color:#B71D18;margin-top:6px;font-weight:600">Falta o projeto básico</p></td>
+                    <td class="r"><span class="mo">R$ 1.200.000<small>valor total</small></span></td>
+                    <td class="r"><span class="mo" style="color:var(--tx3)">—<small>nada ainda</small></span></td>
+                    <td><span class="lb lb-e">Atrasado</span><p style="font-size:12.5px;color:var(--tx3);margin-top:6px;font-weight:600">há 28 dias</p></td>
+                    <td class="r"><span style="color:var(--tx3)">⋯</span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div style="display:flex;gap:14px">
+                        <span class="rw-th" style="background:rgba(34,197,94,.16);color:#118D57"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M7 7.5h7.5a2.5 2.5 0 010 5H9a2.5 2.5 0 000 5h8"/></svg></span>
+                        <span><span class="rw-t"><b>Reforma da UBS Central</b><span class="ref">09123/2025</span></span>
+                        <p class="rw-d" style="max-width:44ch">Cobertura, climatização e acessibilidade.</p>
+                        <p class="rw-m"><span>Ministério da Saúde</span><span>Fundo a Fundo</span></p></span>
+                      </div>
+                    </td>
+                    <td><span class="lb lb-s">Em execução</span></td>
+                    <td class="r"><span class="mo">R$ 480.000<small>valor total</small></span></td>
+                    <td class="r"><span class="mo" style="color:var(--p-dark)">R$ 480.000<small>R$ 240.000 já pagos</small></span>
+                      <span class="pg" style="width:110px;margin-left:auto;margin-top:8px"><i style="width:50%;background:#00A76F"></i></span></td>
+                    <td><span style="font-size:13px;color:var(--tx2);font-weight:600">Vigência até<br>30/06/2027</span></td>
+                    <td class="r"><span style="color:var(--tx3)">⋯</span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div style="display:flex;gap:14px">
+                        <span class="rw-th" style="background:rgba(0,167,111,.16);color:#007867"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 18l3-8h8l3 8z"/><path d="M9 10V6h6v4"/></svg></span>
+                        <span><span class="rw-t"><b>Patrulha mecanizada agrícola</b><span class="ref">21880/2025</span></span>
+                        <p class="rw-d" style="max-width:44ch">Trator, grade e carreta para associações rurais.</p>
+                        <p class="rw-m"><span>Ministério da Agricultura</span><span class="lb lb-p" style="height:20px;font-size:11px">Emenda parlamentar</span></p></span>
+                      </div>
+                    </td>
+                    <td><span class="lb lb-s">Publicada</span></td>
+                    <td class="r"><span class="mo">R$ 620.000<small>valor total</small></span></td>
+                    <td class="r"><span class="mo" style="color:var(--p-dark)">R$ 620.000<small>nada pago ainda</small></span>
+                      <span class="pg" style="width:110px;margin-left:auto;margin-top:8px"><i style="width:0;background:#00A76F"></i></span></td>
+                    <td><span style="font-size:13px;color:var(--tx2);font-weight:600">Vigência até<br>12/12/2026</span></td>
+                    <td class="r"><span style="color:var(--tx3)">⋯</span></td>
+                  </tr>
+                </tbody>
+              </table>
+              </div>
+              <div style="padding:6px 24px 20px;font-size:13.5px;color:var(--tx2);font-weight:500">Mostrando 4 de 34 propostas</div>
+            </div>
+          </main>
+        </div>
+
+        <div class="old" id="t2-velho" hidden>
+          <aside class="sb">
+            <div class="logo"><i></i> Hub Capture</div><p class="sb-cap">Navegação</p>
+            <a class="it" href="#t1">▤ Meu painel</a><a class="it on" href="#t2">▤ Propostas</a>
+            <a class="it" href="#t3">▤ Minhas Propostas</a><a class="it" href="#t3">▤ Recursos recebidos</a>
+            <div class="sb-terr"><b>Mossoró/RN</b><span>+2 municípios</span><button>Trocar recorte</button></div>
+          </aside>
+          <div class="tb" style="background:transparent"></div>
+          <main class="ct">
+            <div class="pg-h"><div><h1>Captação</h1><p class="crumb">Território: Mossoró/RN · 34 propostas · dados de há 2h</p></div>
+            <div class="pg-act"><button class="bt bt-o">Baixar relatório</button><button class="bt bt-o">Atualizar fontes</button></div></div>
+            <div class="cd" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px 16px">
+              <span class="inp" style="flex:1;min-width:220px">Busca (nº da proposta, programa, órgão)</span>
+              <span class="inp">Modalidade</span><span class="inp">Órgão</span><span class="inp">Qualificação</span><span class="inp">Situação</span><span class="inp">Ano</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px">
+              <div class="cd" style="padding:16px"><div class="lab">Transferências</div><div class="val" style="font-size:19px">34</div></div>
+              <div class="cd" style="padding:16px"><div class="lab">Valor global</div><div class="val" style="font-size:19px">R$ 18,4 mi</div></div>
+              <div class="cd" style="padding:16px"><div class="lab">Empenhado</div><div class="val" style="font-size:19px">R$ 4,95 mi</div></div>
+              <div class="cd" style="padding:16px;border-color:#cef79e"><div class="lab">Empenhado a utilizar</div><div class="val" style="font-size:19px;color:#cef79e">R$ 3,67 mi</div></div>
+              <div class="cd" style="padding:16px"><div class="lab">Pago</div><div class="val" style="font-size:19px">R$ 1,28 mi</div></div>
+              <div class="cd" style="padding:16px"><div class="lab">Saldo em conta</div><div class="val" style="font-size:19px">R$ 812 mil</div></div>
+            </div>
+            <div class="cd" style="padding:0;overflow:hidden">
+              <div class="tbl-scroll">
+              <table class="tb2">
+                <thead><tr><th></th><th>Proposta</th><th>Município</th><th>Ano</th><th class="r">Valor global</th><th class="r">Empenhado</th><th>Situação</th><th>Pasta</th></tr></thead>
+                <tbody>
+                  <tr><td>☆&nbsp;🔔</td><td><span class="ref">Nº 14275/2026</span><br><b style="font-weight:400;color:#fff;font-size:13.5px">Aquisição de veículo para transporte sanitário destinad…</b><br><span class="rw-m">MS · Fundo a Fundo</span></td><td>Mossoró<br><span class="dtm">2408003</span></td><td>2026</td><td class="r"><span class="mo">R$ 350.000,00</span></td><td class="r"><span class="mo">—</span></td><td><span class="sit">Em análise</span></td><td><span class="inp" style="height:30px">Sem pasta</span></td></tr>
+                  <tr><td>☆&nbsp;🔔</td><td><span class="ref">Nº 30011/2026</span><br><b style="font-weight:400;color:#fff;font-size:13.5px">Construção de quadra poliesportiva coberta no bairro Sa…</b><br><span class="rw-m">MEsp · Discricionárias</span></td><td>Mossoró<br><span class="dtm">2408003</span></td><td>2026</td><td class="r"><span class="mo">R$ 1.200.000,00</span></td><td class="r"><span class="mo">—</span></td><td><span class="sit">Pendência</span></td><td><span class="inp" style="height:30px">Sem pasta</span></td></tr>
+                  <tr><td>★&nbsp;🔔</td><td><span class="ref">Nº 09123/2025</span><br><b style="font-weight:400;color:#fff;font-size:13.5px">Reforma da UBS Central — troca de cobertura, climatiza…</b><br><span class="rw-m">MS · Fundo a Fundo</span></td><td>Mossoró<br><span class="dtm">2408003</span></td><td>2025</td><td class="r"><span class="mo">R$ 480.000,00</span></td><td class="r"><span class="mo">R$ 480.000,00 •</span></td><td><span class="sit">Em execução</span></td><td><span class="inp" style="height:30px">Saúde</span></td></tr>
+                  <tr><td>☆&nbsp;🔔</td><td><span class="ref">Nº 21880/2025</span><br><b style="font-weight:400;color:#fff;font-size:13.5px">Patrulha mecanizada agrícola — trator, grade e carreta…</b><br><span class="rw-m">MAPA · Emenda</span></td><td>Mossoró<br><span class="dtm">2408003</span></td><td>2025</td><td class="r"><span class="mo">R$ 620.000,00</span></td><td class="r"><span class="mo">R$ 620.000,00 •</span></td><td><span class="sit">Publicado</span></td><td><span class="inp" style="height:30px">Sem pasta</span></td></tr>
+                </tbody>
+              </table>
+              </div>
+            </div>
+          </main>
+        </div>
+
+      </div>
+    </div>
+    <p class="nota">A tabela de hoje tem 9 colunas e joga o essencial — o que vence e o que depende do gestor — para a última posição ou para fora da tela. No Balcão, as abas já respondem "o que precisa de mim?" antes de qualquer filtro.</p>
+  </div>
+
+  <!-- TELA 3 -->
+  <div class="tela" id="t3" style="margin-top:64px">
+    <div class="tela-bar"><h3>A proposta por dentro</h3><span class="obs">só o Balcão</span></div>
+    <div class="frame">
+      <div class="fr-top"><i></i><i></i><i></i><span class="fr-url">hubcapture.app/panel/funding/14275-2026</span></div>
+      <div class="fr-body">
+        <div class="mn">
+          <aside class="sb">
+            <div class="logo"><i><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M4 19V9M12 19V5M20 19v-7"/></svg></i> Hub Capture</div>
+            <p class="sb-cap">Visão geral</p>
+            <a class="it" href="#t1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg> Meu painel</a>
+            <a class="it on" href="#t2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg> Propostas</a>
+            <a class="it" href="#t3"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4l2.4 5.2 5.6.6-4.2 3.8 1.2 5.6L12 16.4 7 19.2l1.2-5.6L4 9.8l5.6-.6z"/></svg> Minhas propostas</a>
+            <div class="sb-terr"><b>Mossoró/RN</b><span>+ 2 municípios no perfil</span></div>
+          </aside>
+          <div class="tb">
+            <span class="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg> Buscar proposta, programa ou órgão…</span>
+            <span class="sp"><span class="ic-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9z"/><path d="M10.5 21h3"/></svg><span class="dot"></span></span><span class="av">PB</span></span>
+          </div>
+          <main class="ct">
+            <div class="dh">
+              <p class="crumb" style="margin:0 0 12px">Propostas &nbsp;›&nbsp; Mossoró/RN &nbsp;›&nbsp; 14275/2026</p>
+              <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">
+                <div style="flex:1;min-width:300px">
+                  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+                    <span class="lb lb-i">Em análise</span><span class="lb lb-w">Vence em 12 dias</span><span class="lb lb-p">Emenda parlamentar</span>
+                  </div>
+                  <h1>Veículo para transporte sanitário</h1>
+                  <p class="obj">Aquisição de van adaptada com maca e elevador para levar pacientes da zona rural de Mossoró às consultas e exames na sede do município.</p>
+                  <p class="meta"><span class="ref">Nº 14275/2026</span><span>Mossoró/RN · IBGE 2408003</span><span>criada em 26/03/2026</span><span>Ministério da Saúde</span></p>
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap">
+                  <button class="bt bt-s"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4l2.4 5.2 5.6.6-4.2 3.8 1.2 5.6L12 16.4 7 19.2l1.2-5.6L4 9.8l5.6-.6z"/></svg> Acompanhar</button>
+                  <button class="bt bt-s">Baixar PDF</button>
+                  <button class="bt bt-p">Abrir no TransfereGov</button>
+                </div>
+              </div>
+
+              <div class="al" style="margin-top:22px">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.2l3.2 2"/></svg>
+                <div><b>O que fazer agora: enviar o orçamento com três cotações.</b>
+                <p>O concedente pediu a complementação em 04/08 e o prazo de resposta vence em 13/09/2026 (12 dias).</p></div>
+                <button class="bt bt-sm">Ver o parecer</button>
+              </div>
+
+              <div class="tri">
+                <div><p class="r1">Valor global</p><p class="r2">R$ 350.000,00</p><p class="r3">Contrapartida: R$ 17.500,00</p></div>
+                <div class="b2"><p class="r1">Empenhado</p><p class="r2">R$ 0,00</p><p class="r3">Nenhum empenho emitido</p></div>
+                <div class="b3" style="background:rgba(145,158,171,.12);color:var(--tx2)"><p class="r1" style="color:var(--tx)">Pago</p><p class="r2">R$ 0,00</p><p class="r3">Nenhum pagamento</p></div>
+              </div>
+            </div>
+
+            <div class="g2">
+              <div class="bx">
+                <div class="bx-h"><div><h2>O que já aconteceu</h2><span class="sub">tramitação na fonte oficial</span></div></div>
+                <div class="bx-p">
+                  <div class="tl">
+                    <div class="ev er">
+                      <p class="d">04/08/2026</p><p class="t">Parecer: solicitar complementação</p>
+                      <p class="p">Análise técnica do Fundo Nacional de Saúde, por Maria S. (analista).</p>
+                      <p class="quote">"Apresentar o orçamento detalhado do veículo com três cotações."</p>
+                    </div>
+                    <div class="ev ok"><p class="d">12/05/2026</p><p class="t">Plano de trabalho enviado</p><p class="p">Plano nº 88412, enviado pela Secretaria Municipal de Saúde.</p></div>
+                    <div class="ev wr"><p class="d">02/04/2026</p><p class="t">Emenda indicada ao município</p><p class="p">Dep. Fulana de Tal (PARTIDO/RN) destinou R$ 350.000 a esta proposta.</p></div>
+                    <div class="ev"><p class="d">26/03/2026</p><p class="t">Proposta criada no TransfereGov</p><p class="p">Cadastro inicial na modalidade fundo a fundo.</p></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:24px">
+                <div class="bx">
+                  <div class="bx-h"><div><h2>De onde vem o dinheiro</h2></div></div>
+                  <div class="bx-p">
+                    <div style="display:flex;gap:14px;align-items:center">
+                      <span class="av" style="background:linear-gradient(135deg,#C684FF,#8E33FF);color:#fff">FT</span>
+                      <div><p style="font-size:15px;font-weight:700">Dep. Fulana de Tal</p><p style="font-size:13px;color:var(--tx2)">PARTIDO/RN · emenda individual</p></div>
+                    </div>
+                    <p style="font-size:13.5px;color:var(--tx2);margin-top:14px;line-height:1.5">Emenda nº 40120012 · exercício 2026. É com o gabinete dela que se acompanha a liberação.</p>
+                    <div class="pg" style="margin-top:16px"><i style="width:0;background:#00A76F"></i></div>
+                    <div class="pg-leg"><span>Indicado<b>R$ 350.000</b></span><span>Empenhado<b>R$ 0</b></span></div>
+                  </div>
+                </div>
+                <div class="bx">
+                  <div class="bx-h"><div><h2>Documentos na fonte</h2></div></div>
+                  <div class="bx-p">
+                    <div class="doc"><span class="ic" style="background:rgba(34,197,94,.16);color:#118D57"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 13l4 4L19 7"/></svg></span><span>Plano de trabalho<small>enviado em 12/05/2026</small></span></div>
+                    <div class="doc"><span class="ic" style="background:rgba(34,197,94,.16);color:#118D57"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 13l4 4L19 7"/></svg></span><span>Declaração de contrapartida<small>enviada em 12/05/2026</small></span></div>
+                    <div class="doc"><span class="ic" style="background:rgba(255,86,48,.16);color:#B71D18"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span style="color:#B71D18">Orçamento com três cotações<small style="color:#B71D18;opacity:.8">falta enviar — pedido em 04/08</small></span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bx">
+              <div class="bx-h"><div><h2>Como o dinheiro anda</h2><span class="sub">exemplo de proposta já em execução — a mesma barra aparece aqui quando o empenho sair</span></div></div>
+              <div class="bx-p">
+                <div class="pg" style="height:14px;border-radius:7px">
+                  <i style="width:31%;background:#00A76F"></i><i style="width:31%;background:#5BE49B"></i><i style="width:38%;background:#DFE3E8"></i>
+                </div>
+                <div class="pg-leg">
+                  <span><i style="background:#00A76F"></i>Já pago<b>R$ 148.800</b></span>
+                  <span><i style="background:#5BE49B"></i>Reservado, a pagar<b>R$ 148.800</b></span>
+                  <span><i style="background:#DFE3E8"></i>Ainda sem reserva<b>R$ 182.400</b></span>
+                </div>
+                <p style="font-size:14px;color:var(--tx2);margin-top:16px;max-width:74ch">Uma barra só, lida da esquerda para a direita como um copo enchendo: o que já é dinheiro na conta, o que está reservado e o que ainda depende do governo. O gestor lê a proporção sem dividir número por número.</p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ 6. REGRAS ══════ -->
+<section>
+  <div class="sec-h"><h2>As regras que passam a valer</h2><span>para toda tela nova</span></div>
+  <div class="rgs">
+    <div class="rg"><span class="n">1</span><h3>Todo número tem contexto</h3><p>Rótulo oficial, número grande e uma linha de contexto legível (quantas propostas, desde quando). O jargão do setor não muda — a hierarquia sim.</p></div>
+    <div class="rg"><span class="n">2</span><h3>Toda tela responde "e agora?"</h3><p>Antes dos números, uma faixa dizendo o que precisa da atenção do gestor — com link direto para o registro e o que fazer.</p></div>
+    <div class="rg"><span class="n">3</span><h3>Cor significa uma coisa só</h3><p>Verde = andou. Ciano = a caminho. Âmbar = prazo. Vermelho = depende de você. Cinza = a fonte não informou.</p></div>
+    <div class="rg"><span class="n">4</span><h3>Estado tem forma, não só cor</h3><p>Todo chip carrega ponto ou ícone. Funciona para daltônicos e no papel impresso do espelho em PDF.</p></div>
+    <div class="rg"><span class="n">5</span><h3>Mono só em identificador</h3><p>E mesmo lá vira chip com dígito tabular. Caixa-alta sai de rótulo, botão e menu — fica só no <i>overline</i> de seção.</p></div>
+    <div class="rg"><span class="n">6</span><h3>Superfície opaca</h3><p>Sem vidro, sem aurora, sem grade. Card branco, r16, sombra difusa — texto sempre acima de 4,5:1.</p></div>
+  </div>
+</section>
+
+<!-- ══════ 7. IMPLEMENTAÇÃO ══════ -->
+<section>
+  <div class="sec-h"><h2>Como isso entra no código</h2><span>pela base, não tela a tela</span></div>
+  <p class="sec-lead">O sistema atual já centraliza quase tudo em tokens e classes de <code>globals.css</code>, e a §48 do CLAUDE.md já tem a flag <code>ui_versao</code> para trocar a UI em runtime pelo painel admin. O Balcão entra como <code>v3</code>: publicável e reversível sem redeploy.</p>
+  <div class="psx">
+    <div class="ps"><span class="ps-n">01</span><div><b>Trocar as fontes</b><p>Sai <code>Inter Tight</code> + <code>Roboto Mono</code>, entram <code>Public Sans</code> (400–800) e <code>Barlow</code> (600–800) em <code>--font-sans</code> / <code>--font-display</code>. Uma dependência a menos.</p></div></div>
+    <div class="ps"><span class="ps-n">02</span><div><b>Trocar os tokens</b><p>As rampas do Minimal em <code>@theme</code>: <code>--ink/--surface/--card/--hairline</code>, os semânticos <code>--ok/--warn/--danger</code> + o novo <code>--info</code>, e <code>--brand: #00A76F</code>. As telas herdam sem edição.</p></div></div>
+    <div class="ps"><span class="ps-n">03</span><div><b>Aposentar o rótulo mono</b><p><code>.label-mono</code> e <code>.field-label</code> passam a 14px / 700 / caixa de frase. O mono some do CSS; <code>NumeroProposta</code> vira chip tabular.</p></div></div>
+    <div class="ps"><span class="ps-n">04</span><div><b>Desligar vidro, aurora e grade</b><p><code>.card</code>, <code>.rail</code> e <code>.glass</code> ficam opacos com a sombra do Minimal; <code>body::before/::after</code> e <code>html::before</code> saem. Ganha leitura e ganha desempenho na rolagem.</p></div></div>
+    <div class="ps"><span class="ps-n">05</span><div><b>Reescrever 4 componentes</b><p><code>StatCard</code> (ícone + rótulo + número grande + variação e sparkline), <code>StatusBadge</code> (chip soft com ponto), a linha de lista e o cabeçalho do detalhe. O resto das telas segue pelos tokens.</p></div></div>
+    <div class="ps"><span class="ps-n">06</span><div><b>Estados de carregamento e vazio</b><p>Skeleton na forma do conteúdo (card, linha, gráfico) e estado vazio com ação ("Buscar agora") em toda lista — hoje a tela em branco é indistinguível de "sem dados".</p></div></div>
+    <div class="ps"><span class="ps-n">07</span><div><b>Levar ao PDF e ao WhatsApp</b><p>O espelho (§34) e o alerta do Uniq usam a mesma paleta e os mesmos chips de estado — o documento que sai do Hub tem que ter a mesma cara da tela.</p></div></div>
+  </div>
+</section>
+
+<footer>
+  <p><b>Preview de design — nenhuma linha do app foi alterada ainda.</b> Diga o que ajustar (a escada de cor dos cards, a densidade da tabela, o que entra no cabeçalho) e eu levo para o código na ordem acima, atrás da flag <code>ui_versao=v3</code>.</p>
+</footer>
+
+</div>
+
+<script>
+document.querySelectorAll(".tg button").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var alvo = b.dataset.alvo, ver = b.dataset.ver;
+    document.querySelectorAll('.tg button[data-alvo="' + alvo + '"]').forEach(function (o) {
+      o.setAttribute("aria-pressed", String(o === b));
+    });
+    document.getElementById(alvo + "-novo").hidden = ver !== "novo";
+    document.getElementById(alvo + "-velho").hidden = ver !== "velho";
+  });
+});
+</script>
+
+</body>
+</html>
