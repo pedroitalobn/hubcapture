@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hub Capture · Guia do design system</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Hub Capture · Design System v1 — guia
+   Base: alternativa C (NiceAdmin) aprovada com ressalvas:
+   paleta verde, H1–H3 em caixa alta, Archivo + Inter.
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --brand-900:#031918; --brand-700:#1B6255; --brand-600:#1C6555; --accent:#43CF9B; --accent-100:#EAF9F3; --accent-200:#DDF6EC;
+  --bg:#F3F7F5; --paper:#FFFFFF; --nt:#EEF5F1; --ln:#E2EAE6; --ln2:#CDD9D3;
+  --t1:#1F2A27; --t2:#4E5F59; --t3:#7C8C86;
+  --success:#1C6555; --success-bg:#DDF6EC; --warning:#E0A82E; --warning-tx:#5E4708; --warning-bg:#FFF3D6;
+  --danger:#C0392B; --danger-bg:#FBE4E1; --info:#2A7F9E; --info-bg:#E1F1F6;
+  --sh:0 0 30px rgba(3,25,24,.08); --sh-h:0 2px 20px rgba(3,25,24,.08);
+  --sans:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --disp:"Archivo","Inter",ui-sans-serif,system-ui,sans-serif;
+  --r:10px; --r-btn:6px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--t1);font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--brand-600)}
+h1,h2,h3{margin:0;font-family:var(--disp);text-transform:uppercase;color:var(--brand-900)}
+h1{font-size:26px;font-weight:700;letter-spacing:.06em;line-height:1.2}
+h2{font-size:16px;font-weight:700;letter-spacing:.08em;padding-bottom:10px;border-bottom:2px solid var(--accent);display:inline-block}
+h3{font-size:12.5px;font-weight:700;letter-spacing:.08em;color:var(--t2)}
+p{margin:0}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;background:var(--nt);border:1px solid var(--ln);border-radius:4px;padding:1px 6px;color:var(--brand-900)}
+pre{margin:0;background:var(--brand-900);color:#DDF6EC;border-radius:var(--r);padding:18px 20px;font-size:12.5px;line-height:1.55;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre b{color:var(--accent);font-weight:600}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px 96px}
+.hero{background:var(--brand-900);color:#fff;margin:0 -24px;padding:48px 24px 40px}
+.hero .in{max-width:1120px;margin:0 auto}
+.hero h1{color:#fff}
+.hero .eyebrow{font-family:var(--disp);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+.hero p{margin-top:14px;color:#C9D9D2;max-width:70ch}
+.hero .chips{margin-top:22px;display:flex;flex-wrap:wrap;gap:8px}
+.hero .chip{border:1px solid rgba(255,255,255,.18);border-radius:4px;padding:5px 10px;font-size:12.5px;color:#DDF6EC}
+.hero .chip b{color:var(--accent);font-weight:600}
+section{padding-top:56px}
+.lead{margin-top:14px;color:var(--t2);max-width:76ch}
+.card{background:var(--paper);border-radius:var(--r);box-shadow:var(--sh);padding:22px 24px}
+.grid{display:grid;gap:18px;margin-top:22px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+/* swatches */
+.sw{background:var(--paper);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.sw .c{height:84px;display:flex;align-items:flex-end;padding:10px 12px;font-family:var(--disp);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.sw .b{padding:12px 14px}
+.sw .b b{display:block;font-size:14px;font-weight:600;color:var(--brand-900)}
+.sw .b code{margin-top:4px;display:inline-block}
+.sw .b p{margin-top:8px;font-size:13px;color:var(--t2);line-height:1.5}
+.sw .b small{display:block;margin-top:6px;font-size:12px;color:var(--t3)}
+/* tipografia */
+.spec{background:var(--paper);border-radius:var(--r);box-shadow:var(--sh);padding:22px 24px;display:grid;grid-template-columns:150px 1fr;gap:14px 18px;align-items:baseline}
+.spec .k{font-size:12px;color:var(--t3);font-family:var(--disp);letter-spacing:.06em;text-transform:uppercase}
+.spec .v{min-width:0}
+.spec .v small{display:block;font-size:12px;color:var(--t3);margin-top:3px;font-family:var(--sans);text-transform:none;letter-spacing:0;font-weight:400}
+.t-h1{font-family:var(--disp);font-size:20px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brand-900)}
+.t-h2{font-family:var(--disp);font-size:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brand-900)}
+.t-h3{font-family:var(--disp);font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brand-900)}
+.t-num{font-family:var(--disp);font-size:26px;font-weight:700;color:var(--brand-900);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.t-body{font-size:14px;color:var(--t1)}
+.t-sm{font-size:12.5px;color:var(--t2)}
+.t-cap{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);font-weight:600}
+/* componentes */
+.demo{background:var(--paper);border-radius:var(--r);box-shadow:var(--sh);padding:20px 22px}
+.demo h3{margin-bottom:12px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.bt{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:var(--r-btn);font-size:14px;font-weight:500;border:1px solid transparent;font-family:var(--sans);cursor:pointer;background:none}
+.bt-p{background:var(--brand-600);border-color:var(--brand-600);color:#fff} .bt-p:hover{background:#155046}
+.bt-o{border-color:var(--brand-600);color:var(--brand-600)} .bt-o:hover{background:var(--brand-600);color:#fff}
+.bt-s{background:#6B7C76;border-color:#6B7C76;color:#fff}
+.bt-d{background:var(--brand-900);border-color:var(--brand-900);color:#fff}
+.bt-sm{height:31px;padding:0 10px;font-size:13px}
+.lb{display:inline-flex;align-items:center;padding:.35em .65em;border-radius:4px;font-size:12px;font-weight:600;line-height:1;color:#fff}
+.lb-i{background:var(--info)} .lb-w{background:var(--warning);color:#031918} .lb-e{background:var(--danger)} .lb-s{background:var(--success)} .lb-p{background:var(--accent);color:#031918} .lb-n{background:#6B7C76}
+.kpi{background:var(--paper);border-radius:var(--r);box-shadow:var(--sh);padding:20px 20px 14px;position:relative}
+.kpi::before{content:"⋯";position:absolute;right:16px;top:10px;font-size:22px;color:#AEBFB8}
+.kpi .t{font-family:var(--disp);font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brand-900);padding-bottom:14px}
+.kpi .t span{font-family:var(--sans);font-weight:500;font-size:12px;letter-spacing:0;text-transform:none;color:var(--t3)}
+.kpi .r{display:flex;align-items:center;gap:16px}
+.kpi .ic{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto}
+.kpi .n{font-family:var(--disp);font-size:26px;font-weight:700;color:var(--brand-900);font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi .d{font-size:13px;color:var(--t3);margin-top:2px}
+.kpi .d b{color:var(--brand-600);font-weight:700}
+.inp{display:flex;align-items:center;gap:8px;height:38px;border-radius:var(--r-btn);border:1px solid var(--ln2);padding:0 12px;font-size:14px;color:var(--t3);background:var(--paper);min-width:220px}
+.inp.f{border-color:var(--accent);box-shadow:0 0 0 .25rem rgba(67,207,155,.25);color:var(--t1)}
+.alert{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r-btn);background:var(--warning-bg);border:1px solid #F0DFB0;color:var(--warning-tx);font-size:13.5px}
+.alert b{font-weight:600}
+.alert .bt{margin-left:auto}
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--ln)}
+.tab{padding:10px 14px;font-size:14px;font-weight:600;color:var(--t2);border-bottom:2px solid transparent;margin-bottom:-2px;display:inline-flex;gap:8px;align-items:center}
+.tab.on{color:var(--brand-600);border-bottom-color:var(--accent)}
+.tab .n{border-radius:4px;background:#6B7C76;color:#fff;padding:2px 6px;font-size:11px;font-weight:700;line-height:1.2}
+.tab.on .n{background:var(--brand-600)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--t2);font-weight:600;padding:10px 8px;border-bottom:1px solid var(--ln)}
+td{padding:10px 8px;border-bottom:1px solid var(--ln);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.nav-demo{background:var(--brand-900);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:4px;max-width:280px}
+.nav-demo .cap{font-family:var(--disp);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#6F8A82;margin:6px 0 4px 15px}
+.nav-demo .it{display:flex;align-items:center;gap:10px;padding:10px 15px;border-radius:4px;color:#C9D9D2;font-size:14px;font-weight:500}
+.nav-demo .it i{width:8px;height:8px;border-radius:2px;background:#7FA398}
+.nav-demo .it.on{color:var(--accent);background:rgba(67,207,155,.12);font-weight:600}
+.nav-demo .it.on i{background:var(--accent)}
+.dd{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-top:22px}
+.dd .card b{display:block;font-family:var(--disp);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.dd .ok b{color:var(--brand-600)} .dd .no b{color:var(--danger)}
+.dd ul{margin:0;padding-left:18px;color:var(--t2);font-size:14px}
+.dd li{margin:6px 0}
+.tk{margin-top:22px}
+.map{width:100%;font-size:13.5px}
+.map code{white-space:nowrap}
+.bp{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:22px}
+.bp .card b{display:block;font-family:var(--disp);font-size:20px;color:var(--brand-900)}
+.bp .card span{font-size:13px;color:var(--t2)}
+.steps{margin-top:22px;background:var(--paper);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.step{display:flex;gap:16px;padding:16px 22px;border-top:1px solid var(--ln)}
+.step:first-child{border-top:0}
+.step .n{flex:0 0 32px;height:32px;border-radius:50%;background:var(--accent-200);color:var(--brand-600);display:grid;place-items:center;font-family:var(--disp);font-weight:700;font-size:13px}
+.step b{font-weight:600;color:var(--brand-900)}
+.step p{font-size:14px;color:var(--t2);margin-top:2px}
+.contr{display:inline-block;font-size:11px;font-weight:600;border-radius:3px;padding:1px 6px;margin-left:6px}
+.contr.ok{background:var(--success-bg);color:var(--success)} .contr.no{background:var(--danger-bg);color:var(--danger)}
+footer{margin-top:64px;font-size:13px;color:var(--t3)}
+@media (max-width:640px){.spec{grid-template-columns:1fr;gap:6px}.spec .k{margin-top:10px}.hero{padding:36px 20px 30px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero"><div class="in">
+  <p class="eyebrow">Hub Capture · Design system v1</p>
+  <h1>Guia de identidade e componentes</h1>
+  <p>Base: a alternativa <b style="color:#fff">C (NiceAdmin)</b> aprovada, com as ressalvas incorporadas — paleta em verde, títulos H1–H3 em caixa alta e tipografia menos arredondada. Este guia é a fonte de verdade para a implementação no app (tokens do <code style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#DDF6EC">globals.css</code>, componentes e regras de uso).</p>
+  <div class="chips">
+    <span class="chip">Acento <b>#43CF9B</b></span><span class="chip">Escuro <b>#031918</b></span><span class="chip">Auxiliares <b>#1C6555 · #1B6255</b></span>
+    <span class="chip">Títulos <b>Archivo · caixa alta</b></span><span class="chip">Corpo <b>Inter</b></span><span class="chip">Raio <b>10px</b></span><span class="chip">Destaque <b>gradiente suave</b></span>
+  </div>
+</div></div>
+
+<!-- ═════ 1. PRINCÍPIOS ═════ -->
+<section>
+  <h2>1 · Princípios</h2>
+  <div class="grid g2">
+    <div class="card"><h3>Número primeiro</h3><p style="margin-top:8px;color:var(--t2)">Em toda tela o dado decisivo (valor, prazo, situação) tem o maior peso visual. Título e explicação servem ao número, não o contrário.</p></div>
+    <div class="card"><h3>Jargão do setor intacto</h3><p style="margin-top:8px;color:var(--t2)">Empenhado, publicado, pago, valor global, contrapartida, vigência. A tela não traduz termos; ela os apresenta com hierarquia e contexto.</p></div>
+    <div class="card"><h3>Cor com significado</h3><p style="margin-top:8px;color:var(--t2)">Verde escuro = ação/positivo. Acento = destaque, ativo, "andou". Âmbar = prazo. Vermelho = depende de você. Cinza = a fonte não informou.</p></div>
+    <div class="card"><h3>Familiar, não inédito</h3><p style="margin-top:8px;color:var(--t2)">Layout de admin clássico (sidebar, header, cards com sombra suave e um gradiente discreto nos destaques). O gestor reconhece a estrutura no primeiro segundo e gasta atenção com o conteúdo.</p></div>
+  </div>
+</section>
+
+<!-- ═════ 2. CORES ═════ -->
+<section>
+  <h2>2 · Cores</h2>
+  <p class="lead">Quatro verdes da marca, neutros com leve viés verde e quatro cores semânticas. Contraste medido sobre branco (texto) — o acento <b>não legenda texto sobre branco</b>: ele é preenchimento com texto escuro, marcador ou linha.</p>
+  <h3 style="margin-top:22px">Marca</h3>
+  <div class="grid g4" style="margin-top:12px">
+    <div class="sw"><div class="c" style="background:#031918;color:#43CF9B">brand-900</div><div class="b"><b>Verde escuro</b><code>#031918</code><p>Sidebar, títulos, botão de destaque máximo, toasts.</p><small>texto sobre branco 17,4:1 <span class="contr ok">AAA</span></small></div></div>
+    <div class="sw"><div class="c" style="background:#1C6555;color:#fff">brand-600</div><div class="b"><b>Verde auxiliar (ação)</b><code>#1C6555</code><p>Botão primário, links, item ativo de abas, ícones de KPI, "success".</p><small>texto sobre branco 6,6:1 <span class="contr ok">AA</span></small></div></div>
+    <div class="sw"><div class="c" style="background:#1B6255;color:#fff">brand-700</div><div class="b"><b>Verde auxiliar (hover)</b><code>#1B6255</code><p>Hover/pressionado do primário e dos links. Praticamente igual ao 600 — por isso só em estado.</p><small>texto sobre branco 6,8:1 <span class="contr ok">AA</span></small></div></div>
+    <div class="sw"><div class="c" style="background:#43CF9B;color:#031918">accent</div><div class="b"><b>Verde acento</b><code>#43CF9B</code><p>Item ativo do menu, sublinhado da aba ativa, anel de foco, barra de progresso, ícone do KPI "Pago", badge de categoria.</p><small>texto sobre branco 1,9:1 <span class="contr no">nunca como texto</span> · sobre #031918 9,2:1 <span class="contr ok">AAA</span></small></div></div>
+  </div>
+  <h3 style="margin-top:22px">Neutros</h3>
+  <div class="grid g4" style="margin-top:12px">
+    <div class="sw"><div class="c" style="background:#F3F7F5;color:#4E5F59;border-bottom:1px solid #E2EAE6">bg</div><div class="b"><b>Fundo da página</b><code>#F3F7F5</code></div></div>
+    <div class="sw"><div class="c" style="background:#EEF5F1;color:#4E5F59;border-bottom:1px solid #E2EAE6">nt</div><div class="b"><b>Neutro / hover</b><code>#EEF5F1</code></div></div>
+    <div class="sw"><div class="c" style="background:#DDF6EC;color:#1C6555;border-bottom:1px solid #E2EAE6">accent-200</div><div class="b"><b>Tinta do acento</b><code>#DDF6EC</code><p>Fundo de ícone, seleção de linha, chip suave.</p></div></div>
+    <div class="sw"><div class="c" style="background:#E2EAE6;color:#4E5F59">ln</div><div class="b"><b>Linha / borda</b><code>#E2EAE6</code><small>forte: #CDD9D3</small></div></div>
+    <div class="sw"><div class="c" style="background:#1F2A27;color:#fff">t1</div><div class="b"><b>Texto</b><code>#1F2A27</code></div></div>
+    <div class="sw"><div class="c" style="background:#4E5F59;color:#fff">t2</div><div class="b"><b>Texto secundário</b><code>#4E5F59</code><small>7,3:1</small></div></div>
+    <div class="sw"><div class="c" style="background:#7C8C86;color:#fff">t3</div><div class="b"><b>Metadado</b><code>#7C8C86</code><small>3,9:1 — só ≥ 14px/600 ou ≥ 18px</small></div></div>
+    <div class="sw"><div class="c" style="background:#fff;color:#4E5F59;border-bottom:1px solid #E2EAE6">paper</div><div class="b"><b>Card</b><code>#FFFFFF</code></div></div>
+  </div>
+  <h3 style="margin-top:22px">Semânticas — cada cor responde a uma pergunta</h3>
+  <div class="grid g4" style="margin-top:12px">
+    <div class="sw"><div class="c" style="background:#1C6555;color:#fff">success</div><div class="b"><b>Andou</b><code>#1C6555</code> <code>#DDF6EC</code><p>Aprovada, publicada, paga, concluída.</p></div></div>
+    <div class="sw"><div class="c" style="background:#E0A82E;color:#031918">warning</div><div class="b"><b>Tem prazo</b><code>#E0A82E</code> <code>#FFF3D6</code><p>Vence em N dias, vigência acabando. Texto escuro sobre o âmbar.</p></div></div>
+    <div class="sw"><div class="c" style="background:#C0392B;color:#fff">danger</div><div class="b"><b>Depende de você</b><code>#C0392B</code> <code>#FBE4E1</code><p>Pendência, atraso, reprovada. Nunca sem uma ação ao lado.</p></div></div>
+    <div class="sw"><div class="c" style="background:#2A7F9E;color:#fff">info</div><div class="b"><b>Está com o governo</b><code>#2A7F9E</code> <code>#E1F1F6</code><p>Em análise, em tramitação.</p></div></div>
+  </div>
+</section>
+
+<!-- ═════ 3. TIPOGRAFIA ═════ -->
+<section>
+  <h2>3 · Tipografia</h2>
+  <p class="lead"><b>Archivo</b> nos títulos — grotesca de terminais retos, feita para caixa alta — e <b>Inter</b> no corpo, com algarismos tabulares. Saem Nunito (arredondada), Open Sans e Poppins. <b>H1, H2 e H3 sempre em caixa alta</b>, com tracking; o corpo nunca.</p>
+  <div class="spec" style="margin-top:22px">
+    <span class="k">H1 · página</span><div class="v"><span class="t-h1">Meu painel</span><small>Archivo 700 · 20px · tracking .06em · caixa alta · cor brand-900</small></div>
+    <span class="k">H2 · seção</span><div class="v"><span class="t-h2">Propostas de Mossoró</span><small>Archivo 700 · 16px · tracking .08em · caixa alta</small></div>
+    <span class="k">H3 · título de card</span><div class="v"><span class="t-h3">Aprovado × desembolsado</span> <span style="font-size:12px;color:var(--t3)">| safra 2026</span><small>Archivo 700 · 13px · tracking .08em · caixa alta · o sufixo "| safra" fica em Inter 500 12px, sem caixa alta</small></div>
+    <span class="k">Número de KPI</span><div class="v"><span class="t-num">R$ 4.951.320</span><small>Archivo 700 · 26px · tabular · brand-900</small></div>
+    <span class="k">Corpo</span><div class="v"><span class="t-body">Aquisição de van adaptada com maca e elevador para pacientes da zona rural.</span><small>Inter 400 · 14px · line-height 1.5 · t1</small></div>
+    <span class="k">Secundário</span><div class="v"><span class="t-sm">Ministério da Saúde · Fundo a Fundo · criada em 26/03/2026</span><small>Inter 400/500 · 12,5px · t2/t3</small></div>
+    <span class="k">Rótulo de tabela</span><div class="v"><span class="t-cap">Proposta · Situação · Valor global</span><small>Inter 600 · 11,5px · tracking .06em · caixa alta · t2</small></div>
+    <span class="k">Botão</span><div class="v"><span style="font-size:14px;font-weight:500">Atualizar fontes</span><small>Inter 500 · 14px · caixa de frase (botão nunca em caixa alta)</small></div>
+  </div>
+</section>
+
+<!-- ═════ 4. FORMA ═════ -->
+<section>
+  <h2>4 · Espaço, raio e sombra</h2>
+  <div class="bp">
+    <div class="card"><b>4px</b><span>unidade base · espaçamentos em múltiplos (8, 12, 16, 20, 24, 30)</span></div>
+    <div class="card"><b>10px</b><span>raio dos cards · botões, inputs e chips 6px · badges 4px · ícones de KPI e avatares 50%</span></div>
+    <div class="card"><b>0 0 30px</b><span>sombra do card: <code>rgba(3,25,24,.08)</code> · header <code>0 2px 20px</code> · sem borda · fundo do card com gradiente quase imperceptível (<code>#FFF → #F9FCFA</code>)</span></div>
+    <div class="card"><b>300 / 60</b><span>largura da sidebar e altura do header (px) · conteúdo com padding 20px 30px</span></div>
+  </div>
+</section>
+
+<!-- ═════ 5. COMPONENTES ═════ -->
+<section>
+  <h2>5 · Componentes</h2>
+  <div class="grid g2">
+    <div class="demo"><h3>Botões</h3>
+      <div class="row"><button class="bt bt-p">Buscar agora</button><button class="bt bt-o">Atualizar fontes</button><button class="bt bt-s">Exportar</button><button class="bt bt-d">Ver pendências (2)</button><button class="bt bt-p bt-sm">Pequeno</button></div>
+      <p style="margin-top:12px;font-size:13px;color:var(--t2)">Primário = brand-600 (uma ação por bloco). Contorno = secundária. Cinza = terciária. Escuro (brand-900) só para a chamada da barra de atenção.</p></div>
+    <div class="demo"><h3>Badges de situação</h3>
+      <div class="row"><span class="lb lb-i">Em análise</span><span class="lb lb-s">Publicada</span><span class="lb lb-s">Concluída</span><span class="lb lb-w">Vence em 12 dias</span><span class="lb lb-e">Pendência</span><span class="lb lb-e">Atrasado</span><span class="lb lb-p">Emenda</span><span class="lb lb-n">Sem informação</span></div>
+      <p style="margin-top:12px;font-size:13px;color:var(--t2)">Sólidos, 12px/600, raio 4. Âmbar e acento levam texto escuro. O texto é o vocabulário da situação, nunca o slug da fonte.</p></div>
+    <div class="demo"><h3>KPI (info-card)</h3>
+      <div class="kpi" style="box-shadow:none;border:1px solid var(--ln);padding:16px 16px 12px"><div class="t">Empenhado <span>| safra 2026</span></div><div class="r"><span class="ic" style="background:#DDF6EC;color:#1C6555"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="6" width="19" height="13" rx="3"/><path d="M2.5 10h19M7 15h3"/></svg></span><div><div class="n">R$ 3,7 mi</div><div class="d"><b>↑ 29%</b> vs 2025</div></div></div></div>
+      <p style="margin-top:12px;font-size:13px;color:var(--t2)">Título H3 + "| safra" · ícone em círculo de 64px com tinta · número 26/700 · variação vs safra anterior. Tintas: global #E6EFEB, empenhado #DDF6EC, publicado #FFF3D6, pago = acento sólido.</p></div>
+    <div class="demo"><h3>Menu lateral (escuro)</h3>
+      <div class="nav-demo"><span class="cap">Visão geral</span><span class="it on"><i></i>Meu painel</span><span class="it"><i></i>Propostas</span><span class="it"><i></i>Minhas propostas</span><span class="cap">O município</span><span class="it"><i></i>Recursos recebidos</span><span class="it"><i></i>Alertas</span></div>
+      <p style="margin-top:12px;font-size:13px;color:var(--t2)">Fundo brand-900; item 14px/500 em #C9D9D2; ativo em acento com fundo 12%; ícones 16px em #7FA398; seção 11px caixa alta em #6F8A82.</p></div>
+    <div class="demo"><h3>Abas e filtros</h3>
+      <div class="tabs"><span class="tab on">Todas <span class="n">6</span></span><span class="tab">Com pendência <span class="n" style="background:#C0392B">1</span></span><span class="tab">Vencendo <span class="n" style="background:#E0A82E;color:#031918">1</span></span><span class="tab">Com pagamento <span class="n">2</span></span></div>
+      <div class="row" style="margin-top:14px"><span class="inp">🔍 Buscar por nº, programa ou órgão…</span><span class="inp f">14275/2026</span></div>
+      <p style="margin-top:12px;font-size:13px;color:var(--t2)">Aba ativa: texto brand-600, sublinhado no acento. Foco de campo: borda + anel no acento (25%).</p></div>
+    <div class="demo"><h3>Barra de atenção</h3>
+      <div class="alert">🕒 <span><b>1 proposta com pendência · 1 vence nos próximos 30 dias</b><br>Pendência mais antiga: 30011/2026, aberta desde 04/08/2026.</span><button class="bt bt-d bt-sm">Ver pendências</button></div>
+      <p style="margin-top:12px;font-size:13px;color:var(--t2)">Sempre acima dos números: responde "e agora?" antes do painel. Âmbar = existe relógio correndo.</p></div>
+  </div>
+  <div class="demo" style="margin-top:18px"><h3>Card de destaque (gradiente suave)</h3>
+      <div class="grid g2" style="margin-top:0">
+        <div style="border-radius:10px;padding:18px 20px;background:linear-gradient(135deg,#DDF6EC 0%,#F2FBF6 55%,#FFFFFF 100%);box-shadow:var(--sh)"><div style="font-family:var(--disp);font-size:12.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brand-900)">Pago <span style="font-family:var(--sans);font-weight:500;letter-spacing:0;text-transform:none;color:var(--t3)">| safra 2026</span></div><div style="display:flex;align-items:center;gap:16px;margin-top:12px"><span style="width:64px;height:64px;border-radius:50%;background:#43CF9B;color:#031918;display:grid;place-items:center;font-family:var(--disp);font-weight:700">R$</span><div><div style="font-family:var(--disp);font-size:26px;font-weight:700;color:var(--brand-900)">R$ 810 mil</div><div style="font-size:13px;color:var(--t3)"><b style="color:var(--danger)">↓ 45%</b> vs 2025</div></div></div></div>
+        <div style="border-radius:10px;padding:18px 20px;background:linear-gradient(135deg,#FFF1CF 0%,#FFF8E6 55%,#FFFFFF 100%);box-shadow:var(--sh);color:#5E4708"><b style="font-weight:600">1 proposta com pendência · 1 vence nos próximos 30 dias</b><p style="font-size:13px;margin-top:2px">Pendência mais antiga: 30011/2026, aberta desde 04/08/2026.</p><button class="bt bt-d bt-sm" style="margin-top:12px">Ver pendências</button></div>
+      </div>
+      <p style="margin-top:12px;font-size:13px;color:var(--t2)">O gradiente vai da tinta da cor (acento #DDF6EC ou âmbar #FFF1CF) ao branco, a 135°, terminando em branco puro — nunca escuro sobre escuro, nunca em tabela ou gráfico. Serve para <b>um</b> destaque por bloco: o KPI que fecha a jornada (Pago), a barra "e agora?", o card do município na sidebar. Raio 10, sem borda.</p></div>
+  <div class="demo" style="margin-top:18px"><h3>Tabela</h3>
+    <div style="overflow-x:auto"><table>
+      <tr><th>Proposta</th><th>Situação</th><th style="text-align:right">Valor global</th><th style="text-align:right">Empenhado</th><th>Prazo</th></tr>
+      <tr><td><b style="color:var(--brand-900)">Veículo para transporte sanitário</b> <a href="#" style="font-weight:600">#14275/2026</a><br><span style="font-size:12px;color:var(--t3)">Ministério da Saúde · Fundo a Fundo</span></td><td><span class="lb lb-i">Em análise</span></td><td style="text-align:right;font-family:var(--disp);font-weight:700;color:var(--brand-900)">R$ 350.000</td><td style="text-align:right;color:var(--t3)">—</td><td><span class="lb lb-w">12 dias</span></td></tr>
+      <tr><td><b style="color:var(--brand-900)">Reforma da UBS Central</b> <a href="#" style="font-weight:600">#09123/2025</a><br><span style="font-size:12px;color:var(--t3)">Ministério da Saúde · Fundo a Fundo</span></td><td><span class="lb lb-s">Em execução</span></td><td style="text-align:right;font-family:var(--disp);font-weight:700;color:var(--brand-900)">R$ 480.000</td><td style="text-align:right;font-family:var(--disp);font-weight:700;color:var(--brand-600)">R$ 480.000</td><td style="font-size:13px;color:var(--t2)">Vigência até 30/06/2027</td></tr>
+    </table></div>
+    <p style="margin-top:12px;font-size:13px;color:var(--t2)">Cabeçalho em caixa alta 11,5px; linhas sem borda lateral; título da proposta em brand-900/600 e o nº como link "#". No celular: só proposta · situação · valor.</p></div>
+</section>
+
+<!-- ═════ 6. FAÇA / NÃO FAÇA ═════ -->
+<section>
+  <h2>6 · Faça e não faça</h2>
+  <div class="dd">
+    <div class="card ok"><b>Faça</b><ul><li>Caixa alta só em H1–H3, rótulos de tabela e seções do menu.</li><li>Acento como preenchimento com texto escuro, linha, anel de foco ou marcador.</li><li>Um botão primário por bloco; o resto em contorno ou cinza.</li><li>Número maior que o rótulo em todo card de dado.</li><li>"—" com legenda ("sem empenho") quando a fonte não informa.</li></ul></div>
+    <div class="card no"><b>Não faça</b><ul><li>Texto em acento #43CF9B sobre branco (1,9:1).</li><li>Botão, corpo ou descrição em caixa alta.</li><li>Traduzir jargão do setor ("empenhado" não vira "reservado").</li><li>Vermelho sem uma ação possível ao lado.</li><li>Gradiente escuro, vidro, aurora ou sombra colorida — o único gradiente é o suave dos cards de destaque.</li></ul></div>
+  </div>
+</section>
+
+<!-- ═════ 7. LAYOUT ═════ -->
+<section>
+  <h2>7 · Layout e breakpoints</h2>
+  <div class="bp">
+    <div class="card"><b>≥ 1401</b><span>sidebar 300 fixa · KPIs 4 colunas · gráfico 2/3 + donut 1/3 · tabela 2/3 + coluna lateral</span></div>
+    <div class="card"><b>1025–1400</b><span>KPIs 2×2 · demais iguais</span></div>
+    <div class="card"><b>641–1024</b><span>sidebar vira gaveta (hambúrguer) · gráfico e tabela em coluna única</span></div>
+    <div class="card"><b>≤ 640</b><span>KPIs 1 coluna · tabela 3 colunas · cabeçalho, atenção e filtros empilhados</span></div>
+  </div>
+</section>
+
+<!-- ═════ 8. TOKENS ═════ -->
+<section>
+  <h2>8 · Tokens para o app</h2>
+  <p class="lead">Mapeamento para os nomes que o <code>globals.css</code> atual já usa (Tailwind 4 <code>@theme</code>), para a virada entrar pela base e as telas herdarem.</p>
+  <div class="card tk" style="overflow-x:auto"><table class="map">
+    <tr><th>Token atual</th><th>Novo valor</th><th>Uso</th></tr>
+    <tr><td><code>--surface</code></td><td><code>#F3F7F5</code></td><td>fundo da página</td></tr>
+    <tr><td><code>--card</code></td><td><code>#FFFFFF</code></td><td>cards (sombra <code>0 0 30px rgba(3,25,24,.08)</code>, sem borda)</td></tr>
+    <tr><td><code>--surface-2</code></td><td><code>#EEF5F1</code></td><td>hover, inputs alternativos</td></tr>
+    <tr><td><code>--hairline</code></td><td><code>#E2EAE6</code></td><td>divisores</td></tr>
+    <tr><td><code>--ink</code> / <code>--ink-2</code> / <code>--ink-3</code></td><td><code>#1F2A27</code> / <code>#4E5F59</code> / <code>#7C8C86</code></td><td>texto, secundário, metadado</td></tr>
+    <tr><td><code>--color-brand</code></td><td><code>#1C6555</code></td><td>ação primária, links, aba ativa</td></tr>
+    <tr><td><code>--color-brand-fg</code></td><td><code>#FFFFFF</code></td><td>texto sobre a ação</td></tr>
+    <tr><td><code>--color-lime</code> → <code>--color-accent</code></td><td><code>#43CF9B</code></td><td>acento (menu ativo, foco, progresso, "pago")</td></tr>
+    <tr><td><code>--color-abyss</code> → <code>--color-brand-dark</code></td><td><code>#031918</code></td><td>sidebar, títulos, toasts</td></tr>
+    <tr><td><code>--ok</code> / <code>--ok-bg</code></td><td><code>#1C6555</code> / <code>#DDF6EC</code></td><td>success</td></tr>
+    <tr><td><code>--warn</code> / <code>--warn-bg</code></td><td><code>#E0A82E</code> / <code>#FFF3D6</code></td><td>prazo</td></tr>
+    <tr><td><code>--danger</code> / <code>--danger-bg</code></td><td><code>#C0392B</code> / <code>#FBE4E1</code></td><td>pendência</td></tr>
+    <tr><td><code>--font-sans</code></td><td><code>"Inter"</code></td><td>corpo e UI</td></tr>
+    <tr><td><code>--font-mono</code> → <code>--font-display</code></td><td><code>"Archivo"</code></td><td>H1–H3 (caixa alta) e números grandes — o mono sai do sistema</td></tr>
+  </table></div>
+  <pre class="tk"><b>/* globals.css — @theme (trecho) */</b>
+--color-brand: #1C6555;      --color-brand-hover: #1B6255;
+--color-brand-dark: #031918; --color-accent: #43CF9B;   --color-accent-soft: #DDF6EC;
+--color-surface: #F3F7F5;    --color-surface-2: #EEF5F1; --color-card: #FFFFFF;
+--color-ink: #1F2A27;        --color-ink-2: #4E5F59;     --color-ink-3: #7C8C86;
+--color-hairline: #E2EAE6;
+--color-ok: #1C6555;  --color-ok-bg: #DDF6EC;
+--color-warn: #E0A82E; --color-warn-bg: #FFF3D6;
+--color-danger: #C0392B; --color-danger-bg: #FBE4E1;
+--color-info: #2A7F9E; --color-info-bg: #E1F1F6;
+--font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+--font-display: "Archivo", "Inter", ui-sans-serif, sans-serif;
+--radius-card: 10px; --radius-control: 6px;
+--gradient-accent: linear-gradient(135deg,#DDF6EC 0%,#F2FBF6 55%,#FFFFFF 100%);
+--gradient-warn: linear-gradient(135deg,#FFF1CF 0%,#FFF8E6 55%,#FFFFFF 100%);
+--shadow-card: 0 0 30px rgba(3,25,24,.08); --shadow-header: 0 2px 20px rgba(3,25,24,.08);
+
+<b>/* títulos */</b>
+h1,h2,h3 { font-family: var(--font-display); text-transform: uppercase; color: var(--color-brand-dark); }
+h1 { font-size: 20px; font-weight: 700; letter-spacing: .06em; }
+h2 { font-size: 16px; font-weight: 700; letter-spacing: .08em; }
+h3 { font-size: 13px; font-weight: 700; letter-spacing: .08em; }</pre>
+</section>
+
+<!-- ═════ 9. IMPLEMENTAÇÃO ═════ -->
+<section>
+  <h2>9 · Ordem de implementação</h2>
+  <div class="steps">
+    <div class="step"><span class="n">1</span><div><b>Fontes e tokens</b><p>Trocar Inter Tight + Roboto Mono por Inter + Archivo em <code>app/layout.tsx</code>; substituir os valores do <code>@theme</code> e dos blocos <code>:root</code> em <code>globals.css</code> pelos desta página. Desligar aurora, grade e vidro.</p></div></div>
+    <div class="step"><span class="n">2</span><div><b>Títulos e rótulos</b><p><code>.page-title</code>, <code>h1–h3</code> em caixa alta; <code>.label-mono</code>/<code>.field-label</code> viram Inter 11,5–13px sem mono; <code>NumeroProposta</code> vira link "#nº".</p></div></div>
+    <div class="step"><span class="n">3</span><div><b>Shell</b><p><code>app/panel/layout.tsx</code>: sidebar escura 300px com acento, header branco 60px com sombra; <code>.nav-item</code> nos estados deste guia.</p></div></div>
+    <div class="step"><span class="n">4</span><div><b>Componentes</b><p><code>StatCard</code> (info-card com "| safra", ícone 64px, variação), <code>StatusBadge</code> (badges sólidos), linha de lista e cabeçalho do detalhe; barra de atenção no Meu painel.</p></div></div>
+    <div class="step"><span class="n">5</span><div><b>Flag e PDF</b><p>Entrar como <code>ui_versao = v3</code> (§48) — publicável e reversível pelo admin. Espelho em PDF (§34) e alertas do WhatsApp recebem a mesma paleta.</p></div></div>
+  </div>
+</section>
+
+<footer>Hub Capture · Design system v1 · gerado a partir do preview D (<a href="/previews/hub.html">abrir</a>). Dados das telas são de exemplo.</footer>
+</div>
+</body>
+</html>
