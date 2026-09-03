@@ -5,9 +5,7 @@ import type { ReactNode } from "react";
 export function BrandMark({ size = "base" }: { size?: "base" | "lg" }) {
   return (
     <span
-      className={`inline-flex items-center gap-2 tracking-tight ${
-        size === "lg" ? "text-3xl font-medium" : "text-base"
-      }`}
+      className={`sidebar-brand ${size === "lg" ? "text-xl" : "text-base"}`}
     >
       <span className="brand-dot" aria-hidden />
       Hub Capture
@@ -16,14 +14,15 @@ export function BrandMark({ size = "base" }: { size?: "base" | "lg" }) {
 }
 
 /**
- * Coluna de imagem do login: imagem gerada (topografia do território em
- * lime sobre abyssal ink) como fundo full-bleed. Se o arquivo
- * /login-hero.jpg ainda não existir, o fundo abyss segura o visual.
+ * Coluna de imagem do login: imagem gerada (topografia do território) como
+ * fundo full-bleed. Se /login-hero.jpg não existir, o fundo escuro da marca
+ * segura o visual. A arte ainda é a da paleta antiga (lime amarelado) —
+ * regerar com o verde #43CF9B é item aberto do redesign.
  */
 function ImagePanel() {
   return (
     <div
-      className="anim-page-delayed relative hidden overflow-hidden rounded-[20px] border border-hairline bg-abyss bg-cover bg-center lg:block"
+      className="anim-page-delayed relative hidden overflow-hidden rounded-[20px] border border-hairline bg-brand-dark bg-cover bg-center lg:block"
       style={{
         // tenta o asset gerado (Magnific); sem ele, cai no SVG topográfico
         backgroundImage: "url('/login-hero.jpg'), url('/login-hero.svg')",

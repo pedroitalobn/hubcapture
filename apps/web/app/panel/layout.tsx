@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BrandMark } from "@/components/AuthShell";
 import DynamicIsland from "@/components/DynamicIsland";
 import { TerritorioFiltro } from "@/components/TerritorioFiltro";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -122,6 +121,8 @@ function PainelShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { perfil, municipios, selecionados } = useTerritorio();
   const [admin, setAdmin] = useState(false);
+  // Sidebar vira gaveta abaixo de 1024px (guia §7); fecha a cada navegação.
+  const [gaveta, setGaveta] = useState(false);
 
   useEffect(() => {
     if (!getToken()) {
@@ -134,38 +135,53 @@ function PainelShell({ children }: { children: React.ReactNode }) {
     })();
   }, [router]);
 
+  useEffect(() => {
+    setGaveta(false);
+  }, [pathname]);
+
   function sair() {
     clearTokens();
     router.replace("/login");
   }
 
+  const itens = NAV.filter(
+    (item) => !item.modulo || (perfil?.modulos ?? []).includes(item.modulo),
+  );
+  const atual = itens.find((item) =>
+    item.exact ? pathname === item.href : pathname.startsWith(item.href),
+  );
+
   return (
-    <div className="flex min-h-screen w-full flex-col gap-5 p-4 sm:p-6 md:flex-row md:gap-6 lg:p-8">
-      <aside className="rail flex shrink-0 flex-col gap-6 self-start p-5 max-md:w-full md:sticky md:top-6 md:w-72 md:min-h-[calc(100vh-4rem)]">
-        <div>
-          <Link href="/panel">
-            <BrandMark />
-          </Link>
-          <p className="label-mono mt-1.5">
-            {perfil?.papel ? PAPEL_LABEL[perfil.papel] ?? perfil.papel : "Meu perfil"}
-          </p>
-        </div>
+    <div className={`app-shell ${gaveta ? "drawer-open" : ""}`}>
+      {/* Véu da gaveta no mobile — clicar fora fecha o menu */}
+      {gaveta && (
+        <button
+          type="button"
+          aria-label="Fechar menu"
+          onClick={() => setGaveta(false)}
+          className="fixed inset-0 z-50 bg-brand-dark/50 lg:hidden"
+        />
+      )}
+
+      <aside className="sidebar">
+        <Link href="/panel" className="sidebar-brand px-2 py-1">
+          <span className="brand-dot" aria-hidden />
+          Hub Capture
+        </Link>
 
         {/* Território do perfil — a chave de tudo é o município, não a fonte.
             O filtro escolhe QUAIS dos municípios do onboarding entram no
             painel agora; o recorte vale para todas as lentes do menu. */}
-        <div className="border-t border-hairline pt-4 text-sm">
+        <div className="sidebar-box text-sm">
           <p className="label-mono mb-1.5">
             Território
             {selecionados.length > 0 && municipios.length > 1 && (
-              <span className="ml-1.5 normal-case text-ink-2">(filtrado)</span>
+              <span className="ml-1.5 normal-case">(filtrado)</span>
             )}
           </p>
           <TerritorioFiltro />
           {/* Origem do recurso — de QUAL fonte veio o registro (TransfereGov,
-              FNS…). Multi-select: o recorte soma origens; vazio = todas. Vale
-              para TODAS as lentes, como o território — o Meu painel, a Captação
-              e os Recebidos leem o mesmo recorte. */}
+              FNS…). Multi-select: o recorte soma origens; vazio = todas. */}
           <OrigemRecursoTitulo />
           <OrigemRecursoFiltro />
           {(perfil?.areas ?? []).length > 0 && (
@@ -173,7 +189,7 @@ function PainelShell({ children }: { children: React.ReactNode }) {
               {perfil!.areas.map((a) => (
                 <span
                   key={a}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-2 py-0.5 font-mono text-[11px] text-ink-2"
+                  className="inline-flex items-center gap-1.5 rounded border border-hairline px-2 py-0.5 text-[11px]"
                 >
                   <span className="brand-dot" aria-hidden />
                   {a}
@@ -184,20 +200,15 @@ function PainelShell({ children }: { children: React.ReactNode }) {
           {/* Conta demo: o território é semeado pela plataforma e o backend
               bloqueia o onboarding — sem o link, sem beco sem saída. */}
           {!perfil?.demo && (
-            <Link
-              href="/onboarding"
-              className="link-soft mt-3 inline-block font-mono text-[11px] uppercase tracking-[0.04em]"
-            >
+            <Link href="/onboarding" className="link-soft mt-3 inline-block text-[12px]">
               Ajustar perfil →
             </Link>
           )}
         </div>
 
-        <nav className="flex flex-col gap-1">
-          {NAV.filter(
-            (item) =>
-              !item.modulo || (perfil?.modulos ?? []).includes(item.modulo)
-          ).map((item) => {
+        <nav className="flex flex-col gap-0.5">
+          <p className="label-mono px-3 pb-1 pt-2">Visão geral</p>
+          {itens.map((item) => {
             const active = item.exact
               ? pathname === item.href
               : pathname.startsWith(item.href);
@@ -220,52 +231,78 @@ function PainelShell({ children }: { children: React.ReactNode }) {
           )}
         </nav>
 
-        <div className="mt-auto flex flex-col items-start gap-3">
+        <div className="mt-auto flex flex-col items-start gap-3 border-t border-hairline pt-4">
           {/* Tema claro/escuro — a escolha persiste em `hub_tema` e vale
               para o app inteiro (boot script no layout raiz). */}
           <ThemeToggle />
-          <button
-            onClick={sair}
-            className="link-soft self-start font-mono text-[11px] uppercase tracking-[0.04em]"
-          >
+          <button onClick={sair} className="link-soft self-start text-[12px]">
             Sair da conta
           </button>
         </div>
       </aside>
 
-      <main className="mx-auto flex w-full min-w-0 max-w-[1600px] flex-1 flex-col py-2">
-        {/* Faixa do sandbox: dados são REAIS (cache de captação); o que é
-            simulado são as ações de conta — o backend bloqueia o destrutivo. */}
-        {perfil?.demo && (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-hairline px-4 py-2.5 text-sm text-ink-2">
-            <span>
-              <strong className="text-ink">Ambiente de demonstração</strong> —
-              dados reais de captação; alterações de conta ficam desativadas.
+      <div className="app-main">
+        <header className="app-header">
+          <button
+            type="button"
+            onClick={() => setGaveta((v) => !v)}
+            aria-label="Abrir menu"
+            className="icon-btn lg:hidden"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
+          </button>
+          {/* Trilha: território → tela. É o que diz ONDE o gestor está — a
+              marca já ficou na sidebar, não precisa se repetir aqui. */}
+          <nav className="flex min-w-0 items-center gap-2 text-[13px] text-ink-3">
+            <span className="truncate">
+              {municipios.length > 0
+                ? municipios
+                    .filter((m) => selecionados.length === 0 || selecionados.includes(m.ibge))
+                    .slice(0, 2)
+                    .map((m) => `${m.nome ?? m.ibge}${m.uf ? `/${m.uf}` : ""}`)
+                    .join(" · ") || "Meu território"
+                : "Meu território"}
             </span>
-            <Link href="/signup" className="link-soft font-mono text-[11px] uppercase tracking-[0.04em]">
-              Criar minha conta →
-            </Link>
+            <span aria-hidden className="h-1 w-1 shrink-0 rounded-full bg-ink-3" />
+            <b className="truncate font-semibold text-ink">
+              {atual?.label ?? "Meu painel"}
+            </b>
+          </nav>
+          <span className="ml-auto text-[13px] text-ink-3">
+            {perfil?.papel ? PAPEL_LABEL[perfil.papel] ?? perfil.papel : ""}
+          </span>
+        </header>
+
+        <main className="mx-auto flex w-full min-w-0 max-w-[1600px] flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8">
+          {/* Faixa do sandbox: dados são REAIS (cache de captação); o que é
+              simulado são as ações de conta — o backend bloqueia o destrutivo. */}
+          {perfil?.demo && (
+            <div className="card mb-4 flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm text-ink-2">
+              <span>
+                <strong className="text-ink">Ambiente de demonstração</strong> —
+                dados reais de captação; alterações de conta ficam desativadas.
+              </span>
+              <Link href="/signup" className="link-soft text-[12px]">
+                Criar minha conta →
+              </Link>
+            </div>
+          )}
+          {/* `key={pathname}` remonta o wrapper a cada navegação, então a
+              animação de entrada REEXECUTA — sem isso o layout persiste no App
+              Router e a transição só aconteceria no primeiro carregamento. */}
+          <div
+            key={pathname}
+            className="anim-page stagger flex min-w-0 flex-1 flex-col gap-6"
+          >
+            {children}
           </div>
-        )}
-        {/* `key={pathname}` remonta o wrapper a cada navegação, então a
-            animação de entrada REEXECUTA — sem isso o layout persiste no App
-            Router e a transição só aconteceria no primeiro carregamento.
-            Uma linha aqui cobre todas as telas do painel.
-            `stagger` faz as SEÇÕES da tela entrarem em cascata em vez de o
-            conteúdo aparecer de bloco — 35 das 39 páginas não tinham nenhuma
-            animação própria, e resolver no shell evita repetir a classe em
-            cada uma delas. */}
-        <div
-          key={pathname}
-          className="anim-page stagger flex min-w-0 flex-1 flex-col gap-6"
-        >
-          {children}
-        </div>
-      </main>
+        </main>
+      </div>
 
       {/* Copiloto em Dynamic Island — persiste em TODAS as telas do painel,
-          só depois do onboarding (precisa de território p/ ter o que consultar)
-          e só quando o módulo copiloto está no plano do usuário (§39). */}
+          só depois do onboarding e só quando o módulo está no plano (§39). */}
       {municipios.length > 0 &&
         (perfil?.modulos ?? []).includes("copiloto") && <DynamicIsland />}
     </div>

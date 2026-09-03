@@ -54,7 +54,9 @@ export function StatCard({
     >
       <div className="flex items-center gap-2">
         {icon}
-        <span className={`label-mono ${tone ? "text-inherit opacity-75" : ""}`}>
+        {/* Rótulo do KPI = H3 do sistema (Archivo, caixa alta) — o "| safra"
+            que às vezes vem no `context` fica em caixa de frase ao lado. */}
+        <span className={`stat-label ${tone ? "text-inherit opacity-90" : ""}`}>
           {label}
         </span>
       </div>
@@ -65,8 +67,8 @@ export function StatCard({
       </div>
       {context && (
         <div
-          className={`mt-2 font-mono text-[11px] tracking-[-0.02em] ${
-            tone ? "text-inherit opacity-70" : "text-ink-3"
+          className={`mt-2 text-[12.5px] ${
+            tone ? "text-inherit opacity-75" : "text-ink-2"
           }`}
         >
           {context}

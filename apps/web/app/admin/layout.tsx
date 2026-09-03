@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BrandMark } from "@/components/AuthShell";
-import { BotaoVoltar } from "@/components/Voltar";
+import { IconeNav, type NomeIcone } from "@/components/icons";
 import { api, getToken } from "@/lib/api/client";
 
 /**
@@ -14,18 +13,42 @@ import { api, getToken } from "@/lib/api/client";
  * nega de qualquer forma; aqui é só UX).
  */
 
-const NAV = [
-  { href: "/admin/users", label: "Usuários" },
-  { href: "/admin/invites", label: "Convites" },
-  { href: "/admin/plans", label: "Planos" },
-  { href: "/admin/config", label: "Providers & Config" },
-  { href: "/admin/sources", label: "Fontes (diagnóstico)" },
-  { href: "/admin/siconv", label: "Pacote SIconv" },
-  { href: "/admin/modules", label: "Módulos" },
-  { href: "/admin/advisory", label: "Assessoria" },
-  { href: "/admin/directory", label: "Diretório institucional" },
-  { href: "/admin/requests", label: "Demandas" },
-  { href: "/admin/class", label: "Class" },
+/* Menu em GRUPOS: onze abas numa linha só de pílulas não diziam o que era
+   plataforma, o que era conteúdo e o que era diagnóstico — e no notebook a
+   linha quebrava em duas. Agora é a mesma sidebar escura do painel (guia §7),
+   com as seções nomeadas. */
+const NAV: { titulo: string; itens: { href: string; label: string; icone: NomeIcone }[] }[] = [
+  {
+    titulo: "Pessoas",
+    itens: [
+      { href: "/admin/users", label: "Usuários", icone: "conta" },
+      { href: "/admin/invites", label: "Convites", icone: "contatos" },
+      { href: "/admin/plans", label: "Planos", icone: "favoritas" },
+    ],
+  },
+  {
+    titulo: "Plataforma",
+    itens: [
+      { href: "/admin/config", label: "Providers & Config", icone: "admin" },
+      { href: "/admin/modules", label: "Módulos", icone: "painel" },
+    ],
+  },
+  {
+    titulo: "Dados",
+    itens: [
+      { href: "/admin/sources", label: "Fontes (diagnóstico)", icone: "recebidos" },
+      { href: "/admin/siconv", label: "Pacote SIconv", icone: "propostas" },
+    ],
+  },
+  {
+    titulo: "Conteúdo",
+    itens: [
+      { href: "/admin/class", label: "Class", icone: "class" },
+      { href: "/admin/advisory", label: "Assessoria", icone: "assessoria" },
+      { href: "/admin/directory", label: "Diretório institucional", icone: "contatos" },
+      { href: "/admin/requests", label: "Demandas", icone: "alertas" },
+    ],
+  },
 ];
 
 export default function AdminLayout({
@@ -61,37 +84,63 @@ export default function AdminLayout({
     );
   }
 
+  const atual = NAV.flatMap((g) => g.itens).find((item) =>
+    pathname.startsWith(item.href),
+  );
+
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[1400px] flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <BrandMark />
-          <p className="label-mono mt-1.5">Administração</p>
+    <div className="app-shell">
+      <aside className="sidebar">
+        <Link href="/panel" className="sidebar-brand px-2 py-1">
+          <span className="brand-dot" aria-hidden />
+          Hub Capture
+        </Link>
+        <p className="label-mono px-2 -mt-2">Administração</p>
+
+        <nav className="flex flex-col gap-0.5">
+          {NAV.map((grupo) => (
+            <div key={grupo.titulo} className="flex flex-col gap-0.5">
+              <p className="label-mono px-3 pb-1 pt-3">{grupo.titulo}</p>
+              {grupo.itens.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`nav-item ${pathname.startsWith(item.href) ? "nav-item-active" : ""}`}
+                >
+                  <IconeNav nome={item.icone} />
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        {/* O retorno ao painel fecha a coluna: é a saída da administração. */}
+        <div className="mt-auto border-t border-hairline pt-4">
+          <Link href="/panel" className="nav-item">
+            <IconeNav nome="painel" />
+            Voltar ao Meu painel
+          </Link>
         </div>
-      </header>
+      </aside>
 
-      {/* O retorno ao painel abre a linha de navegação, à ESQUERDA — era um
-          link mono de 11px no canto direito, que ninguém encontrava. */}
-      <nav className="flex flex-wrap items-center gap-1 border-b border-hairline pb-3">
-        <BotaoVoltar href="/panel" rotulo="Meu painel" />
-        <span aria-hidden className="mx-2 h-5 w-px bg-hairline" />
-        {NAV.map((item) => {
-          const active = pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`nav-item ${active ? "nav-item-active" : ""}`}
-            >
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
+      <div className="app-main">
+        <header className="app-header">
+          <nav className="flex min-w-0 items-center gap-2 text-[13px] text-ink-3">
+            <span>Administração</span>
+            <span aria-hidden className="h-1 w-1 shrink-0 rounded-full bg-ink-3" />
+            <b className="truncate font-semibold text-ink">
+              {atual?.label ?? "Plataforma"}
+            </b>
+          </nav>
+        </header>
 
-      {/* mesma mecânica do painel: chave por rota reexecuta a entrada */}
-      <div key={pathname} className="anim-page stagger flex flex-1 flex-col gap-6">
-        {children}
+        <main className="mx-auto flex w-full min-w-0 max-w-[1400px] flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8">
+          {/* mesma mecânica do painel: chave por rota reexecuta a entrada */}
+          <div key={pathname} className="anim-page stagger flex flex-1 flex-col gap-6">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );
