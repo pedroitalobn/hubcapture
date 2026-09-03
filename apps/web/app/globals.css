@@ -133,15 +133,28 @@
   --elev-2: 0 4px 40px rgba(3, 25, 24, 0.14);
   --elev-header: 0 2px 20px rgba(3, 25, 24, 0.08);
   --rail: var(--card);
-  /* ── Trilho lateral: ESCURO nos dois temas (assinatura da marca) ── */
-  --nav-bg: #031918;
-  --nav-ink: #c9d9d2;
-  --nav-ink-2: #9fb5ad;
-  --nav-ink-3: #6f8a82;
-  --nav-active-bg: rgba(67, 207, 155, 0.12);
-  --nav-active-ink: #43cf9b;
-  --nav-hover-bg: rgba(255, 255, 255, 0.06);
-  --nav-hairline: rgba(255, 255, 255, 0.1);
+  /* ── Trilho lateral: ACOMPANHA O TEMA (claro no claro, escuro no
+     escuro). Era escuro nos DOIS: quem escolhia o tema claro abria o
+     app com uma coluna quase-preta ao lado de um canvas branco e só
+     recebia metade da escolha. A marca segue no trilho pelo dot e pelo
+     acento do item ativo, não pelo fundo.
+     `--nav-ink-strong` é a tinta de ÊNFASE (item sob o ponteiro, nome
+     na conta): inverte de #1f2a27 para branco junto com o tema. */
+  --nav-bg: #ffffff;
+  --nav-ink: #4e5f59;
+  --nav-ink-2: #4e5f59;
+  --nav-ink-3: #7c8c86;
+  --nav-ink-strong: #1f2a27;
+  --nav-active-bg: #ddf6ec;
+  /* o acento NÃO legenda texto sobre branco (1,9:1) — no claro o item
+     ativo usa a cor de AÇÃO; no escuro o acento assume (§57) */
+  --nav-active-ink: #1c6555;
+  --nav-hover-bg: #eef5f1;
+  --nav-hairline: #e2eae6;
+  --nav-surface: #f3f7f5;
+  --nav-menu-bg: #ffffff;
+  --nav-scroll: #cdd9d3;
+  --nav-brand-ink: #031918;
   --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -202,6 +215,20 @@
   --bar-2: #43cf9b;
   --bar-3: #8ff0c9;
   --grad-brand: linear-gradient(135deg, rgba(67,207,155,0.22) 0%, rgba(67,207,155,0.07) 55%, transparent 100%);
+  /* Trilho lateral no escuro: a coluna quase-preta da marca. */
+  --nav-bg: #031918;
+  --nav-ink: #c9d9d2;
+  --nav-ink-2: #9fb5ad;
+  --nav-ink-3: #6f8a82;
+  --nav-ink-strong: #ffffff;
+  --nav-active-bg: rgba(67, 207, 155, 0.12);
+  --nav-active-ink: #43cf9b;
+  --nav-hover-bg: rgba(255, 255, 255, 0.06);
+  --nav-hairline: rgba(255, 255, 255, 0.1);
+  --nav-surface: rgba(255, 255, 255, 0.06);
+  --nav-menu-bg: #0c2b27;
+  --nav-scroll: #2a4a44;
+  --nav-brand-ink: #ffffff;
   --fill-accent: #43cf9b;
   --fill-accent-fg: #031918;
   --grad-text: linear-gradient(120deg, #43cf9b, #8ff0c9);
@@ -253,6 +280,20 @@
   --bar-2: #43cf9b;
   --bar-3: #8ff0c9;
   --grad-brand: linear-gradient(135deg, rgba(67,207,155,0.22) 0%, rgba(67,207,155,0.07) 55%, transparent 100%);
+  /* Trilho lateral no escuro: a coluna quase-preta da marca. */
+  --nav-bg: #031918;
+  --nav-ink: #c9d9d2;
+  --nav-ink-2: #9fb5ad;
+  --nav-ink-3: #6f8a82;
+  --nav-ink-strong: #ffffff;
+  --nav-active-bg: rgba(67, 207, 155, 0.12);
+  --nav-active-ink: #43cf9b;
+  --nav-hover-bg: rgba(255, 255, 255, 0.06);
+  --nav-hairline: rgba(255, 255, 255, 0.1);
+  --nav-surface: rgba(255, 255, 255, 0.06);
+  --nav-menu-bg: #0c2b27;
+  --nav-scroll: #2a4a44;
+  --nav-brand-ink: #ffffff;
   --fill-accent: #43cf9b;
   --fill-accent-fg: #031918;
   --grad-text: linear-gradient(120deg, #43cf9b, #8ff0c9);
@@ -546,7 +587,9 @@ p {
      abyss porque o fundo não muda com o tema. O vidro do .card é vencido
      pela ordem (mesma camada, declarado depois). */
   .stat-ink {
-    background: var(--nav-bg);
+    /* tinta CHEIA da marca, não o trilho: com o trilho claro (§59) o
+       `--nav-bg` vira branco e o card sumiria sobre o canvas */
+    background: var(--color-brand-dark);
     color: #ffffff;
     border-color: transparent;
   }
@@ -567,8 +610,8 @@ p {
     border-color: var(--card-border);
   }
 
-  /* Trilho lateral — ESCURO nos dois temas: é onde a marca aparece. Os
-     itens leem os tokens --nav-* (iguais no claro e no escuro). */
+  /* Trilho lateral — segue o TEMA (§59). Os itens leem os tokens
+     --nav-*, que invertem junto com claro/escuro. */
   .rail {
     background: var(--nav-bg);
     color: var(--nav-ink);
@@ -608,15 +651,18 @@ p {
     overflow-x: hidden;
     background: var(--nav-bg);
     color: var(--nav-ink);
+    /* No claro o trilho é branco sobre um canvas quase branco: sem o fio
+       à direita as duas superfícies encostam e a coluna some. */
+    border-right: 1px solid var(--nav-hairline);
     padding: 1.25rem 1rem;
     scrollbar-width: thin;
-    scrollbar-color: #2a4a44 transparent;
+    scrollbar-color: var(--nav-scroll) transparent;
   }
   .sidebar::-webkit-scrollbar {
     width: 5px;
   }
   .sidebar::-webkit-scrollbar-thumb {
-    background: #2a4a44;
+    background: var(--nav-scroll);
     border-radius: 3px;
   }
   .sidebar .label-mono {
@@ -626,13 +672,13 @@ p {
     color: var(--nav-ink-2);
   }
   .sidebar .link-soft:hover {
-    color: var(--color-accent);
+    color: var(--nav-active-ink);
   }
   .sidebar .nav-item {
     color: var(--nav-ink);
   }
   .sidebar .nav-item:hover {
-    color: #ffffff;
+    color: var(--nav-ink-strong);
     background: var(--nav-hover-bg);
   }
   .sidebar .nav-item-active,
@@ -649,7 +695,7 @@ p {
   }
   .sidebar .input,
   .sidebar .chip {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--nav-surface);
     border-color: var(--nav-hairline);
     color: var(--nav-ink);
   }
@@ -660,7 +706,7 @@ p {
     color: var(--color-brand-dark);
   }
   .sidebar .segmented {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--nav-surface);
     border-color: var(--nav-hairline);
   }
   .sidebar .segmented-item {
@@ -675,17 +721,13 @@ p {
     border-color: var(--nav-hairline);
   }
   .sidebar .btn-ghost:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.08);
-    color: #ffffff;
+    background: var(--nav-hover-bg);
+    color: var(--nav-ink-strong);
   }
   /* Cartão do território dentro da sidebar: gradiente suave do acento */
   .sidebar-box {
     border-radius: var(--radius-control);
-    background: linear-gradient(
-      135deg,
-      rgba(67, 207, 155, 0.16),
-      rgba(255, 255, 255, 0.03)
-    );
+    background: var(--nav-active-bg);
     padding: 0.875rem;
   }
   /* Marca no topo da sidebar */
@@ -698,7 +740,13 @@ p {
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #ffffff;
+    /* o mesmo componente assina o login e o onboarding, que têm fundo de
+       PÁGINA: a tinta padrão é a do tema, e o trilho sobrepõe abaixo */
+    color: var(--ink);
+  }
+  .sidebar .sidebar-brand,
+  .rail .sidebar-brand {
+    color: var(--nav-brand-ink);
   }
   .sidebar-brand .brand-dot {
     height: 26px;
@@ -994,12 +1042,12 @@ p {
     color: var(--ink);
     background: var(--surface-2);
   }
-  /* Dentro do trilho escuro o item lê os tokens --nav-* */
+  /* Dentro do trilho o item lê os tokens --nav-* */
   .rail .nav-item {
     color: var(--nav-ink);
   }
   .rail .nav-item:hover {
-    color: #ffffff;
+    color: var(--nav-ink-strong);
     background: var(--nav-hover-bg);
   }
   /* Glifo do item: o slot que o `gap` do .nav-item já reservava. Fica um
@@ -2437,11 +2485,11 @@ html {
     flex: 0 0 auto;
     place-items: center;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--ok-bg);
     font-family: var(--font-display);
     font-size: 12px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--brand);
   }
   .avatar-claro {
     background: var(--ok-bg);
@@ -2519,25 +2567,31 @@ html {
   }
 }
 
-/* O trilho é escuro nos dois temas: o menu da conta e o badge que
-   moram nele precisam vencer os utilitários, como as regras acima. */
+/* O menu da conta e o avatar moram DENTRO do trilho: leem os tokens
+   --nav-* (que invertem com o tema, §59) e precisam vencer os
+   utilitários do Tailwind, como as regras do bloco abaixo. */
 .sidebar .menu {
-  background: #0c2b27;
+  background: var(--nav-menu-bg);
   border-color: var(--nav-hairline);
   color: var(--nav-ink);
+  box-shadow: var(--elev-2);
+}
+.sidebar .avatar {
+  background: var(--nav-active-bg);
+  color: var(--nav-active-ink);
 }
 .sidebar .menu-item {
   color: var(--nav-ink);
 }
 .sidebar .menu-item:hover {
   background: var(--nav-hover-bg);
-  color: #ffffff;
+  color: var(--nav-ink-strong);
 }
 .sidebar .menu-item .nav-icon {
   color: var(--nav-ink-3);
 }
 .sidebar .menu-item:hover .nav-icon {
-  color: var(--color-accent);
+  color: var(--nav-active-ink);
 }
 .sidebar .menu-sec,
 .sidebar .menu-foot {
@@ -2548,7 +2602,7 @@ html {
   border-color: var(--nav-hairline);
 }
 .sidebar .user-btn b {
-  color: #ffffff;
+  color: var(--nav-ink-strong);
 }
 .sidebar .user-btn small {
   color: var(--nav-ink-2);
@@ -2556,15 +2610,16 @@ html {
 
 
 /* ============================================================
-   Trilho escuro × utilitários do Tailwind
+   Trilho × utilitários do Tailwind
    `.sidebar .text-ink` dentro de @layer components PERDE para o
-   utilitário `.text-ink` (a layer utilities vem depois), e o texto
-   do território sumia no tema claro: tinta escura sobre o verde
-   escuro da sidebar. Fora de qualquer @layer, estas regras vencem.
+   utilitário `.text-ink` (a layer utilities vem depois). Fora de
+   qualquer @layer, estas regras vencem — e agora resolvem para os
+   tokens --nav-*, que invertem com o tema (§59), em vez de fixar o
+   branco do trilho escuro.
    ============================================================ */
 .sidebar .text-ink,
 .rail .text-ink {
-  color: #ffffff;
+  color: var(--nav-ink-strong);
 }
 .sidebar .text-ink-2,
 .rail .text-ink-2 {
@@ -2576,7 +2631,7 @@ html {
 }
 .sidebar .text-ok,
 .rail .text-ok {
-  color: var(--color-accent);
+  color: var(--nav-active-ink);
 }
 .sidebar .border-hairline,
 .sidebar .border-t,
@@ -2588,7 +2643,7 @@ html {
 .sidebar .bg-card,
 .rail .bg-surface-2,
 .rail .bg-card {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--nav-surface);
 }
 
 /* ============================================================
