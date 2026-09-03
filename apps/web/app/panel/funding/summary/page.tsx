@@ -9,6 +9,7 @@ import { api } from "@/lib/api/client";
 import { formatBRL, formatBRLCompact, formatDate } from "@/lib/format";
 import { paramFonte, useOrigem } from "@/lib/origem";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
+import { SeletorSimples } from "@/components/kit";
 
 type Opcao = { valor: string; rotulo: string; total: number };
 type Facetas = Record<string, Opcao[]>;
@@ -110,24 +111,16 @@ export default function ResumoCaptacaoPage() {
     [resumo],
   );
 
+  /** Filtro por faceta, no seletor do kit (mesma forma da barra de recorte). */
   function select(chave: keyof Filtros, rotulo: string, dim: string, largura: string) {
-    const opcoes = facetas[dim] ?? [];
     return (
-      <label className="flex flex-col gap-1">
-        <span className="field-label">{rotulo}</span>
-        <select
-          value={filtros[chave]}
-          onChange={(e) => setFiltros({ ...filtros, [chave]: e.target.value })}
-          className={`input ${largura}`}
-        >
-          <option value="">todas</option>
-          {opcoes.map((o) => (
-            <option key={o.valor} value={o.valor}>
-              {o.rotulo} ({o.total})
-            </option>
-          ))}
-        </select>
-      </label>
+      <SeletorSimples
+        rotulo={rotulo}
+        valor={filtros[chave]}
+        opcoes={facetas[dim] ?? []}
+        largura={largura}
+        aoMudar={(v) => setFiltros({ ...filtros, [chave]: v })}
+      />
     );
   }
 
@@ -157,9 +150,9 @@ export default function ResumoCaptacaoPage() {
           ))}
         </div>
         <div className="flex flex-wrap items-end gap-3">
-          {select("modalidade", "Modalidade", "modalidade", "w-44")}
-          {select("orgao", "Órgão", "orgao", "w-56")}
-          {select("qualificacao", "Qualificação", "qualificacao", "w-44")}
+          {select("modalidade", "Modalidade", "modalidade", "17rem")}
+          {select("orgao", "Órgão", "orgao", "20rem")}
+          {select("qualificacao", "Qualificação", "qualificacao", "17rem")}
           <button onClick={() => setFiltros(VAZIO)} className="btn btn-ghost btn-sm mb-1">
             Limpar
           </button>
@@ -272,20 +265,20 @@ export default function ResumoCaptacaoPage() {
                 Nenhum convênio com vigência em aberto no recorte atual.
               </p>
             ) : (
-              <table className="mt-3 w-full border-collapse text-sm">
+              <table className="mt-3 tbl">
                 <thead>
-                  <tr className="border-b border-hairline text-left label-mono">
-                    <th className="px-5 py-3">Convênio</th>
-                    <th className="px-3 py-3">Vigência</th>
-                    <th className="px-3 py-3">Valor global</th>
-                    <th className="px-3 py-3">Desembolsado</th>
-                    <th className="px-3 py-3 w-40">% desembolso</th>
+                  <tr>
+                    <th>Convênio</th>
+                    <th>Vigência</th>
+                    <th>Valor global</th>
+                    <th>Desembolsado</th>
+                    <th className="w-40">% desembolso</th>
                   </tr>
                 </thead>
                 <tbody>
                   {resumo.convenios_vigentes.map((c) => (
                     <tr key={c.id} className="border-b border-hairline last:border-0">
-                      <td className="px-5 py-3">
+                      <td>
                         <Link
                           href={`/panel/funding/${c.id}`}
                           className="font-medium hover:underline"
@@ -296,15 +289,15 @@ export default function ResumoCaptacaoPage() {
                           {[c.orgao_superior, c.modalidade].filter(Boolean).join(" · ")}
                         </p>
                       </td>
-                      <td className="px-3 py-3 text-ink-2">
+                      <td className="text-ink-2">
                         {formatDate(c.fim_vigencia)}
                         <span className="ml-1.5 font-mono text-[10px] text-ink-3">
                           {c.dias_restantes}d
                         </span>
                       </td>
-                      <td className="px-3 py-3 tabular-nums">{formatBRL(c.valor_global)}</td>
-                      <td className="px-3 py-3 tabular-nums">{formatBRL(c.desembolsado)}</td>
-                      <td className="px-3 py-3">
+                      <td className="tabular-nums">{formatBRL(c.valor_global)}</td>
+                      <td className="tabular-nums">{formatBRL(c.desembolsado)}</td>
+                      <td>
                         <span className="flex items-center gap-2">
                           <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
                             <span

@@ -6,11 +6,16 @@ import { api } from "@/lib/api/client";
 import { ModuloGate } from "@/components/ModuloGate";
 import { PageHeader } from "@/components/PageHeader";
 import { IconeAcao } from "@/components/icons";
+import { SeletorSimples } from "@/components/kit";
 import { Aviso } from "@/components/ui";
 import { CriteriosAlerta, ResumoCriterios } from "@/components/CriteriosAlerta";
 import { descreverAlerta, useCriteriosAlerta } from "@/lib/alertas";
 import { municipioPrincipal, recortarTexto } from "@/lib/format";
-import { paramMunicipio, useTerritorio } from "@/lib/territorio";
+import {
+  paramMunicipio,
+  rotuloMunicipio,
+  useTerritorio,
+} from "@/lib/territorio";
 
 type Alerta = {
   id: string;
@@ -85,7 +90,7 @@ export default function AlertasPage() {
 }
 
 function AlertasConteudo() {
-  // território do perfil + recorte ativo no painel (trilho lateral)
+  // território do perfil + recorte ativo na barra de filtros do painel
   const { municipios, selecionados } = useTerritorio();
   const [alertas, setAlertas] = useState<Alerta[]>([]);
   const [buscas, setBuscas] = useState<Busca[]>([]);
@@ -315,36 +320,27 @@ function AlertasConteudo() {
         </p>
         <form onSubmit={criarBusca} className="flex flex-col gap-4">
           <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1">
-              <span className="field-label">Município</span>
-              <select
-                value={novoIbge}
-                onChange={(e) => setNovoIbge(e.target.value)}
-                className="input w-52"
-              >
-                {municipios.map((m) => (
-                  <option key={m.ibge} value={m.ibge}>
-                    {m.nome ?? m.ibge}
-                    {m.uf ? `/${m.uf}` : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="field-label">Área (opcional)</span>
-              <select
-                value={novaArea}
-                onChange={(e) => setNovaArea(e.target.value)}
-                className="input w-44"
-              >
-                <option value="">todas</option>
-                {AREAS.map((a) => (
-                  <option key={a} value={a}>
-                    {a.replace("_", " ")}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SeletorSimples
+              rotulo="Município"
+              valor={novoIbge}
+              opcoes={municipios.map((m) => ({
+                valor: m.ibge,
+                rotulo: rotuloMunicipio(m),
+              }))}
+              vazio={null}
+              largura="19rem"
+              aoMudar={setNovoIbge}
+            />
+            <SeletorSimples
+              rotulo="Área (opcional)"
+              valor={novaArea}
+              opcoes={AREAS.map((a) => ({
+                valor: a,
+                rotulo: a.replace("_", " "),
+              }))}
+              largura="17rem"
+              aoMudar={setNovaArea}
+            />
             <div className="flex gap-3 pb-2 text-sm">
               {(
                 [

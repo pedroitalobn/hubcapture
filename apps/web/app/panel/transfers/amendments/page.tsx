@@ -10,6 +10,7 @@ import { api, baixarCsv } from "@/lib/api/client";
 import { formatBRL, formatBRLCompact, formatDate } from "@/lib/format";
 import { paramFonte, useOrigem } from "@/lib/origem";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
+import { SeletorSimples } from "@/components/kit";
 
 interface EmendaItem {
   id: string;
@@ -127,23 +128,18 @@ export default function EmendasPage() {
 
   const ativos = Object.entries(filtros).filter(([, v]) => v !== "");
 
+  /** Filtro de uma dimensão, no seletor do kit (mesma forma da barra de
+   *  recorte do painel). As opções vêm do universo do território — escolher um
+   *  parlamentar não esvazia a lista dos demais. */
   function select(chave: keyof Filtros, rotulo: string, opcoes: string[], largura: string) {
     return (
-      <label className="flex flex-col gap-1">
-        <span className="field-label">{rotulo}</span>
-        <select
-          value={filtros[chave]}
-          onChange={(e) => setFiltros({ ...filtros, [chave]: e.target.value })}
-          className={`input ${largura}`}
-        >
-          <option value="">todas</option>
-          {opcoes.map((o) => (
-            <option key={o} value={o}>
-              {o}
-            </option>
-          ))}
-        </select>
-      </label>
+      <SeletorSimples
+        rotulo={rotulo}
+        valor={filtros[chave]}
+        opcoes={opcoes.map((o) => ({ valor: o, rotulo: o }))}
+        largura={largura}
+        aoMudar={(v) => setFiltros({ ...filtros, [chave]: v })}
+      />
     );
   }
 
@@ -166,10 +162,10 @@ export default function EmendasPage() {
               className="input w-full"
             />
           </label>
-          {select("modalidade", "Modalidade", resumo?.opcoes.modalidades ?? [], "w-40")}
-          {select("ano", "Ano", resumo?.opcoes.anos ?? [], "w-28")}
-          {select("parlamentar", "Parlamentar", resumo?.opcoes.parlamentares ?? [], "w-56")}
-          {select("orgao", "Órgão", resumo?.opcoes.orgaos ?? [], "w-56")}
+          {select("modalidade", "Modalidade", resumo?.opcoes.modalidades ?? [], "16rem")}
+          {select("ano", "Ano", resumo?.opcoes.anos ?? [], "13rem")}
+          {select("parlamentar", "Parlamentar", resumo?.opcoes.parlamentares ?? [], "20rem")}
+          {select("orgao", "Órgão", resumo?.opcoes.orgaos ?? [], "20rem")}
           <button onClick={() => void exportar()} className="btn btn-ghost btn-sm mb-1">
             <IconeAcao nome="exportar" />
             Exportar
@@ -309,23 +305,23 @@ export default function EmendasPage() {
 
           <section className="card overflow-x-auto">
             <h2 className="label-mono px-5 pt-5">Emendas que beneficiaram o município</h2>
-            <table className="mt-3 w-full border-collapse text-sm">
+            <table className="mt-3 tbl">
               <thead>
-                <tr className="border-b border-hairline text-left label-mono">
-                  <th className="px-5 py-3">Parlamentar</th>
-                  <th className="px-3 py-3">Código / ano</th>
-                  <th className="px-3 py-3">Modalidade</th>
-                  <th className="px-3 py-3">Área</th>
-                  <th className="px-3 py-3">Empenhado</th>
-                  <th className="px-3 py-3">Pago</th>
-                  <th className="px-3 py-3">% exec.</th>
-                  <th className="px-3 py-3">Última mov.</th>
+                <tr>
+                  <th>Parlamentar</th>
+                  <th>Código / ano</th>
+                  <th>Modalidade</th>
+                  <th>Área</th>
+                  <th>Empenhado</th>
+                  <th>Pago</th>
+                  <th>% exec.</th>
+                  <th>Última mov.</th>
                 </tr>
               </thead>
               <tbody>
                 {resumo.itens.map((e) => (
                   <tr key={e.id} className="border-b border-hairline last:border-0">
-                    <td className="px-5 py-3">
+                    <td>
                       {e.parlamentar ?? "—"}
                       {e.partido && (
                         <span className="ml-1 text-xs text-ink-3">({e.partido})</span>
@@ -336,18 +332,18 @@ export default function EmendasPage() {
                         </p>
                       )}
                     </td>
-                    <td className="px-3 py-3 font-mono text-xs text-ink-2">
+                    <td className="font-mono text-xs text-ink-2">
                       {e.numero ?? e.codigo}
                       {e.ano ? ` / ${e.ano}` : ""}
                     </td>
-                    <td className="px-3 py-3 text-ink-2">{e.modalidade ?? "—"}</td>
-                    <td className="px-3 py-3 text-ink-2">{e.area ?? "—"}</td>
-                    <td className="px-3 py-3 tabular-nums">{formatBRL(e.empenhado)}</td>
-                    <td className="px-3 py-3 tabular-nums">{formatBRL(e.pago)}</td>
-                    <td className="px-3 py-3 tabular-nums">
+                    <td className="text-ink-2">{e.modalidade ?? "—"}</td>
+                    <td className="text-ink-2">{e.area ?? "—"}</td>
+                    <td className="tabular-nums">{formatBRL(e.empenhado)}</td>
+                    <td className="tabular-nums">{formatBRL(e.pago)}</td>
+                    <td className="tabular-nums">
                       {e.percentual_executado.toFixed(0)}%
                     </td>
-                    <td className="px-3 py-3 text-ink-2">{formatDate(e.data_repasse)}</td>
+                    <td className="text-ink-2">{formatDate(e.data_repasse)}</td>
                   </tr>
                 ))}
               </tbody>

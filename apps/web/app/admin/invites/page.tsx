@@ -171,15 +171,15 @@ export default function AdminConvitesPage() {
       </form>
 
       <section className="card overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
+        <table className="tbl">
           <thead>
-            <tr className="border-b border-hairline text-left label-mono">
-              <th className="px-5 py-3">Convidado</th>
-              <th className="px-3 py-3">Papel</th>
-              <th className="px-3 py-3">Plano</th>
-              <th className="px-3 py-3">Status</th>
-              <th className="px-3 py-3">Expira</th>
-              <th className="px-3 py-3"></th>
+            <tr>
+              <th>Convidado</th>
+              <th>Papel</th>
+              <th>Plano</th>
+              <th>Status</th>
+              <th>Expira</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -188,16 +188,16 @@ export default function AdminConvitesPage() {
                 key={c.id}
                 className="border-b border-hairline last:border-0 row-interactive"
               >
-                <td className="px-5 py-3">{c.email}</td>
-                <td className="px-3 py-3 text-ink-2">{c.papel ?? "—"}</td>
-                <td className="px-3 py-3 text-ink-2">{planoNome(c.plano_id)}</td>
-                <td className="px-3 py-3">
+                <td>{c.email}</td>
+                <td className="text-ink-2">{c.papel ?? "—"}</td>
+                <td className="text-ink-2">{planoNome(c.plano_id)}</td>
+                <td>
                   <StatusBadge tone={statusTone(c.status)}>{c.status}</StatusBadge>
                 </td>
-                <td className="px-3 py-3 font-mono text-[12px] text-ink-3">
+                <td className="font-mono text-[12px] text-ink-3">
                   {c.expires_at ? c.expires_at.slice(0, 10) : "—"}
                 </td>
-                <td className="px-3 py-3">
+                <td>
                   {c.status === "pendente" && (
                     <button
                       onClick={() => copiar(c.token)}

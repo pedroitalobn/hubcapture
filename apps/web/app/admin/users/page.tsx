@@ -217,16 +217,16 @@ export default function AdminUsuariosPage() {
       </form>
 
       <section className="card overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
+        <table className="tbl">
           <thead>
-            <tr className="border-b border-hairline text-left label-mono">
-              <th className="px-5 py-3">Usuário</th>
-              <th className="px-3 py-3">Papel</th>
-              <th className="px-3 py-3">Plano</th>
-              <th className="px-3 py-3">Admin</th>
-              <th className="px-3 py-3">Ativo</th>
-              <th className="px-3 py-3"></th>
-              <th className="px-3 py-3"></th>
+            <tr>
+              <th>Usuário</th>
+              <th>Papel</th>
+              <th>Plano</th>
+              <th>Admin</th>
+              <th>Ativo</th>
+              <th></th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -235,13 +235,13 @@ export default function AdminUsuariosPage() {
                 key={u.id}
                 className="border-b border-hairline last:border-0 row-interactive"
               >
-                <td className="px-5 py-3">
+                <td>
                   <span className="block tracking-tight">
                     {u.nome ?? "—"}
                   </span>
                   <span className="text-xs text-ink-3">{u.email}</span>
                 </td>
-                <td className="px-3 py-3">
+                <td>
                   <select
                     value={u.papel ?? ""}
                     onChange={(e) => atualizar(u.id, { papel: e.target.value })}
@@ -255,7 +255,7 @@ export default function AdminUsuariosPage() {
                     ))}
                   </select>
                 </td>
-                <td className="px-3 py-3">
+                <td>
                   <select
                     value={u.plano_id ?? ""}
                     onChange={(e) =>
@@ -271,7 +271,7 @@ export default function AdminUsuariosPage() {
                     ))}
                   </select>
                 </td>
-                <td className="px-3 py-3">
+                <td>
                   <button
                     onClick={() => atualizar(u.id, { is_superuser: !u.is_superuser })}
                     title="Alternar permissão de admin"
@@ -281,7 +281,7 @@ export default function AdminUsuariosPage() {
                     </StatusBadge>
                   </button>
                 </td>
-                <td className="px-3 py-3">
+                <td>
                   <button
                     onClick={() => atualizar(u.id, { is_active: !u.is_active })}
                     title="Ativar/desativar"
@@ -291,10 +291,10 @@ export default function AdminUsuariosPage() {
                     </StatusBadge>
                   </button>
                 </td>
-                <td className="px-3 py-3 text-xs text-ink-3">
+                <td className="text-xs text-ink-3">
                   {u.is_verified ? "verificado" : "—"}
                 </td>
-                <td className="px-3 py-3">
+                <td>
                   <button
                     onClick={() => void remover(u.id, u.email)}
                     className="text-xs text-danger hover:underline"

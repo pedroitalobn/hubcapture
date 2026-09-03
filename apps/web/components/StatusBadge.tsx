@@ -28,7 +28,7 @@ export function StatusBadge({
 }) {
   return (
     <span
-      className={`inline-flex items-center rounded px-[0.65em] py-[0.35em] text-xs font-semibold leading-none ${TOM[tone]}`}
+      className={`inline-flex items-center whitespace-nowrap rounded px-[0.65em] py-[0.35em] text-xs font-semibold leading-none ${TOM[tone]}`}
     >
       {children}
     </span>

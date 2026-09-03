@@ -10,7 +10,8 @@ import { Hint } from "@/components/Hint";
 import { ModuloGate } from "@/components/ModuloGate";
 import { NumeroProposta } from "@/components/NumeroProposta";
 import { PageHeader } from "@/components/PageHeader";
-import { IconeAcao } from "@/components/icons";
+import { IconeAcao, IconeNav } from "@/components/icons";
+import { ItemMenu, Seletor, SeletorSimples } from "@/components/kit";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { TextoLimitado } from "@/components/TextoLimitado";
 import {
@@ -106,7 +107,7 @@ type Facetas = {
 type Pasta = { id: string; nome: string; cor?: string | null };
 
 // O município NÃO é filtro desta tela: quais dos municípios do perfil entram
-// no painel é escolha global (trilho lateral, `lib/territorio`), válida para
+// no painel é escolha global (barra de filtros, `lib/territorio`), válida para
 // todas as lentes. Aqui só se lê o recorte ativo.
 type Filtros = {
   uf: string;
@@ -248,7 +249,12 @@ function abasIniciais(): Aba[] {
   return [{ id: "aba-1", nome: "Geral", filtros: { ...FILTROS_VAZIOS } }];
 }
 
-/** Dropdown alimentado por faceta: só mostra o que EXISTE no recorte, com contagem. */
+/** Seletor alimentado por faceta: só mostra o que EXISTE no recorte, com
+ *  contagem. Usa o kit do painel (`components/kit`) em vez de um `<select>`
+ *  nativo — o mesmo gatilho e o mesmo menu do recorte global, então os filtros
+ *  da tela e os da barra de cima se parecem e se operam igual. O nativo ainda
+ *  escondia a contagem atrás do clique e não tinha busca: com quarenta órgãos
+ *  na lista, achar o certo era rolar no escuro. */
 function SelectFaceta({
   rotulo,
   valor,
@@ -259,27 +265,84 @@ function SelectFaceta({
   rotulo: string;
   valor: string;
   opcoes?: Opcao[];
+  /** Largura MÍNIMA do menu, em unidade CSS (o gatilho se ajusta ao valor). */
   largura: string;
   aoMudar: (v: string) => void;
 }) {
   const lista = opcoes ?? [];
+  const [busca, setBusca] = useState("");
+  const escolhida = lista.find((o) => o.valor === valor);
+  // Sem nenhuma opção e sem escolha o filtro não filtra: fica inerte, com o
+  // mesmo tamanho, para a barra não dançar quando o recorte muda.
+  const inerte = lista.length === 0 && !valor;
+  const filtradas = busca.trim()
+    ? lista.filter((o) =>
+        o.rotulo.toLowerCase().includes(busca.trim().toLowerCase()),
+      )
+    : lista;
+
+  if (inerte) {
+    return (
+      <span className="trigger opacity-50" style={{ minWidth: largura }}>
+        <span className="trigger-txt">
+          <span className="trigger-label">{rotulo}</span>
+          <span className="trigger-value text-ink-3">todas</span>
+        </span>
+      </span>
+    );
+  }
+
   return (
-    <label className="flex flex-col gap-1">
-      <span className="field-label">{rotulo}</span>
-      <select
-        value={valor}
-        onChange={(e) => aoMudar(e.target.value)}
-        disabled={lista.length === 0 && !valor}
-        className={`input ${largura} disabled:opacity-50`}
-      >
-        <option value="">todas</option>
-        {lista.map((o) => (
-          <option key={o.valor} value={o.valor}>
-            {o.rotulo} ({o.total})
-          </option>
-        ))}
-      </select>
-    </label>
+    <Seletor
+      rotulo={rotulo}
+      valor={escolhida?.rotulo ?? valor ?? "todas"}
+      ativo={Boolean(valor)}
+      largura={largura}
+    >
+      {(fechar) => (
+        <>
+          {lista.length >= 8 && (
+            <div className="menu-head">
+              <input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder={`Filtrar ${rotulo.toLowerCase()}…`}
+                className="input w-full text-sm"
+                autoFocus
+              />
+            </div>
+          )}
+          <ItemMenu
+            marcado={!valor}
+            radio
+            rotulo="Todas"
+            onClick={() => {
+              aoMudar("");
+              fechar();
+            }}
+          />
+          <div className="menu-sep" />
+          <div className="menu-scroll" role="listbox" aria-label={rotulo}>
+            {filtradas.map((o) => (
+              <ItemMenu
+                key={o.valor}
+                marcado={o.valor === valor}
+                radio
+                rotulo={o.rotulo}
+                contagem={o.total}
+                onClick={() => {
+                  aoMudar(o.valor);
+                  fechar();
+                }}
+              />
+            ))}
+            {filtradas.length === 0 && (
+              <p className="px-2 py-2 text-sm text-ink-3">Nenhuma opção com esse nome.</p>
+            )}
+          </div>
+        </>
+      )}
+    </Seletor>
   );
 }
 
@@ -354,7 +417,7 @@ function CaptacaoExploracao() {
   // Vazio vira `undefined` para o parâmetro simplesmente não ir na query.
   const filtrosApi = useCallback(
     () => ({
-      // território: o recorte global do painel (trilho lateral), não um filtro
+      // território: o recorte global do painel (barra de filtros), não um filtro
       // desta tela — vazio quando o usuário está vendo todos os municípios.
       municipio: paramMunicipio(selecionados),
       uf: filtros.uf || undefined,
@@ -997,28 +1060,22 @@ function CaptacaoExploracao() {
             rotulo="UF"
             valor={filtros.uf}
             opcoes={facetas.uf}
-            largura="w-24"
+            largura="12rem"
             aoMudar={(v) => setFiltros({ uf: v })}
           />
-          {/* A ORIGEM DO RECURSO saiu daqui: é escolha global do trilho
-              lateral (`components/OrigemRecursoFiltro`), como o território
+          {/* A ORIGEM DO RECURSO saiu daqui: é escolha global da barra de
+              filtros do painel (`components/FiltrosPainel`), como o território
               (§33). Um filtro em dois lugares dessincroniza — o dropdown local
               recortava só esta tela e o Meu painel continuava mostrando as
               outras fontes. */}
-          <label className="flex flex-col gap-1">
-            <span className="field-label">Ordenar por</span>
-            <select
-              value={filtros.ordenar}
-              onChange={(e) => setFiltros({ ordenar: e.target.value })}
-              className="input w-44"
-            >
-              {ORDENACOES.map(([valor, rotulo]) => (
-                <option key={valor} value={valor}>
-                  {rotulo}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SeletorSimples
+            rotulo="Ordenar por"
+            valor={filtros.ordenar}
+            opcoes={ORDENACOES.map(([valor, rotulo]) => ({ valor, rotulo }))}
+            vazio={null}
+            largura="15rem"
+            aoMudar={(v) => setFiltros({ ordenar: v })}
+          />
           <button
             onClick={() => void baixarRelatorio()}
             className="btn btn-ghost btn-sm mb-1"
@@ -1146,42 +1203,42 @@ function CaptacaoExploracao() {
                 rotulo="Modalidade"
                 valor={filtros.modalidade}
                 opcoes={facetas.modalidade}
-                largura="w-44"
+                largura="17rem"
                 aoMudar={(v) => setFiltros({ modalidade: v })}
               />
               <SelectFaceta
                 rotulo="Órgão"
                 valor={filtros.orgao}
                 opcoes={facetas.orgao}
-                largura="w-56"
+                largura="20rem"
                 aoMudar={(v) => setFiltros({ orgao: v })}
               />
               <SelectFaceta
                 rotulo="Tipo de transferência"
                 valor={filtros.qualificacao}
                 opcoes={facetas.qualificacao}
-                largura="w-48"
+                largura="18rem"
                 aoMudar={(v) => setFiltros({ qualificacao: v })}
               />
               <SelectFaceta
                 rotulo="Categoria"
                 valor={filtros.categoria}
                 opcoes={facetas.categoria}
-                largura="w-52"
+                largura="19rem"
                 aoMudar={(v) => setFiltros({ categoria: v })}
               />
               <SelectFaceta
                 rotulo="Situação"
                 valor={filtros.situacao}
                 opcoes={facetas.situacao}
-                largura="w-44"
+                largura="17rem"
                 aoMudar={(v) => setFiltros({ situacao: v })}
               />
               <SelectFaceta
                 rotulo="Ano"
                 valor={filtros.ano}
                 opcoes={facetas.ano}
-                largura="w-28"
+                largura="13rem"
                 aoMudar={(v) => setFiltros({ ano: v })}
               />
               {/* o mês acompanha o ano no mesmo referencial: MES_PROP, o mês
@@ -1190,24 +1247,19 @@ function CaptacaoExploracao() {
                 rotulo="Mês"
                 valor={filtros.mes}
                 opcoes={facetas.mes}
-                largura="w-36"
+                largura="15rem"
                 aoMudar={(v) => setFiltros({ mes: v })}
               />
-              <label className="flex flex-col gap-1">
-                <span className="field-label">Área</span>
-                <select
-                  value={filtros.area}
-                  onChange={(e) => setFiltros({ area: e.target.value })}
-                  className="input w-40"
-                >
-                  <option value="">todas</option>
-                  {AREAS.map((a) => (
-                    <option key={a} value={a}>
-                      {a.replace("_", " ")}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SeletorSimples
+                rotulo="Área"
+                valor={filtros.area}
+                opcoes={AREAS.map((a) => ({
+                  valor: a,
+                  rotulo: a.replace("_", " "),
+                }))}
+                largura="15rem"
+                aoMudar={(v) => setFiltros({ area: v })}
+              />
               <label className="flex flex-col gap-1">
                 <span className="field-label">Valor mín (R$)</span>
                 <input
@@ -1408,29 +1460,26 @@ function CaptacaoExploracao() {
           </p>
         ) : (
           <div className="card overflow-hidden">
-            <table className="w-full border-collapse text-sm">
+            <table className="tbl">
               <thead>
-                <tr className="border-b border-hairline text-left label-mono">
-                  <th className="w-20 px-4 py-3"></th>
-                  <th className="px-3 py-3">Proposta</th>
-                  <th className="px-3 py-3">Município</th>
+                <tr>
+                  <th className="w-20"></th>
+                  <th>Proposta</th>
+                  <th>Município</th>
                   {/* a coluna "Prazo" saiu: vinha do fim de vigência, que não é
                       prazo de proposta. O dado segue no detalhe, no card
                       "Prazos", onde é conferível item a item. */}
-                  <th className="px-3 py-3">Ano</th>
-                  <th className="px-3 py-3 text-right">Valor global</th>
-                  <th className="px-3 py-3 text-right">Empenhado</th>
-                  <th className="px-3 py-3">Situação</th>
-                  <th className="px-3 py-3">Pasta</th>
+                  <th>Ano</th>
+                  <th className="text-right">Valor global</th>
+                  <th className="text-right">Empenhado</th>
+                  <th>Situação</th>
+                  <th>Pasta</th>
                 </tr>
               </thead>
               <tbody>
                 {visiveis.map((p) => (
-                  <tr
-                    key={p.id}
-                    className="border-b border-hairline last:border-0 row-interactive"
-                  >
-                    <td className="px-4 py-3">
+                  <tr key={p.id}>
+                    <td>
                       <div className="flex items-center gap-2">
                         <Favorito
                           ativo={favoritos.has(p.id)}
@@ -1468,7 +1517,22 @@ function CaptacaoExploracao() {
                         <BotaoEspelho propostaId={p.id} formato="icone" />
                       </div>
                     </td>
-                    <td className="px-3 py-3">
+                    <td>
+                      <div className="flex items-start gap-3">
+                      {/* Miniatura do registro, como no feed do Meu painel: o
+                          alvo marca a proposta DISPONÍVEL (ainda sem cadastro)
+                          e o documento, a cadastrada — a distinção que os
+                          chips do topo filtram, agora legível na linha. */}
+                      <span
+                        className="tbl-ico"
+                        aria-hidden
+                        title={p.tipo === "disponivel" ? "Disponível" : "Cadastrada"}
+                      >
+                        <IconeNav
+                          nome={p.tipo === "disponivel" ? "oportunidades" : "propostas"}
+                        />
+                      </span>
+                      <div className="min-w-0">
                       {/* O nº ENCABEÇA a linha, em pílula: varrer a lista atrás
                           de um número era ler todas as linhas de apoio, onde
                           ele tinha o mesmo peso do órgão e da modalidade.
@@ -1542,8 +1606,10 @@ function CaptacaoExploracao() {
                           {p.resumo_ia}
                         </p>
                       )}
+                      </div>
+                      </div>
                     </td>
-                    <td className="px-3 py-3 text-ink-2">
+                    <td className="text-ink-2">
                       {/* nome do município; o código só como apoio (seção 23) */}
                       <span className="block">{municipioPrincipal(p)}</span>
                       {municipioSecundario(p) && (
@@ -1554,17 +1620,17 @@ function CaptacaoExploracao() {
                     </td>
                     {/* Ano da proposta (ANO_PROP na fonte) — a safra, no lugar
                         do prazo. É o mesmo critério do filtro de ano. */}
-                    <td className="px-3 py-3 text-ink-2">
+                    <td className="text-ink-2">
                       {p.ano ? (
                         <span className="num">{p.ano}</span>
                       ) : (
                         <span className="text-ink-3">—</span>
                       )}
                     </td>
-                    <td className="num px-3 py-3 text-right">
+                    <td className="num text-right">
                       {formatBRL(p.execucao?.valor_global ?? p.valor_total)}
                     </td>
-                    <td className="num px-3 py-3 text-right">
+                    <td className="num text-right">
                       {p.execucao?.valor_empenhado != null ? (
                         <>
                           {formatBRL(p.execucao.valor_empenhado)}
@@ -1581,7 +1647,7 @@ function CaptacaoExploracao() {
                         <span className="text-ink-3">—</span>
                       )}
                     </td>
-                    <td className="px-3 py-3">
+                    <td>
                       {p.situacao ? (
                         <StatusBadge tone={tomSituacao(p.situacao)}>
                           {humanizarCaixa(p.situacao)}
@@ -1599,7 +1665,7 @@ function CaptacaoExploracao() {
                         {p.tipo === "disponivel" ? "disponível" : "cadastrada"}
                       </span>
                     </td>
-                    <td className="px-3 py-3">
+                    <td>
                       <select
                         defaultValue=""
                         onChange={(e) => {
