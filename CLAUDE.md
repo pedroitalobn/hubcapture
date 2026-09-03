@@ -2486,8 +2486,8 @@ forma e componentes) e a tela de referência é `/previews/hub.html`.
   separação é a sombra `0 0 30px rgba(3,25,24,.08)`), tinta `#1F2A27`.
   Escuro: canvas `#08201E`, cards `#0E2A27` **com borda** (sombra não separa
   sobre fundo escuro) e a AÇÃO passa a ser o acento — o `#1C6555` não se
-  destaca do fundo escuro. O trilho lateral é `#031918` nos DOIS temas: é
-  onde a marca aparece.
+  destaca do fundo escuro. (O trilho lateral era `#031918` nos dois temas;
+  **revisto na §59** — ele acompanha o tema.)
 - **`--grad-brand` × `--fill-accent`**: o gradiente é só a superfície de
   DESTAQUE (tinta da cor → branco, 135°, um por bloco). Preenchimento e traço
   (chip ativo, barra de progresso, `.btn-accent`, filete de linha, sublinhado)
@@ -2576,3 +2576,37 @@ delas parecida com o que o gestor usa em qualquer outro sistema.
 Regras que ficam: filtro global mora na barra da tela, nunca no menu; peça de
 seleção nova entra no kit, nunca como `<select>` solto; e a favorita LIGADA
 nunca se esconde no repouso da linha (estrela é estado do registro, não ação).
+
+
+## 59. O trilho lateral acompanha o TEMA (revisa a §57)
+
+A §57 fixou o trilho em `#031918` nos dois temas, "porque é onde a marca
+aparece". Na prática, quem escolhia o tema **claro** abria o app com uma coluna
+quase-preta encostada num canvas branco e recebia metade da escolha. O trilho
+agora inverte junto com o resto: branco no claro, `#031918` no escuro. A marca
+segue presente pelo `brand-dot`, pelo filete do acento no item ativo e pelo tom
+do item selecionado — não pelo fundo.
+
+- **Tudo por token** (`--nav-*`, os três blocos de tema de `globals.css`).
+  Além dos que já existiam, entraram `--nav-ink-strong` (tinta de ÊNFASE: item
+  sob o ponteiro, nome na conta), `--nav-surface` (campo/chip dentro do
+  trilho), `--nav-menu-bg` (o menu da conta), `--nav-scroll` e
+  `--nav-brand-ink`. Nenhum `#ffffff` ou `rgba(255,255,255,…)` literal sobrou
+  no trilho — no claro, cada um deles seria branco sobre branco.
+- **O item ativo não usa o acento como TINTA no claro**: `#43CF9B` sobre
+  branco é 1,9:1 (§57). No claro o rótulo ativo sai na cor de ação
+  (`#1C6555`) sobre `#DDF6EC`; no escuro o acento assume. O filete de 3px
+  continua no acento nos dois — ali ele é marcador, não texto.
+- **`.sidebar` ganhou `border-right`**: no claro o trilho branco e o canvas
+  `#F3F7F5` quase encostam, e sem o fio a coluna deixa de existir.
+- **`.stat-ink` deixou de ler `--nav-bg`.** O KPI de tinta cheia usava o token
+  do trilho porque os dois eram a mesma cor; com o trilho claro ele viraria um
+  card branco com texto branco. Agora lê `--color-brand-dark`, que é o que ele
+  sempre quis dizer.
+- **`.sidebar-brand` tinha `color:#fff` fixo** — e o mesmo componente
+  (`BrandMark`) assina o **login** e o **onboarding**, que são telas de fundo
+  claro: o nome da marca estava invisível nas duas desde a migração. A tinta
+  padrão passou a ser a do tema e o trilho sobrepõe com `--nav-brand-ink`.
+
+Regra que fica: cor dentro do trilho é token `--nav-*`, nunca literal — e
+componente que também vive fora do trilho não pode assumir o fundo dele.
