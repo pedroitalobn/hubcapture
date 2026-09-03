@@ -228,7 +228,9 @@ export default function ResumoCaptacaoPage() {
               )}
               <p className="mt-3 font-mono text-[11px] text-ink-3">
                 <span className="mr-3">▊ aprovado</span>
-                <span className="text-lime">▊ desembolsado</span>
+                <span>
+                  <span className="text-accent">▊</span> desembolsado
+                </span>
               </p>
             </div>
 

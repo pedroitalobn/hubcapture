@@ -634,7 +634,7 @@ export default function DynamicIsland() {
               <button
                 type="submit"
                 disabled={pensando || !pergunta.trim()}
-                className="pressable rounded-full bg-[image:var(--grad-brand)] px-3 py-1 text-sm font-medium text-abyss shadow-[0_2px_12px_color-mix(in_srgb,var(--color-lime)_35%,transparent)] disabled:opacity-40 disabled:shadow-none"
+                className="pressable rounded-full bg-[var(--fill-accent)] px-3 py-1 text-sm font-medium text-[color:var(--fill-accent-fg)] shadow-[0_2px_12px_color-mix(in_srgb,var(--fill-accent)_35%,transparent)] disabled:opacity-40 disabled:shadow-none"
               >
                 →
               </button>

@@ -86,7 +86,7 @@ function MiniMapa({ obras }: { obras: Obra[] }) {
         // mesmos tons do StatusBadge — o ponto no mapa e o badge da lista
         // precisam falar a mesma língua de cor.
         const dot: Record<string, string> = {
-          info: "bg-aqua",
+          info: "bg-info",
           warning: "bg-warn",
           success: "bg-ok",
           danger: "bg-danger",

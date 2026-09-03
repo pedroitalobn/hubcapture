@@ -261,7 +261,9 @@ export default function EmendasPage() {
               </div>
               <p className="mt-3 font-mono text-[11px] text-ink-3">
                 <span className="mr-3">▊ empenhado</span>
-                <span className="text-lime">▊ pago</span>
+                <span>
+                  <span className="text-accent">▊</span> pago
+                </span>
               </p>
             </div>
 

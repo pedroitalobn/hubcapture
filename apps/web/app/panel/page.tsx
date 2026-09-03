@@ -188,7 +188,9 @@ function GraficoAprovadoDesembolsado({
       </div>
       <p className="mt-2 font-mono text-[11px] text-ink-3">
         <span className="mr-3">▊ aprovado</span>
-        <span className="text-lime">▊ desembolsado</span>
+        <span>
+          <span className="text-accent">▊</span> desembolsado
+        </span>
       </p>
     </div>
   );
