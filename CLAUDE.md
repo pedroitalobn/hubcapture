@@ -2468,3 +2468,58 @@ Oportunidades e Regularidade (Fase 2 do `docs/PLANO_MELHORIAS_APP.md`, §2.5/§2
 extração da lista de documentos e a confirmação da causa raiz do "Publicado"
 divergente — o endurecimento acima cobre as duas hipóteses, mas só o probe contra
 a fonte fecha a questão.
+
+## 57. Design system v1 "Hub Capture" — a migração da Bancada v2 (decisão travada)
+
+A UI saiu da **"Bancada v2"** (canvas quase-preto com aurora, cards de vidro,
+rótulos em Roboto Mono caixa-alta de 11px, peso único 400) para o **design
+system v1**, aprovado a partir da alternativa C dos previews com ressalvas. O
+guia renderizado é `/previews/guia.html` (fonte de verdade de cor, tipografia,
+forma e componentes) e a tela de referência é `/previews/hub.html`.
+
+- **Paleta** — acento `#43CF9B` · escuro `#031918` · auxiliares `#1C6555`
+  (ação) e `#1B6255` (hover). Semânticas: `ok #1C6555` · `warn #E0A82E`
+  (texto `#96660F`) · `danger #C0392B` · `info #2A7F9E`. O acento **nunca
+  legenda texto sobre branco** (1,9:1): é preenchimento com tinta escura,
+  linha, anel de foco ou marcador.
+- **Dois temas de verdade.** Claro: canvas `#F3F7F5`, cards brancos (a
+  separação é a sombra `0 0 30px rgba(3,25,24,.08)`), tinta `#1F2A27`.
+  Escuro: canvas `#08201E`, cards `#0E2A27` **com borda** (sombra não separa
+  sobre fundo escuro) e a AÇÃO passa a ser o acento — o `#1C6555` não se
+  destaca do fundo escuro. O trilho lateral é `#031918` nos DOIS temas: é
+  onde a marca aparece.
+- **`--grad-brand` × `--fill-accent`**: o gradiente é só a superfície de
+  DESTAQUE (tinta da cor → branco, 135°, um por bloco). Preenchimento e traço
+  (chip ativo, barra de progresso, `.btn-accent`, filete de linha, sublinhado)
+  usam `--fill-accent` sólido — com o gradiente, que é translúcido no escuro,
+  o chip ativo e a barra sumiam.
+- **Tipografia**: **Archivo** em H1–H3 (CAIXA ALTA com tracking) e nos
+  números; **Inter** no corpo e na UI. A Roboto Mono saiu do sistema, mas
+  `--font-mono` continua definido apontando para a Inter: ~200 rótulos do app
+  chamam `font-mono`, e removê-lo trocaria a face por serifada. Botão, corpo
+  e descrição NUNCA vão em caixa alta.
+- **Aliases depreciados**: `--color-lime/aqua/abyss/bone/graphite/lichen/
+  tissue` seguem no `@theme` apontando para a paleta nova. ~55 utilitários
+  (`bg-lime`, `text-abyss`) ainda os usam e, sem o nome, o Tailwind compila
+  para NADA e o elemento some em silêncio. Ao tocar uma tela, trocar pelo
+  nome novo.
+- **Disposição (§7 do guia)** — `app-shell` é uma GRADE (sidebar 272px +
+  conteúdo), não mais um trilho arredondado flutuando dentro do padding: a
+  sidebar encosta na borda, tem altura cheia e vira gaveta abaixo de 1024px;
+  o header branco de 60px carrega a trilha (território → tela) e o papel. O
+  **admin** ganhou o mesmo shell, com os 11 destinos agrupados em Pessoas ·
+  Plataforma · Dados · Conteúdo — antes eram onze pílulas numa linha só, que
+  quebrava em duas no notebook e não dizia o que era o quê.
+- **`.sidebar X` fora de `@layer`**: um override de utilitário do Tailwind
+  (`text-ink`, `border-hairline`) dentro de `@layer components` PERDE para a
+  layer `utilities`. Com ele lá dentro, o nome do município sumia na sidebar
+  do tema claro (tinta escura sobre verde escuro). As regras do trilho ficam
+  num bloco sem camada, no fim do arquivo — mesma disciplina da camada v1.
+- **Componentes**: `StatusBadge` virou badge SÓLIDO (a cor é a informação);
+  antes eram quatro estados com a mesma cara de contorno cinza. `StatCard`
+  usa `.stat-label` (o H3 do sistema) e o contexto em caixa de frase.
+- **A flag `ui_versao` (§48) continua**: o novo sistema é o padrão (`v2`) e a
+  camada `v1` segue como o porte FLAT do mesmo sistema — superfícies sem
+  sombra/gradiente. Nenhuma mudança de contrato na API.
+- **Aberto**: a arte de `/public/login-hero.jpg` ainda é da paleta antiga
+  (topografia em lime amarelado); regerar no verde da marca.

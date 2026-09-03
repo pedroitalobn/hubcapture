@@ -5,17 +5,20 @@ export type BadgeTone =
   | "danger"
   | "info";
 
-/* Disciplina monocromática: o badge é sempre outline + mono; a semântica
-   vem do dot de 6px (lime = ok; tons rebaixados p/ alerta/erro). */
-const DOT: Record<BadgeTone, string> = {
-  neutral: "bg-ink-3",
-  success: "bg-ok",
-  warning: "bg-warn",
-  danger: "bg-danger",
-  info: "bg-graphite",
+/* Design system v1 (/previews/guia.html §5): badge SÓLIDO, 12px/600, raio 4.
+   Antes era pill de contorno com um dot de 6px — quatro estados que exigem
+   reações opostas ("em análise" e "pendência") saíam com a mesma aparência,
+   um contorno cinza. A cor agora É a informação; o dot deixou de ser
+   necessário porque o preenchimento já distingue à distância. */
+const TOM: Record<BadgeTone, string> = {
+  neutral: "bg-ink-3 text-white",
+  success: "badge-ok",
+  warning: "badge-warn",
+  danger: "badge-danger",
+  info: "badge-info",
 };
 
-/** Badge de status: pill hairline com dot semântico + label mono. */
+/** Badge de status: preenchimento semântico + rótulo em caixa de frase. */
 export function StatusBadge({
   children,
   tone = "neutral",
@@ -24,8 +27,9 @@ export function StatusBadge({
   tone?: BadgeTone;
 }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[-0.02em] text-ink-2">
-      <span className={`h-1.5 w-1.5 rounded-full ${DOT[tone]}`} aria-hidden />
+    <span
+      className={`inline-flex items-center rounded px-[0.65em] py-[0.35em] text-xs font-semibold leading-none ${TOM[tone]}`}
+    >
       {children}
     </span>
   );

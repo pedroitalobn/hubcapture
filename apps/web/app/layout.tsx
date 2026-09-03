@@ -1,20 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Inter_Tight, Roboto_Mono } from "next/font/google";
+import { Archivo, Inter } from "next/font/google";
 import "plyr/dist/plyr.css";
 import "./globals.css";
 import { UiVersionSync } from "@/components/UiVersionSync";
 
-// Hierarquia tipográfica real: 400 no corpo, 500/600 em títulos e números —
-// legibilidade primeiro; o tracking negativo continua dando o tom técnico.
-const sans = Inter_Tight({
+// Design system v1 (/previews/guia.html §3): Inter no corpo e na UI;
+// Archivo nos títulos H1–H3 (caixa alta) e nos números. A Roboto Mono saiu
+// do sistema — `--font-mono` no globals.css passa a apontar para a Inter.
+const sans = Inter({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-sans-src",
 });
-const mono = Roboto_Mono({
+const display = Archivo({
   subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-mono-src",
+  weight: ["500", "600", "700"],
+  variable: "--font-display-src",
 });
 
 export const metadata: Metadata = {
@@ -24,8 +25,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f7f5" },
-    { media: "(prefers-color-scheme: dark)", color: "#222f30" },
+    { media: "(prefers-color-scheme: light)", color: "#f3f7f5" },
+    { media: "(prefers-color-scheme: dark)", color: "#08201e" },
   ],
 };
 
@@ -39,7 +40,7 @@ export default function RootLayout({
     // antes da hidratação — sem isso o React acusaria mismatch do atributo.
     <html
       lang="pt-BR"
-      className={`${sans.variable} ${mono.variable}`}
+      className={`${sans.variable} ${display.variable}`}
       suppressHydrationWarning
     >
       <body>
