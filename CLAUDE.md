@@ -2523,3 +2523,56 @@ forma e componentes) e a tela de referência é `/previews/hub.html`.
   sombra/gradiente. Nenhuma mudança de contrato na API.
 - **Aberto**: a arte de `/public/login-hero.jpg` ainda é da paleta antiga
   (topografia em lime amarelado); regerar no verde da marca.
+
+## 58. Recorte no PAINEL, não no menu + UI kit de seletores (decisão travada)
+
+Os dois recortes globais (§33 território, §33b origem do recurso) moravam
+dentro do trilho lateral, espremidos numa coluna de 272px que rola: o
+multi-select do município abria um popover dentro do menu, a origem era uma
+fileira de chips minúsculos, a safra do Meu painel era OUTRA fileira de chips
+somada a um `<select>` de "anteriores…", e cada tela de exploração tinha os
+seus `<select>` nativos. Quatro gramáticas de filtro na mesma sessão, nenhuma
+delas parecida com o que o gestor usa em qualquer outro sistema.
+
+- **Os filtros saíram do menu e viraram a BARRA DE RECORTE da tela**
+  (`components/FiltrosPainel.tsx`, montada em `app/panel/layout.tsx` acima do
+  conteúdo). Município e origem são seletores; o que está aplicado sai em chips
+  removíveis ao lado, com "limpar recorte". O comportamento é o de sempre —
+  multi-seleção, "só este", busca a partir de 8 municípios, vazio = todos, RLS
+  como limite. `FILTROS_DA_ROTA` diz em quais telas cada recorte VALE: a barra
+  não se desenha onde ele não muda nada (conformidade e obras seguem fora da
+  origem, §33b), e um recorte com uma opção só também não — controle que não
+  altera a tela lê como quebrado.
+- **UI kit** (`components/kit.tsx` + bloco "UI KIT" de `globals.css`): uma
+  implementação de cada peça, em tokens de tema. `Seletor` (gatilho com rótulo
+  em cima e valor embaixo + menu suspenso, Esc/clique-fora/foco devolvido),
+  `ItemMenu` (caixa de seleção ou marca redonda, contagem, ação secundária),
+  `SeletorSimples` (escolha única sobre lista/faceta, com contagem e busca),
+  `ChipFiltro`, `Caixa` (cabeçalho + corpo) e as classes `.prow` (linha de
+  registro) e `.tbl` (tabela). Todo `<select>` nativo de BARRA DE FILTRO virou
+  kit — captação (facetas, ordenação, área), resumo, emendas, alertas,
+  contatos; os `<select>` que são ação de linha (pasta, direção de agenda)
+  ficam como estão.
+- **Meu painel em DUAS COLUNAS** (a disposição do preview aprovado): à esquerda
+  o que ACONTECEU (dimensões, gráfico, KPIs financeiros e o feed em `.prow`); à
+  direita, `components/PainelLateral.tsx` — **Prazos próximos** (trilha de
+  `GET /proposals/deadlines`, tom pela escada de `tomPrazo`), **Alertas
+  recentes** (os últimos não lidos, não só a contagem) e **Painel informativo**
+  (as notícias, que viviam no rodapé depois de rolar o feed inteiro). Cada caixa
+  é best-effort e some quando não tem conteúdo. Abaixo de 1280px a coluna desce
+  para o fim.
+- **Trilho = navegação.** As lentes vêm agrupadas (Captação · O município ·
+  Acompanhamento · Apoio; grupo sem item visível não desenha o rótulo) e
+  **Alertas carrega o contador de não lidos** — a pendência aparece onde se
+  navega, com o mesmo número no sino do cabeçalho. O que é da CONTA saiu da
+  lista e virou o `MenuConta` do rodapé (minha conta, ajustar perfil,
+  administração, tema, sair), a convenção que o gestor já conhece.
+- **A safra do Meu painel é um `Seletor`**, não mais chips + dropdown de
+  "anteriores": um controle só, com todas as safras e a contagem de cada uma.
+- **O território volta à trilha do cabeçalho** quando NÃO há seletor de
+  município na tela (um município só, ou rota sem recorte) — senão o mesmo dado
+  apareceria em dois lugares.
+
+Regras que ficam: filtro global mora na barra da tela, nunca no menu; peça de
+seleção nova entra no kit, nunca como `<select>` solto; e a favorita LIGADA
+nunca se esconde no repouso da linha (estrela é estado do registro, não ação).

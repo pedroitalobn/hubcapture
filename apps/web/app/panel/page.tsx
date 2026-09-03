@@ -6,6 +6,13 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { Favorito } from "@/components/Favorito";
 import { NumeroProposta } from "@/components/NumeroProposta";
+import { Caixa, ChipFiltro, ItemMenu, Seletor } from "@/components/kit";
+import {
+  CardAlertas,
+  CardNoticias,
+  CardPrazos,
+} from "@/components/PainelLateral";
+import { IconeNav } from "@/components/icons";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
@@ -95,15 +102,6 @@ function useResumoFinanceiro(anos: string[], habilitado: boolean) {
 
   return { resumo, carregando };
 }
-
-// Quantas colunas (grade xl de 4) o gráfico ocupa ao lado dos cards de
-// dimensão: com 1–2 dimensões ele fecha a linha; com mais, desce inteiro
-// para a linha seguinte. Mapa de literais — Tailwind não enxerga classe
-// montada por template.
-const SPAN_GRAFICO: Record<number, string> = {
-  1: "xl:col-span-3",
-  2: "xl:col-span-2",
-};
 
 /** Gráfico aprovado × desembolsado, morando na MESMA grade das dimensões —
  *  é ele que preenche o vão ao lado do nº de propostas.
@@ -362,11 +360,6 @@ interface Noticia {
   data?: string | null;
   resumo?: string | null;
 }
-interface Alerta {
-  id: string;
-  lido: boolean;
-}
-
 /** Descrição do item, salvo quando ela só repete o rótulo da fonte. */
 function descricaoUtil(n: Novidade): string | null {
   const descricao = (n.descricao ?? "").trim();
@@ -398,14 +391,12 @@ function dataBr(iso: string | null | undefined): string | null {
 // safra antiga traz os itens daquele ano em vez de garimpar o que sobrou na
 // janela. A escolha persiste entre visitas.
 //
-// A forma é uma LINHA DE CHIPS à esquerda, sob o título — não um <select>
-// no canto direito do cabeçalho: escondido lá, o filtro passava despercebido
-// e o ano escolhido não se via sem abrir o dropdown. O chip ativo usa o
-// acento da marca (`.chip-active`), então a safra em vigor está sempre à
-// vista; as mais antigas colapsam num dropdown para o território com muitas
-// safras não virar uma parede de chips.
+// A forma é um SELETOR no cabeçalho da página, do mesmo kit dos recortes
+// globais (`components/kit`): rótulo "Safra", o valor escolhido à vista e o
+// menu com todas as safras do território, cada uma com a sua contagem. Antes
+// eram chips somados a um `<select>` de "anteriores…" — dois controles para
+// o mesmo filtro, e o segundo escondia metade das opções.
 const ANO_KEY = "hub_painel_ano";
-const ANOS_EM_CHIP = 6;
 // Janela do feed: quantos itens da safra escolhida (ou das mais recentes,
 // quando "todos os anos") cabem na lista.
 const FEED_LIMITE = 60;
@@ -425,15 +416,14 @@ function lerAnosSalvos(): string[] {
 function MeuPainel() {
   const searchParams = useSearchParams();
   const sincronizando = searchParams.get("sync") === "1";
-  // recorte de município escolhido no trilho lateral (vazio = todo o território)
-  const { selecionados } = useTerritorio();
-  // recorte de ORIGEM DO RECURSO, do mesmo trilho (vazio = todas as fontes)
+  // recorte de município da barra de filtros (vazio = todo o território)
+  const { perfil, selecionados } = useTerritorio();
+  // recorte de ORIGEM DO RECURSO, da mesma barra (vazio = todas as fontes)
   const { selecionadas: origens } = useOrigem();
 
   const [data, setData] = useState<VisaoGeral | null>(null);
   const [novidades, setNovidades] = useState<Novidades | null>(null);
   const [noticias, setNoticias] = useState<Noticia[]>([]);
-  const [naoLidos, setNaoLidos] = useState(0);
   const [favoritas, setFavoritas] = useState<Set<string>>(new Set());
   const [favErro, setFavErro] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -462,7 +452,7 @@ function MeuPainel() {
   }, []);
 
   // O recorte de município, a ORIGEM DO RECURSO e a safra entram em TODA
-  // consulta do painel: trocar o território ou a origem no trilho lateral, ou
+  // consulta do painel: trocar o território ou a origem na barra de filtros, ou
   // o ano no filtro, refaz visão geral, panorama e feed — todos no mesmo
   // recorte. Filtro global que só vale em uma das telas lê como quebrado.
   const carregar = useCallback(async () => {
@@ -494,20 +484,15 @@ function MeuPainel() {
   }, [carregar]);
 
   useEffect(() => {
-    // painel informativo (notícias oficiais) + alertas não lidos — best-effort
-    void (async () => {
-      const [not, al] = await Promise.all([
-        api.GET("/api/v1/news", { params: { query: { limite: 5 } } }),
-        api.GET("/api/v1/alerts", {
-          params: {
-            query: { nao_lidos: true, municipio: paramMunicipio(selecionados) },
-          },
-        }),
-      ]);
-      if (not.data) setNoticias(not.data as Noticia[]);
-      if (al.data) setNaoLidos((al.data as Alerta[]).length);
-    })();
-  }, [selecionados]);
+    // painel informativo (notícias oficiais) — best-effort. Os alertas não
+    // lidos deixaram de ser contados aqui: quem os lê é o card da coluna
+    // lateral, que mostra os ÚLTIMOS em vez de só o número.
+    void api
+      .GET("/api/v1/news", { params: { query: { limite: 5 } } })
+      .then(({ data }) => {
+        if (data) setNoticias(data as Noticia[]);
+      });
+  }, []);
 
   useEffect(() => {
     // Favoritas do usuário — alimenta a ★ do feed. O painel NÃO faz consulta
@@ -603,107 +588,70 @@ function MeuPainel() {
   const semSafra = anos.length
     ? dimensoes.filter((d) => d.recorte_ano === false).map((d) => d.titulo)
     : [];
-  // Safras em chip (as mais recentes) × safras antigas (dropdown compacto).
-  const anosChip = anosDisponiveis.slice(0, ANOS_EM_CHIP);
-  const anosAntigos = anosDisponiveis.slice(ANOS_EM_CHIP);
-  const antigosAtivos = anosAntigos.filter((a) => anos.includes(a.ano)).length;
   const falhas = (novidades?.sync_runs ?? []).filter((r) => r.status === "erro");
   const aguardandoDados =
     sincronizando && itens.length === 0 && tentativas.current < 15;
 
+  // Valor do seletor de safra: o recorte tem que se ler SEM abrir o menu.
+  const valorSafra =
+    anos.length === 0
+      ? "Todos os anos"
+      : anos.length === 1
+        ? anos[0]!
+        : `${anos.length} safras`;
+
   return (
     <>
-      <header>
-        <h1 className="page-title">Meu painel</h1>
-        <p className="mt-1 text-sm text-ink-2">
-          Tudo do seu território, por etapa do ciclo do recurso público.
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="page-title">Meu painel</h1>
+          <p className="mt-1 text-sm text-ink-2">
+            Tudo do seu território, por etapa do ciclo do recurso público.
+          </p>
+        </div>
         {/* Filtro de safra da PÁGINA: cards, panorama e novidades no mesmo
-            recorte. Chips à esquerda, sob o título — MULTI-SELEÇÃO: cada
-            clique liga/desliga a safra no conjunto (comparar 2024+2025 é um
-            recorte legítimo); "Todos os anos" limpa. Só aparece quando o
-            território tem alguma safra — filtro que não muda nada parece
-            quebrado. */}
-        {!semTerritorio && anosDisponiveis.length > 0 && (
-          <nav
-            aria-label="Filtrar o painel por safra (ano) — selecione uma ou várias"
-            className="mt-4 flex flex-wrap items-center gap-2"
+            recorte. MULTI-SELEÇÃO — comparar 2024+2025 é um recorte legítimo;
+            "Todos os anos" limpa. Só aparece quando o território tem mais de
+            uma safra: filtro que não muda nada parece quebrado. */}
+        {!semTerritorio && anosDisponiveis.length > 1 && (
+          <Seletor
+            rotulo="Safra"
+            valor={valorSafra}
+            ativo={anos.length > 0}
+            alinhar="end"
+            largura="14rem"
+            titulo="Ano das propostas e dos repasses que entram no painel"
           >
-            <span className="label-mono">Safra</span>
-            {anosDisponiveis.length === 1 ? (
-              <span
-                className="chip chip-active cursor-default"
-                title="O território tem uma única safra — não há o que recortar"
-              >
-                {anosDisponiveis[0]?.ano}
-                <span className="tabular-nums opacity-60">
-                  {anosDisponiveis[0]?.total}
-                </span>
-              </span>
-            ) : (
+            {(fechar) => (
               <>
-                <button
-                  type="button"
-                  onClick={() => setAnos([])}
-                  className={`chip ${anos.length === 0 ? "chip-active" : ""}`}
-                  aria-pressed={anos.length === 0}
+                <ItemMenu
+                  marcado={anos.length === 0}
+                  radio
+                  rotulo="Todos os anos"
+                  onClick={() => {
+                    setAnos([]);
+                    fechar();
+                  }}
                   title="Painel inteiro, sem recorte de safra"
-                >
-                  Todos os anos
-                </button>
-                {anosChip.map((a) => (
-                  <button
-                    key={a.ano}
-                    type="button"
-                    onClick={() => alternarAno(a.ano)}
-                    className={`chip ${anos.includes(a.ano) ? "chip-active" : ""}`}
-                    aria-pressed={anos.includes(a.ano)}
-                    title={`Liga/desliga a safra ${a.ano} no recorte (dá para somar várias)`}
-                  >
-                    {a.ano}
-                    <span className="tabular-nums opacity-60">{a.total}</span>
-                  </button>
-                ))}
-                {anosAntigos.length > 0 && (
-                  // o select soma/remove a safra antiga escolhida; o valor
-                  // volta sempre a "anteriores…" porque a seleção vive nos
-                  // chips (o ✓ das opções mostra o que já está ligado)
-                  <select
-                    value=""
-                    onChange={(e) => e.target.value && alternarAno(e.target.value)}
-                    className={`chip ${antigosAtivos ? "chip-active" : ""}`}
-                    title="Safras mais antigas do território — escolher soma ao recorte"
-                  >
-                    <option value="">
-                      anteriores…{antigosAtivos ? ` (${antigosAtivos})` : ""}
-                    </option>
-                    {anosAntigos.map((a) => (
-                      <option key={a.ano} value={a.ano}>
-                        {anos.includes(a.ano) ? "✓ " : ""}
-                        {a.ano} ({a.total})
-                      </option>
-                    ))}
-                  </select>
-                )}
+                />
+                <div className="menu-sep" />
+                <div className="menu-scroll" role="listbox" aria-label="Safras do território">
+                  {anosDisponiveis.map((a) => (
+                    <ItemMenu
+                      key={a.ano}
+                      marcado={anos.includes(a.ano)}
+                      rotulo={a.ano}
+                      contagem={a.total}
+                      onClick={() => alternarAno(a.ano)}
+                      title={`Liga/desliga a safra ${a.ano} no recorte`}
+                    />
+                  ))}
+                </div>
               </>
             )}
-          </nav>
+          </Seletor>
         )}
       </header>
-
-      {naoLidos > 0 && (
-        <Link
-          href="/panel/alerts"
-          className="card card-hover flex items-center justify-between p-4 text-sm"
-        >
-          <span>
-            🔔 Você tem <strong>{naoLidos}</strong>{" "}
-            {naoLidos === 1 ? "alerta não lido" : "alertas não lidos"} — novas
-            propostas, prazos e oportunidades.
-          </span>
-          <span className="btn btn-ghost btn-sm">Ver alertas →</span>
-        </Link>
-      )}
 
       {loading ? (
         <SkeletonCards />
@@ -721,130 +669,100 @@ function MeuPainel() {
           </Link>
         </div>
       ) : (
-        <>
-          <section className="stagger grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {dimensoes.map((d) => {
-              // sem href = módulo de exploração desligado: o número do
-              // território continua no painel, só não há para onde navegar
-              const conteudo = (
-                <>
-                  <div className="flex items-start justify-between">
-                    <h2 className="tracking-tight">{d.titulo}</h2>
-                    {d.href && (
-                      <span className="flex h-9 w-9 translate-y-1 items-center justify-center rounded-lg bg-lime text-abyss opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                        →
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    {/* key = valor: trocar safra/território remonta o número e
-                        o anim-swap suaviza a troca (nada de corte seco) */}
-                    <div
-                      key={d.total}
-                      className={`anim-swap text-[34px] font-medium leading-none tracking-[-0.03em] tabular-nums ${
-                        d.total > 0 ? "text-gradient" : ""
-                      }`}
-                    >
-                      {d.total}
+        // Duas colunas: à esquerda o que ACONTECEU (números, gráfico, feed);
+        // à direita o que EXIGE ATENÇÃO (prazos, alertas, notícias). Abaixo de
+        // 1280px a lateral desce para o fim, na ordem em que se lê.
+        <div className="grid-painel">
+          <div className="flex min-w-0 flex-col gap-5">
+            <section className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {dimensoes.map((d) => {
+                // sem href = módulo de exploração desligado: o número do
+                // território continua no painel, só não há para onde navegar
+                const conteudo = (
+                  <>
+                    <div className="flex items-start justify-between">
+                      <h2 className="tracking-tight">{d.titulo}</h2>
+                      {d.href && (
+                        <span className="flex h-9 w-9 translate-y-1 items-center justify-center rounded-lg bg-[var(--fill-accent)] text-[color:var(--fill-accent-fg)] opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                          →
+                        </span>
+                      )}
                     </div>
-                    {d.destaque && (
-                      <p className="mt-2 text-sm text-ink-2">{d.destaque}</p>
-                    )}
-                  </div>
-                </>
-              );
-              // recortes da dimensão (ex.: natureza jurídica na captação):
-              // ficam FORA do <Link> do card — âncora dentro de âncora não vale
-              const quebras = (d.quebras ?? []).length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {(d.quebras ?? []).map((q) => (
-                    <Link
-                      key={q.chave}
-                      href={q.href}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-3 py-1 text-xs text-ink-2 transition hover:text-ink"
-                    >
-                      {q.rotulo}
-                      <span className="tabular-nums opacity-60">{q.total}</span>
-                    </Link>
-                  ))}
-                </div>
-              );
-              return (
-                <div key={d.chave} className="flex flex-col gap-2">
-                  {d.href ? (
-                    <Link
-                      href={d.href}
-                      className="card card-hover group flex flex-1 flex-col justify-between gap-3 p-5 min-h-28"
-                    >
-                      {conteudo}
-                    </Link>
-                  ) : (
-                    <div className="card flex flex-1 flex-col justify-between gap-3 p-5 min-h-28">
-                      {conteudo}
+                    <div>
+                      {/* key = valor: trocar safra/território remonta o número
+                          e o anim-swap suaviza a troca (nada de corte seco) */}
+                      <div
+                        key={d.total}
+                        className={`anim-swap text-[34px] font-medium leading-none tracking-[-0.03em] tabular-nums ${
+                          d.total > 0 ? "text-gradient" : ""
+                        }`}
+                      >
+                        {d.total}
+                      </div>
+                      {d.destaque && (
+                        <p className="mt-2 text-sm text-ink-2">{d.destaque}</p>
+                      )}
                     </div>
-                  )}
-                  {quebras}
-                </div>
-              );
-            })}
-            {/* O gráfico fecha a linha ao lado do nº de propostas — é o que
-                ocupa o vão da grade quando poucas dimensões estão ativas. */}
+                  </>
+                );
+                // recortes da dimensão (ex.: natureza jurídica na captação):
+                // ficam FORA do <Link> do card — âncora dentro de âncora não vale
+                const quebras = (d.quebras ?? []).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {(d.quebras ?? []).map((q) => (
+                      <Link
+                        key={q.chave}
+                        href={q.href}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-3 py-1 text-xs text-ink-2 transition hover:text-ink"
+                      >
+                        {q.rotulo}
+                        <span className="tabular-nums opacity-60">{q.total}</span>
+                      </Link>
+                    ))}
+                  </div>
+                );
+                return (
+                  <div key={d.chave} className="flex flex-col gap-2">
+                    {d.href ? (
+                      <Link
+                        href={d.href}
+                        className="card card-hover group flex flex-1 flex-col justify-between gap-3 p-5 min-h-28"
+                      >
+                        {conteudo}
+                      </Link>
+                    ) : (
+                      <div className="card flex flex-1 flex-col justify-between gap-3 p-5 min-h-28">
+                        {conteudo}
+                      </div>
+                    )}
+                    {quebras}
+                  </div>
+                );
+              })}
+            </section>
+
             {resumo && (resumo.por_ano?.length ?? 0) > 0 && (
-              <GraficoAprovadoDesembolsado
-                resumo={resumo}
-                anos={anos}
-                className={`sm:col-span-2 ${
-                  SPAN_GRAFICO[dimensoes.length] ?? "xl:col-span-4"
-                }`}
-              />
+              <GraficoAprovadoDesembolsado resumo={resumo} anos={anos} />
             )}
-          </section>
 
-          {carregandoResumo && !resumo ? (
-            <SkeletonCards />
-          ) : resumo ? (
-            <CardsFinanceiros
-              resumo={resumo}
-              estado={estado}
-              onEstado={setEstado}
-            />
-          ) : null}
+            {carregandoResumo && !resumo ? (
+              <SkeletonCards />
+            ) : resumo ? (
+              <CardsFinanceiros
+                resumo={resumo}
+                estado={estado}
+                onEstado={setEstado}
+              />
+            ) : null}
 
-          {semSafra.length > 0 && (
-            <p className="text-[12px] text-ink-3">
-              {semSafra.join(" e ")}{" "}
-              {semSafra.length === 1 ? "mostra" : "mostram"} o estado atual do
-              município — {semSafra.length === 1 ? "não tem" : "não têm"} recorte
-              por ano.
-            </p>
-          )}
-
-          <section className="anim-fade-up flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h2 className="flex flex-wrap items-baseline gap-2 tracking-tight">
-                Propostas
-                {/* O recorte tem que estar VISÍVEL na lista, e não só no card
-                    clicado: sem isso o gestor rola a página, esquece o clique
-                    e lê a lista curta como "sumiram propostas". */}
-                {estado && (
-                  <button
-                    type="button"
-                    onClick={() => setEstado(null)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[-0.02em] text-ink-2 transition-colors hover:border-ink-2 hover:text-ink"
-                    title="Remover o recorte e ver tudo"
-                  >
-                    <span className="brand-dot" aria-hidden />
-                    {ESTADO_ROTULO[estado]}
-                    <span aria-hidden>×</span>
-                  </button>
-                )}
-              </h2>
-              {aguardandoDados && (
-                <span className="label-mono animate-pulse">
-                  Sincronizando fontes…
-                </span>
-              )}
-            </div>
+            {semSafra.length > 0 && (
+              <p className="text-[12px] text-ink-3">
+                {semSafra.join(" e ")}{" "}
+                {semSafra.length === 1 ? "mostra" : "mostram"} o estado atual do
+                município — {semSafra.length === 1 ? "não tem" : "não têm"}{" "}
+                recorte por ano.
+              </p>
+            )}
 
             {favErro && (
               <p role="status" className="text-sm tone-danger">
@@ -852,102 +770,109 @@ function MeuPainel() {
               </p>
             )}
 
-            {itens.length === 0 ? (
-              <div className="card p-6 text-sm text-ink-2">
-                {aguardandoDados ? (
-                  <p>
-                    Estamos consultando as fontes oficiais do seu perfil agora —
-                    as primeiras verbas e propostas aparecem aqui em instantes.
-                  </p>
-                ) : falhas.length > 0 ? (
-                  <p>
-                    Ainda sem dados no cache: {falhas.length}{" "}
-                    {falhas.length === 1 ? "fonte falhou" : "fontes falharam"} na
-                    última coleta (
-                    {falhas
-                      .map((f) => rotuloFonte(f.fonte) || f.fonte)
-                      .join(", ")}
-                    ). Novas tentativas rodam no próximo ciclo; você também pode
-                    disparar uma busca nas páginas de cada dimensão.
-                  </p>
-                ) : estado ? (
-                  <p>
-                    Nenhuma proposta {ESTADO_ROTULO[estado]} no recorte atual —{" "}
-                    <button
-                      type="button"
-                      onClick={() => setEstado(null)}
-                      className="underline underline-offset-2"
+            <Caixa
+              titulo="Propostas e repasses"
+              sub={
+                itens.length > 0
+                  ? `${itens.length} ${itens.length === 1 ? "novidade" : "novidades"} no recorte`
+                  : undefined
+              }
+              acoes={
+                <>
+                  {/* O recorte tem que estar VISÍVEL na lista, e não só no
+                      card clicado: sem isso o gestor rola a página, esquece o
+                      clique e lê a lista curta como "sumiram propostas". */}
+                  {estado && (
+                    <ChipFiltro
+                      onRemover={() => setEstado(null)}
+                      title="Remover o recorte e ver tudo"
                     >
-                      ver todas
-                    </button>
-                    .
-                  </p>
-                ) : anos.length ? (
-                  <p>
-                    Nenhuma novidade de {anos.join(", ")} no território —{" "}
-                    <button
-                      type="button"
-                      onClick={() => setAnos([])}
-                      className="underline underline-offset-2"
-                    >
-                      ver todos os anos
-                    </button>
-                    .
-                  </p>
-                ) : (
-                  <p>
-                    Nenhuma novidade ainda — os dados chegam após a primeira
-                    coleta das fontes do seu perfil.
-                  </p>
-                )}
-              </div>
-            ) : (
-              // key = recorte: trocar safra/território re-encena o fade da
-              // lista em vez de trocar as linhas secamente no lugar
-              <ol
-                key={`${anos.join("+")}|${selecionados.join("+")}`}
-                className="card stagger divide-y divide-hairline p-0"
-              >
-                {itens.map((n, i) => (
-                  <li
-                    key={i}
-                    className="flex items-center gap-2 pr-3 row-interactive"
-                  >
-                    {/* Favoritar e exportar direto do painel — só propostas de
-                        captação (repasse não tem espelho nem favorita). A
-                        COLUNA, porém, existe em toda linha: sem ela as linhas
-                        de repasse começavam coladas na borda e a lista tinha
-                        duas margens esquerdas, com o texto do FNS desalinhado
-                        do das propostas. */}
-                    <span className="flex shrink-0 items-center gap-2 pl-4">
-                      {n.proposta_id ? (
-                        <>
-                          <Favorito
-                            ativo={favoritas.has(n.proposta_id)}
-                            onToggle={() => alternarFavorita(n.proposta_id!)}
-                            rotuloOff="Favoritar esta proposta"
-                          />
-                          <BotaoEspelho propostaId={n.proposta_id} formato="icone" />
-                        </>
-                      ) : (
-                        // o vão dos dois botões: 2rem cada (`.fav`/`.icon-btn`)
-                        // mais o gap-2 entre eles
-                        <span className="h-8 w-[4.5rem]" aria-hidden />
-                      )}
+                      {ESTADO_ROTULO[estado]}
+                    </ChipFiltro>
+                  )}
+                  {aguardandoDados && (
+                    <span className="label-mono animate-pulse">
+                      Sincronizando fontes…
                     </span>
-                    <Link
-                      href={n.href}
-                      className="flex flex-1 flex-col gap-1 px-2 py-4 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="min-w-0">
-                        {/* A REFERÊNCIA abre o item: é por ela que o gestor
-                            localiza o registro no meio do feed (§35). Na
-                            proposta é o nº; no repasse, o nº da OB — que é o
-                            que ele confere no extrato. Antes o repasse abria
-                            direto no título e a linha ficava desalinhada das
-                            de proposta: o card mudava de forma conforme a
-                            origem do recurso. */}
-                        <p className="flex min-w-0 items-center gap-2">
+                  )}
+                </>
+              }
+              corpoRente
+            >
+              {itens.length === 0 ? (
+                <div className="px-5 pb-4 pt-1 text-sm text-ink-2">
+                  {aguardandoDados ? (
+                    <p>
+                      Estamos consultando as fontes oficiais do seu perfil agora
+                      — as primeiras verbas e propostas aparecem aqui em
+                      instantes.
+                    </p>
+                  ) : falhas.length > 0 ? (
+                    <p>
+                      Ainda sem dados no cache: {falhas.length}{" "}
+                      {falhas.length === 1 ? "fonte falhou" : "fontes falharam"}{" "}
+                      na última coleta (
+                      {falhas
+                        .map((f) => rotuloFonte(f.fonte) || f.fonte)
+                        .join(", ")}
+                      ). Novas tentativas rodam no próximo ciclo; você também
+                      pode disparar uma busca nas páginas de cada dimensão.
+                    </p>
+                  ) : estado ? (
+                    <p>
+                      Nenhuma proposta {ESTADO_ROTULO[estado]} no recorte atual —{" "}
+                      <button
+                        type="button"
+                        onClick={() => setEstado(null)}
+                        className="underline underline-offset-2"
+                      >
+                        ver todas
+                      </button>
+                      .
+                    </p>
+                  ) : anos.length ? (
+                    <p>
+                      Nenhuma novidade de {anos.join(", ")} no território —{" "}
+                      <button
+                        type="button"
+                        onClick={() => setAnos([])}
+                        className="underline underline-offset-2"
+                      >
+                        ver todos os anos
+                      </button>
+                      .
+                    </p>
+                  ) : (
+                    <p>
+                      Nenhuma novidade ainda — os dados chegam após a primeira
+                      coleta das fontes do seu perfil.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                // key = recorte: trocar safra/território re-encena o fade da
+                // lista em vez de trocar as linhas secamente no lugar
+                <ol
+                  key={`${anos.join("+")}|${selecionados.join("+")}`}
+                  className="stagger flex flex-col divide-y divide-hairline"
+                >
+                  {itens.map((n, i) => (
+                    <li key={i} className="prow">
+                      {/* O tipo do registro é o ÍCONE, não mais uma palavra na
+                          linha de apoio: proposta e repasse se distinguem de
+                          relance e a meta fica para fonte/município/data. */}
+                      <span className="prow-ico" aria-hidden>
+                        <IconeNav
+                          nome={n.tipo === "captacao" ? "propostas" : "recebidos"}
+                        />
+                      </span>
+
+                      <span className="prow-main">
+                        <span className="prow-top">
+                          {/* A REFERÊNCIA abre o item: é por ela que o gestor
+                              localiza o registro no meio do feed (§35). Na
+                              proposta é o nº; no repasse, o nº da OB — que é o
+                              que ele confere no extrato. */}
                           <NumeroProposta
                             numero={n.numero_proposta ?? n.documento}
                             tamanho="sm"
@@ -955,82 +880,78 @@ function MeuPainel() {
                           />
                           {/* Teto de 80 caracteres: o título do item é o
                               `objeto` da fonte e vem com o projeto inteiro
-                              dentro. O `truncate` recortava só no fim da
-                              linha, então numa tela larga a novidade ocupava
-                              a faixa toda e o valor e a data eram empurrados
-                              para longe do olho. O `truncate` fica como
-                              segunda rede, para a tela estreita. */}
-                          <span className="truncate text-sm text-ink">
+                              dentro; inteiro, ele empurra valor e data para
+                              fora do olho. */}
+                          <Link
+                            href={n.href}
+                            className="prow-title min-w-0 truncate transition-colors hover:text-brand"
+                          >
                             {recortarTexto(humanizarCaixa(n.titulo), 80).trecho}
+                          </Link>
+                        </span>
+                        {/* a descrição do repasse costuma repetir o órgão que
+                            já está no rótulo da fonte — repetida, ocupa a
+                            linha sem informar nada */}
+                        {descricaoUtil(n) && (
+                          <span className="prow-desc line-clamp-1">
+                            {
+                              recortarTexto(
+                                humanizarCaixa(descricaoUtil(n)!),
+                                90,
+                              ).trecho
+                            }
                           </span>
-                        </p>
-                        <p className="mt-0.5 flex flex-wrap gap-x-2 text-[12px] text-ink-3">
-                          <span className="font-mono uppercase tracking-[0.04em]">
-                            {n.tipo === "captacao" ? "Proposta" : "Recebido"}
-                          </span>
-                          <span>
-                            {n.fonte_rotulo || rotuloFonte(n.fonte)}
-                          </span>
+                        )}
+                        <span className="prow-meta">
+                          <span>{n.fonte_rotulo || rotuloFonte(n.fonte)}</span>
                           {/* o município lidera a identificação do registro
-                              (§35) e nunca sai como código cru — o repasse
-                              costuma chegar da fonte sem o nome */}
+                              (§35) e nunca sai como código cru */}
                           <span>{municipioPrincipal(n)}</span>
-                          {/* a descrição do repasse costuma repetir o órgão que
-                              já está no rótulo da fonte ("Fundo Nacional de
-                              Saúde") — repetido, ele ocupa a linha sem
-                              informar nada */}
-                          {descricaoUtil(n) && (
-                            <span className="truncate">
-                              {recortarTexto(humanizarCaixa(descricaoUtil(n)!), 80).trecho}
-                            </span>
+                          {(dataBr(n.data) || n.ano) && (
+                            <span>{dataBr(n.data) ?? n.ano}</span>
                           )}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-3 text-sm">
-                        {brl(n.valor) && (
-                          <span className="tabular-nums">{brl(n.valor)}</span>
-                        )}
-                        {/* data do item na sua própria safra (data da proposta,
-                            data do repasse). Sem data, ao menos o ano — é por
-                            ele que o item entrou no recorte. */}
-                        {(dataBr(n.data) || n.ano) && (
-                          <span className="font-mono text-[12px] text-ink-3">
-                            {dataBr(n.data) ?? n.ano}
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>
+                        </span>
+                      </span>
 
-          {noticias.length > 0 && (
-            <section className="flex flex-col gap-3">
-              <h2 className="tracking-tight">Painel informativo — TransfereGov</h2>
-              <ol className="card divide-y divide-hairline p-0">
-                {noticias.map((n, i) => (
-                  <li key={i}>
-                    <a
-                      href={n.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex flex-col gap-0.5 px-5 py-3.5 row-interactive"
-                    >
-                      <p className="text-sm text-ink">{n.titulo} ↗</p>
-                      {n.resumo && (
-                        <p className="line-clamp-1 text-[12px] text-ink-3">
-                          {n.resumo}
-                        </p>
+                      {brl(n.valor) && (
+                        <span className="prow-num">
+                          <span className="prow-valor">
+                            {brl(n.valor)}
+                            {n.ano && <small>{n.ano}</small>}
+                          </span>
+                        </span>
                       )}
-                    </a>
-                  </li>
-                ))}
-              </ol>
-            </section>
-          )}
-        </>
+
+                      {/* Favoritar e exportar direto do painel — só propostas
+                          de captação (repasse não tem espelho nem favorita).
+                          Sem registro de captação a coluna simplesmente não
+                          existe: a linha inteira já é o alvo do clique. */}
+                      {n.proposta_id && (
+                        <span className="prow-acts">
+                          <Favorito
+                            ativo={favoritas.has(n.proposta_id)}
+                            onToggle={() => alternarFavorita(n.proposta_id!)}
+                            rotuloOff="Favoritar esta proposta"
+                          />
+                          <BotaoEspelho propostaId={n.proposta_id} formato="icone" />
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </Caixa>
+          </div>
+
+          <aside className="coluna-lado">
+            <CardPrazos municipios={selecionados} />
+            <CardAlertas
+              municipios={selecionados}
+              ativo={(perfil?.modulos ?? []).includes("alertas")}
+            />
+            <CardNoticias noticias={noticias} />
+          </aside>
+        </div>
       )}
     </>
   );

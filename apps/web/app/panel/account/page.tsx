@@ -264,7 +264,7 @@ export default function ContaPage() {
  *
  * Até o ponto 01 do feedback, o onboarding só inseria município: quem errava a
  * cidade (ou deixava de acompanhá-la) só tinha a zeragem do perfil inteiro. A
- * remoção fica junto da conta, e não no filtro do trilho lateral, porque lá o
+ * remoção fica junto da conta, e não no filtro da barra do painel, porque lá o
  * "×" significa tirar do RECORTE da tela — misturar os dois gestos apagaria
  * perfil de quem só queria filtrar.
  */

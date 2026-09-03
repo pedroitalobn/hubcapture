@@ -1909,6 +1909,652 @@ html {
   }
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   UI KIT — seletores, menus, caixas e linhas de registro
+   Portado do preview aprovado (`/previews/hub.html`, alternativa C
+   repintada na paleta da marca). O que era chip solto no trilho e
+   lista de `<div>` virou um vocabulário fechado: um menu suspenso,
+   um gatilho de seletor, uma caixa com cabeçalho e uma linha de
+   registro — usados igual em todas as telas. Tudo em tokens de
+   tema, então claro e escuro saem do mesmo markup.
+   ══════════════════════════════════════════════════════════════════ */
+@layer components {
+  /* ── Menu suspenso (a base de todo seletor) ──────────────────── */
+  .menu {
+    position: absolute;
+    z-index: 60;
+    min-width: 15rem;
+    max-width: min(22rem, calc(100vw - 2rem));
+    border-radius: var(--radius-card);
+    border: 1px solid var(--hairline);
+    background: var(--card);
+    box-shadow: var(--elev-2);
+    padding: 0.375rem;
+  }
+  .menu-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.5rem 0.5rem;
+  }
+  .menu-sec {
+    font-family: var(--font-display);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding: 0.5rem 0.5rem 0.25rem;
+  }
+  .menu-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.625rem;
+    border-radius: var(--radius-control);
+    padding: 0.4375rem 0.5rem;
+    text-align: left;
+    font-size: 13.5px;
+    color: var(--ink-2);
+    transition: background 0.15s, color 0.15s;
+  }
+  .menu-item:hover {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+  .menu-item-on {
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .menu-item .nav-icon {
+    color: var(--ink-3);
+  }
+  .menu-item:hover .nav-icon {
+    color: var(--brand);
+  }
+  .menu-sep {
+    margin: 0.375rem 0.25rem;
+    border-top: 1px solid var(--hairline);
+  }
+  .menu-foot {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-top: 1px solid var(--hairline);
+    margin-top: 0.375rem;
+    padding: 0.5rem 0.5rem 0.25rem;
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  .menu-scroll {
+    max-height: 17rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  /* ── Caixa de seleção (o quadrado do multi-select) ───────────── */
+  .ck {
+    display: grid;
+    height: 16px;
+    width: 16px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 4px;
+    border: 1.5px solid var(--ink-3);
+    background: var(--card);
+    color: var(--fill-accent-fg);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .ck svg {
+    opacity: 0;
+    height: 11px;
+    width: 11px;
+  }
+  .ck-on {
+    background: var(--fill-accent);
+    border-color: var(--fill-accent);
+  }
+  .ck-on svg {
+    opacity: 1;
+  }
+  /* radio: o mesmo alvo, forma redonda (escolha única) */
+  .ck-radio {
+    border-radius: 50%;
+  }
+
+  /* ── Gatilho do seletor: rótulo em cima, valor embaixo ───────── */
+  .trigger {
+    display: inline-flex;
+    min-width: 0;
+    max-width: 18rem;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--hairline);
+    background: var(--card);
+    padding: 0.3125rem 0.625rem;
+    text-align: left;
+    color: var(--ink);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .trigger:hover {
+    border-color: color-mix(in srgb, var(--brand) 45%, var(--hairline));
+  }
+  .trigger[aria-expanded="true"] {
+    border-color: var(--fill-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--fill-accent) 22%, transparent);
+  }
+  .trigger-on {
+    border-color: color-mix(in srgb, var(--fill-accent) 60%, var(--hairline));
+    background: var(--ok-bg);
+  }
+  .trigger-txt {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    line-height: 1.15;
+  }
+  .trigger-label {
+    font-family: var(--font-display);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .trigger-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .trigger-caret {
+    margin-left: auto;
+    flex: 0 0 auto;
+    color: var(--ink-3);
+    transition: transform 0.18s var(--ease-spring);
+  }
+  .trigger[aria-expanded="true"] .trigger-caret {
+    transform: rotate(180deg);
+  }
+
+  /* ── Barra de filtros do painel ───────────────────────────────── */
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--hairline);
+    background: var(--card);
+    padding: 0.5rem 0.75rem;
+    box-shadow: var(--elev-1);
+  }
+  .toolbar-label {
+    font-family: var(--font-display);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-right: 0.125rem;
+  }
+  .toolbar-sep {
+    align-self: stretch;
+    width: 1px;
+    background: var(--hairline);
+    margin: 0.125rem 0.25rem;
+  }
+  .toolbar-end {
+    margin-left: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* ── Chip de filtro APLICADO (some ao ser removido) ──────────── */
+  .fchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 999px;
+    background: var(--ok-bg);
+    color: var(--brand);
+    border: 1px solid color-mix(in srgb, var(--fill-accent) 40%, transparent);
+    padding: 0.1875rem 0.25rem 0.1875rem 0.625rem;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .fchip-x {
+    display: grid;
+    height: 18px;
+    width: 18px;
+    place-items: center;
+    border-radius: 999px;
+    color: inherit;
+    opacity: 0.7;
+    transition: background 0.15s, opacity 0.15s;
+  }
+  .fchip-x:hover {
+    background: color-mix(in srgb, var(--fill-accent) 30%, transparent);
+    opacity: 1;
+  }
+
+  /* ── Caixa com cabeçalho (a unidade de conteúdo do painel) ───── */
+  .box-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1.125rem 1.25rem 0.75rem;
+  }
+  .box-title {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+  .box-sub {
+    display: block;
+    margin-top: 0.1875rem;
+    font-size: 12.5px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ink-3);
+  }
+  .box-acts {
+    margin-left: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .box-body {
+    padding: 0 1.25rem 1.25rem;
+  }
+  .box-body-flush {
+    padding: 0 0 0.5rem;
+  }
+
+  /* ── Grade de DUAS COLUNAS do painel (conteúdo + trilha) ─────── */
+  .grid-painel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+  }
+  @media (min-width: 1280px) {
+    .grid-painel {
+      grid-template-columns: minmax(0, 1fr) 21rem;
+    }
+  }
+  .coluna-lado {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  /* ── Linha de registro (proposta/repasse) ────────────────────── */
+  .prow {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.875rem 1.25rem;
+    transition: background 0.15s;
+  }
+  .prow:hover {
+    background: var(--surface-2);
+  }
+  .prow-ico {
+    display: grid;
+    height: 40px;
+    width: 40px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: var(--radius-control);
+    background: var(--ok-bg);
+    color: var(--brand);
+    margin-top: 0.125rem;
+  }
+  .prow-main {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.1875rem;
+  }
+  .prow-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .prow-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.35;
+  }
+  .prow-desc {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .prow-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.125rem 0.625rem;
+    font-size: 11.5px;
+    color: var(--ink-3);
+  }
+  .prow-meta > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+  }
+  .prow-meta > span + span::before {
+    content: "";
+    height: 3px;
+    width: 3px;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.55;
+  }
+  .prow-num {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.125rem;
+    text-align: right;
+  }
+  .prow-valor {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .prow-valor small {
+    display: block;
+    margin-top: 0.0625rem;
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    font-weight: 400;
+    color: var(--ink-3);
+  }
+  /* as ações aparecem no hover/foco da linha — a lista fica limpa,
+     mas o teclado nunca perde o alvo (`focus-within`) */
+  .prow-acts {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.125rem;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .prow:hover .prow-acts,
+  .prow:focus-within .prow-acts,
+  .prow-acts:focus-within {
+    opacity: 1;
+  }
+  @media (hover: none) {
+    .prow-acts {
+      opacity: 1;
+    }
+  }
+  /* A favorita LIGADA nunca se esconde: a estrela é estado do registro, não
+     uma ação — some-la no repouso apagava da lista o que o gestor acompanha. */
+  .prow-acts:has(.fav-on) {
+    opacity: 1;
+  }
+
+  /* ── Barra de progresso fina (execução na linha) ─────────────── */
+  .pgline {
+    height: 5px;
+    width: 100%;
+    max-width: 7rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--surface-3);
+  }
+  .pgline > i {
+    display: block;
+    height: 100%;
+    background: var(--fill-accent);
+  }
+
+  /* ── Trilha de prazos (a coluna lateral do painel) ───────────── */
+  .tl-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+  }
+  .tl-days {
+    position: relative;
+    flex: 0 0 auto;
+    width: 4rem;
+    border-right: 3px solid var(--hairline);
+    padding: 0.125rem 0.75rem 1.25rem 0;
+    text-align: left;
+    font-size: 12.5px;
+    line-height: 1.3;
+    color: var(--ink-3);
+  }
+  .tl-days::after {
+    content: "";
+    position: absolute;
+    right: -9px;
+    top: 3px;
+    height: 15px;
+    width: 15px;
+    border-radius: 999px;
+    border: 3px solid var(--card);
+    background: var(--ink-3);
+  }
+  .tl-ok::after {
+    background: var(--ok-solid);
+  }
+  .tl-warn::after {
+    background: var(--warn-solid);
+  }
+  .tl-danger::after {
+    background: var(--danger-solid);
+  }
+  .tl-item:last-child .tl-days {
+    padding-bottom: 0;
+  }
+  .tl-body {
+    min-width: 0;
+    padding-left: 1rem;
+    padding-bottom: 1.125rem;
+  }
+  .tl-item:last-child .tl-body {
+    padding-bottom: 0;
+  }
+
+  /* ── Item de notícia (miniatura em gradiente, sem imagem) ────── */
+  .news-item {
+    display: flex;
+    gap: 0.875rem;
+    padding: 0.625rem 0;
+  }
+  .news-item::before {
+    content: "";
+    height: 46px;
+    width: 62px;
+    flex: 0 0 auto;
+    border-radius: var(--radius-control);
+    background: var(--grad-brand);
+    border: 1px solid var(--hairline);
+  }
+  .news-item b {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--ink);
+  }
+  .news-item:hover b {
+    color: var(--brand);
+  }
+  .news-item small {
+    display: block;
+    margin-top: 0.125rem;
+    font-size: 11.5px;
+    color: var(--ink-3);
+  }
+
+  /* ── Botão da conta (rodapé do trilho) ───────────────────────── */
+  .user-btn {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.625rem;
+    border-radius: var(--radius-control);
+    padding: 0.5rem;
+    text-align: left;
+    transition: background 0.15s;
+  }
+  .user-btn:hover {
+    background: var(--nav-hover-bg);
+  }
+  .avatar {
+    display: grid;
+    height: 34px;
+    width: 34px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+  .avatar-claro {
+    background: var(--ok-bg);
+    color: var(--brand);
+  }
+
+  /* ── Tabela de registros ──────────────────────────────────────
+     Cabeçalho em caixa alta pequena (é rótulo, não conteúdo), linha
+     que reage ao ponteiro e divisória só entre linhas — a mesma
+     leitura da lista `.prow`, em formato de grade. */
+  .tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  .tbl th {
+    text-align: left;
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--hairline);
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+  .tbl td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--hairline);
+    vertical-align: middle;
+    color: var(--ink);
+  }
+  .tbl tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  /* Valor não quebra linha: "R$ 1.200.000,00" partido em duas deixa de ser
+     um número e a coluna perde a leitura de grandeza. */
+  .tbl td.num,
+  .tbl th.text-right {
+    white-space: nowrap;
+  }
+  .tbl tbody tr {
+    transition: background 0.15s;
+  }
+  .tbl tbody tr:hover {
+    background: var(--surface-2);
+  }
+  /* Miniatura do registro na primeira célula — o mesmo quadrado do
+     `.prow-ico`, para lista e tabela falarem a mesma língua. */
+  .tbl-ico {
+    display: grid;
+    height: 38px;
+    width: 38px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: var(--radius-control);
+    background: var(--ok-bg);
+    color: var(--brand);
+  }
+
+  /* ── Contador de pendência no item de menu ───────────────────── */
+  .nav-badge {
+    margin-left: auto;
+    display: inline-flex;
+    min-width: 1.25rem;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--danger-solid);
+    padding: 0.0625rem 0.375rem;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #ffffff;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* O trilho é escuro nos dois temas: o menu da conta e o badge que
+   moram nele precisam vencer os utilitários, como as regras acima. */
+.sidebar .menu {
+  background: #0c2b27;
+  border-color: var(--nav-hairline);
+  color: var(--nav-ink);
+}
+.sidebar .menu-item {
+  color: var(--nav-ink);
+}
+.sidebar .menu-item:hover {
+  background: var(--nav-hover-bg);
+  color: #ffffff;
+}
+.sidebar .menu-item .nav-icon {
+  color: var(--nav-ink-3);
+}
+.sidebar .menu-item:hover .nav-icon {
+  color: var(--color-accent);
+}
+.sidebar .menu-sec,
+.sidebar .menu-foot {
+  color: var(--nav-ink-3);
+}
+.sidebar .menu-sep,
+.sidebar .menu-foot {
+  border-color: var(--nav-hairline);
+}
+.sidebar .user-btn b {
+  color: #ffffff;
+}
+.sidebar .user-btn small {
+  color: var(--nav-ink-2);
+}
+
+
 /* ============================================================
    Trilho escuro × utilitários do Tailwind
    `.sidebar .text-ink` dentro de @layer components PERDE para o

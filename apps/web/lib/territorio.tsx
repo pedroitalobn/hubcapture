@@ -4,7 +4,8 @@
  * Território ativo — o recorte de município do painel.
  *
  * O usuário escolhe N municípios no onboarding; aqui ele decide quais DESSES
- * quer ver naquele momento. A seleção é global (vale para todas as lentes do
+ * quer ver naquele momento. A escolha vive na barra de filtros do painel
+ * (`components/FiltrosPainel`) e é global (vale para todas as lentes do
  * menu profile-centric: captação, recebidos, conformidade, obras, copiloto),
  * persiste entre navegações/sessões e nunca amplia o que a API mostra — o RLS
  * segue sendo o limite; isto é só um recorte de leitura.
@@ -35,7 +36,7 @@ export interface Perfil {
   municipios: MunicipioPerfil[];
   areas: string[];
   fontes?: string[];
-  /** Catálogo do filtro "origem do recurso" do trilho — grupos, não connectors. */
+  /** Catálogo do filtro "origem do recurso" — grupos, não connectors. */
   origens?: { chave: string; label: string; connectors?: string[] }[];
   modulos?: string[];
   /** Conta de demonstração (sandbox) — o painel mostra a faixa e esconde

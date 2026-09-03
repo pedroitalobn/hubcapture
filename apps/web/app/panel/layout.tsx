@@ -2,99 +2,128 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import DynamicIsland from "@/components/DynamicIsland";
-import { TerritorioFiltro } from "@/components/TerritorioFiltro";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { FiltrosPainel, filtrosDaRota } from "@/components/FiltrosPainel";
+import { MenuConta } from "@/components/MenuConta";
 import { IconeNav, type NomeIcone } from "@/components/icons";
 import { api, clearTokens, getToken } from "@/lib/api/client";
 import { HelpProvider } from "@/lib/help";
-import { TerritorioProvider, useTerritorio } from "@/lib/territorio";
-import { OrigemProvider } from "@/lib/origem";
 import {
-  OrigemRecursoFiltro,
-  OrigemRecursoTitulo,
-} from "@/components/OrigemRecursoFiltro";
+  rotuloMunicipio,
+  TerritorioProvider,
+  useTerritorio,
+} from "@/lib/territorio";
+import { OrigemProvider } from "@/lib/origem";
 
 // A navegação NÃO é por fonte de dados — é o ciclo do recurso público, sempre
 // recortado pelo território do usuário (via RLS). Cada item é uma LENTE sobre
 // o(s) município(s) do perfil, não uma aba de plataforma de governo.
 // Itens com `modulo` só aparecem se o módulo estiver ativo (painel admin).
-const NAV: {
+//
+// As lentes agora vêm AGRUPADAS por etapa do ciclo: quatorze linhas de texto
+// do mesmo peso não se leem, e o gestor voltava ao item pela posição na lista
+// em vez de pelo nome. Grupo sem nenhum item visível (todos os módulos
+// desligados) não desenha o rótulo — cabeçalho sozinho é ruído.
+interface ItemNav {
   href: string;
   label: string;
   icone: NomeIcone;
   exact?: boolean;
   modulo?: string;
-}[] = [
-  { href: "/panel", label: "Meu painel", icone: "painel", exact: true },
-  {
-    href: "/panel/funding",
-    label: "Propostas",
-    icone: "propostas",
-    modulo: "captacao",
-  },
-  // Minhas Propostas é ACOMPANHAMENTO (favoritas do cache) — panel-core, não
-  // exploração: fica no menu mesmo com o módulo captação desligado (§40).
-  { href: "/panel/my-proposals", label: "Minhas Propostas", icone: "favoritas" },
-  {
-    href: "/panel/opportunities",
-    label: "Oportunidades",
-    icone: "oportunidades",
-    modulo: "oportunidades",
-  },
-  {
-    href: "/panel/regularity",
-    label: "Regularidade",
-    icone: "regularidade",
-    modulo: "regularidade",
-  },
-  {
-    href: "/panel/transfers",
-    label: "Recursos recebidos",
-    icone: "recebidos",
-    modulo: "recebidos",
-  },
-  {
-    href: "/panel/compliance",
-    label: "Conformidade fiscal",
-    icone: "conformidade",
-    modulo: "conformidade",
-  },
-  { href: "/panel/works", label: "Obras", icone: "obras", modulo: "obras" },
-  {
-    href: "/panel/alerts",
-    label: "Alertas",
-    icone: "alertas",
-    modulo: "alertas",
-  },
-  {
-    href: "/panel/contacts",
-    label: "Agenda de contatos",
-    icone: "contatos",
-    modulo: "contatos",
-  },
-  {
-    href: "/panel/copilot",
-    label: "Copiloto",
-    icone: "copiloto",
-    modulo: "copiloto",
-  },
-  {
-    href: "/panel/advisory",
-    label: "Assessoria",
-    icone: "assessoria",
-    modulo: "assessoria",
-  },
-  { href: "/panel/class", label: "Class", icone: "class", modulo: "ajuda" },
-  { href: "/panel/account", label: "Minha conta", icone: "conta" },
-];
+  /** Item que carrega contagem de pendência (alertas não lidos). */
+  badge?: "alertas";
+}
 
-const PAPEL_LABEL: Record<string, string> = {
-  parlamentar: "Parlamentar",
-  executivo: "Executivo",
-  equipe: "Equipe",
-};
+const NAV: { titulo?: string; itens: ItemNav[] }[] = [
+  {
+    itens: [{ href: "/panel", label: "Meu painel", icone: "painel", exact: true }],
+  },
+  {
+    titulo: "Captação",
+    itens: [
+      {
+        href: "/panel/funding",
+        label: "Propostas",
+        icone: "propostas",
+        modulo: "captacao",
+      },
+      // Minhas Propostas é ACOMPANHAMENTO (favoritas do cache) — panel-core,
+      // não exploração: fica no menu mesmo com o módulo captação desligado.
+      {
+        href: "/panel/my-proposals",
+        label: "Minhas Propostas",
+        icone: "favoritas",
+      },
+      {
+        href: "/panel/opportunities",
+        label: "Oportunidades",
+        icone: "oportunidades",
+        modulo: "oportunidades",
+      },
+    ],
+  },
+  {
+    titulo: "O município",
+    itens: [
+      {
+        href: "/panel/transfers",
+        label: "Recursos recebidos",
+        icone: "recebidos",
+        modulo: "recebidos",
+      },
+      { href: "/panel/works", label: "Obras", icone: "obras", modulo: "obras" },
+      {
+        href: "/panel/regularity",
+        label: "Regularidade",
+        icone: "regularidade",
+        modulo: "regularidade",
+      },
+      {
+        href: "/panel/compliance",
+        label: "Conformidade fiscal",
+        icone: "conformidade",
+        modulo: "conformidade",
+      },
+    ],
+  },
+  {
+    titulo: "Acompanhamento",
+    itens: [
+      {
+        href: "/panel/alerts",
+        label: "Alertas",
+        icone: "alertas",
+        modulo: "alertas",
+        badge: "alertas",
+      },
+      {
+        href: "/panel/contacts",
+        label: "Agenda de contatos",
+        icone: "contatos",
+        modulo: "contatos",
+      },
+    ],
+  },
+  {
+    titulo: "Apoio",
+    itens: [
+      {
+        href: "/panel/copilot",
+        label: "Copiloto",
+        icone: "copiloto",
+        modulo: "copiloto",
+      },
+      {
+        href: "/panel/advisory",
+        label: "Assessoria",
+        icone: "assessoria",
+        modulo: "assessoria",
+      },
+      { href: "/panel/class", label: "Class", icone: "class", modulo: "ajuda" },
+    ],
+  },
+];
 
 export default function PainelLayout({
   children,
@@ -106,11 +135,11 @@ export default function PainelLayout({
   return (
     <TerritorioProvider>
       <OrigemProvider>
-      {/* O mapa de hints (ⓘ) é estado de todo o painel, como o território:
-          carrega uma vez e os <Hint/> das telas consultam localmente. */}
-      <HelpProvider>
-        <PainelShell>{children}</PainelShell>
-      </HelpProvider>
+        {/* O mapa de hints (ⓘ) é estado de todo o painel, como o território:
+            carrega uma vez e os <Hint/> das telas consultam localmente. */}
+        <HelpProvider>
+          <PainelShell>{children}</PainelShell>
+        </HelpProvider>
       </OrigemProvider>
     </TerritorioProvider>
   );
@@ -119,9 +148,10 @@ export default function PainelLayout({
 function PainelShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { perfil, municipios, selecionados } = useTerritorio();
+  const { perfil, municipios, ativos: municipiosAtivos } = useTerritorio();
   const [admin, setAdmin] = useState(false);
-  // Sidebar vira gaveta abaixo de 1024px (guia §7); fecha a cada navegação.
+  const [naoLidos, setNaoLidos] = useState(0);
+  // Sidebar vira gaveta abaixo de 1024px; fecha a cada navegação.
   const [gaveta, setGaveta] = useState(false);
 
   useEffect(() => {
@@ -131,25 +161,57 @@ function PainelShell({ children }: { children: React.ReactNode }) {
     }
     void (async () => {
       const me = await api.GET("/api/v1/users/me");
-      setAdmin(Boolean((me.data as { is_superuser?: boolean } | undefined)?.is_superuser));
+      setAdmin(
+        Boolean((me.data as { is_superuser?: boolean } | undefined)?.is_superuser),
+      );
     })();
   }, [router]);
+
+  // Contagem de alertas não lidos no próprio menu: a pendência precisa
+  // aparecer ONDE se navega, não só depois de abrir a central. Recarrega a
+  // cada navegação (marcar como lido em /panel/alerts atualiza o número ao
+  // sair da tela) e degrada em silêncio — badge não é motivo de erro na tela.
+  const contarAlertas = useCallback(async () => {
+    const { data } = await api.GET("/api/v1/alerts", {
+      params: { query: { nao_lidos: true, limite: 50 } } as never,
+    });
+    setNaoLidos(Array.isArray(data) ? data.length : 0);
+  }, []);
+
+  useEffect(() => {
+    if (!getToken()) return;
+    if (!(perfil?.modulos ?? []).includes("alertas")) return;
+    void contarAlertas();
+  }, [contarAlertas, perfil, pathname]);
 
   useEffect(() => {
     setGaveta(false);
   }, [pathname]);
 
-  function sair() {
+  const sair = useCallback(() => {
     clearTokens();
     router.replace("/login");
-  }
+  }, [router]);
 
-  const itens = NAV.filter(
-    (item) => !item.modulo || (perfil?.modulos ?? []).includes(item.modulo),
-  );
-  const atual = itens.find((item) =>
-    item.exact ? pathname === item.href : pathname.startsWith(item.href),
-  );
+  const ativos = (perfil?.modulos ?? []) as string[];
+  // O território só entra na trilha quando NÃO há seletor de município na
+  // tela (um município só, ou rota sem recorte): senão o mesmo dado
+  // apareceria em dois lugares, e o do cabeçalho não seria clicável.
+  const territorioNaTrilha =
+    !filtrosDaRota(pathname).municipio || municipios.length < 2;
+  const rotuloTerritorio = municipiosAtivos
+    .slice(0, 2)
+    .map(rotuloMunicipio)
+    .join(" · ");
+  const grupos = NAV.map((g) => ({
+    ...g,
+    itens: g.itens.filter((i) => !i.modulo || ativos.includes(i.modulo)),
+  })).filter((g) => g.itens.length > 0);
+  const atual = grupos
+    .flatMap((g) => g.itens)
+    .find((item) =>
+      item.exact ? pathname === item.href : pathname.startsWith(item.href),
+    );
 
   return (
     <div className={`app-shell ${gaveta ? "drawer-open" : ""}`}>
@@ -169,75 +231,48 @@ function PainelShell({ children }: { children: React.ReactNode }) {
           Hub Capture
         </Link>
 
-        {/* Território do perfil — a chave de tudo é o município, não a fonte.
-            O filtro escolhe QUAIS dos municípios do onboarding entram no
-            painel agora; o recorte vale para todas as lentes do menu. */}
-        <div className="sidebar-box text-sm">
-          <p className="label-mono mb-1.5">
-            Território
-            {selecionados.length > 0 && municipios.length > 1 && (
-              <span className="ml-1.5 normal-case">(filtrado)</span>
-            )}
-          </p>
-          <TerritorioFiltro />
-          {/* Origem do recurso — de QUAL fonte veio o registro (TransfereGov,
-              FNS…). Multi-select: o recorte soma origens; vazio = todas. */}
-          <OrigemRecursoTitulo />
-          <OrigemRecursoFiltro />
-          {(perfil?.areas ?? []).length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {perfil!.areas.map((a) => (
-                <span
-                  key={a}
-                  className="inline-flex items-center gap-1.5 rounded border border-hairline px-2 py-0.5 text-[11px]"
-                >
-                  <span className="brand-dot" aria-hidden />
-                  {a}
-                </span>
-              ))}
+        <nav className="flex flex-col gap-0.5" aria-label="Seções do painel">
+          {grupos.map((grupo, i) => (
+            <div key={grupo.titulo ?? `g${i}`} className="flex flex-col gap-0.5">
+              {grupo.titulo && (
+                <p className="label-mono px-3 pb-1 pt-3">{grupo.titulo}</p>
+              )}
+              {grupo.itens.map((item) => {
+                const active = item.exact
+                  ? pathname === item.href
+                  : pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`nav-item ${active ? "nav-item-active" : ""}`}
+                  >
+                    <IconeNav nome={item.icone} />
+                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                    {item.badge === "alertas" && naoLidos > 0 && (
+                      <span
+                        className="nav-badge"
+                        title={`${naoLidos} ${naoLidos === 1 ? "alerta não lido" : "alertas não lidos"}`}
+                      >
+                        {naoLidos > 99 ? "99+" : naoLidos}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
             </div>
-          )}
-          {/* Conta demo: o território é semeado pela plataforma e o backend
-              bloqueia o onboarding — sem o link, sem beco sem saída. */}
-          {!perfil?.demo && (
-            <Link href="/onboarding" className="link-soft mt-3 inline-block text-[12px]">
-              Ajustar perfil →
-            </Link>
-          )}
-        </div>
-
-        <nav className="flex flex-col gap-0.5">
-          <p className="label-mono px-3 pb-1 pt-2">Visão geral</p>
-          {itens.map((item) => {
-            const active = item.exact
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`nav-item ${active ? "nav-item-active" : ""}`}
-              >
-                <IconeNav nome={item.icone} />
-                {item.label}
-              </Link>
-            );
-          })}
-          {admin && (
-            <Link href="/admin/users" className="nav-item">
-              <IconeNav nome="admin" />
-              Administração
-            </Link>
-          )}
+          ))}
         </nav>
 
-        <div className="mt-auto flex flex-col items-start gap-3 border-t border-hairline pt-4">
-          {/* Tema claro/escuro — a escolha persiste em `hub_tema` e vale
-              para o app inteiro (boot script no layout raiz). */}
-          <ThemeToggle />
-          <button onClick={sair} className="link-soft self-start text-[12px]">
-            Sair da conta
-          </button>
+        <div className="mt-auto border-t border-hairline pt-3">
+          <MenuConta
+            nome={perfil?.nome}
+            papel={perfil?.papel}
+            municipios={municipios.length}
+            admin={admin}
+            demo={perfil?.demo}
+            onSair={sair}
+          />
         </div>
       </aside>
 
@@ -253,26 +288,47 @@ function PainelShell({ children }: { children: React.ReactNode }) {
               <path d="M4 7h16M4 12h16M4 17h16" />
             </svg>
           </button>
-          {/* Trilha: território → tela. É o que diz ONDE o gestor está — a
-              marca já ficou na sidebar, não precisa se repetir aqui. */}
+          {/* Trilha: a seção em que o gestor está. O h1 da página rola para
+              fora; o cabeçalho é grudado e mantém o "onde estou" na tela. */}
           <nav className="flex min-w-0 items-center gap-2 text-[13px] text-ink-3">
-            <span className="truncate">
-              {municipios.length > 0
-                ? municipios
-                    .filter((m) => selecionados.length === 0 || selecionados.includes(m.ibge))
-                    .slice(0, 2)
-                    .map((m) => `${m.nome ?? m.ibge}${m.uf ? `/${m.uf}` : ""}`)
-                    .join(" · ") || "Meu território"
-                : "Meu território"}
+            <span className="hidden min-w-0 shrink truncate sm:inline">
+              {territorioNaTrilha && rotuloTerritorio
+                ? rotuloTerritorio
+                : "Hub Capture"}
             </span>
-            <span aria-hidden className="h-1 w-1 shrink-0 rounded-full bg-ink-3" />
+            <span
+              aria-hidden
+              className="hidden h-1 w-1 shrink-0 rounded-full bg-ink-3 sm:inline-block"
+            />
             <b className="truncate font-semibold text-ink">
               {atual?.label ?? "Meu painel"}
             </b>
           </nav>
-          <span className="ml-auto text-[13px] text-ink-3">
-            {perfil?.papel ? PAPEL_LABEL[perfil.papel] ?? perfil.papel : ""}
-          </span>
+
+          <div className="ml-auto flex items-center gap-1.5">
+            {ativos.includes("alertas") && (
+              <Link
+                href="/panel/alerts"
+                className="icon-btn relative"
+                aria-label={
+                  naoLidos > 0
+                    ? `${naoLidos} alertas não lidos`
+                    : "Central de alertas"
+                }
+                title="Central de alertas"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9z" />
+                  <path d="M10.5 21h3" />
+                </svg>
+                {naoLidos > 0 && (
+                  <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--danger-solid)] px-1 text-[10px] font-bold leading-none text-white">
+                    {naoLidos > 9 ? "9+" : naoLidos}
+                  </span>
+                )}
+              </Link>
+            )}
+          </div>
         </header>
 
         <main className="mx-auto flex w-full min-w-0 max-w-[1600px] flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8">
@@ -289,6 +345,12 @@ function PainelShell({ children }: { children: React.ReactNode }) {
               </Link>
             </div>
           )}
+
+          {/* O recorte GLOBAL (território + origem) saiu do trilho e virou a
+              barra de filtros da tela — §33/§33b continuam valendo, o que
+              mudou é onde o gestor mexe neles. */}
+          <FiltrosPainel pathname={pathname} />
+
           {/* `key={pathname}` remonta o wrapper a cada navegação, então a
               animação de entrada REEXECUTA — sem isso o layout persiste no App
               Router e a transição só aconteceria no primeiro carregamento. */}
@@ -303,8 +365,7 @@ function PainelShell({ children }: { children: React.ReactNode }) {
 
       {/* Copiloto em Dynamic Island — persiste em TODAS as telas do painel,
           só depois do onboarding e só quando o módulo está no plano (§39). */}
-      {municipios.length > 0 &&
-        (perfil?.modulos ?? []).includes("copiloto") && <DynamicIsland />}
+      {municipios.length > 0 && ativos.includes("copiloto") && <DynamicIsland />}
     </div>
   );
 }

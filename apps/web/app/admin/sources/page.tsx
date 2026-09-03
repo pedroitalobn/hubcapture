@@ -256,15 +256,15 @@ export default function AdminFontesPage() {
           </section>
 
           <section className="card anim-fade-up overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
+            <table className="tbl">
               <thead>
-                <tr className="border-b border-hairline text-left label-mono">
-                  <th className="px-5 py-3">Fonte</th>
-                  <th className="px-3 py-3">Responde agora?</th>
-                  <th className="px-3 py-3">Última coleta</th>
-                  <th className="px-3 py-3">Registros</th>
-                  <th className="px-3 py-3">Erro</th>
-                  <th className="px-3 py-3 text-right">Coleta</th>
+                <tr>
+                  <th>Fonte</th>
+                  <th>Responde agora?</th>
+                  <th>Última coleta</th>
+                  <th>Registros</th>
+                  <th>Erro</th>
+                  <th className="text-right">Coleta</th>
                 </tr>
               </thead>
               <tbody>
@@ -273,7 +273,7 @@ export default function AdminFontesPage() {
                     key={f.fonte}
                     className="border-b border-hairline last:border-0 row-interactive"
                   >
-                    <td className="px-5 py-3">
+                    <td>
                       <span className="block tracking-tight">
                         {FONTE_LABEL[f.fonte] ?? f.fonte}
                       </span>
@@ -281,12 +281,12 @@ export default function AdminFontesPage() {
                         {f.fonte}
                       </span>
                     </td>
-                    <td className="px-3 py-3">
+                    <td>
                       <StatusBadge tone={f.saudavel ? "success" : "danger"}>
                         {f.saudavel ? "on-line" : "sem resposta"}
                       </StatusBadge>
                     </td>
-                    <td className="px-3 py-3 font-mono text-[12px] text-ink-2">
+                    <td className="font-mono text-[12px] text-ink-2">
                       {dataBr(f.ultima_coleta?.finalizado_em)}
                       {f.ultima_coleta?.status && (
                         <span
@@ -301,15 +301,15 @@ export default function AdminFontesPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-3 tabular-nums">
+                    <td className="tabular-nums">
                       {f.ultima_coleta?.registros ?? "—"}
                     </td>
-                    <td className="max-w-72 px-3 py-3">
+                    <td className="max-w-72">
                       <span className="block truncate text-xs text-ink-3" title={f.ultima_coleta?.erro ?? ""}>
                         {f.ultima_coleta?.erro ?? "—"}
                       </span>
                     </td>
-                                      <td className="px-3 py-3 text-right">
+                                      <td className="text-right">
                       {f.pausavel ? (
                         <button
                           type="button"

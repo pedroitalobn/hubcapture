@@ -99,7 +99,7 @@ export default function MinhasPropostasPage() {
           <p className="text-sm text-ink-2">
             {propostas.length === 0
               ? "Você ainda não favoritou nenhuma proposta."
-              : "Nenhuma proposta favoritada nos municípios filtrados — ajuste o território no menu lateral."}
+              : "Nenhuma proposta favoritada nos municípios filtrados — ajuste o recorte de município na barra de filtros."}
           </p>
           {podeExplorar && (
             <Link href="/panel/funding" className="btn btn-primary mt-4 inline-flex">
@@ -109,20 +109,20 @@ export default function MinhasPropostasPage() {
         </div>
       ) : (
         <div className="card overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="tbl">
             <thead>
-              <tr className="border-b border-hairline text-left text-ink-3">
-                <th className="w-16 px-4 py-3" />
-                <th className="px-3 py-3">Proposta</th>
-                <th className="px-3 py-3">Município</th>
-                <th className="px-3 py-3">Valor</th>
-                <th className="px-3 py-3">Situação</th>
+              <tr>
+                <th className="w-16" />
+                <th>Proposta</th>
+                <th>Município</th>
+                <th>Valor</th>
+                <th>Situação</th>
               </tr>
             </thead>
             <tbody>
               {visiveis.map((p) => (
-                <tr key={p.id} className="border-b border-hairline last:border-0 row-interactive">
-                  <td className="px-4 py-3">
+                <tr key={p.id}>
+                  <td>
                     <div className="flex items-center gap-2">
                       <Favorito
                         ativo
@@ -132,7 +132,7 @@ export default function MinhasPropostasPage() {
                       <BotaoEspelho propostaId={p.id} formato="icone" />
                     </div>
                   </td>
-                  <td className="px-3 py-3">
+                  <td>
                     {/* mesma pílula da captação e do feed. O `id_externo` saiu
                         da linha de apoio: é plumbing da integração e ocupava o
                         lugar da referência que o gestor de fato usa (§35). */}
@@ -166,7 +166,7 @@ export default function MinhasPropostasPage() {
                       {[p.orgao_superior, p.modalidade].filter(Boolean).join(" · ")}
                     </p>
                   </td>
-                  <td className="px-3 py-3 text-ink-2">
+                  <td className="text-ink-2">
                     {/* nome do município lidera; código IBGE é apoio (seção 23) */}
                     <span className="block">{municipioPrincipal(p)}</span>
                     {municipioSecundario(p) && (
@@ -175,8 +175,8 @@ export default function MinhasPropostasPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-3 tabular-nums">{brl(p.valor_total)}</td>
-                  <td className="px-3 py-3 text-ink-2">{p.situacao ?? "—"}</td>
+                  <td className="tabular-nums">{brl(p.valor_total)}</td>
+                  <td className="text-ink-2">{p.situacao ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

@@ -21,7 +21,7 @@ const CAUC_URL = "https://cauc.tesouro.gov.br/ng/#/extrato/ente/filtro";
 
 function Conteudo() {
   const { municipios, selecionados } = useTerritorio();
-  // o recorte ativo do trilho lateral manda; sem recorte, todo o território
+  // o recorte ativo da barra de filtros manda; sem recorte, todo o território
   const emFoco =
     selecionados.length > 0
       ? municipios.filter((m) => selecionados.includes(m.ibge))

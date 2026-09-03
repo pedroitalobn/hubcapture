@@ -9,6 +9,7 @@ import {
   importarContatosVcf,
 } from "@/lib/api/client";
 import { humanizarCaixa } from "@/lib/format";
+import { SeletorSimples } from "@/components/kit";
 
 interface Valor {
   tipo?: string | null;
@@ -579,18 +580,14 @@ function DiretorioInstitucional() {
           placeholder="órgão, pessoa, cargo ou nº do SEI"
           className="input min-w-[16rem] flex-1"
         />
-        <select
-          value={categoria}
-          onChange={(e) => setCategoria(e.target.value)}
-          className="input w-56"
-        >
-          <option value="">Todas as categorias</option>
-          {categorias.map((c) => (
-            <option key={c.chave} value={c.chave}>
-              {c.rotulo}
-            </option>
-          ))}
-        </select>
+        <SeletorSimples
+          rotulo="Categoria"
+          valor={categoria}
+          opcoes={categorias.map((c) => ({ valor: c.chave, rotulo: c.rotulo }))}
+          vazio="Todas as categorias"
+          largura="20rem"
+          aoMudar={setCategoria}
+        />
       </div>
 
       {carregando ? (

@@ -3,8 +3,8 @@
 /**
  * Origem do recurso — QUAIS fontes o usuário quer ver agora.
  *
- * Mesmo desenho do território (`lib/territorio.tsx`): a escolha vive no trilho
- * lateral, logo abaixo dos municípios, e vale para TODAS as lentes do painel —
+ * Mesmo desenho do território (`lib/territorio.tsx`): a escolha vive na barra
+ * de filtros do painel, ao lado do município, e vale para TODAS as lentes —
  * Meu painel (visão geral + feed), Captação e Recebidos. Seleção MULTI (marcar
  * TransfereGov e FNS vê os dois), vazio = todas. Persistida por navegador em
  * `localStorage`; opção que sair do perfil é podada na carga, como o território
