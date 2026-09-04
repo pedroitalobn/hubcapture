@@ -10,6 +10,7 @@ import { Hint } from "@/components/Hint";
 import { ModuloGate } from "@/components/ModuloGate";
 import { NumeroProposta } from "@/components/NumeroProposta";
 import { PageHeader } from "@/components/PageHeader";
+import { Skeleton } from "@/components/Skeleton";
 import { IconeAcao, IconeNav } from "@/components/icons";
 import { ItemMenu, Seletor, SeletorSimples } from "@/components/kit";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
@@ -361,6 +362,22 @@ export default function CaptacaoPage() {
   );
 }
 
+/** Esqueleto da lista — ocupa o lugar das linhas na primeira carga. */
+function SkeletonLista() {
+  return (
+    <div className="card flex flex-col gap-3 p-4" aria-hidden>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <Skeleton className="h-4 w-16 shrink-0" />
+          <Skeleton className="h-4 flex-1" />
+          <Skeleton className="h-4 w-24 shrink-0" />
+          <Skeleton className="h-4 w-20 shrink-0" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function CaptacaoExploracao() {
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   // total do recorte no banco — `propostas` é só o que já foi carregado dele
@@ -443,6 +460,26 @@ function CaptacaoExploracao() {
   );
 
   /**
+   * Assinatura do recorte que a TELA está pedindo. Enquanto ela difere da
+   * assinatura do que está em `propostas`, todo número visível (contagem,
+   * cards de execução, lista) é do recorte ANTERIOR — e a tela precisa dizer
+   * isso em vez de servir o dado velho como se fosse o resultado do filtro.
+   */
+  const chaveFiltros = useMemo(
+    () => JSON.stringify({ ...filtrosApi(), porPagina }),
+    [filtrosApi, porPagina],
+  );
+  const [chaveCarregada, setChaveCarregada] = useState<string | null>(null);
+  /**
+   * `buscando` só liga quando a requisição SAI (depois do debounce): entre o
+   * clique no filtro e a saída havia uma janela em que a tela parecia parada,
+   * com os números do recorte anterior. `carregando` cobre a janela inteira —
+   * do ajuste do filtro até a resposta chegar.
+   */
+  const carregando =
+    !acompanhando && (buscando || atualizando || chaveCarregada !== chaveFiltros);
+
+  /**
    * Carrega uma página do banco. `offset` 0 substitui a lista (troca de filtro);
    * maior que 0 ANEXA (é o "carregar mais"/rolagem infinita).
    *
@@ -454,12 +491,16 @@ function CaptacaoExploracao() {
       const seq = ++buscaSeq.current;
       if (offset === 0) setBuscando(true);
       else setCarregandoMais(true);
-      const query = { ...filtrosApi(), limite: porPagina, offset };
+      const consulta = filtrosApi();
+      // a assinatura é fotografada ANTES da ida à API: é ela que, na volta,
+      // diz de qual recorte são os números que acabaram de entrar na tela
+      const chave = JSON.stringify({ ...consulta, porPagina });
+      const query = { ...consulta, limite: porPagina, offset };
       const [lista, facs] = await Promise.all([
         api.GET("/api/v1/proposals", { params: { query } as never }),
         offset === 0
           ? api.GET("/api/v1/proposals/facets", {
-              params: { query: filtrosApi() } as never,
+              params: { query: consulta } as never,
             })
           : Promise.resolve(null),
       ]);
@@ -480,18 +521,27 @@ function CaptacaoExploracao() {
         if (facs?.data) setFacetas(facs.data as Facetas);
         setMsg(null);
       }
+      // marca o recorte a que os números na tela passam a corresponder. Vale
+      // também no erro: senão a tela ficaria "carregando" para sempre, sem
+      // nenhuma requisição a caminho.
+      if (offset === 0) setChaveCarregada(chave);
       setBuscando(false);
       setCarregandoMais(false);
     },
     [filtrosApi, porPagina],
   );
 
-  // troca de filtro (ou de itens por vez) recomeça da primeira página
+  // troca de filtro (ou de itens por vez) recomeça da primeira página.
+  // A espera é só para a busca LIVRE, que é digitada letra a letra; chip,
+  // dropdown e ordenação são um clique só — segurar 400ms ali era delay puro.
+  const qAnterior = useRef(filtros.q);
   useEffect(() => {
     if (acompanhando) return;
-    const t = setTimeout(() => void carregarPagina(0), 400);
+    const digitando = qAnterior.current !== filtros.q;
+    qAnterior.current = filtros.q;
+    const t = setTimeout(() => void carregarPagina(0), digitando ? 400 : 0);
     return () => clearTimeout(t);
-  }, [carregarPagina, acompanhando]);
+  }, [carregarPagina, acompanhando, filtros.q]);
 
   const temMais = propostas.length < total;
 
@@ -589,6 +639,9 @@ function CaptacaoExploracao() {
     setTotal(resp.total ?? 0);
     setFontesStatus(resp.fontes ?? []);
     setFacetas(resp.facetas ?? {});
+    // a coleta devolve a primeira página do recorte pedido: os números da tela
+    // passam a ser deste recorte (senão a lista ficaria marcada como velha)
+    setChaveCarregada(JSON.stringify({ ...f, porPagina }));
     setMsg(null);
   }, [filtrosApi, porPagina]);
 
@@ -1313,10 +1366,10 @@ function CaptacaoExploracao() {
       {/* estado honesto da lista: o que já veio, de quanto, e a coleta sob demanda */}
       {!acompanhando && (
       <div className="flex flex-wrap items-center gap-2 text-sm text-ink-2">
-        {buscando ? (
+        {carregando ? (
           <span className="label-mono flex items-center gap-2">
             <span className="spinner" aria-hidden />
-            Carregando propostas…
+            {atualizando ? "Consultando as fontes…" : "Carregando propostas…"}
           </span>
         ) : curadoriaAtiva ? (
           <span className="label-mono">
@@ -1385,9 +1438,30 @@ function CaptacaoExploracao() {
 
       {msg && <p className="text-sm text-ink-2">{msg}</p>}
 
+      {/* Resultado do recorte. Enquanto a resposta do filtro novo não chega, o
+          bloco inteiro (cards de execução + lista) fica marcado como
+          desatualizado: os números continuam legíveis, mas ninguém os lê como
+          o resultado do filtro que acabou de escolher. */}
+      <div className="relative flex flex-col gap-6">
+        {carregando && propostas.length > 0 && (
+          // sticky com altura zero: acompanha a rolagem sem empurrar a lista
+          <div className="sticky top-4 z-10 flex h-0 justify-center">
+            <span className="card flex items-center gap-2 px-3 py-1.5 text-sm text-ink-2 shadow-lg">
+              <span className="spinner" aria-hidden />
+              {atualizando ? "Consultando as fontes…" : "Atualizando o recorte…"}
+            </span>
+          </div>
+        )}
+
       {/* execução financeira (TransfereGov): quanto foi disponibilizado × usado */}
       {execucao && (
-        <section className="stagger grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        <section
+          className={cx(
+            "stagger grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6",
+            carregando && "desatualizado",
+          )}
+          aria-busy={carregando}
+        >
           {/* BRL compacto: em 6 colunas o valor por extenso não cabe e o .card
               corta o que estoura; o valor cheio fica no tooltip (title) */}
           {(
@@ -1449,14 +1523,20 @@ function CaptacaoExploracao() {
         </section>
       )}
 
-      <section className="overflow-x-auto">
-        {visiveis.length === 0 ? (
+      <section
+        className={cx("overflow-x-auto", carregando && "desatualizado")}
+        aria-busy={carregando}
+      >
+        {carregando && propostas.length === 0 ? (
+          // primeira carga (ou recorte que esvaziou a lista): sem nada para
+          // manter em tela, o esqueleto ocupa o lugar das linhas — a página
+          // não pula quando os dados chegam
+          <SkeletonLista />
+        ) : visiveis.length === 0 ? (
           <p className="text-ink-3">
             {acompanhando
               ? "Nenhuma favorita ainda — favorite ★ uma proposta na busca para acompanhá-la aqui."
-              : buscando
-                ? "Carregando propostas…"
-                : "Nenhuma proposta com esses filtros. Tente afrouxar o recorte ou use “Atualizar fontes”, no topo da página."}
+              : "Nenhuma proposta com esses filtros. Tente afrouxar o recorte ou use “Atualizar fontes”, no topo da página."}
           </p>
         ) : (
           <div className="card overflow-hidden">
@@ -1722,6 +1802,7 @@ function CaptacaoExploracao() {
           </div>
         )}
       </section>
+      </div>
     </>
   );
 }
