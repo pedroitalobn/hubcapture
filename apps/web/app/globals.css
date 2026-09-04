@@ -1877,6 +1877,23 @@ html {
     animation: hc-ring-spin 0.7s linear infinite;
   }
 
+  /* Região cujo conteúdo é do recorte ANTERIOR — a resposta do filtro novo
+     ainda está a caminho. O dado velho continua legível (esvaziar a tela a
+     cada tecla seria pior), mas deixa de se apresentar como resultado final:
+     era daí que vinha o "aparecem números errados enquanto carrega". */
+  .desatualizado {
+    opacity: 0.42;
+    filter: saturate(0.55);
+    transition:
+      opacity 0.18s var(--ease-out-soft),
+      filter 0.18s var(--ease-out-soft);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .desatualizado {
+      transition: none;
+    }
+  }
+
   /* Chip: mesmo facho contido do botão de acento quando ativo */
   .chip-active::after {
     content: "";
