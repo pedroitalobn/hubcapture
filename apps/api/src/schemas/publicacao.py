@@ -21,6 +21,9 @@ class EvidenciaPublicacao(BaseModel):
     detalhe: str | None = None
     data: str | None = None
     url: str | None = None
+    #: quando existe, o PDF certificado da página do DOU — baixável pelo Hub
+    #: (`GET /proposals/{id}/publication/pdf`) e também aberto direto na fonte
+    pdf_url: str | None = None
 
 
 class ConferenciaPublicacao(BaseModel):

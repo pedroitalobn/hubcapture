@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { api } from "@/lib/api/client";
+import { api, baixarPdfPublicacao, mensagemDaFalha } from "@/lib/api/client";
 import { useEhAdmin } from "@/lib/admin";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDate } from "@/lib/format";
@@ -30,6 +30,8 @@ type Evidencia = {
   detalhe?: string | null;
   data?: string | null;
   url?: string | null;
+  /** PDF certificado da página do DOU — o comprovante do processo (§56c). */
+  pdf_url?: string | null;
 };
 
 type Conferencia = {
@@ -66,6 +68,8 @@ export function PublicacaoConferencia({ proposta, podeConsultarFonte = true }: P
   const [conferencia, setConferencia] = useState<Conferencia | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [conferindo, setConferindo] = useState(false);
+  const [baixando, setBaixando] = useState(false);
+  const [erroPdf, setErroPdf] = useState<string | null>(null);
 
   const carregar = useCallback(
     async (conferir = false) => {
@@ -92,6 +96,20 @@ export function PublicacaoConferencia({ proposta, podeConsultarFonte = true }: P
   useEffect(() => {
     void carregar();
   }, [carregar]);
+
+  /** Baixa o comprovante pela ponte do Hub; falhando, o link direto continua. */
+  async function baixarComprovante() {
+    setBaixando(true);
+    setErroPdf(null);
+    try {
+      await baixarPdfPublicacao(proposta.id);
+    } catch (e) {
+      setErroPdf(mensagemDaFalha(e, "Não foi possível baixar o PDF"));
+    } finally {
+      // handler async que liga um "…ando" desliga no finally (§52)
+      setBaixando(false);
+    }
+  }
 
   const doDou = evidencias.filter((e) => e.tipo === "dou");
   const daFicha = evidencias.filter((e) => e.tipo === "campo");
@@ -159,19 +177,41 @@ export function PublicacaoConferencia({ proposta, podeConsultarFonte = true }: P
                   <span className="break-words text-xs text-ink-3">{e.detalhe}</span>
                 )}
               </span>
-              {e.url && (
-                <a
-                  href={e.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn btn-ghost btn-sm shrink-0"
-                >
-                  Abrir ↗
-                </a>
-              )}
+              <span className="flex shrink-0 items-center gap-2">
+                {/* O PDF é o COMPROVANTE — a página web não é documento
+                    assinado, e é o PDF que vai anexado ao processo. Por isso
+                    ele vem primeiro, e "Abrir ↗" fica como a via de conferência
+                    (e a saída quando a fonte recusa o download). */}
+                {e.tipo === "dou" && e.pdf_url && (
+                  <button
+                    onClick={() => void baixarComprovante()}
+                    disabled={baixando}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    {baixando ? "Baixando…" : "PDF do DOU"}
+                  </button>
+                )}
+                {e.url && (
+                  <a
+                    href={e.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-ghost btn-sm"
+                  >
+                    Abrir ↗
+                  </a>
+                )}
+              </span>
             </li>
           ))}
         </ul>
+      )}
+
+      {erroPdf && (
+        <p className="mt-3 text-sm text-ink-2">
+          {erroPdf} Você ainda pode abrir a matéria no Diário Oficial pelo link
+          acima.
+        </p>
       )}
 
       {conferencia && conferencia.status !== "nao_consultado" && (

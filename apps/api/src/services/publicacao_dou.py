@@ -62,7 +62,11 @@ class Evidencia:
     titulo: str
     data: str | None = None
     edicao: str | None = None
+    secao: str | None = None
+    pagina: str | None = None
     url: str | None = None
+    #: PDF certificado da página do jornal — o documento que se anexa ao processo
+    pdf_url: str | None = None
     trecho: str | None = None
 
 
@@ -180,7 +184,10 @@ async def conferir(session: AsyncSession, proposta: Proposta) -> Conferencia:
                     titulo=materia.titulo or "Extrato publicado no DOU",
                     data=materia.data.isoformat() if materia.data else None,
                     edicao=materia.edicao,
+                    secao=materia.secao,
+                    pagina=materia.pagina,
                     url=materia.url,
+                    pdf_url=materia.pdf_url,
                     trecho=(materia.texto or "")[:400] or None,
                 )
             )
@@ -206,7 +213,14 @@ def carimbo(conferencia: Conferencia) -> dict | None:
         "nota_empenho": prova.termo,
         "publicado_em": prova.data,
         "edicao": prova.edicao,
+        "secao": prova.secao,
+        "pagina": prova.pagina,
         "url": prova.url,
+        # O PDF certificado é o que o gestor anexa ao processo — a página web
+        # não serve de comprovante. Guardamos a REFERÊNCIA, nunca os bytes
+        # (§56): o documento é público na origem e cachear binário de terceiro
+        # cria um acervo que ninguém pediu para manter.
+        "pdf_url": prova.pdf_url,
         "titulo": prova.titulo,
         "verificado_em": datetime.now(UTC).isoformat(),
     }

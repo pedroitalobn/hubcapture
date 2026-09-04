@@ -50,6 +50,14 @@ SOURCE_ID = "dou"
 #: Seção 3 é onde saem contratos, convênios e seus extratos.
 SECAO_CONTRATOS = "do3"
 
+#: O PDF CERTIFICADO da página do jornal — é o documento que o gestor anexa ao
+#: processo, e não um print da página web. O visualizador do in.gov.br o serve
+#: por (jornal, data, página); o "jornal" é o código da seção no acervo, e o
+#: código de autenticidade impresso no rodapé confirma a composição:
+#: `0530|20260622|0007|D` = seção 3 · 22/06/2026 · página 7 · dígito.
+JORNAIS = {"do1": "515", "do2": "529", "do3": "530"}
+VIEWER_PDF = "https://pesquisa.in.gov.br/imprensa/servlet/INPDFViewer"
+
 #: teto de resultados por termo — a busca pagina, e o que interessa é achar UM
 #: extrato que case; varrer o histórico inteiro seria custo sem resposta nova.
 MAX_RESULTADOS = 20
@@ -87,7 +95,10 @@ class Publicacao:
     data: date | None = None
     edicao: str | None = None
     secao: str | None = None
+    pagina: str | None = None
     url: str | None = None
+    #: PDF certificado da página do jornal (o que se anexa ao processo)
+    pdf_url: str | None = None
     bruto: dict = field(default_factory=dict)
 
 
@@ -134,6 +145,45 @@ def _url(item: dict) -> str | None:
     return f"https://www.in.gov.br/web/dou/-/{alvo.lstrip('/')}"
 
 
+_RE_PDF = re.compile(r"https?://\S+?\.pdf|https?://\S*INPDFViewer\S*", re.I)
+
+
+def jornal_de(secao: Any) -> str | None:
+    """Código do jornal no acervo a partir da seção ("DO3", "do3", "Seção 3")."""
+    plano = normalizar(secao)
+    if not plano:
+        return None
+    for chave, codigo in JORNAIS.items():
+        if chave in plano.replace(" ", "") or f"secao {chave[-1]}" in plano:
+            return codigo
+    return None
+
+
+def url_pdf(secao: Any, data: date | None, pagina: Any) -> str | None:
+    """A URL do PDF certificado — só quando os TRÊS dados existem.
+
+    Página é o que muda entre uma matéria e outra da mesma edição: sem ela a URL
+    montada abriria uma página qualquer do jornal daquele dia e o gestor
+    anexaria ao processo o extrato de outro município. Sem certeza, sem link.
+    """
+    jornal = jornal_de(secao)
+    numero = re.sub(r"\D", "", str(pagina or ""))
+    if not jornal or not data or not numero:
+        return None
+    return (
+        f"{VIEWER_PDF}?jornal={jornal}&pagina={int(numero)}"
+        f"&data={data.strftime('%d/%m/%Y')}&captchafield=firstAccess"
+    )
+
+
+def _pdf_publicado(item: dict) -> str | None:
+    """URL de PDF que a PRÓPRIA fonte publicou no resultado (vence a montada)."""
+    for valor in item.values():
+        if isinstance(valor, str) and (m := _RE_PDF.search(valor)):
+            return m.group(0)
+    return None
+
+
 def parse_resultados(pagina: str) -> list[Publicacao]:
     """Os resultados embutidos no HTML da busca.
 
@@ -157,14 +207,20 @@ def parse_resultados(pagina: str) -> list[Publicacao]:
     for item in itens or []:
         if not isinstance(item, dict):
             continue
+        quando = _data(_primeiro(item, "pubDate", "editionDate", "date"))
+        secao = str(_primeiro(item, "pubName", "section") or "") or None
+        pagina_jornal = _primeiro(item, "numberPage", "pageNumber", "page")
+        pagina_jornal = str(pagina_jornal) if pagina_jornal is not None else None
         saida.append(
             Publicacao(
                 titulo=_texto(str(_primeiro(item, "title", "artType") or "")),
                 texto=_texto(str(_primeiro(item, "content", "abstract", "text") or "")),
-                data=_data(_primeiro(item, "pubDate", "editionDate", "date")),
+                data=quando,
                 edicao=str(_primeiro(item, "editionNumber", "edition") or "") or None,
-                secao=str(_primeiro(item, "pubName", "section") or "") or None,
+                secao=secao,
+                pagina=pagina_jornal,
                 url=_url(item),
+                pdf_url=_pdf_publicado(item) or url_pdf(secao, quando, pagina_jornal),
                 bruto=item,
             )
         )
@@ -251,3 +307,64 @@ async def health_check() -> bool:
         return True
     except Exception:  # noqa: BLE001 — health nunca levanta
         return False
+
+
+# ── o PDF certificado ──────────────────────────────────────────────────────
+#: teto do download. A página do DOU tem centenas de KB; o teto existe para que
+#: uma resposta inesperada (o portal servindo a edição inteira, ou um HTML de
+#: erro gigante) não vire consumo de memória no worker da API.
+MAX_PDF_BYTES = 25 * 1024 * 1024
+
+_SECAO_NOME = {"515": "secao1", "529": "secao2", "530": "secao3"}
+
+
+def nome_arquivo_pdf(secao: Any, data: date | None, pagina: Any) -> str:
+    """Nome legível para o arquivo baixado — o gestor anexa isto ao processo."""
+    partes = ["dou"]
+    if (jornal := jornal_de(secao)) and (nome := _SECAO_NOME.get(jornal)):
+        partes.append(nome)
+    if data:
+        partes.append(data.strftime("%Y-%m-%d"))
+    if numero := re.sub(r"\D", "", str(pagina or "")):
+        partes.append(f"pagina-{int(numero)}")
+    return "-".join(partes) + ".pdf"
+
+
+def e_pdf(conteudo: bytes, content_type: str | None) -> bool:
+    """O corpo é MESMO um PDF?
+
+    O visualizador do in.gov.br responde 200 com HTML quando cai no captcha ou
+    na página de erro. Entregar isso ao gestor com extensão `.pdf` seria pior
+    que falhar: ele anexaria ao processo um arquivo que não abre. A assinatura
+    `%PDF` no início é o teste que não depende do header.
+    """
+    if conteudo[:5].startswith(b"%PDF"):
+        return True
+    return bool(content_type and "application/pdf" in content_type.lower())
+
+
+async def baixar_pdf(url: str) -> bytes:
+    """Baixa o PDF certificado da fonte.
+
+    Sem persistir nada: o Hub só faz a ponte, para o gestor não precisar
+    atravessar o captcha do visualizador. Falha vira `DouIndisponivel` com a
+    razão — a tela cai para o link direto, que continua valendo.
+    """
+    if not url:
+        raise DouIndisponivel("esta publicação não tem PDF certificado resolvido")
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
+            resp = await client.get(url, headers={**_CABECALHOS, "Accept": "application/pdf"})
+    except httpx.TransportError as exc:
+        raise DouIndisponivel(f"não foi possível alcançar o Diário Oficial: {exc}") from exc
+    if resp.status_code >= 400:
+        raise DouIndisponivel(f"o Diário Oficial respondeu {resp.status_code}")
+    conteudo = resp.content
+    if len(conteudo) > MAX_PDF_BYTES:
+        raise DouIndisponivel("o arquivo devolvido pelo Diário Oficial é grande demais")
+    if not e_pdf(conteudo, resp.headers.get("content-type")):
+        raise DouIndisponivel(
+            "o Diário Oficial devolveu uma página em vez do PDF "
+            "(o visualizador pode estar pedindo verificação) — abra o link direto"
+        )
+    return conteudo

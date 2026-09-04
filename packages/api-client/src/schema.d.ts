@@ -2217,6 +2217,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/proposals/{proposta_id}/publication/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pdf Da Publicacao
+         * @description O PDF CERTIFICADO da página do DOU onde o extrato saiu (§56c).
+         *
+         *     É o comprovante da publicação — o que o gestor anexa ao processo e manda
+         *     para o jurídico; a página web do in.gov.br não é documento assinado. O Hub
+         *     só faz a PONTE (nada é persistido, §56): a referência é a URL da fonte e os
+         *     bytes vêm dela na hora, para o gestor não precisar atravessar o
+         *     visualizador. Se a fonte não entregar, a tela cai para o link direto.
+         *
+         *     Leitura de cache, logo panel-core (§40): não depende do módulo captação —
+         *     quem conferiu no DOU foi o `?conferir=true` do endpoint irmão.
+         */
+        get: operations["pdf_da_publicacao_api_v1_proposals__proposta_id__publication_pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/proposals/{proposta_id}/timeline": {
         parameters: {
             query?: never;
@@ -3941,6 +3970,8 @@ export interface components {
             data?: string | null;
             /** Detalhe */
             detalhe?: string | null;
+            /** Pdf Url */
+            pdf_url?: string | null;
             /** Rotulo */
             rotulo: string;
             /** Tipo */
@@ -5533,6 +5564,12 @@ export interface components {
             edicao?: string | null;
             /** Nota Empenho */
             nota_empenho?: string | null;
+            /** Pagina */
+            pagina?: string | null;
+            /** Pdf Url */
+            pdf_url?: string | null;
+            /** Secao */
+            secao?: string | null;
             /** Titulo */
             titulo?: string | null;
             /** Url */
@@ -10572,6 +10609,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicacaoPagina"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pdf_da_publicacao_api_v1_proposals__proposta_id__publication_pdf_get: {
+        parameters: {
+            query?: {
+                /** @description abrir no visualizador em vez de baixar */
+                inline?: boolean;
+            };
+            header?: never;
+            path: {
+                proposta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

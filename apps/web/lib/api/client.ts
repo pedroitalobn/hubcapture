@@ -287,8 +287,47 @@ export async function exportarEspelhoProposta(
     headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
   });
   if (!resp.ok) throw new Error("Não foi possível gerar o espelho em PDF");
+  return entregarPdf(resp, `espelho-proposta-${id}.pdf`, compartilhar);
+}
+
+/**
+ * PDF certificado da publicação no Diário Oficial (§56c).
+ *
+ * É o COMPROVANTE — o que o gestor anexa ao processo e manda para o jurídico.
+ * A API faz a ponte com a fonte e não guarda os bytes; quando o Diário Oficial
+ * não entrega (o visualizador às vezes pede verificação), o erro sobe com a
+ * razão e a tela oferece o link direto, que continua valendo.
+ */
+export async function baixarPdfPublicacao(
+  id: string,
+  compartilhar?: boolean,
+): Promise<ResultadoEspelho> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/proposals/${id}/publication/pdf`, {
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+  });
+  if (!resp.ok) {
+    // o `detail` diz o que houve (o DOU não respondeu, ainda não há extrato
+    // conferido) — genérico aqui seria "não deu certo" sem o motivo
+    const corpo = await resp.json().catch(() => null);
+    throw new Error(
+      mensagemDaFalha(corpo, "Não foi possível baixar o PDF do Diário Oficial"),
+    );
+  }
+  return entregarPdf(resp, `publicacao-dou-${id}.pdf`, compartilhar);
+}
+
+/**
+ * Entrega um PDF já buscado: folha nativa de compartilhamento no celular,
+ * download no resto. A mecânica é a mesma para o espelho e para o comprovante
+ * do DOU — mora aqui uma vez só.
+ */
+async function entregarPdf(
+  resp: Response,
+  padrao: string,
+  compartilhar?: boolean,
+): Promise<ResultadoEspelho> {
   const blob = await resp.blob();
-  const nome = nomeDoArquivo(resp, `espelho-proposta-${id}.pdf`);
+  const nome = nomeDoArquivo(resp, padrao);
 
   const arquivo = new File([blob], nome, { type: "application/pdf" });
   // Compartilhar é o gesto do CELULAR. No desktop o Chrome com telefone

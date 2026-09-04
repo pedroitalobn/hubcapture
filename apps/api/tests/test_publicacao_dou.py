@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from datetime import date
 
 import pytest
 from sqlalchemy import text
@@ -167,7 +168,11 @@ async def test_dou_confirma_publicacao_que_a_ficha_negava(
             dou.Publicacao(
                 titulo="EXTRATO DE CONTRATO",
                 texto=EXTRATO,
+                data=date(2026, 6, 22),
+                secao="DO3",
+                pagina="7",
                 url="https://www.in.gov.br/web/dou/-/extrato",
+                pdf_url=dou.url_pdf("DO3", date(2026, 6, 22), "7"),
             )
         ]
 
@@ -195,6 +200,10 @@ async def test_dou_confirma_publicacao_que_a_ficha_negava(
     assert pagina.conferencia.confirmado is True
     assert pagina.publicacao.estado == "publicado"
     assert pagina.publicacao.prova and pagina.publicacao.prova.url
+    # o comprovante: o PDF certificado da página do jornal chega à tela
+    assert pagina.publicacao.prova.pdf_url and "INPDFViewer" in pagina.publicacao.prova.pdf_url
+    dou_evidencia = next(e for e in pagina.evidencias if e.tipo == "dou")
+    assert dou_evidencia.pdf_url == pagina.publicacao.prova.pdf_url
     tipos = [e.tipo for e in pagina.evidencias]
     # a divergência FICA na tela: o DOU e a ficha aparecem lado a lado
     assert tipos[0] == "dou" and "campo" in tipos
@@ -228,3 +237,97 @@ async def test_dou_fora_do_ar_nao_nega_a_publicacao(
     assert pagina.conferencia.confirmado is False
     # o que a ficha diz continua valendo — a falha do DOU não derruba a leitura
     assert pagina.publicacao.estado == "publicado"
+
+
+# ── o PDF certificado: o comprovante que se anexa ao processo ──────────────
+def test_url_do_pdf_sai_de_secao_data_e_pagina() -> None:
+    """Composição confirmada pelo código de autenticidade do rodapé do próprio
+    extrato: 0530|20260622|0007 = seção 3 · 22/06/2026 · página 7."""
+    url = dou.url_pdf("DO3", date(2026, 6, 22), "7")
+    assert url and "jornal=530" in url and "pagina=7" in url and "data=22/06/2026" in url
+    # "Seção 3" por extenso também resolve o jornal
+    assert dou.url_pdf("Seção 3", date(2026, 6, 22), "07") == url
+
+
+def test_sem_pagina_nao_ha_link_de_pdf() -> None:
+    """A página é o que distingue uma matéria da outra na MESMA edição: sem ela
+    o link abriria outra página do jornal e o gestor anexaria ao processo o
+    extrato de outro município."""
+    assert dou.url_pdf("DO3", date(2026, 6, 22), None) is None
+    assert dou.url_pdf("DO3", None, "7") is None
+    assert dou.url_pdf("", date(2026, 6, 22), "7") is None
+
+
+def test_pdf_publicado_pela_fonte_vence_o_montado() -> None:
+    pagina = _pagina(
+        [
+            {
+                "title": "EXTRATO DE CONTRATO",
+                "content": EXTRATO,
+                "pubDate": "22/06/2026",
+                "pubName": "DO3",
+                "numberPage": "7",
+                "pdfPage": "https://pesquisa.in.gov.br/imprensa/x/certo.pdf",
+            }
+        ]
+    )
+    (materia,) = dou.parse_resultados(pagina)
+    assert materia.pagina == "7"
+    assert materia.pdf_url == "https://pesquisa.in.gov.br/imprensa/x/certo.pdf"
+
+
+def test_html_com_200_nao_passa_por_pdf() -> None:
+    """O visualizador responde 200 com HTML quando cai no captcha. Entregar isso
+    com extensão .pdf seria pior que falhar: o gestor anexaria ao processo um
+    arquivo que não abre."""
+    assert dou.e_pdf(b"%PDF-1.7\n...", None) is True
+    assert dou.e_pdf(b"x", "application/pdf") is True
+    assert dou.e_pdf(b"<html><body>Verifique", "text/html") is False
+
+
+def test_nome_do_arquivo_e_legivel() -> None:
+    assert dou.nome_arquivo_pdf("DO3", date(2026, 6, 22), "7") == (
+        "dou-secao3-2026-06-22-pagina-7.pdf"
+    )
+
+
+async def test_baixar_pdf_recusa_pagina_de_captcha(monkeypatch) -> None:
+    class RespostaFake:
+        status_code = 200
+        content = b"<html>Um momento</html>"
+        headers = {"content-type": "text/html"}
+
+    class ClienteFake:
+        def __init__(self, **kw): ...
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+        async def get(self, url, headers=None):
+            return RespostaFake()
+
+    monkeypatch.setattr(dou.httpx, "AsyncClient", ClienteFake)
+    with pytest.raises(dou.DouIndisponivel):
+        await dou.baixar_pdf("https://pesquisa.in.gov.br/x")
+
+
+def test_carimbo_leva_o_pdf_para_a_tela() -> None:
+    conf = publicacao_dou.Conferencia(
+        confirmado=True,
+        evidencias=[
+            publicacao_dou.Evidencia(
+                termo="2026NE001244",
+                titulo="EXTRATO DE CONTRATO",
+                data="2026-06-22",
+                secao="DO3",
+                pagina="7",
+                url="https://www.in.gov.br/web/dou/-/x",
+                pdf_url="https://pesquisa.in.gov.br/imprensa/servlet/INPDFViewer?jornal=530",
+            )
+        ],
+    )
+    marca = publicacao_dou.carimbo(conf)
+    assert marca and marca["pdf_url"].startswith("https://pesquisa.in.gov.br/")
+    assert marca["secao"] == "DO3" and marca["pagina"] == "7"

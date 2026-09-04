@@ -4265,6 +4265,17 @@
             ],
             "title": "Detalhe"
           },
+          "pdf_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pdf Url"
+          },
           "rotulo": {
             "title": "Rotulo",
             "type": "string"
@@ -8593,6 +8604,39 @@
               }
             ],
             "title": "Nota Empenho"
+          },
+          "pagina": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pagina"
+          },
+          "pdf_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pdf Url"
+          },
+          "secao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secao"
           },
           "titulo": {
             "anyOf": [
@@ -18328,6 +18372,65 @@
           }
         ],
         "summary": "Publicacao Da Proposta",
+        "tags": [
+          "andamento"
+        ]
+      }
+    },
+    "/api/v1/proposals/{proposta_id}/publication/pdf": {
+      "get": {
+        "description": "O PDF CERTIFICADO da página do DOU onde o extrato saiu (§56c).\n\nÉ o comprovante da publicação — o que o gestor anexa ao processo e manda\npara o jurídico; a página web do in.gov.br não é documento assinado. O Hub\nsó faz a PONTE (nada é persistido, §56): a referência é a URL da fonte e os\nbytes vêm dela na hora, para o gestor não precisar atravessar o\nvisualizador. Se a fonte não entregar, a tela cai para o link direto.\n\nLeitura de cache, logo panel-core (§40): não depende do módulo captação —\nquem conferiu no DOU foi o `?conferir=true` do endpoint irmão.",
+        "operationId": "pdf_da_publicacao_api_v1_proposals__proposta_id__publication_pdf_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposta Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "abrir no visualizador em vez de baixar",
+            "in": "query",
+            "name": "inline",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "abrir no visualizador em vez de baixar",
+              "title": "Inline",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Pdf Da Publicacao",
         "tags": [
           "andamento"
         ]

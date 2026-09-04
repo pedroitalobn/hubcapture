@@ -71,6 +71,11 @@ class ProvaPublicacao(BaseModel):
     url: str | None = None
     data: str | None = None
     edicao: str | None = None
+    secao: str | None = None
+    pagina: str | None = None
+    #: PDF certificado da página do jornal — o comprovante que se anexa ao
+    #: processo. A página web não serve: ela não é documento assinado.
+    pdf_url: str | None = None
     nota_empenho: str | None = None
     verificado_em: str | None = None
 

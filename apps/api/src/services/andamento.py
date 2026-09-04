@@ -404,6 +404,7 @@ async def publicacao(
                 detalhe=f"{leitura.situacao} — {leitura.origem}",
                 data=(prova or {}).get("publicado_em"),
                 url=(prova or {}).get("url"),
+                pdf_url=(prova or {}).get("pdf_url"),
             )
         )
 

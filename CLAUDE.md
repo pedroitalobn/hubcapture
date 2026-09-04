@@ -2572,9 +2572,31 @@ na mesma matéria:
 - Regressão: `tests/test_publicacao_dou.py` (indisponível ≠ vazio, as duas
   âncoras, a quebra de coluna do jornal, o código do instrumento, o carimbo e o
   ponta a ponta sob RLS com o DOU confirmando o que a ficha ainda negava).
+- **O COMPROVANTE é o PDF certificado**, não a página web. O que o gestor anexa
+  ao processo e manda para o jurídico é a página do jornal assinada
+  digitalmente. O visualizador do in.gov.br a serve por (jornal, data, página) —
+  composição confirmada pelo código de autenticidade impresso no rodapé do
+  próprio extrato: `0530|20260622|0007|D` = seção 3 · 22/06/2026 · página 7.
+  `dou.url_pdf()` monta a URL (`JORNAIS`: do1=515 · do2=529 · do3=530) e uma URL
+  de PDF publicada pela própria fonte no resultado da busca vence a montada
+  (`_pdf_publicado`). **Sem a PÁGINA não há link**: ela é o que distingue uma
+  matéria da outra na mesma edição, e um link montado sem ela abriria outra
+  página do jornal — o gestor anexaria ao processo o extrato de outro município.
+- **A ponte não guarda bytes** (§56): `GET /proposals/{id}/publication/pdf` lê a
+  URL do carimbo, baixa da fonte na hora e faz stream, para o gestor não
+  precisar atravessar o visualizador. Falha da fonte é **502** (quem falhou foi
+  ela, não o pedido) e a tela cai para o link direto. `dou.e_pdf()` exige a
+  assinatura `%PDF`: o visualizador responde **200 com HTML** quando cai no
+  captcha, e entregar isso com extensão `.pdf` seria pior que falhar — o gestor
+  anexaria ao processo um arquivo que não abre.
+- **Web**: botão "PDF do DOU" na linha da evidência, ANTES de "Abrir ↗" (o
+  comprovante é o objetivo; a página web é conferência). Reusa a entrega de
+  `client.ts::entregarPdf` — folha nativa de compartilhamento no celular,
+  download no desktop —, a mesma mecânica do espelho (§34).
 - **Pendente de calibração ao vivo** (exige saída para gov.br): os nomes dos
-  campos do `jsonArray` da busca. O parse já lê por candidatos e a falha degrada
-  para `DouIndisponivel` — nunca para "não publicado".
+  campos do `jsonArray` da busca e o parâmetro do visualizador de PDF. O parse
+  já lê por candidatos e a falha degrada para `DouIndisponivel` — nunca para
+  "não publicado" nem para um arquivo que não é PDF.
 
 ## 57. Design system v1 "Hub Capture" — a migração da Bancada v2 (decisão travada)
 
