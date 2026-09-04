@@ -760,17 +760,20 @@ def _desembolsado(p: Proposta) -> Decimal:
     return _dec(ex.get("valor_liberado")) or _dec(ex.get("valor_pago"))
 
 
-# "Publicado" na fonte vem ora como VALOR, ora como SITUAÇÃO (§ pontos 08/13
-# do feedback). A leitura é TRI-ESTADO e mora num lugar só (`publicacao.py`):
-# aqui a pergunta é binária ("conta como publicada?"), e só o estado `publicado`
-# conta. O que a fonte não respondeu NÃO é publicado — era assim que um `sim`
-# do campo vizinho virava "Publicado" na tela (ponto 09 do feedback).
+# "Publicado" na fonte vem ora como VALOR, ora como SITUAÇÃO. A leitura é
+# TRI-ESTADO e mora num lugar só (`publicacao.py`): aqui a pergunta é binária
+# ("conta como publicada?"), e só o estado `publicado` conta. O que a fonte não
+# respondeu NÃO é publicado — era assim que um `sim` do campo vizinho virava
+# "Publicado" na tela (ponto 09 do feedback).
+#
+# E o VALOR não responde a pergunta: quem decide é o campo de situação dos
+# dados da proposta. `valor_publicado` é quanto, não se saiu (§56b).
 def _valor_publicado(p: Proposta) -> Decimal:
     return _dec(_execucao(p).get("valor_publicado"))
 
 
 def esta_publicada(p: Proposta) -> bool:
-    """A proposta/convênio foi publicado? (valor > 0 ou situação afirmativa)."""
+    """A proposta/convênio foi publicado, segundo a SITUAÇÃO informada pela fonte."""
     return publicacao_service.do_execucao(_execucao(p)) == publicacao_service.PUBLICADO
 
 
@@ -812,7 +815,9 @@ def estados_de(p: Proposta, docs: dict | None = None) -> set[str]:
     estados: set[str] = set()
     if _empenhado_de(p, docs) > 0:
         estados.add("empenhado")
-    if esta_publicada(p) or _valor_publicado(p) > 0:
+    # Só a SITUAÇÃO entra: o card "Publicado" listava proposta não publicada
+    # que trazia um valor na coluna de publicação (§56b).
+    if esta_publicada(p):
         estados.add("publicado")
     if _pago_de(p, docs) > 0:
         estados.add("pago")
@@ -865,8 +870,12 @@ async def resumo(session: AsyncSession, **filtros) -> dict:
 
     empenhado = sum((_empenhado_de(p, docs) for p in rows), Decimal(0))
     pago = sum((_pago_de(p, docs) for p in rows), Decimal(0))
-    publicado = sum((_valor_publicado(p) for p in rows), Decimal(0))
-    publicadas = sum(1 for p in rows if esta_publicada(p))
+    # O valor publicado é somado só do que a fonte DIZ publicado: card e filtro
+    # ("Publicado" recorta o feed) precisam contar o mesmo conjunto, senão o
+    # número afirma uma publicação que a lista não mostra.
+    publicadas_rows = [p for p in rows if esta_publicada(p)]
+    publicado = sum((_valor_publicado(p) for p in publicadas_rows), Decimal(0))
+    publicadas = len(publicadas_rows)
     conveniado = sum((_valor_global(p) for p in rows), Decimal(0))
     desembolsado = sum((_desembolsado(p) for p in rows), Decimal(0))
 

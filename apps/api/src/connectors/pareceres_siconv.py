@@ -32,6 +32,7 @@ from __future__ import annotations
 import html as html_
 import logging
 import re
+import unicodedata
 
 log = logging.getLogger(__name__)
 
@@ -132,21 +133,81 @@ _RE_EXECUCAO = (
     ("processo", re.compile(r"Número do Processo\s+(\S+)")),
 )
 
-# A PUBLICAÇÃO sai por caminho próprio (ponto 09). O rótulo "Publicação" aparece
-# mais de uma vez na página (a lista de documentos tem um arquivo chamado
-# "Publicação…"), e o primeiro casamento podia trazer o valor do campo VIZINHO
-# — o `sim` do "Empenhado sim" ao lado. Percorremos TODOS os casamentos e
-# ficamos com o primeiro que é resposta a "saiu ou não saiu?"; nenhum sendo,
-# não gravamos nada, que é melhor que gravar a resposta de outra pergunta.
+# A PUBLICAÇÃO sai por caminho próprio, e agora ESTRUTURAL: o dado é o campo
+# "Publicação" dos DADOS DA PROPOSTA, e é assim que ele tem de ser lido.
+#
+# Ler o texto corrido da página é o que produzia o falso positivo. O rótulo
+# aparece mais de uma vez — a lista de documentos digitalizados tem arquivos
+# chamados "Publicação…" —, e uma varredura livre podia devolver ora o valor do
+# campo VIZINHO (o `sim` do "Empenhado sim"), ora o NOME de um arquivo cujo
+# título contém "publicado". Nos dois casos o Hub afirmava publicação que o
+# portal desmentia.
+#
+# Então: casamos o RÓTULO da célula com o valor da célula seguinte (é uma
+# tabela de rótulo→valor, mesmo sendo Struts de 2004) e só aceitamos o rótulo
+# EXATO do campo. Nome de arquivo é valor de célula, nunca rótulo — sozinho
+# isto já mata o falso positivo. O texto corrido continua como retaguarda para
+# o caso de o layout mudar, mas recortado ANTES da lista de documentos.
+_ROTULOS_PUBLICACAO = (
+    "publicacao",
+    "situacao da publicacao",
+    "situacao publicacao",
+)
+
 _RE_PUBLICACAO = re.compile(
     r"Publicaç(?:ão|ao)\s+([A-Za-zÀ-ú/0-9 ]{2,40}?)\s+(?:Regime|Código|Situação|Número|Data)"
 )
 
 
-def _situacao_publicacao(plano: str) -> str | None:
+def _rotulo(texto: str) -> str:
+    """Rótulo de célula normalizado para comparação (sem acento, sem pontuação)."""
+    plano = unicodedata.normalize("NFD", texto.strip().lower())
+    plano = "".join(c for c in plano if unicodedata.category(c) != "Mn")
+    return re.sub(r"[\s:*.]+", " ", plano).strip()
+
+
+def _antes_dos_documentos(conteudo: str) -> str:
+    """O trecho que é a FICHA da proposta — a lista de documentos fica de fora.
+
+    O que vem depois desta marca é acervo de arquivos: nome de documento não
+    responde "saiu ou não saiu?", por mais que comece com "Publicação".
+    """
+    marca = _MARCA_DOCUMENTOS.search(conteudo)
+    return conteudo[: marca.start()] if marca else conteudo
+
+
+def _campo_rotulado(html_pagina: str, rotulos: tuple[str, ...]) -> str | None:
+    """Valor da célula seguinte ao rótulo EXATO, na ficha da proposta."""
+    for linha in _LINHA.findall(_antes_dos_documentos(html_pagina)):
+        celulas = [_texto_da_celula(c) for c in _CELULA.findall(linha)]
+        for i, celula in enumerate(celulas[:-1]):
+            if _rotulo(celula) in rotulos:
+                valor = celulas[i + 1].strip()
+                if valor:
+                    return valor
+    return None
+
+
+def _situacao_publicacao(plano: str, html_pagina: str | None = None) -> str | None:
+    """A situação da publicação como a fonte a declara — ou nada.
+
+    Nada é resposta: sem o campo, o Hub diz "sem informação na fonte" e o gestor
+    confere no portal. É melhor que herdar a resposta de outra pergunta.
+    """
     from ..services import publicacao
 
-    for m in _RE_PUBLICACAO.finditer(plano):
+    if html_pagina:
+        valor = _campo_rotulado(html_pagina, _ROTULOS_PUBLICACAO)
+        if valor and publicacao.estado(valor) != publicacao.SEM_INFORMACAO:
+            return valor
+        if valor:
+            log.warning(
+                "siconv: campo Publicação com valor não reconhecido (%r) — "
+                "não gravado; calibrar em _situacao_publicacao",
+                valor[:80],
+            )
+            return None
+    for m in _RE_PUBLICACAO.finditer(_antes_dos_documentos(plano)):
         valor = m.group(1).strip()
         if publicacao.estado(valor) != publicacao.SEM_INFORMACAO:
             return valor
@@ -162,14 +223,16 @@ _RE_REPASSES = re.compile(
 )
 
 
-def _parse_execucao(corpo: str) -> dict:
+def _parse_execucao(corpo: str, html_pagina: str | None = None) -> dict:
+    """Cabeçalho do instrumento. A publicação vem do HTML quando ele existe —
+    é o único jeito de saber que o valor lido é o do CAMPO, e não texto vizinho."""
     plano = re.sub(r"\s+", " ", corpo)
     saida = {}
     for chave, rx in _RE_EXECUCAO:
         m = rx.search(plano)
         if m:
             saida[chave] = m.group(1).strip()
-    publicacao = _situacao_publicacao(plano)
+    publicacao = _situacao_publicacao(plano, html_pagina)
     if publicacao:
         saida["situacao_publicacao"] = publicacao
     return saida
@@ -461,9 +524,14 @@ class ParecerSiconvConnector:
                         )
                         if "Login" in (await pg.title()):
                             raise RuntimeError("sessão de acesso livre caiu no login")
-                        item["execucao"] = _parse_execucao(await pg.inner_text("body"))
-                        # a lista de documentos está NESTA página — de graça
-                        item["documentos"] = parse_documentos(await pg.content())
+                        # o HTML serve aos dois: a publicação precisa do
+                        # rótulo da célula (não do texto corrido) e a lista de
+                        # documentos está NESTA mesma página — de graça
+                        pagina = await pg.content()
+                        item["execucao"] = _parse_execucao(
+                            await pg.inner_text("body"), pagina
+                        )
+                        item["documentos"] = parse_documentos(pagina)
                         await pg.goto(
                             ABA_PARECERES, wait_until="networkidle", timeout=TIMEOUT_MS
                         )

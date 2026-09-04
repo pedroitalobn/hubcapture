@@ -2469,6 +2469,56 @@ extração da lista de documentos e a confirmação da causa raiz do "Publicado"
 divergente — o endurecimento acima cobre as duas hipóteses, mas só o probe contra
 a fonte fecha a questão.
 
+### 56b. "Publicado" é o que a FONTE afirma — dinheiro não responde (decisão travada)
+
+O gestor voltou com o mesmo relato depois da §56: o Hub anunciava propostas
+**publicadas que não foram**. O tri-estado estava certo e a coleta também — o
+que sobrou foi o resto do caminho. O cliente fechou aqui a ambiguidade que a
+§56 (pontos 08/13) tinha deixado em aberto: **a resposta está no campo de
+situação da publicação dos DADOS DA PROPOSTA do TransfereGov, e só nele**.
+
+- **VALOR não é veredito.** `publicacao.estado()` decidia `publicado` por
+  `valor_publicado > 0` **antes** de olhar a situação — uma coluna de dinheiro
+  respondendo pergunta de sim/não, e vencendo a fonte quando ela dizia "Não
+  Publicado". O parâmetro saiu da assinatura (`estado(situacao)`), não ficou
+  como argumento morto: a decisão é essa. O valor segue exposto
+  (`PublicacaoRead.valor`) como valor, e no detalhe entra como linha de apoio
+  **só quando houve publicação**. Mesma régua no card/filtro "Publicado" do
+  painel (`propostas.estados_de` e o somatório do resumo contam o MESMO
+  conjunto — número que afirmasse publicação que a lista não mostra é o defeito
+  outra vez).
+- **Precedência declarada, não "quem gravou por último".** Três caminhos
+  escrevem `situacao_publicacao` no mesmo jsonb (consulta ao vivo do webapp,
+  pacote SIconv via convênio, relatório) em jobs sem ordem garantida entre si —
+  o pacote (~mensal) apagava a consulta ao vivo tanto quanto o contrário.
+  `publicacao.resolver()` percorre as fontes na ordem da VERACIDADE (ao vivo >
+  pacote > topo) e devolve `Leitura(estado, situacao, origem)`; fonte que gravou
+  algo irreconhecível passa a vez em vez de travar a leitura. Tela, alerta
+  (`detect_changes.snapshot`) e PDF leem daí — origem correta por construção.
+- **Na página, o CAMPO — não o texto ao redor** (`connectors/pareceres_siconv`).
+  A leitura era um regex sobre o texto corrido da página inteira, então valia
+  tanto o `sim` do "Empenhado" vizinho quanto o NOME de um arquivo da lista de
+  documentos digitalizados (que começa com "Publicação…" e pode conter
+  "publicado"). Agora o casamento é do **rótulo da célula** com o valor da
+  célula seguinte, rótulo EXATO (`_ROTULOS_PUBLICACAO`), no trecho ANTES da
+  lista de documentos (`_antes_dos_documentos`) — nome de arquivo é valor de
+  célula, nunca rótulo. O texto corrido continua como retaguarda, recortado no
+  mesmo ponto. Campo presente com valor irreconhecível não é gravado: sai WARN
+  para calibração.
+- **Casamento por PALAVRA e teto de tamanho** em `publicacao.estado()`:
+  substring casava "publicado" dentro de qualquer frase que só mencionasse o
+  assunto, e o campo é resposta curta de sim/não — texto acima de
+  `_MAX_CARACTERES` (60) é frase de outro lugar da página, não o campo.
+- **Data de publicação só de proposta publicada**: data residual de outro campo
+  virava "publicado em …" na tela — a afirmação que o módulo existe para não
+  fazer.
+- Regressão: `tests/test_publicacao.py` (os três caminhos do falso positivo,
+  precedência entre fontes e a leitura da ficha × lista de documentos).
+- **Pendente de calibração ao vivo** (exige máquina com saída para gov.br; o
+  host do webapp não responde do sandbox): confirmar o rótulo exato da célula
+  na ficha da proposta. Enquanto não confere, a retaguarda de texto cobre — e o
+  erro possível passou a ser "sem informação", nunca "publicado" indevido.
+
 ## 57. Design system v1 "Hub Capture" — a migração da Bancada v2 (decisão travada)
 
 A UI saiu da **"Bancada v2"** (canvas quase-preto com aurora, cards de vidro,

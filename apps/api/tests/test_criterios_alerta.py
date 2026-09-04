@@ -446,7 +446,9 @@ def test_publicacao_le_tri_estado_e_nao_chuta() -> None:
     assert publicacao.estado("Publicado") == publicacao.PUBLICADO
     assert publicacao.estado("Não Publicado") == publicacao.NAO_PUBLICADO
     assert publicacao.estado("Publicação Pendente") == publicacao.NAO_PUBLICADO
-    assert publicacao.estado(None, "150000") == publicacao.PUBLICADO
+    # dinheiro não responde "saiu ou não saiu?" (§56b): quem responde é o campo
+    # de situação dos dados da proposta
+    assert publicacao.do_execucao({"valor_publicado": "150000"}) == publicacao.SEM_INFORMACAO
     assert publicacao.estado("22/06/2026") == publicacao.PUBLICADO
     # o snapshot do alerta lê pela MESMA régua da tela
     assert (
