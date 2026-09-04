@@ -23,6 +23,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ChipFiltro, ItemMenu, Seletor } from "@/components/kit";
 import { useOrigem } from "@/lib/origem";
+import { useSafra } from "@/lib/safra";
 import { rotuloMunicipio, useTerritorio } from "@/lib/territorio";
 
 /** A partir daqui o menu de municípios ganha campo de busca. */
@@ -31,13 +32,16 @@ const COM_BUSCA = 8;
 /** Quais recortes globais valem em cada tela do painel.
  *  Conformidade e obras ficam de fora da ORIGEM de propósito: as fontes
  *  delas (Siconfi, SISMOB/SIMEC/CAIXA) não estão no catálogo do gestor, e
- *  aplicar o filtro ali zeraria a tela sempre — o que é mentira, não filtro. */
+ *  aplicar o filtro ali zeraria a tela sempre — o que é mentira, não filtro.
+ *  A SAFRA hoje só vale no Meu painel: nas telas de exploração o ano é uma
+ *  faceta local, com o universo daquela consulta. */
 const FILTROS_DA_ROTA: {
   rota: RegExp;
   municipio: boolean;
   origem: boolean;
+  safra?: boolean;
 }[] = [
-  { rota: /^\/panel$/, municipio: true, origem: true },
+  { rota: /^\/panel$/, municipio: true, origem: true, safra: true },
   { rota: /^\/panel\/funding\/summary$/, municipio: true, origem: true },
   { rota: /^\/panel\/funding$/, municipio: true, origem: true },
   { rota: /^\/panel\/transfers(\/amendments)?$/, municipio: true, origem: true },
@@ -53,6 +57,7 @@ export function filtrosDaRota(pathname: string) {
     FILTROS_DA_ROTA.find((r) => r.rota.test(pathname)) ?? {
       municipio: false,
       origem: false,
+      safra: false,
     }
   );
 }
@@ -61,19 +66,28 @@ export function FiltrosPainel({ pathname }: { pathname: string }) {
   const regra = filtrosDaRota(pathname);
   const { municipios } = useTerritorio();
   const { origens } = useOrigem();
+  const { opcoes: safras } = useSafra();
 
-  // Com um município só e uma origem só não há recorte possível: a barra
-  // inteira sai da tela em vez de mostrar dois controles inertes.
+  // Recorte com uma opção só não recorta nada: cada seletor some sozinho, e
+  // a barra inteira sai da tela quando não sobra nenhum.
   const mostraMunicipio = regra.municipio && municipios.length > 1;
   const mostraOrigem = regra.origem && origens.length > 1;
-  if (!mostraMunicipio && !mostraOrigem) return null;
+  const mostraSafra = Boolean(regra.safra) && safras.length > 1;
+  if (!mostraMunicipio && !mostraOrigem && !mostraSafra) return null;
 
   return (
     <div className="toolbar mb-5">
       <span className="toolbar-label">Recorte</span>
       {mostraMunicipio && <SeletorMunicipio />}
       {mostraOrigem && <SeletorOrigem />}
-      <ChipsAplicados municipio={mostraMunicipio} origem={mostraOrigem} />
+      {/* A safra fecha a linha dos recortes globais — ela morava sozinha no
+          canto do cabeçalho da página, longe dos irmãos de mesmo alcance. */}
+      {mostraSafra && <SeletorSafra />}
+      <ChipsAplicados
+        municipio={mostraMunicipio}
+        origem={mostraOrigem}
+        safra={mostraSafra}
+      />
     </div>
   );
 }
@@ -235,14 +249,66 @@ function SeletorOrigem() {
   );
 }
 
+/* ─────────────────────────────────────────────────────────── Safra ────── */
+
+function SeletorSafra() {
+  const { anos, opcoes, alternar, todos } = useSafra();
+  const tudo = anos.length === 0;
+  const valor = tudo
+    ? "Todos os anos"
+    : anos.length === 1
+      ? anos[0]!
+      : `${anos.length} safras`;
+
+  return (
+    <Seletor
+      rotulo="Safra"
+      valor={valor}
+      ativo={!tudo}
+      largura="14rem"
+      titulo="Ano das propostas e dos repasses que entram no painel"
+    >
+      {(fechar) => (
+        <>
+          <ItemMenu
+            marcado={tudo}
+            radio
+            rotulo="Todos os anos"
+            onClick={() => {
+              todos();
+              fechar();
+            }}
+            title="Painel inteiro, sem recorte de safra"
+          />
+          <div className="menu-sep" />
+          <div className="menu-scroll" role="listbox" aria-label="Safras do território">
+            {opcoes.map((o) => (
+              <ItemMenu
+                key={o.ano}
+                marcado={anos.includes(o.ano)}
+                rotulo={o.ano}
+                contagem={o.total}
+                onClick={() => alternar(o.ano)}
+                title={`Liga/desliga a safra ${o.ano} no recorte`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </Seletor>
+  );
+}
+
 /* ─────────────────────────────────────────────────── Chips aplicados ──── */
 
 function ChipsAplicados({
   municipio,
   origem,
+  safra,
 }: {
   municipio: boolean;
   origem: boolean;
+  safra: boolean;
 }) {
   const { ativos, selecionados, alternar, todos } = useTerritorio();
   const {
@@ -251,12 +317,23 @@ function ChipsAplicados({
     alternar: alternarOrigem,
     todas,
   } = useOrigem();
+  const {
+    anos,
+    alternar: alternarSafra,
+    todos: todasSafras,
+  } = useSafra();
 
   const chipsMunicipio = municipio && selecionados.length > 0 ? ativos : [];
   const chipsOrigem = origem
     ? origens.filter((o) => selecionadas.includes(o.chave))
     : [];
-  if (chipsMunicipio.length === 0 && chipsOrigem.length === 0) return null;
+  const chipsSafra = safra ? anos : [];
+  if (
+    chipsMunicipio.length === 0 &&
+    chipsOrigem.length === 0 &&
+    chipsSafra.length === 0
+  )
+    return null;
 
   return (
     <>
@@ -279,11 +356,21 @@ function ChipsAplicados({
           {rotuloCurto(o.label)}
         </ChipFiltro>
       ))}
+      {chipsSafra.map((ano) => (
+        <ChipFiltro
+          key={ano}
+          onRemover={() => alternarSafra(ano)}
+          title={`Tirar a safra ${ano} do recorte`}
+        >
+          {ano}
+        </ChipFiltro>
+      ))}
       <button
         type="button"
         onClick={() => {
           todos();
           todas();
+          todasSafras();
         }}
         className="link-soft ml-1 text-[12px]"
       >

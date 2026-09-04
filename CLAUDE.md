@@ -2610,3 +2610,31 @@ do item selecionado — não pelo fundo.
 
 Regra que fica: cor dentro do trilho é token `--nav-*`, nunca literal — e
 componente que também vive fora do trilho não pode assumir o fundo dele.
+
+## 60. A SAFRA é o terceiro recorte da barra (completa a §58)
+
+A §58 tirou os filtros globais do menu e os pôs na barra de recorte da tela —
+mas deixou a safra de fora: ela continuou sozinha no canto direito do cabeçalho
+do Meu painel, longe do município e da origem, que têm exatamente o mesmo
+alcance (a página inteira: cards das dimensões, panorama financeiro e feed).
+Três filtros do mesmo tipo em dois lugares é a mesma falha que a §58 corrigiu.
+
+- **`lib/safra.tsx`** (`SafraProvider` + `useSafra`) é o irmão de
+  `lib/territorio.tsx` e `lib/origem.tsx`: guarda a escolha (`anos`, vazio =
+  todos), persiste em `hub_painel_ano` (mesma chave e mesmo formato de antes) e
+  poda safra que saiu do território, como o território poda IBGE fora do
+  onboarding.
+- **As OPÇÕES vêm da tela, não do provider**: quem sabe quais safras existem é
+  quem carrega o feed (`GET /profile/feed` → `anos`), então o Meu painel as
+  publica com `definirOpcoes` e o layout só desenha. `definirOpcoes` compara
+  antes de trocar o estado — o feed recarrega a cada mudança de recorte, e
+  publicar a mesma lista remontaria a barra a cada carga.
+- **`FILTROS_DA_ROTA` ganhou `safra`**, hoje só no `/panel`: nas telas de
+  exploração o ano é uma FACETA local, com o universo daquela consulta. E o
+  seletor some com uma safra só, como os outros — filtro que não recorta nada
+  lê como controle quebrado.
+- O chip da safra entra na mesma fila de "filtros aplicados" e "limpar recorte"
+  agora zera os três.
+
+Regra que fica: recorte de alcance global mora na barra, ao lado dos irmãos —
+não há "quase global" no canto da página.
