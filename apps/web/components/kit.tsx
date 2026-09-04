@@ -4,7 +4,7 @@
  * UI kit do painel — o vocabulário novo de seletores, menus e caixas.
  *
  * Antes cada tela montava o seu: o território era um popover artesanal no
- * trilho, a origem eram chips soltos, a safra outra fileira de chips e cada
+ * trilho, a origem eram chips soltos, o ano outra fileira de chips e cada
  * lista desenhava a própria linha. O resultado é que dois filtros da mesma
  * página não se pareciam e nenhum deles se parecia com o que o gestor usa em
  * qualquer outro sistema. Aqui mora UMA implementação de cada peça:

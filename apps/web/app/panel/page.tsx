@@ -25,12 +25,12 @@ import {
 } from "@/lib/format";
 import { rotuloFonte } from "@/lib/fontes";
 import { paramFonte, useOrigem } from "@/lib/origem";
-import { useSafra } from "@/lib/safra";
+import { useAno } from "@/lib/ano";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 // ── Panorama financeiro do território (números + gráfico) ───────────────────
 // Reusa /proposals/summary (mesma fonte da página de resumo da Captação) para
-// dar cards e um gráfico por ano direto no Meu painel. A safra vem do filtro da
+// dar cards e um gráfico por ano direto no Meu painel. A ano vem do filtro da
 // PÁGINA (prop `ano`), não de um seletor próprio: dois filtros de ano na mesma
 // tela mostravam recortes diferentes lado a lado — o gráfico obedecia a um, os
 // cards e o feed continuavam no outro.
@@ -56,7 +56,7 @@ interface ResumoPainelData {
     oportunidades_abertas: number;
   };
   por_ano: { ano: string; aprovado: string; desembolsado: string }[];
-  // abertura mês a mês — a API só a manda quando o recorte é de UMA safra
+  // abertura mês a mês — a API só a manda quando o recorte é de UMA ano
   por_mes?: { mes: string; rotulo: string; aprovado: string; desembolsado: string }[];
 }
 
@@ -65,7 +65,7 @@ function numBR(v?: string | number | null): number {
   return Number.isNaN(n) ? 0 : n;
 }
 
-/** Busca o resumo financeiro do recorte (safras + território). `habilitado`
+/** Busca o resumo financeiro do recorte (anos + território). `habilitado`
  *  segura a consulta enquanto o perfil não confirmou território — sem ele, a
  *  conta recém-criada pagaria um summary vazio a cada carga. */
 function useResumoFinanceiro(anos: string[], habilitado: boolean) {
@@ -107,9 +107,9 @@ function useResumoFinanceiro(anos: string[], habilitado: boolean) {
 /** Gráfico aprovado × desembolsado, morando na MESMA grade das dimensões —
  *  é ele que preenche o vão ao lado do nº de propostas.
  *
- *  Com UMA safra selecionada o gráfico troca de escala: em vez de repetir a
+ *  Com UMA ano selecionada o gráfico troca de escala: em vez de repetir a
  *  barra única do ano, abre o mesmo par mês a mês daquele ano (`por_mes` da
- *  API). As barras transicionam a altura em CSS — trocar de safra morfa o
+ *  API). As barras transicionam a altura em CSS — trocar de ano morfa o
  *  desenho em vez de piscar um novo. */
 function GraficoAprovadoDesembolsado({
   resumo,
@@ -142,10 +142,10 @@ function GraficoAprovadoDesembolsado({
   );
   const recorte =
     anos.length === 0
-      ? "todas as safras"
+      ? "todos os anos"
       : anos.length === 1
-        ? `safra ${anos[0]}${mensal ? " · mês a mês" : ""}`
-        : `safras ${[...anos].sort().join(" + ")}`;
+        ? `${anos[0]}${mensal ? " · mês a mês" : ""}`
+        : `${[...anos].sort().join(" + ")}`;
   return (
     <div className={`card flex flex-col justify-between p-4 ${className}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -303,7 +303,7 @@ interface Dimensao {
   href?: string | null;
   // recortes dentro da dimensão, já com link filtrado (ex.: natureza jurídica)
   quebras?: Quebra[];
-  // false = dimensão sem safra anual (conformidade/obras são estado atual)
+  // false = dimensão sem ano anual (conformidade/obras são estado atual)
   recorte_ano?: boolean;
 }
 interface Municipio {
@@ -323,7 +323,7 @@ interface Novidade {
   descricao?: string | null;
   valor?: number | string | null;
   data?: string | null;
-  // safra do item (ano da proposta / do repasse) — o mesmo critério do filtro
+  // ano do item (ano da proposta / do repasse) — o mesmo critério do filtro
   ano?: string | null;
   fonte: string;
   /** nome da fonte como o gestor a chama (a API resolve; o slug nunca sai) */
@@ -350,7 +350,7 @@ interface AnoDisponivel {
 interface Novidades {
   itens: Novidade[];
   sync_runs: SyncRunStatus[];
-  // safras COM novidade no território, do mais recente ao mais antigo. Vem
+  // anos COM novidade no território, do mais recente ao mais antigo. Vem
   // sempre do território inteiro — escolher um ano não pode apagar as outras
   // opções do próprio filtro.
   anos?: AnoDisponivel[];
@@ -383,21 +383,21 @@ function dataBr(iso: string | null | undefined): string | null {
 
 // ── Filtro de ano do painel ─────────────────────────────────────────────────
 // UM filtro para a página inteira: cards das dimensões, panorama financeiro
-// (números + gráfico) e feed de novidades pedem a MESMA safra à API. Antes o
+// (números + gráfico) e feed de novidades pedem a MESMA ano à API. Antes o
 // gráfico tinha um seletor próprio e o feed, pills separadas — filtrar o ano
 // ajustava o gráfico e deixava os cards em outro recorte.
 //
 // As opções vêm do território inteiro (`anos` do feed), então escolher 2024
-// não apaga as outras safras do seletor; o recorte é do SERVIDOR, então uma
-// safra antiga traz os itens daquele ano em vez de garimpar o que sobrou na
+// não apaga as outras anos do seletor; o recorte é do SERVIDOR, então uma
+// ano antiga traz os itens daquele ano em vez de garimpar o que sobrou na
 // janela. A escolha persiste entre visitas.
 //
 // O CONTROLE mora na barra de recorte (`components/FiltrosPainel`), ao lado
 // do município e da origem — os três têm o mesmo alcance, então ficam no
-// mesmo lugar (§60). A seleção e a persistência vivem em `lib/safra`; esta
+// mesmo lugar (§60). A seleção e a persistência vivem em `lib/ano`; esta
 // tela só publica as opções que o feed trouxe e lê o recorte escolhido.
 //
-// Janela do feed: quantos itens da safra escolhida (ou das mais recentes,
+// Janela do feed: quantos itens da ano escolhida (ou das mais recentes,
 // quando "todos os anos") cabem na lista.
 const FEED_LIMITE = 60;
 
@@ -408,8 +408,8 @@ function MeuPainel() {
   const { perfil, selecionados } = useTerritorio();
   // recorte de ORIGEM DO RECURSO, da mesma barra (vazio = todas as fontes)
   const { selecionadas: origens } = useOrigem();
-  // recorte de SAFRA, da mesma barra (vazio = todos os anos)
-  const { anos, definirOpcoes: definirSafras, todos: todasSafras } = useSafra();
+  // recorte de ANO, da mesma barra (vazio = todos os anos)
+  const { anos, definirOpcoes: definirAnos, todos: todosAnos } = useAno();
 
   const [data, setData] = useState<VisaoGeral | null>(null);
   const [novidades, setNovidades] = useState<Novidades | null>(null);
@@ -420,7 +420,7 @@ function MeuPainel() {
   const tentativas = useRef(0);
   // Recorte dos cards financeiros (ponto 06). Não persiste entre sessões: é um
   // recorte de leitura do momento, ao contrário do território, da origem e da
-  // safra, que são configuração do usuário.
+  // ano, que são configuração do usuário.
   const [estado, setEstado] = useState<EstadoFinanceiro>(null);
   // Panorama financeiro (gráfico + faixa de KPIs) — só consulta depois que o
   // perfil confirmou território.
@@ -428,7 +428,7 @@ function MeuPainel() {
     anos,
     (data?.municipios.length ?? 0) > 0,
   );
-  // O recorte de município, a ORIGEM DO RECURSO e a safra entram em TODA
+  // O recorte de município, a ORIGEM DO RECURSO e a ano entram em TODA
   // consulta do painel: trocar o território ou a origem na barra de filtros, ou
   // o ano no filtro, refaz visão geral, panorama e feed — todos no mesmo
   // recorte. Filtro global que só vale em uma das telas lê como quebrado.
@@ -525,16 +525,16 @@ function MeuPainel() {
 
   const semTerritorio = !loading && (data?.municipios.length ?? 0) === 0;
   const itens = novidades?.itens ?? [];
-  // Safras oferecidas pelo filtro: o que EXISTE no território (vem da API,
+  // Anos oferecidas pelo filtro: o que EXISTE no território (vem da API,
   // independente do ano escolhido). Quem DESENHA o seletor é a barra de
   // recorte; a tela só entrega o catálogo, porque é ela que carrega o feed.
   useEffect(() => {
-    if (novidades) definirSafras(novidades.anos ?? []);
-  }, [novidades, definirSafras]);
+    if (novidades) definirAnos(novidades.anos ?? []);
+  }, [novidades, definirAnos]);
   const dimensoes = data?.dimensoes ?? [];
-  // Dimensões que não têm safra (conformidade/obras): o painel avisa em vez de
+  // Dimensões que não têm ano (conformidade/obras): o painel avisa em vez de
   // deixar o usuário achar que o filtro falhou nesses cards.
-  const semSafra = anos.length
+  const semAno = anos.length
     ? dimensoes.filter((d) => d.recorte_ano === false).map((d) => d.titulo)
     : [];
   const falhas = (novidades?.sync_runs ?? []).filter((r) => r.status === "erro");
@@ -586,7 +586,7 @@ function MeuPainel() {
                       )}
                     </div>
                     <div>
-                      {/* key = valor: trocar safra/território remonta o número
+                      {/* key = valor: trocar ano/território remonta o número
                           e o anim-swap suaviza a troca (nada de corte seco) */}
                       <div
                         key={d.total}
@@ -602,15 +602,18 @@ function MeuPainel() {
                     </div>
                   </>
                 );
-                // recortes da dimensão (ex.: natureza jurídica na captação):
-                // ficam FORA do <Link> do card — âncora dentro de âncora não vale
+                // Recortes da dimensão (ex.: natureza jurídica na captação).
+                // Ficam DENTRO do card: enquanto viviam abaixo dele, na mesma
+                // coluna da grade, o card com recorte era MAIS BAIXO que os
+                // vizinhos — os chips comiam a altura que a grade dava à
+                // coluna, e a linha de cards saía desalinhada.
                 const quebras = (d.quebras ?? []).length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="relative z-10 mt-auto flex flex-wrap gap-1.5">
                     {(d.quebras ?? []).map((q) => (
                       <Link
                         key={q.chave}
                         href={q.href}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-3 py-1 text-xs text-ink-2 transition hover:text-ink"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-card px-3 py-1 text-xs text-ink-2 transition hover:text-ink"
                       >
                         {q.rotulo}
                         <span className="tabular-nums opacity-60">{q.total}</span>
@@ -619,16 +622,27 @@ function MeuPainel() {
                   </div>
                 );
                 return (
-                  <div key={d.chave} className="flex flex-col gap-2">
+                  // O card é a CÉLULA da grade (`h-full`), então todos têm a
+                  // mesma altura tenham ou não recorte. Como os chips são
+                  // links, o card não pode ser um <a> (âncora dentro de
+                  // âncora): quem navega é o link do título, esticado sobre o
+                  // card inteiro por `after:inset-0` — a superfície continua
+                  // clicável e os chips ficam por cima (`z-10`).
+                  <div
+                    key={d.chave}
+                    className={`card group flex h-full min-h-28 flex-col gap-3 p-5 ${
+                      d.href ? "card-hover" : ""
+                    }`}
+                  >
                     {d.href ? (
                       <Link
                         href={d.href}
-                        className="card card-hover group flex flex-1 flex-col justify-between gap-3 p-5 min-h-28"
+                        className="flex flex-col gap-3 after:absolute after:inset-0 after:content-['']"
                       >
                         {conteudo}
                       </Link>
                     ) : (
-                      <div className="card flex flex-1 flex-col justify-between gap-3 p-5 min-h-28">
+                      <div className="flex flex-col gap-3">
                         {conteudo}
                       </div>
                     )}
@@ -652,11 +666,11 @@ function MeuPainel() {
               />
             ) : null}
 
-            {semSafra.length > 0 && (
+            {semAno.length > 0 && (
               <p className="text-[12px] text-ink-3">
-                {semSafra.join(" e ")}{" "}
-                {semSafra.length === 1 ? "mostra" : "mostram"} o estado atual do
-                município — {semSafra.length === 1 ? "não tem" : "não têm"}{" "}
+                {semAno.join(" e ")}{" "}
+                {semAno.length === 1 ? "mostra" : "mostram"} o estado atual do
+                município — {semAno.length === 1 ? "não tem" : "não têm"}{" "}
                 recorte por ano.
               </p>
             )}
@@ -732,7 +746,7 @@ function MeuPainel() {
                       Nenhuma novidade de {anos.join(", ")} no território —{" "}
                       <button
                         type="button"
-                        onClick={todasSafras}
+                        onClick={todosAnos}
                         className="underline underline-offset-2"
                       >
                         ver todos os anos
@@ -747,7 +761,7 @@ function MeuPainel() {
                   )}
                 </div>
               ) : (
-                // key = recorte: trocar safra/território re-encena o fade da
+                // key = recorte: trocar ano/território re-encena o fade da
                 // lista em vez de trocar as linhas secamente no lugar
                 <ol
                   key={`${anos.join("+")}|${selecionados.join("+")}`}

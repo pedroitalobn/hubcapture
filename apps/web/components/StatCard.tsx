@@ -54,7 +54,7 @@ export function StatCard({
     >
       <div className="flex items-center gap-2">
         {icon}
-        {/* Rótulo do KPI = H3 do sistema (Archivo, caixa alta) — o "| safra"
+        {/* Rótulo do KPI = H3 do sistema (Archivo, caixa alta) — o "| ano"
             que às vezes vem no `context` fica em caixa de frase ao lado. */}
         <span className={`stat-label ${tone ? "text-inherit opacity-90" : ""}`}>
           {label}

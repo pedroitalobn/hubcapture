@@ -15,7 +15,7 @@ import {
   useTerritorio,
 } from "@/lib/territorio";
 import { OrigemProvider } from "@/lib/origem";
-import { SafraProvider } from "@/lib/safra";
+import { AnoProvider } from "@/lib/ano";
 
 // A navegação NÃO é por fonte de dados — é o ciclo do recurso público, sempre
 // recortado pelo território do usuário (via RLS). Cada item é uma LENTE sobre
@@ -136,15 +136,15 @@ export default function PainelLayout({
   return (
     <TerritorioProvider>
       <OrigemProvider>
-        {/* A safra é o 3º recorte global da barra (§60) — a tela publica as
+        {/* A ano é o 3º recorte global da barra (§60) — a tela publica as
             opções que vieram do feed, o provider guarda a escolha. */}
-        <SafraProvider>
+        <AnoProvider>
           {/* O mapa de hints (ⓘ) é estado de todo o painel, como o território:
               carrega uma vez e os <Hint/> das telas consultam localmente. */}
           <HelpProvider>
             <PainelShell>{children}</PainelShell>
           </HelpProvider>
-        </SafraProvider>
+        </AnoProvider>
       </OrigemProvider>
     </TerritorioProvider>
   );
