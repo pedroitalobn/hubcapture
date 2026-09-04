@@ -2611,30 +2611,46 @@ do item selecionado — não pelo fundo.
 Regra que fica: cor dentro do trilho é token `--nav-*`, nunca literal — e
 componente que também vive fora do trilho não pode assumir o fundo dele.
 
-## 60. A SAFRA é o terceiro recorte da barra (completa a §58)
+## 60. O ANO é o terceiro recorte da barra (completa a §58)
 
 A §58 tirou os filtros globais do menu e os pôs na barra de recorte da tela —
-mas deixou a safra de fora: ela continuou sozinha no canto direito do cabeçalho
+mas deixou o ano de fora: ele continuou sozinho no canto direito do cabeçalho
 do Meu painel, longe do município e da origem, que têm exatamente o mesmo
 alcance (a página inteira: cards das dimensões, panorama financeiro e feed).
 Três filtros do mesmo tipo em dois lugares é a mesma falha que a §58 corrigiu.
 
-- **`lib/safra.tsx`** (`SafraProvider` + `useSafra`) é o irmão de
+- **A palavra é ANO, não "safra".** "Safra" era jargão nosso, não do gestor —
+  ele lê "ano" no portal da fonte e é isso que a coluna, a faceta e o card
+  dizem. O termo saiu da UI e do código do front (`lib/ano.tsx`,
+  `AnoProvider`/`useAno`, `SeletorAno`); as seções anteriores que ainda falam
+  "safra" descrevem a MESMA coisa.
+- **`lib/ano.tsx`** (`AnoProvider` + `useAno`) é o irmão de
   `lib/territorio.tsx` e `lib/origem.tsx`: guarda a escolha (`anos`, vazio =
   todos), persiste em `hub_painel_ano` (mesma chave e mesmo formato de antes) e
-  poda safra que saiu do território, como o território poda IBGE fora do
+  poda ano que saiu do território, como o território poda IBGE fora do
   onboarding.
-- **As OPÇÕES vêm da tela, não do provider**: quem sabe quais safras existem é
+- **As OPÇÕES vêm da tela, não do provider**: quem sabe quais anos existem é
   quem carrega o feed (`GET /profile/feed` → `anos`), então o Meu painel as
   publica com `definirOpcoes` e o layout só desenha. `definirOpcoes` compara
   antes de trocar o estado — o feed recarrega a cada mudança de recorte, e
   publicar a mesma lista remontaria a barra a cada carga.
-- **`FILTROS_DA_ROTA` ganhou `safra`**, hoje só no `/panel`: nas telas de
+- **`FILTROS_DA_ROTA` ganhou `ano`**, hoje só no `/panel`: nas telas de
   exploração o ano é uma FACETA local, com o universo daquela consulta. E o
-  seletor some com uma safra só, como os outros — filtro que não recorta nada
+  seletor some com um ano só, como os outros — filtro que não recorta nada
   lê como controle quebrado.
-- O chip da safra entra na mesma fila de "filtros aplicados" e "limpar recorte"
+- O chip do ano entra na mesma fila de "filtros aplicados" e "limpar recorte"
   agora zera os três.
+
+**Cards de dimensão com a MESMA altura**: os recortes de uma dimensão (as
+lentes de natureza jurídica na captação, §45) ficavam ABAIXO do card, na mesma
+coluna da grade — os chips comiam a altura que a grade dava à coluna e o card
+com recorte saía mais baixo que os vizinhos. Agora eles vivem DENTRO do card,
+que é a própria célula da grade (`h-full`). Como chip é link, o card não pode
+ser um `<a>` (âncora dentro de âncora): quem navega é o link do título,
+esticado sobre o card por `after:inset-0`, e os chips ficam por cima (`z-10`) —
+a superfície inteira continua clicável. O conteúdo abre no TOPO em todos
+(`justify-between` empurrava o número para o rodapé no card sem recorte, e a
+linha saía com números em alturas diferentes).
 
 Regra que fica: recorte de alcance global mora na barra, ao lado dos irmãos —
 não há "quase global" no canto da página.

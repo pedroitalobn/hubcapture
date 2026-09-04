@@ -62,7 +62,7 @@ type Proposta = {
   /** Pílulas de categoria (curadoria) — slug filtrável + rótulo exibível. */
   categorias?: { slug: string; rotulo: string }[] | null;
   tipo?: string;
-  /** Ano de CRIAÇÃO da proposta (ANO_PROP na fonte) — a safra do cabeçalho. */
+  /** Ano de CRIAÇÃO da proposta (ANO_PROP na fonte) — a ano do cabeçalho. */
   ano?: string | null;
   // computados pela API — a tela antes descartava os três
   prazo_final?: string | null;
@@ -318,7 +318,7 @@ export default function PropostaDetalhePage() {
   }
   if (!p) return <Carregando />;
 
-  // Ano da proposta (safra): o computado pela API (ANO_PROP na fonte), com
+  // Ano da proposta (ano): o computado pela API (ANO_PROP na fonte), com
   // retaguarda no ano da data de criação já ingerida.
   const anoProposta = p.ano ?? (p.data_proposta ? p.data_proposta.slice(0, 4) : null);
   const disponivel = p.tipo === "disponivel";
@@ -521,7 +521,7 @@ export default function PropostaDetalhePage() {
       )}
 
       {/* ── FAIXA DE DESTAQUE ────────────────────────────────────────
-          O topo da hierarquia: valor, empenho e a SAFRA da proposta
+          O topo da hierarquia: valor, empenho e a ANO da proposta
           (ano de criação na fonte). Tudo o mais é subordinado. */}
       {/* Dois degraus DENTRO da faixa: valor/empenho/ano ocupam a linha de
           cima inteira; o resto desce um nível. Quatro colunas de peso igual
@@ -704,7 +704,7 @@ export default function PropostaDetalhePage() {
 
       {/* ── Prazos e pendências: segundo degrau, largura inteira ────── */}
       <div className="stagger grid gap-5 md:grid-cols-2">
-        {/* o ⓘ do prazo mora aqui agora — o cabeçalho mostra a safra */}
+        {/* o ⓘ do prazo mora aqui agora — o cabeçalho mostra a ano */}
         <Secao titulo="Prazos" acao={<Hint chave="proposta.prazo" />}>
           {(p.prazos ?? []).length === 0 ? (
             <p className="text-sm text-ink-3">Sem prazos registrados.</p>

@@ -59,7 +59,7 @@ type Proposta = {
   fonte: string;
   tipo?: string;
   natureza_juridica?: string | null;
-  /** Ano de CRIAÇÃO da proposta (ANO_PROP na fonte) — a safra da coluna "Ano". */
+  /** Ano de CRIAÇÃO da proposta (ANO_PROP na fonte) — a ano da coluna "Ano". */
   ano?: string | null;
   // o prazo continua vindo da API (e no banco); só não é mais exibido na lista
   prazo_final?: string | null;
@@ -637,7 +637,7 @@ function CaptacaoExploracao() {
   }, [filtros.pastaId]);
 
   // Chegando do Meu painel (`/panel/funding?natureza_grupo=…&ano=…`), a tela
-  // abre já na lente E na safra escolhidas no card — o clique não pode trocar o
+  // abre já na lente E na ano escolhidas no card — o clique não pode trocar o
   // recorte por baixo do usuário. Só na chegada: depois quem manda são os chips.
   const paramsUrl = useSearchParams();
   const lenteUrl = paramsUrl.get("natureza_grupo");
@@ -1618,7 +1618,7 @@ function CaptacaoExploracao() {
                         </span>
                       )}
                     </td>
-                    {/* Ano da proposta (ANO_PROP na fonte) — a safra, no lugar
+                    {/* Ano da proposta (ANO_PROP na fonte) — a ano, no lugar
                         do prazo. É o mesmo critério do filtro de ano. */}
                     <td className="text-ink-2">
                       {p.ano ? (

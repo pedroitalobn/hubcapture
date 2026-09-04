@@ -1,11 +1,11 @@
 "use client";
 
 /**
- * Safra (ano) ativa do painel — o terceiro recorte global, ao lado do
+ * Ano (ano) ativa do painel — o terceiro recorte global, ao lado do
  * território (§33) e da origem do recurso (§33b).
  *
  * Ele já era um recorte de PÁGINA inteira (cards das dimensões, panorama
- * financeiro e feed pedem a mesma safra à API) e já persistia por navegador,
+ * financeiro e feed pedem a mesma ano à API) e já persistia por navegador,
  * mas morava sozinho no canto do cabeçalho do Meu painel — longe dos outros
  * dois, que ficam na barra de recorte. Três filtros do mesmo alcance em dois
  * lugares diferentes é o que a §58 tirou do menu; deixar um deles de fora
@@ -13,7 +13,7 @@
  * dos irmãos.
  *
  * `anos` vazio = TODOS os anos (o padrão). As OPÇÕES não são fixas: quem sabe
- * quais safras existem no território é a tela que carrega o feed, e ela as
+ * quais anos existem no território é a tela que carrega o feed, e ela as
  * publica com `definirOpcoes` — a barra só se desenha quando há mais de uma
  * (filtro com uma opção só não recorta nada).
  */
@@ -28,25 +28,25 @@ import {
   useState,
 } from "react";
 
-export interface OpcaoSafra {
+export interface OpcaoAno {
   ano: string;
   total: number;
 }
 
 const CHAVE = "hub_painel_ano";
 
-interface SafraCtx {
-  /** Safras escolhidas; vazio = todos os anos. */
+interface AnoCtx {
+  /** Anos escolhidas; vazio = todos os anos. */
   anos: string[];
-  /** Safras que EXISTEM no território, da mais recente à mais antiga. */
-  opcoes: OpcaoSafra[];
+  /** Anos que EXISTEM no território, da mais recente à mais antiga. */
+  opcoes: OpcaoAno[];
   /** A tela publica o catálogo que veio da API (o feed sabe, o layout não). */
-  definirOpcoes: (opcoes: OpcaoSafra[]) => void;
+  definirOpcoes: (opcoes: OpcaoAno[]) => void;
   alternar: (ano: string) => void;
   todos: () => void;
 }
 
-const Ctx = createContext<SafraCtx>({
+const Ctx = createContext<AnoCtx>({
   anos: [],
   opcoes: [],
   definirOpcoes: () => {},
@@ -66,11 +66,11 @@ function lerSalvos(): string[] {
   }
 }
 
-export function SafraProvider({ children }: { children: React.ReactNode }) {
+export function AnoProvider({ children }: { children: React.ReactNode }) {
   // Ler o localStorage já no initializer divergiria do HTML do servidor, que
   // não tem acesso a ele — erro de hidratação; a restauração vem no efeito.
   const [anos, setAnos] = useState<string[]>([]);
-  const [opcoes, setOpcoes] = useState<OpcaoSafra[]>([]);
+  const [opcoes, setOpcoes] = useState<OpcaoAno[]>([]);
   const restaurada = useRef(false);
 
   useEffect(() => {
@@ -90,7 +90,7 @@ export function SafraProvider({ children }: { children: React.ReactNode }) {
     }
   }, [anos]);
 
-  const definirOpcoes = useCallback((lista: OpcaoSafra[]) => {
+  const definirOpcoes = useCallback((lista: OpcaoAno[]) => {
     const ordenadas = [...lista].sort((a, b) => b.ano.localeCompare(a.ano));
     setOpcoes((prev) =>
       prev.length === ordenadas.length &&
@@ -98,7 +98,7 @@ export function SafraProvider({ children }: { children: React.ReactNode }) {
         ? prev // mesma resposta do feed: não remonta a barra a cada carga
         : ordenadas,
     );
-    // Safra salva que não existe mais no território (município trocado, cache
+    // Ano salva que não existe mais no território (município trocado, cache
     // zerado) prenderia o painel num recorte vazio — sai do conjunto.
     if (ordenadas.length === 0) return;
     const existentes = new Set(ordenadas.map((o) => o.ano));
@@ -108,7 +108,7 @@ export function SafraProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const valor = useMemo<SafraCtx>(
+  const valor = useMemo<AnoCtx>(
     () => ({
       anos,
       opcoes,
@@ -125,6 +125,6 @@ export function SafraProvider({ children }: { children: React.ReactNode }) {
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
 }
 
-export function useSafra(): SafraCtx {
+export function useAno(): AnoCtx {
   return useContext(Ctx);
 }

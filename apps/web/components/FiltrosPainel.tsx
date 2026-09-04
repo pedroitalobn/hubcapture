@@ -23,7 +23,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ChipFiltro, ItemMenu, Seletor } from "@/components/kit";
 import { useOrigem } from "@/lib/origem";
-import { useSafra } from "@/lib/safra";
+import { useAno } from "@/lib/ano";
 import { rotuloMunicipio, useTerritorio } from "@/lib/territorio";
 
 /** A partir daqui o menu de municípios ganha campo de busca. */
@@ -33,15 +33,15 @@ const COM_BUSCA = 8;
  *  Conformidade e obras ficam de fora da ORIGEM de propósito: as fontes
  *  delas (Siconfi, SISMOB/SIMEC/CAIXA) não estão no catálogo do gestor, e
  *  aplicar o filtro ali zeraria a tela sempre — o que é mentira, não filtro.
- *  A SAFRA hoje só vale no Meu painel: nas telas de exploração o ano é uma
+ *  O ANO hoje só vale no Meu painel: nas telas de exploração ele é uma
  *  faceta local, com o universo daquela consulta. */
 const FILTROS_DA_ROTA: {
   rota: RegExp;
   municipio: boolean;
   origem: boolean;
-  safra?: boolean;
+  ano?: boolean;
 }[] = [
-  { rota: /^\/panel$/, municipio: true, origem: true, safra: true },
+  { rota: /^\/panel$/, municipio: true, origem: true, ano: true },
   { rota: /^\/panel\/funding\/summary$/, municipio: true, origem: true },
   { rota: /^\/panel\/funding$/, municipio: true, origem: true },
   { rota: /^\/panel\/transfers(\/amendments)?$/, municipio: true, origem: true },
@@ -57,7 +57,7 @@ export function filtrosDaRota(pathname: string) {
     FILTROS_DA_ROTA.find((r) => r.rota.test(pathname)) ?? {
       municipio: false,
       origem: false,
-      safra: false,
+      ano: false,
     }
   );
 }
@@ -66,27 +66,27 @@ export function FiltrosPainel({ pathname }: { pathname: string }) {
   const regra = filtrosDaRota(pathname);
   const { municipios } = useTerritorio();
   const { origens } = useOrigem();
-  const { opcoes: safras } = useSafra();
+  const { opcoes: anosDoTerritorio } = useAno();
 
   // Recorte com uma opção só não recorta nada: cada seletor some sozinho, e
   // a barra inteira sai da tela quando não sobra nenhum.
   const mostraMunicipio = regra.municipio && municipios.length > 1;
   const mostraOrigem = regra.origem && origens.length > 1;
-  const mostraSafra = Boolean(regra.safra) && safras.length > 1;
-  if (!mostraMunicipio && !mostraOrigem && !mostraSafra) return null;
+  const mostraAno = Boolean(regra.ano) && anosDoTerritorio.length > 1;
+  if (!mostraMunicipio && !mostraOrigem && !mostraAno) return null;
 
   return (
     <div className="toolbar mb-5">
       <span className="toolbar-label">Recorte</span>
       {mostraMunicipio && <SeletorMunicipio />}
       {mostraOrigem && <SeletorOrigem />}
-      {/* A safra fecha a linha dos recortes globais — ela morava sozinha no
+      {/* O ano fecha a linha dos recortes globais — ele morava sozinho no
           canto do cabeçalho da página, longe dos irmãos de mesmo alcance. */}
-      {mostraSafra && <SeletorSafra />}
+      {mostraAno && <SeletorAno />}
       <ChipsAplicados
         municipio={mostraMunicipio}
         origem={mostraOrigem}
-        safra={mostraSafra}
+        ano={mostraAno}
       />
     </div>
   );
@@ -249,20 +249,20 @@ function SeletorOrigem() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────── Safra ────── */
+/* ────────────────────────────────────────────────────────────── Ano ───── */
 
-function SeletorSafra() {
-  const { anos, opcoes, alternar, todos } = useSafra();
+function SeletorAno() {
+  const { anos, opcoes, alternar, todos } = useAno();
   const tudo = anos.length === 0;
   const valor = tudo
     ? "Todos os anos"
     : anos.length === 1
       ? anos[0]!
-      : `${anos.length} safras`;
+      : `${anos.length} anos`;
 
   return (
     <Seletor
-      rotulo="Safra"
+      rotulo="Ano"
       valor={valor}
       ativo={!tudo}
       largura="14rem"
@@ -278,10 +278,10 @@ function SeletorSafra() {
               todos();
               fechar();
             }}
-            title="Painel inteiro, sem recorte de safra"
+            title="Painel inteiro, sem recorte de ano"
           />
           <div className="menu-sep" />
-          <div className="menu-scroll" role="listbox" aria-label="Safras do território">
+          <div className="menu-scroll" role="listbox" aria-label="Anos do território">
             {opcoes.map((o) => (
               <ItemMenu
                 key={o.ano}
@@ -289,7 +289,7 @@ function SeletorSafra() {
                 rotulo={o.ano}
                 contagem={o.total}
                 onClick={() => alternar(o.ano)}
-                title={`Liga/desliga a safra ${o.ano} no recorte`}
+                title={`Liga/desliga o ano ${o.ano} no recorte`}
               />
             ))}
           </div>
@@ -304,11 +304,11 @@ function SeletorSafra() {
 function ChipsAplicados({
   municipio,
   origem,
-  safra,
+  ano,
 }: {
   municipio: boolean;
   origem: boolean;
-  safra: boolean;
+  ano: boolean;
 }) {
   const { ativos, selecionados, alternar, todos } = useTerritorio();
   const {
@@ -319,19 +319,19 @@ function ChipsAplicados({
   } = useOrigem();
   const {
     anos,
-    alternar: alternarSafra,
-    todos: todasSafras,
-  } = useSafra();
+    alternar: alternarAno,
+    todos: todosAnos,
+  } = useAno();
 
   const chipsMunicipio = municipio && selecionados.length > 0 ? ativos : [];
   const chipsOrigem = origem
     ? origens.filter((o) => selecionadas.includes(o.chave))
     : [];
-  const chipsSafra = safra ? anos : [];
+  const chipsAno = ano ? anos : [];
   if (
     chipsMunicipio.length === 0 &&
     chipsOrigem.length === 0 &&
-    chipsSafra.length === 0
+    chipsAno.length === 0
   )
     return null;
 
@@ -356,11 +356,11 @@ function ChipsAplicados({
           {rotuloCurto(o.label)}
         </ChipFiltro>
       ))}
-      {chipsSafra.map((ano) => (
+      {chipsAno.map((ano) => (
         <ChipFiltro
           key={ano}
-          onRemover={() => alternarSafra(ano)}
-          title={`Tirar a safra ${ano} do recorte`}
+          onRemover={() => alternarAno(ano)}
+          title={`Tirar o ano ${ano} do recorte`}
         >
           {ano}
         </ChipFiltro>
@@ -370,7 +370,7 @@ function ChipsAplicados({
         onClick={() => {
           todos();
           todas();
-          todasSafras();
+          todosAnos();
         }}
         className="link-soft ml-1 text-[12px]"
       >
