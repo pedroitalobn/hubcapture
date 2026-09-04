@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { Favorito } from "@/components/Favorito";
 import { NumeroProposta } from "@/components/NumeroProposta";
-import { Caixa, ChipFiltro, ItemMenu, Seletor } from "@/components/kit";
+import { Caixa, ChipFiltro } from "@/components/kit";
 import {
   CardAlertas,
   CardNoticias,
@@ -25,6 +25,7 @@ import {
 } from "@/lib/format";
 import { rotuloFonte } from "@/lib/fontes";
 import { paramFonte, useOrigem } from "@/lib/origem";
+import { useSafra } from "@/lib/safra";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 // ── Panorama financeiro do território (números + gráfico) ───────────────────
@@ -391,27 +392,14 @@ function dataBr(iso: string | null | undefined): string | null {
 // safra antiga traz os itens daquele ano em vez de garimpar o que sobrou na
 // janela. A escolha persiste entre visitas.
 //
-// A forma é um SELETOR no cabeçalho da página, do mesmo kit dos recortes
-// globais (`components/kit`): rótulo "Safra", o valor escolhido à vista e o
-// menu com todas as safras do território, cada uma com a sua contagem. Antes
-// eram chips somados a um `<select>` de "anteriores…" — dois controles para
-// o mesmo filtro, e o segundo escondia metade das opções.
-const ANO_KEY = "hub_painel_ano";
+// O CONTROLE mora na barra de recorte (`components/FiltrosPainel`), ao lado
+// do município e da origem — os três têm o mesmo alcance, então ficam no
+// mesmo lugar (§60). A seleção e a persistência vivem em `lib/safra`; esta
+// tela só publica as opções que o feed trouxe e lê o recorte escolhido.
+//
 // Janela do feed: quantos itens da safra escolhida (ou das mais recentes,
 // quando "todos os anos") cabem na lista.
 const FEED_LIMITE = 60;
-
-/** Preferência salva do filtro de safra ([] = todos os anos). O valor é uma
- *  lista separada por vírgula; o formato antigo (um ano só) continua lendo. */
-function lerAnosSalvos(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const salvo = window.localStorage.getItem(ANO_KEY) ?? "";
-    return salvo.split(",").filter((a) => /^\d{4}$/.test(a));
-  } catch {
-    return []; // preferência corrompida/indisponível → todos os anos
-  }
-}
 
 function MeuPainel() {
   const searchParams = useSearchParams();
@@ -420,6 +408,8 @@ function MeuPainel() {
   const { perfil, selecionados } = useTerritorio();
   // recorte de ORIGEM DO RECURSO, da mesma barra (vazio = todas as fontes)
   const { selecionadas: origens } = useOrigem();
+  // recorte de SAFRA, da mesma barra (vazio = todos os anos)
+  const { anos, definirOpcoes: definirSafras, todos: todasSafras } = useSafra();
 
   const [data, setData] = useState<VisaoGeral | null>(null);
   const [novidades, setNovidades] = useState<Novidades | null>(null);
@@ -428,29 +418,16 @@ function MeuPainel() {
   const [favErro, setFavErro] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const tentativas = useRef(0);
-  // [] = todos os anos; a seleção é um CONJUNTO de safras (multi-seleção nos
-  // chips). Ler o localStorage já no initializer divergiria do HTML do
-  // servidor, que não tem acesso a ele — erro de hidratação; a restauração
-  // acontece no efeito abaixo.
-  const [anos, setAnos] = useState<string[]>([]);
   // Recorte dos cards financeiros (ponto 06). Não persiste entre sessões: é um
-  // recorte de leitura do momento, ao contrário do território e da origem, que
-  // são configuração do usuário.
+  // recorte de leitura do momento, ao contrário do território, da origem e da
+  // safra, que são configuração do usuário.
   const [estado, setEstado] = useState<EstadoFinanceiro>(null);
-  const prefCarregada = useRef(false);
   // Panorama financeiro (gráfico + faixa de KPIs) — só consulta depois que o
   // perfil confirmou território.
   const { resumo, carregando: carregandoResumo } = useResumoFinanceiro(
     anos,
     (data?.municipios.length ?? 0) > 0,
   );
-  /** Liga/desliga uma safra no conjunto (clique no chip). */
-  const alternarAno = useCallback((safra: string) => {
-    setAnos((prev) =>
-      prev.includes(safra) ? prev.filter((a) => a !== safra) : [...prev, safra],
-    );
-  }, []);
-
   // O recorte de município, a ORIGEM DO RECURSO e a safra entram em TODA
   // consulta do painel: trocar o território ou a origem na barra de filtros, ou
   // o ano no filtro, refaz visão geral, panorama e feed — todos no mesmo
@@ -508,24 +485,6 @@ function MeuPainel() {
     });
   }, []);
 
-  // Restaura a preferência salva uma única vez, no cliente.
-  useEffect(() => {
-    const salvos = lerAnosSalvos();
-    if (salvos.length) setAnos(salvos);
-    prefCarregada.current = true;
-  }, []);
-
-  // Persiste a escolha. O guard evita o efeito rodar ANTES da restauração e
-  // gravar o padrão por cima do que o usuário já tinha escolhido.
-  useEffect(() => {
-    if (!prefCarregada.current) return;
-    try {
-      window.localStorage.setItem(ANO_KEY, anos.join(","));
-    } catch {
-      /* storage cheio/bloqueado: o filtro segue valendo nesta sessão */
-    }
-  }, [anos]);
-
   // A estrela só muda depois que a API confirmou — marcar antes e ignorar o
   // erro criava a "favorita fantasma" que sumia no próximo carregamento.
   async function alternarFavorita(id: string) {
@@ -566,22 +525,12 @@ function MeuPainel() {
 
   const semTerritorio = !loading && (data?.municipios.length ?? 0) === 0;
   const itens = novidades?.itens ?? [];
-  // Safras oferecidas pelo filtro: o que EXISTE no território (vem da API, já
-  // do mais recente ao mais antigo e independente do ano escolhido).
-  const anosDisponiveis = useMemo(
-    () =>
-      [...(novidades?.anos ?? [])].sort((a, b) => b.ano.localeCompare(a.ano)),
-    [novidades],
-  );
-  // Safra salva que não existe mais no território (município trocado, cache
-  // zerado) prenderia o painel num recorte vazio — sai do conjunto; sem
-  // nenhuma sobrando, volta para "todos os anos".
+  // Safras oferecidas pelo filtro: o que EXISTE no território (vem da API,
+  // independente do ano escolhido). Quem DESENHA o seletor é a barra de
+  // recorte; a tela só entrega o catálogo, porque é ela que carrega o feed.
   useEffect(() => {
-    if (!anos.length || !novidades) return;
-    const existentes = new Set((novidades.anos ?? []).map((a) => a.ano));
-    const validos = anos.filter((a) => existentes.has(a));
-    if (validos.length !== anos.length) setAnos(validos);
-  }, [anos, novidades]);
+    if (novidades) definirSafras(novidades.anos ?? []);
+  }, [novidades, definirSafras]);
   const dimensoes = data?.dimensoes ?? [];
   // Dimensões que não têm safra (conformidade/obras): o painel avisa em vez de
   // deixar o usuário achar que o filtro falhou nesses cards.
@@ -592,65 +541,13 @@ function MeuPainel() {
   const aguardandoDados =
     sincronizando && itens.length === 0 && tentativas.current < 15;
 
-  // Valor do seletor de safra: o recorte tem que se ler SEM abrir o menu.
-  const valorSafra =
-    anos.length === 0
-      ? "Todos os anos"
-      : anos.length === 1
-        ? anos[0]!
-        : `${anos.length} safras`;
-
   return (
     <>
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="page-title">Meu painel</h1>
-          <p className="mt-1 text-sm text-ink-2">
-            Tudo do seu território, por etapa do ciclo do recurso público.
-          </p>
-        </div>
-        {/* Filtro de safra da PÁGINA: cards, panorama e novidades no mesmo
-            recorte. MULTI-SELEÇÃO — comparar 2024+2025 é um recorte legítimo;
-            "Todos os anos" limpa. Só aparece quando o território tem mais de
-            uma safra: filtro que não muda nada parece quebrado. */}
-        {!semTerritorio && anosDisponiveis.length > 1 && (
-          <Seletor
-            rotulo="Safra"
-            valor={valorSafra}
-            ativo={anos.length > 0}
-            alinhar="end"
-            largura="14rem"
-            titulo="Ano das propostas e dos repasses que entram no painel"
-          >
-            {(fechar) => (
-              <>
-                <ItemMenu
-                  marcado={anos.length === 0}
-                  radio
-                  rotulo="Todos os anos"
-                  onClick={() => {
-                    setAnos([]);
-                    fechar();
-                  }}
-                  title="Painel inteiro, sem recorte de safra"
-                />
-                <div className="menu-sep" />
-                <div className="menu-scroll" role="listbox" aria-label="Safras do território">
-                  {anosDisponiveis.map((a) => (
-                    <ItemMenu
-                      key={a.ano}
-                      marcado={anos.includes(a.ano)}
-                      rotulo={a.ano}
-                      contagem={a.total}
-                      onClick={() => alternarAno(a.ano)}
-                      title={`Liga/desliga a safra ${a.ano} no recorte`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </Seletor>
-        )}
+      <header>
+        <h1 className="page-title">Meu painel</h1>
+        <p className="mt-1 text-sm text-ink-2">
+          Tudo do seu território, por etapa do ciclo do recurso público.
+        </p>
       </header>
 
       {loading ? (
@@ -835,7 +732,7 @@ function MeuPainel() {
                       Nenhuma novidade de {anos.join(", ")} no território —{" "}
                       <button
                         type="button"
-                        onClick={() => setAnos([])}
+                        onClick={todasSafras}
                         className="underline underline-offset-2"
                       >
                         ver todos os anos
