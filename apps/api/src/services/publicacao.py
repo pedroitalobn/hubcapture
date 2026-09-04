@@ -131,7 +131,13 @@ def esta_publicada(situacao: Any) -> bool:
 # Divergência com o portal também só é diagnosticável quando a tela diz DE ONDE
 # veio o dado: o pacote e a consulta ao vivo discordam legitimamente por alguns
 # dias, e isso não é defeito.
+# O DOU abre a lista porque não é declaração de sistema nenhum: é o ATO. O
+# extrato do contrato de repasse na Seção 3, com o município e a NE na mesma
+# linha, é a publicação — e `services/publicacao_dou` só carimba esta chave
+# quando encontrou a matéria, nunca para registrar que não encontrou (§56c).
+ORIGEM_DOU = "extrato no Diário Oficial da União (Seção 3)"
 _FONTES = (
+    ("dou", ORIGEM_DOU),
     ("webapp", "consulta ao vivo do SIconv (dados da proposta)"),
     ("convenio", "pacote de dados do SIconv (convênio)"),
 )
@@ -147,13 +153,14 @@ class Leitura:
     origem: str | None = None
 
 
-def resolver(execucao: dict | None) -> Leitura:
-    """A leitura da publicação, com a fonte que a sustenta.
+def declaracoes(execucao: dict | None) -> list[Leitura]:
+    """Tudo que cada fonte DECLAROU, na ordem de veracidade.
 
-    Percorre as fontes na ordem de veracidade e fica na PRIMEIRA que responde à
-    pergunta. Fonte que gravou algo irreconhecível não trava a leitura: passa a
-    vez, em vez de transformar um dado ilegível em "sem informação" quando outra
-    fonte respondeu de verdade.
+    Só entra quem responde à pergunta; fonte que gravou algo irreconhecível fica
+    de fora em vez de transformar um dado ilegível em "sem informação" quando
+    outra fonte respondeu de verdade. Mais de um item = as fontes discordam, e
+    é isso que a tela mostra lado a lado no double-check (§56c) — divergência
+    entre o DOU e a ficha é informação, não defeito a esconder.
     """
     ex = execucao if isinstance(execucao, dict) else {}
     candidatos: list[tuple[Any, str]] = []
@@ -163,11 +170,21 @@ def resolver(execucao: dict | None) -> Leitura:
             candidatos.append((bloco.get("situacao_publicacao"), rotulo))
     candidatos.append((ex.get("situacao_publicacao"), _ORIGEM_TOPO))
 
+    saida: list[Leitura] = []
     for bruto, rotulo in candidatos:
         situacao = estado(bruto)
         if situacao != SEM_INFORMACAO:
-            return Leitura(estado=situacao, situacao=str(bruto).strip(), origem=rotulo)
-    return Leitura(estado=SEM_INFORMACAO)
+            saida.append(
+                Leitura(estado=situacao, situacao=str(bruto).strip(), origem=rotulo)
+            )
+    return saida
+
+
+def resolver(execucao: dict | None) -> Leitura:
+    """A leitura da publicação, com a fonte que a sustenta — a primeira que
+    responde na ordem de veracidade."""
+    declaradas = declaracoes(execucao)
+    return declaradas[0] if declaradas else Leitura(estado=SEM_INFORMACAO)
 
 
 def do_execucao(execucao: dict | None) -> str:
@@ -177,6 +194,17 @@ def do_execucao(execucao: dict | None) -> str:
 def origem(execucao: dict | None) -> str | None:
     """Rótulo de onde veio a situação da publicação que está sendo exibida."""
     return resolver(execucao).origem
+
+
+def prova_dou(execucao: dict | None) -> dict | None:
+    """O extrato do DOU que confirma a publicação, quando a conferência achou.
+
+    É o que dá ao gestor o LINK para conferir — confirmação sem a matéria seria
+    mais uma afirmação para acreditar.
+    """
+    ex = execucao if isinstance(execucao, dict) else {}
+    prova = ex.get("dou")
+    return prova if isinstance(prova, dict) and prova.get("url") else None
 
 
 def data_publicacao(execucao: dict | None) -> date | None:
@@ -192,7 +220,9 @@ def data_publicacao(execucao: dict | None) -> date | None:
         return None
     convenio = ex.get("convenio")
     webapp = ex.get("webapp")
+    prova = ex.get("dou")
     candidatos = [
+        prova.get("publicado_em") if isinstance(prova, dict) else None,
         convenio.get("publicado_em") if isinstance(convenio, dict) else None,
         webapp.get("situacao_publicacao") if isinstance(webapp, dict) else None,
         ex.get("data_publicacao"),

@@ -1183,6 +1183,42 @@
         "title": "ConectarSenhaApp",
         "type": "object"
       },
+      "ConferenciaPublicacao": {
+        "description": "Estado da ida ao DOU — \"não consegui\" nunca vira \"não foi publicado\".",
+        "properties": {
+          "confirmado": {
+            "default": false,
+            "title": "Confirmado",
+            "type": "boolean"
+          },
+          "erro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erro"
+          },
+          "status": {
+            "default": "ok",
+            "title": "Status",
+            "type": "string"
+          },
+          "termos": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Termos",
+            "type": "array"
+          }
+        },
+        "title": "ConferenciaPublicacao",
+        "type": "object"
+      },
       "ConfigItem": {
         "properties": {
           "categoria": {
@@ -4202,6 +4238,58 @@
           }
         },
         "title": "EventoDemanda",
+        "type": "object"
+      },
+      "EvidenciaPublicacao": {
+        "description": "Uma prova, com o caminho para conferi-la fora do Hub.\n\n`tipo` diz de que natureza é: `campo` (o que a ficha da proposta declara),\n`documento` (o PDF da publicação anexado à proposta) e `dou` (o extrato na\nSeção 3, que é o ato). Evidência sem `url` continua valendo — só não é\nclicável.",
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "detalhe": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detalhe"
+          },
+          "rotulo": {
+            "title": "Rotulo",
+            "type": "string"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "tipo",
+          "rotulo"
+        ],
+        "title": "EvidenciaPublicacao",
         "type": "object"
       },
       "FacetaOpcao": {
@@ -8470,6 +8558,79 @@
         "title": "PropostasPagina",
         "type": "object"
       },
+      "ProvaPublicacao": {
+        "description": "A matéria do DOU Seção 3 que confirma a publicação.",
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "edicao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edicao"
+          },
+          "nota_empenho": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nota Empenho"
+          },
+          "titulo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Titulo"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "verificado_em": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verificado Em"
+          }
+        },
+        "title": "ProvaPublicacao",
+        "type": "object"
+      },
       "ProvedorInfo": {
         "description": "Catálogo de provedores para a tela de conexão.",
         "properties": {
@@ -8510,6 +8671,35 @@
         "title": "ProvedorInfo",
         "type": "object"
       },
+      "PublicacaoPagina": {
+        "description": "Resposta do endpoint: a leitura, as provas e o estado da conferência.",
+        "properties": {
+          "conferencia": {
+            "$ref": "#/components/schemas/ConferenciaPublicacao",
+            "default": {
+              "confirmado": false,
+              "status": "nao_consultado",
+              "termos": []
+            }
+          },
+          "evidencias": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EvidenciaPublicacao"
+            },
+            "title": "Evidencias",
+            "type": "array"
+          },
+          "publicacao": {
+            "$ref": "#/components/schemas/PublicacaoRead"
+          }
+        },
+        "required": [
+          "publicacao"
+        ],
+        "title": "PublicacaoPagina",
+        "type": "object"
+      },
       "PublicacaoRead": {
         "description": "\"Saiu ou não saiu?\" — a resposta em três estados, nunca em dois.\n\n`sem_informacao` é resposta: a fonte não disse. Espremer isso em \"não\npublicado\" (ou, pior, em \"publicado\") é o que fazia a tela afirmar o que\no portal desmentia.",
         "properties": {
@@ -8539,6 +8729,16 @@
               }
             ],
             "title": "Origem"
+          },
+          "prova": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProvaPublicacao"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "rotulo": {
             "title": "Rotulo",
@@ -15805,7 +16005,7 @@
     },
     "/api/v1/profile/feed": {
       "get": {
-        "description": "Feed 'últimas novidades' do território, recortado pelo perfil do usuário.\n\n`limite` controla a profundidade da janela e `ano`, a safra: o filtro entra\nANTES da janela, então escolher um ano anterior traz os itens daquele ano —\nnão só os que sobraram das novidades mais recentes.",
+        "description": "Feed 'últimas novidades' do território, recortado pelo perfil do usuário.\n\n`limite` controla a profundidade da janela e `ano`, a safra: o filtro entra\nANTES da janela, então escolher um ano anterior traz os itens daquele ano —\nnão só os que sobraram das novidades mais recentes.\n\n`estado` é o recorte dos cards do painel (empenhado/publicado/pago): clicar\nno card lista as propostas que compõem aquele número.",
         "operationId": "novidades_perfil_api_v1_profile_feed_get",
         "parameters": [
           {
@@ -15883,6 +16083,24 @@
               ],
               "description": "safra(s) do recorte — repita o parâmetro para várias; omitir = todos os anos",
               "title": "Ano"
+            }
+          },
+          {
+            "description": "recorte dos cards: empenhado | publicado | pago (omitir = todas)",
+            "in": "query",
+            "name": "estado",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "recorte dos cards: empenhado | publicado | pago (omitir = todas)",
+              "title": "Estado"
             }
           }
         ],
@@ -18051,6 +18269,67 @@
         "summary": "Exportar Pdf",
         "tags": [
           "propostas"
+        ]
+      }
+    },
+    "/api/v1/proposals/{proposta_id}/publication": {
+      "get": {
+        "description": "\"Saiu ou não saiu?\" — a leitura e as PROVAS que a sustentam (§56c).\n\nReúne o campo da ficha, o PDF da publicação anexado e o extrato no DOU, e\nmostra todos, inclusive quando discordam. `conferir=true` é consulta ATIVA\n(vai ao DOU agora) e por isso obedece ao gate do módulo captação; sem ele a\nresposta sai do cache — ler o estado da publicação é Meu painel (§40).",
+        "operationId": "publicacao_da_proposta_api_v1_proposals__proposta_id__publication_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposta Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "conferir a publicação no DOU Seção 3 agora",
+            "in": "query",
+            "name": "conferir",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "conferir a publicação no DOU Seção 3 agora",
+              "title": "Conferir",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicacaoPagina"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Publicacao Da Proposta",
+        "tags": [
+          "andamento"
         ]
       }
     },

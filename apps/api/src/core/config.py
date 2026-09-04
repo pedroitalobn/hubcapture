@@ -114,6 +114,10 @@ class Settings(BaseSettings):
     serpro_painel_url: str = (
         "https://dd-publico.serpro.gov.br/extensions/painel/TransferegovbrVisaoGeral.html"
     )
+    # Diário Oficial da União — a PROVA da publicação (§56c). Seção 3 é onde
+    # sai o extrato do contrato de repasse, com o município e a NE na linha.
+    dou_busca_url: str = "https://www.in.gov.br/consulta/-/buscar/dou"
+    dou_secao: str = "do3"
     # Painel informativo — notícias oficiais (RSS do gov.br)
     transferegov_noticias_url: str = "https://www.gov.br/transferegov/pt-br/noticias/noticias/RSS"
     # Conformidade fiscal (CAUC/CAPAG) — CSV do Tesouro Transparente

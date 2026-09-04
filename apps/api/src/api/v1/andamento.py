@@ -21,6 +21,7 @@ from ...schemas.andamento import AndamentoPagina
 from ...schemas.documento import DocumentoPagina
 from ...schemas.emenda import EmendaPagina
 from ...schemas.empenho import EmpenhoPagina
+from ...schemas.publicacao import PublicacaoPagina
 from ...services import andamento as service
 from ...services import modulos as modulos_service
 from ..deps import get_rls_db
@@ -96,6 +97,30 @@ async def documentos_da_proposta(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=_NAO_ENCONTRADA)
     itens, coleta = resultado
     return DocumentoPagina(itens=itens, coleta=coleta)
+
+
+@router.get("/proposals/{proposta_id}/publication", response_model=PublicacaoPagina)
+async def publicacao_da_proposta(
+    proposta_id: uuid.UUID,
+    conferir: bool = Query(
+        default=False, description="conferir a publicação no DOU Seção 3 agora"
+    ),
+    session: AsyncSession = Depends(get_rls_db),
+    usuario: Usuario = Depends(current_active_user),
+) -> PublicacaoPagina:
+    """"Saiu ou não saiu?" — a leitura e as PROVAS que a sustentam (§56c).
+
+    Reúne o campo da ficha, o PDF da publicação anexado e o extrato no DOU, e
+    mostra todos, inclusive quando discordam. `conferir=true` é consulta ATIVA
+    (vai ao DOU agora) e por isso obedece ao gate do módulo captação; sem ele a
+    resposta sai do cache — ler o estado da publicação é Meu painel (§40).
+    """
+    pagina = await service.publicacao(
+        session, proposta_id, conferir=await _pode_consultar_fonte(conferir)
+    )
+    if pagina is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=_NAO_ENCONTRADA)
+    return pagina
 
 
 @router.get("/proposals/{proposta_id}/amendments", response_model=EmendaPagina)

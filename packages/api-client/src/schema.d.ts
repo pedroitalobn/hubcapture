@@ -1901,6 +1901,9 @@ export interface paths {
          *     `limite` controla a profundidade da janela e `ano`, a safra: o filtro entra
          *     ANTES da janela, então escolher um ano anterior traz os itens daquele ano —
          *     não só os que sobraram das novidades mais recentes.
+         *
+         *     `estado` é o recorte dos cards do painel (empenhado/publicado/pago): clicar
+         *     no card lista as propostas que compõem aquele número.
          */
         get: operations["novidades_perfil_api_v1_profile_feed_get"];
         put?: never;
@@ -2181,6 +2184,31 @@ export interface paths {
          * @description Espelho da proposta em PDF — a peça que o gestor encaminha a quem decide.
          */
         get: operations["exportar_pdf_api_v1_proposals__proposta_id__pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/{proposta_id}/publication": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Publicacao Da Proposta
+         * @description "Saiu ou não saiu?" — a leitura e as PROVAS que a sustentam (§56c).
+         *
+         *     Reúne o campo da ficha, o PDF da publicação anexado e o extrato no DOU, e
+         *     mostra todos, inclusive quando discordam. `conferir=true` é consulta ATIVA
+         *     (vai ao DOU agora) e por isso obedece ao gate do módulo captação; sem ele a
+         *     resposta sai do cache — ler o estado da publicação é Meu painel (§40).
+         */
+        get: operations["publicacao_da_proposta_api_v1_proposals__proposta_id__publication_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2933,6 +2961,29 @@ export interface components {
              * @description senha de app (não é a senha da conta)
              */
             senha_app: string;
+        };
+        /**
+         * ConferenciaPublicacao
+         * @description Estado da ida ao DOU — "não consegui" nunca vira "não foi publicado".
+         */
+        ConferenciaPublicacao: {
+            /**
+             * Confirmado
+             * @default false
+             */
+            confirmado: boolean;
+            /** Erro */
+            erro?: string | null;
+            /**
+             * Status
+             * @default ok
+             */
+            status: string;
+            /**
+             * Termos
+             * @default []
+             */
+            termos: string[];
         };
         /** ConfigItem */
         ConfigItem: {
@@ -3875,6 +3926,27 @@ export interface components {
             situacao?: string | null;
             /** Texto */
             texto?: string | null;
+        };
+        /**
+         * EvidenciaPublicacao
+         * @description Uma prova, com o caminho para conferi-la fora do Hub.
+         *
+         *     `tipo` diz de que natureza é: `campo` (o que a ficha da proposta declara),
+         *     `documento` (o PDF da publicação anexado à proposta) e `dou` (o extrato na
+         *     Seção 3, que é o ato). Evidência sem `url` continua valendo — só não é
+         *     clicável.
+         */
+        EvidenciaPublicacao: {
+            /** Data */
+            data?: string | null;
+            /** Detalhe */
+            detalhe?: string | null;
+            /** Rotulo */
+            rotulo: string;
+            /** Tipo */
+            tipo: string;
+            /** Url */
+            url?: string | null;
         };
         /**
          * FacetaOpcao
@@ -5451,6 +5523,24 @@ export interface components {
             total: number;
         };
         /**
+         * ProvaPublicacao
+         * @description A matéria do DOU Seção 3 que confirma a publicação.
+         */
+        ProvaPublicacao: {
+            /** Data */
+            data?: string | null;
+            /** Edicao */
+            edicao?: string | null;
+            /** Nota Empenho */
+            nota_empenho?: string | null;
+            /** Titulo */
+            titulo?: string | null;
+            /** Url */
+            url?: string | null;
+            /** Verificado Em */
+            verificado_em?: string | null;
+        };
+        /**
          * ProvedorInfo
          * @description Catálogo de provedores para a tela de conexão.
          */
@@ -5467,6 +5557,26 @@ export interface components {
             tipo_auth: string;
         };
         /**
+         * PublicacaoPagina
+         * @description Resposta do endpoint: a leitura, as provas e o estado da conferência.
+         */
+        PublicacaoPagina: {
+            /**
+             * @default {
+             *       "confirmado": false,
+             *       "status": "nao_consultado",
+             *       "termos": []
+             *     }
+             */
+            conferencia: components["schemas"]["ConferenciaPublicacao"];
+            /**
+             * Evidencias
+             * @default []
+             */
+            evidencias: components["schemas"]["EvidenciaPublicacao"][];
+            publicacao: components["schemas"]["PublicacaoRead"];
+        };
+        /**
          * PublicacaoRead
          * @description "Saiu ou não saiu?" — a resposta em três estados, nunca em dois.
          *
@@ -5481,6 +5591,7 @@ export interface components {
             estado: string;
             /** Origem */
             origem?: string | null;
+            prova?: components["schemas"]["ProvaPublicacao"] | null;
             /** Rotulo */
             rotulo: string;
             /** Valor */
@@ -9829,6 +9940,8 @@ export interface operations {
                 limite?: number;
                 /** @description safra(s) do recorte — repita o parâmetro para várias; omitir = todos os anos */
                 ano?: string[] | null;
+                /** @description recorte dos cards: empenhado | publicado | pago (omitir = todas) */
+                estado?: string | null;
             };
             header?: never;
             path?: never;
@@ -10425,6 +10538,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publicacao_da_proposta_api_v1_proposals__proposta_id__publication_get: {
+        parameters: {
+            query?: {
+                /** @description conferir a publicação no DOU Seção 3 agora */
+                conferir?: boolean;
+            };
+            header?: never;
+            path: {
+                proposta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicacaoPagina"];
                 };
             };
             /** @description Validation Error */

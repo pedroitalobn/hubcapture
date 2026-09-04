@@ -2519,6 +2519,63 @@ situação da publicação dos DADOS DA PROPOSTA do TransfereGov, e só nele**.
   na ficha da proposta. Enquanto não confere, a retaguarda de texto cobre — e o
   erro possível passou a ser "sem informação", nunca "publicado" indevido.
 
+### 56c. Double-check da publicação no DOU Seção 3 — a NE é a chave
+
+O campo "Publicação" da ficha (§56b) é a DECLARAÇÃO do sistema. A publicação em
+si é um ato que acontece fora dele: o extrato do contrato de repasse sai no
+**Diário Oficial da União, Seção 3**. Regra de negócio do cliente que destrava a
+segunda via: **proposta publicada sempre tem nota de empenho** — nunca se publica
+sem NE —, então procurar no DOU Seção 3 aquela NE naquele município responde
+"saiu ou não saiu?" por um caminho INDEPENDENTE da ficha. O extrato traz os dois
+na mesma matéria:
+
+> EXTRATO DE CONTRATO — Contrato de Repasse nº **999293/2026**, firmado pelo
+> **MUNICÍPIO DE APUIARÉS-CE**, CNPJ 07.438.468/0001-01 … **NE 2026NE001244** …
+
+- **`connectors/dou.py`** — busca pública do in.gov.br (`dou_busca_url`,
+  `dou_secao`, painel admin, §27). Os resultados vêm num `<script id="params">`
+  em JSON: ler o JSON é determinístico, ao contrário de raspar os cards. Página
+  SEM o script levanta `DouIndisponivel` — devolver lista vazia faria "não
+  consegui perguntar" virar "não foi publicado". Egresso pelo scraper remoto
+  quando o gov.br recusa o IP (mesmo desenho de `_http.get_json`, §30).
+- **Só CONFIRMA, nunca nega** (`services/publicacao_dou.py`). Não achar no DOU
+  não vira `nao_publicado`: a busca é textual, o termo varia e a fonte cai —
+  trocar isso produziria o mesmo defeito ao contrário, um falso NEGATIVO com o
+  gestor achando que perdeu uma publicação que saiu. Quem nega continua sendo o
+  campo, e só quando nega explicitamente.
+- **Duas âncoras no casamento** (`casa()`): a matéria precisa citar o termo **e**
+  o município. NE isolada se repete entre órgãos e "999293" é um número como
+  outro no meio do jornal; sem a segunda âncora, publicação alheia viraria prova
+  da nossa. A comparação também é feita sem espaço nenhum, porque o DOU sai em
+  coluna estreita e o extrato real chega "MUNIC ÍPIO DE APUIAR ÉS". Município de
+  nome curto (< 5 letras) não ancora nada — fica sem confirmar, em vez de
+  confirmar por acidente.
+- **O termo do instrumento é o CÓDIGO DO INSTRUMENTO** (999293), não o número da
+  proposta (023950/2026): são campos diferentes na ficha e quem sai no extrato —
+  e quem nomeia o PDF anexado ("Publicação 999293.pdf") — é o primeiro.
+- **A prova fica com o link.** Confirmação carimba `execucao.dou`
+  (`{situacao_publicacao, nota_empenho, publicado_em, edicao, url, titulo,
+  verificado_em}`), que é a chave no TOPO de `publicacao._FONTES` — a partir daí
+  tela, alerta e PDF dizem "publicado" com o extrato a um clique, sem nenhum
+  deles saber do DOU. Conferência que não achou **não carimba nada**: guardar
+  "não achei" faria a leitura herdar um negativo que o DOU não deu.
+- **Divergência é informação, não defeito.** `publicacao.declaracoes()` devolve
+  TUDO que cada fonte declarou (não só a vencedora) e a tela mostra lado a lado
+  — o TransfereGov leva alguns dias para refletir a publicação, e é isso que o
+  gestor precisa ver.
+- **API**: `GET /proposals/{id}/publication` (schemas em `schemas/publicacao.py`)
+  devolve a leitura, as evidências (`campo` · `documento` · `dou`) e o estado da
+  conferência. `?conferir=true` é consulta ATIVA e obedece ao gate do módulo
+  captação; sem ele responde do cache (ler publicação é panel-core, §40).
+- **Web**: `components/PublicacaoConferencia.tsx` no detalhe, logo depois dos
+  empenhos (é a NE que ancora a busca), com o botão "Conferir no Diário Oficial".
+- Regressão: `tests/test_publicacao_dou.py` (indisponível ≠ vazio, as duas
+  âncoras, a quebra de coluna do jornal, o código do instrumento, o carimbo e o
+  ponta a ponta sob RLS com o DOU confirmando o que a ficha ainda negava).
+- **Pendente de calibração ao vivo** (exige saída para gov.br): os nomes dos
+  campos do `jsonArray` da busca. O parse já lê por candidatos e a falha degrada
+  para `DouIndisponivel` — nunca para "não publicado".
+
 ## 57. Design system v1 "Hub Capture" — a migração da Bancada v2 (decisão travada)
 
 A UI saiu da **"Bancada v2"** (canvas quase-preto com aurora, cards de vidro,

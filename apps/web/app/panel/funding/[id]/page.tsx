@@ -8,6 +8,7 @@ import { CriteriosAlerta } from "@/components/CriteriosAlerta";
 import { Hint } from "@/components/Hint";
 import { AndamentoProposta } from "@/components/AndamentoProposta";
 import { DocumentosProposta } from "@/components/DocumentosProposta";
+import { PublicacaoConferencia } from "@/components/PublicacaoConferencia";
 import { EmendasProposta } from "@/components/EmendasProposta";
 import { Favorito } from "@/components/Favorito";
 import { EmpenhosProposta } from "@/components/EmpenhosProposta";
@@ -879,7 +880,11 @@ export default function PropostaDetalhePage() {
 
       <EmpenhosProposta proposta={p} podeConsultarFonte={podeExplorar} />
 
-      {/* O documento vem logo abaixo do empenho: publicou → cadê o arquivo? */}
+      {/* A conferência da publicação vem depois do empenho de propósito: é a
+          NE que ancora a busca no Diário Oficial (§56c). */}
+      <PublicacaoConferencia proposta={p} podeConsultarFonte={podeExplorar} />
+
+      {/* O documento vem logo abaixo: publicou → cadê o arquivo? */}
       <DocumentosProposta
         proposta={p}
         publicado={publicacao.estado === "publicado"}

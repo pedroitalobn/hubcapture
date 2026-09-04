@@ -220,6 +220,8 @@ CATALOGO: list[dict] = [
     _c("fns_api_url", "FNS — API do ConsultaFNS (base URL)", "fonte", False),
     _c("fns_api_endpoint", "FNS — rota da API (autocalibração se vazio)", "fonte", False),
     _c("fnde_base_url", "FNDE base URL", "fonte", False),
+    _c("dou_busca_url", "DOU — busca pública (in.gov.br)", "fonte", False),
+    _c("dou_secao", "DOU — seção da conferência (do3 = contratos)", "fonte", False),
     _c("serpro_base_url", "SERPRO base URL", "fonte", False),
     _c("serpro_token", "SERPRO token", "fonte", True),
     _c("serpro_painel_url", "SERPRO painel público (dd-publico, scraping)", "fonte", False),
