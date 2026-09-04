@@ -64,6 +64,22 @@ class CategoriaTag(BaseModel):
     rotulo: str
 
 
+class ProvaPublicacao(BaseModel):
+    """A matéria do DOU Seção 3 que confirma a publicação."""
+
+    titulo: str | None = None
+    url: str | None = None
+    data: str | None = None
+    edicao: str | None = None
+    secao: str | None = None
+    pagina: str | None = None
+    #: PDF certificado da página do jornal — o comprovante que se anexa ao
+    #: processo. A página web não serve: ela não é documento assinado.
+    pdf_url: str | None = None
+    nota_empenho: str | None = None
+    verificado_em: str | None = None
+
+
 class PublicacaoRead(BaseModel):
     """"Saiu ou não saiu?" — a resposta em três estados, nunca em dois.
 
@@ -76,8 +92,11 @@ class PublicacaoRead(BaseModel):
     rotulo: str
     valor: str | None = None
     data: date | None = None
-    #: de onde veio o dado exibido (consulta ao vivo, pacote, relatório)
+    #: de onde veio o dado exibido (DOU, consulta ao vivo, pacote, relatório)
     origem: str | None = None
+    #: o extrato do DOU que PROVA a publicação, quando a conferência o achou —
+    #: é o link que o gestor abre em vez de acreditar na tela (§56c)
+    prova: ProvaPublicacao | None = None
 
 
 class PropostaRead(BaseModel):
@@ -159,11 +178,17 @@ class PropostaRead(BaseModel):
 
         ex = self.execucao or {}
         estado = publicacao_service.do_execucao(ex)
+        prova = publicacao_service.prova_dou(ex)
         return PublicacaoRead(
             estado=estado,
             rotulo=publicacao_service.ROTULOS[estado],
             valor=ex.get("valor_publicado"),
             data=publicacao_service.data_publicacao(ex),
+            prova=ProvaPublicacao(**{
+                k: v for k, v in prova.items() if k in ProvaPublicacao.model_fields
+            })
+            if prova
+            else None,
             # sem estado não há dado exibido, logo não há origem a atribuir
             origem=(
                 publicacao_service.origem(ex)

@@ -8,6 +8,7 @@ import { CriteriosAlerta } from "@/components/CriteriosAlerta";
 import { Hint } from "@/components/Hint";
 import { AndamentoProposta } from "@/components/AndamentoProposta";
 import { DocumentosProposta } from "@/components/DocumentosProposta";
+import { PublicacaoConferencia } from "@/components/PublicacaoConferencia";
 import { EmendasProposta } from "@/components/EmendasProposta";
 import { Favorito } from "@/components/Favorito";
 import { EmpenhosProposta } from "@/components/EmpenhosProposta";
@@ -567,23 +568,17 @@ export default function PropostaDetalhePage() {
             )}
           </div>
 
-          {/* PUBLICADO (pontos 13 e 09). A fonte usa o termo nos dois sentidos:
-              o valor publicado do convênio e o estado da publicação no DOU. O
-              valor manda quando existe; senão vale o ESTADO resolvido pela API
-              — e "sem informação" é uma resposta legítima, que a tela agora
-              distingue de "não publicado" em vez de afirmar o que não sabe. */}
+          {/* PUBLICADO. Quem responde "saiu ou não saiu?" é o campo de
+              situação dos DADOS DA PROPOSTA — e só ele. O valor em reais da
+              coluna de publicação dizia "Publicado R$ X" em proposta que a
+              fonte dava como NÃO publicada: era dinheiro respondendo a uma
+              pergunta de sim/não. Agora o ESTADO (resolvido pela API) manda, o
+              valor entra como apoio quando de fato houve publicação, e "sem
+              informação" continua sendo resposta — distinta de "não publicado"
+              em vez de afirmar o que não se sabe. */}
           <div className="field">
             <span className="field-label">Publicado</span>
-            {num(p.execucao?.valor_publicado) > 0 ? (
-              <>
-                <span className="value-hero">
-                  {formatBRL(p.execucao!.valor_publicado)}
-                </span>
-                <span className="num mt-1 text-xs text-ink-3">
-                  valor publicado na fonte
-                </span>
-              </>
-            ) : publicacao.estado === "sem_informacao" ? (
+            {publicacao.estado === "sem_informacao" ? (
               <>
                 <span className="value-hero text-ink-3">—</span>
                 <span className="num mt-1 text-xs text-ink-3">
@@ -592,14 +587,30 @@ export default function PropostaDetalhePage() {
               </>
             ) : (
               <>
-                <span className="value-lg">{publicacao.rotulo}</span>
+                <span
+                  className={
+                    publicacao.estado === "publicado"
+                      ? "value-lg"
+                      : "value-lg text-ink-3"
+                  }
+                >
+                  {publicacao.rotulo}
+                </span>
                 {/* A origem é o que torna a divergência com o portal
                     diagnosticável: pacote (~mensal) e consulta ao vivo
                     discordam por alguns dias, e isso não é defeito. */}
                 <span className="num mt-1 text-xs text-ink-3">
-                  {publicacao.data
-                    ? `publicado em ${formatDate(publicacao.data)}`
-                    : publicacao.origem ?? "situação da publicação"}
+                  {[
+                    publicacao.data
+                      ? `publicado em ${formatDate(publicacao.data)}`
+                      : publicacao.origem ?? "situação da publicação",
+                    publicacao.estado === "publicado" &&
+                    num(p.execucao?.valor_publicado) > 0
+                      ? formatBRL(p.execucao!.valor_publicado)
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </span>
               </>
             )}
@@ -869,7 +880,11 @@ export default function PropostaDetalhePage() {
 
       <EmpenhosProposta proposta={p} podeConsultarFonte={podeExplorar} />
 
-      {/* O documento vem logo abaixo do empenho: publicou → cadê o arquivo? */}
+      {/* A conferência da publicação vem depois do empenho de propósito: é a
+          NE que ancora a busca no Diário Oficial (§56c). */}
+      <PublicacaoConferencia proposta={p} podeConsultarFonte={podeExplorar} />
+
+      {/* O documento vem logo abaixo: publicou → cadê o arquivo? */}
       <DocumentosProposta
         proposta={p}
         publicado={publicacao.estado === "publicado"}

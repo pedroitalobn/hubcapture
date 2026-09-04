@@ -33,6 +33,7 @@ from . import documentos_proposta as documentos_service
 from . import emendas_proposta as emendas_service
 from . import empenhos_proposta as empenhos_service
 from . import pareceres as pareceres_service
+from . import publicacao as publicacao_service
 
 # escada de urgência do prazo — mesma de `lib/format.ts::tomPrazo` no web
 DIAS_CRITICO = 7
@@ -341,6 +342,91 @@ async def documentos(
         return None
     return await documentos_service.por_proposta(
         session, proposta, atualizar=atualizar, usuario_id=usuario_id
+    )
+
+
+async def publicacao(
+    session: AsyncSession,
+    proposta_id: uuid.UUID,
+    *,
+    conferir: bool = False,
+):
+    """"Saiu ou não saiu?" com as PROVAS ao lado (`None` = fora do território).
+
+    Reúne as três evidências que respondem por caminhos independentes — o campo
+    da ficha do TransfereGov, o PDF da publicação anexado à proposta e o extrato
+    no DOU Seção 3 (§56c) — e mostra TODAS, inclusive quando discordam entre si.
+    Divergência entre a declaração do sistema e o ato publicado é justamente o
+    que o gestor precisa ver; escolher uma e esconder a outra é como o Hub
+    afirmou publicação que não houve.
+
+    `conferir=True` vai ao DOU agora (consulta ativa, gate do módulo captação no
+    router); sem ele a resposta sai do que já está em cache.
+    """
+    from ..schemas.proposta import PropostaRead
+    from ..schemas.publicacao import (
+        ConferenciaPublicacao,
+        EvidenciaPublicacao,
+        PublicacaoPagina,
+    )
+    from . import publicacao_dou
+
+    proposta = (
+        await session.execute(
+            select(Proposta).where(
+                Proposta.id == proposta_id, Proposta.excluido_em.is_(None)
+            )
+        )
+    ).scalar_one_or_none()
+    if proposta is None:
+        return None
+
+    estado_conferencia = ConferenciaPublicacao(status="nao_consultado")
+    if conferir:
+        resultado = await publicacao_dou.conferir_e_carimbar(session, proposta_id)
+        if resultado is not None:
+            proposta, feita = resultado
+            estado_conferencia = ConferenciaPublicacao(
+                status=feita.status,
+                confirmado=feita.confirmado,
+                termos=feita.termos,
+                erro=feita.erro,
+            )
+
+    evidencias: list[EvidenciaPublicacao] = []
+    for leitura in publicacao_service.declaracoes(proposta.execucao):
+        e_dou = leitura.origem == publicacao_service.ORIGEM_DOU
+        prova = publicacao_service.prova_dou(proposta.execucao) if e_dou else None
+        evidencias.append(
+            EvidenciaPublicacao(
+                tipo="dou" if e_dou else "campo",
+                rotulo=publicacao_service.ROTULOS[leitura.estado],
+                detalhe=f"{leitura.situacao} — {leitura.origem}",
+                data=(prova or {}).get("publicado_em"),
+                url=(prova or {}).get("url"),
+                pdf_url=(prova or {}).get("pdf_url"),
+            )
+        )
+
+    # O PDF da publicação já anexado à proposta ("Publicação 999293.pdf"): é o
+    # arquivo que o gestor encaminha, e vale como prova mesmo sem ida ao DOU.
+    for documento in await documentos_service.listar(session, proposta):
+        if documento.tipo != "publicacao":
+            continue
+        evidencias.append(
+            EvidenciaPublicacao(
+                tipo="documento",
+                rotulo="Documento de publicação anexado à proposta",
+                detalhe=documento.nome,
+                data=documento.data_upload.isoformat() if documento.data_upload else None,
+                url=documento.url,
+            )
+        )
+
+    return PublicacaoPagina(
+        publicacao=PropostaRead.model_validate(proposta).publicacao,
+        evidencias=evidencias,
+        conferencia=estado_conferencia,
     )
 
 

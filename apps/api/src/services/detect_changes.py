@@ -164,12 +164,12 @@ def _veredito(p: Any) -> str:
     )
 
 
-# publicação vem da fonte ora como texto ("Publicado"/"Não publicado"), ora
-# como data, ora só como valor publicado — §28 coletou os dois sentidos. A
-# leitura é a MESMA da tela (`services/publicacao`): duas regras separadas
-# fariam o alerta discordar da página que ele manda o gestor abrir.
-def _esta_publicada(situacao: Any, valor: Any) -> bool:
-    return publicacao_service.esta_publicada(situacao, valor)
+# A publicação vem da fonte ora como texto ("Publicado"/"Não publicado"), ora
+# como data — e por CAMINHOS diferentes (consulta ao vivo, pacote, relatório),
+# que gravam no mesmo jsonb. A leitura, com a precedência entre eles, é a MESMA
+# da tela (`services/publicacao.resolver`): duas regras separadas fariam o
+# alerta discordar da página que ele manda o gestor abrir. O valor em reais NÃO
+# entra na decisão — é dado de outra pergunta (§56b).
 
 
 def snapshot(
@@ -193,7 +193,8 @@ def snapshot(
     ids_parecer = {
         _identidade(p, prefixo="parecer", indice=i): _veredito(p) for i, p in enumerate(pareceres)
     }
-    publicacao_situacao = execucao.get("situacao_publicacao")
+    leitura = publicacao_service.resolver(execucao)
+    publicacao_situacao = leitura.situacao
     publicacao_valor = execucao.get("valor_publicado")
 
     return {
@@ -201,7 +202,7 @@ def snapshot(
         "movimentacao": proposta.movimentacao,
         "prazos": _json(proposta.prazos),
         "pendencias": _json(proposta.pendencias),
-        "publicada": _esta_publicada(publicacao_situacao, publicacao_valor),
+        "publicada": leitura.estado == publicacao_service.PUBLICADO,
         "publicacao_situacao": _json(publicacao_situacao),
         "publicacao_valor": _json(_decimal(publicacao_valor)),
         "valor_empenhado": _json(_decimal(execucao.get("valor_empenhado"))),
