@@ -2913,3 +2913,19 @@ e na lista do construtor.
 **A aba fixa "★ Acompanhamento" saiu** da captação: desde que Minhas Propostas
 virou item de menu (`/panel/my-proposals`) não havia como ativá-la — era
 caminho morto carregando o recorte global numa tela que não o usa mais.
+
+**Os dois conjuntos de filtro NÃO conversam** (é a regra, não um efeito
+colateral): o recorte da barra é do PAINEL (e das demais lentes que a barra
+cobre); o recorte da ABA é da consulta. A tela de Propostas lê do
+`TerritorioProvider`/`OrigemProvider` apenas o CATÁLOGO (os municípios do
+onboarding, as origens do plano) — nunca a seleção ativa —, e não escreve neles.
+O painel não conhece as consultas.
+
+- **O card do Meu painel abre em consulta PRÓPRIA.** O link
+  `/panel/funding?natureza_grupo=…&ano=…` (§45/§47) gravava o recorte do card na
+  aba ATIVA e o PATCH o persistia: um clique no painel reescrevia, em silêncio, a
+  consulta que o gestor tinha montado. Agora ele cria/reaproveita uma consulta
+  chamada **"Do Meu painel"** (`NOME_DO_PAINEL`) — renomeá-la é ADOTÁ-la: o
+  clique seguinte cria outra em vez de sobrescrever o que virou do gestor.
+  Voltando do detalhe (`?view=`) o destino é sempre a consulta de origem, nunca
+  esse recorte.

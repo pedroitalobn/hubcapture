@@ -132,6 +132,9 @@ type Pasta = { id: string; nome: string; cor?: string | null };
    consultas — é o que permite "uma aba por município". O Meu painel continua
    com o recorte global; as duas telas são independentes. */
 
+/** Nome da consulta que recebe o recorte vindo de um card do Meu painel. */
+const NOME_DO_PAINEL = "Do Meu painel";
+
 const AREAS = [
   "saude",
   "educacao",
@@ -727,23 +730,56 @@ function CaptacaoExploracao() {
     })();
   }, [filtros.pastaId]);
 
-  // Chegando do Meu painel (`/panel/funding?natureza_grupo=…&ano=…`), a tela
-  // abre já na lente E no ano escolhidos no card — o clique não pode trocar o
-  // recorte por baixo do usuário. Só na chegada: depois quem manda são os chips.
+  // ── Chegando do Meu painel (`?natureza_grupo=…&ano=…`) ───────────────────
+  // O recorte do card do painel NÃO entra na consulta que o gestor está
+  // montando (§61: os filtros do painel são do painel). Ele abre numa consulta
+  // PRÓPRIA, reaproveitada a cada clique — renomeá-la é ADOTÁ-la: o clique
+  // seguinte passa a criar outra em vez de sobrescrever o que virou dele.
   const lenteUrl = paramsUrl.get("natureza_grupo");
   const lenteValida = LENTES_NATUREZA.some(([v]) => v && v === lenteUrl) ? lenteUrl : null;
   const anoUrl = paramsUrl.get("ano");
   const anoValido = anoUrl && /^\d{4}$/.test(anoUrl) ? anoUrl : null;
-  // `abasProntas` no gatilho: sem aba carregada não há onde gravar o filtro —
-  // o recorte que veio do card do painel se perderia em silêncio.
+  const recorteDoPainel = useMemo(
+    () =>
+      lenteValida || anoValido
+        ? {
+            ...FILTROS_VAZIOS,
+            naturezaGrupo: lenteValida ?? "",
+            ano: anoValido ?? "",
+          }
+        : null,
+    [lenteValida, anoValido],
+  );
+  const linkAplicado = useRef(false);
   useEffect(() => {
-    if (abasProntas && lenteValida) setFiltros({ naturezaGrupo: lenteValida });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lenteValida, abasProntas]);
-  useEffect(() => {
-    if (abasProntas && anoValido) setFiltros({ ano: anoValido });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anoValido, abasProntas]);
+    // `abaUrl` (voltando do detalhe) manda: ali o destino é a consulta de onde
+    // a proposta foi aberta, não o recorte de um card
+    if (!abasProntas || !recorteDoPainel || abaUrl || linkAplicado.current) return;
+    linkAplicado.current = true;
+    void (async () => {
+      const existente = abas.find((a) => a.nome === NOME_DO_PAINEL);
+      if (existente) {
+        setAbas((prev) =>
+          prev.map((a) =>
+            a.id === existente.id ? { ...a, filtros: recorteDoPainel } : a,
+          ),
+        );
+        setAbaAtiva(existente.id);
+        agendarSalvar(existente.id, recorteDoPainel);
+        return;
+      }
+      const { data } = await api.POST("/api/v1/proposals/views", {
+        body: { nome: NOME_DO_PAINEL, filtros: paraApi(recorteDoPainel) } as never,
+      });
+      if (!data) {
+        setMsg("Não consegui abrir o recorte do painel numa consulta nova.");
+        return;
+      }
+      const nova = abaDaApi(data as { id: string; nome: string; filtros?: unknown });
+      setAbas((prev) => [...prev, nova]);
+      setAbaAtiva(nova.id);
+    })();
+  }, [abasProntas, recorteDoPainel, abaUrl, abas, agendarSalvar]);
 
   function setFiltros(patch: Partial<Filtros>) {
     if (!aba.id) return; // sem aba carregada não há consulta para ajustar
