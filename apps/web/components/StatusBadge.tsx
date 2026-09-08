@@ -18,7 +18,19 @@ const TOM: Record<BadgeTone, string> = {
   info: "badge-info",
 };
 
-/** Badge de status: preenchimento semântico + rótulo em caixa de frase. */
+/** Badge de status: preenchimento semântico + rótulo em caixa de frase.
+ *
+ * O badge NUNCA transborda o container. A `situacao` da proposta é texto
+ * livre da fonte ("Proposta Aprovada e Plano de Trabalho Complementado em
+ * Análise") e, com `whitespace-nowrap` sem teto de largura, o retângulo
+ * sólido saía da célula da grade e cobria o campo vizinho — a informação de
+ * um registro apagando a do outro. Com `max-w-full` a frase longa quebra
+ * DENTRO do próprio badge; rótulo curto (a esmagadora maioria: "ativo",
+ * "publicado") nunca chega ao limite e segue em uma linha só.
+ *
+ * `leading-[1.3]` + padding vertical reduzido preservam a altura de antes no
+ * caso de uma linha — com `leading-none` as linhas da frase quebrada se
+ * encavalariam. */
 export function StatusBadge({
   children,
   tone = "neutral",
@@ -28,7 +40,7 @@ export function StatusBadge({
 }) {
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap rounded px-[0.65em] py-[0.35em] text-xs font-semibold leading-none ${TOM[tone]}`}
+      className={`inline-flex max-w-full items-center break-words rounded px-[0.65em] py-[0.22em] text-left text-xs font-semibold leading-[1.3] ${TOM[tone]}`}
     >
       {children}
     </span>

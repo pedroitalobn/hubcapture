@@ -1267,6 +1267,17 @@ p {
     /* o rótulo nunca quebra a altura da linha do campo vizinho */
     line-height: 1.3;
   }
+  /* Campo cujo VALOR é texto livre da fonte (a situação da proposta chega
+     com uma frase inteira). Numa trilha de 11rem o badge quebrava em quatro
+     linhas e desalinhava a linha toda; com duas trilhas a frase cabe em uma
+     ou duas. Só a partir de 48rem, onde a grade certamente tem mais de uma
+     coluna: em uma coluna só, `span 2` criaria trilha implícita e a grade
+     transbordaria o card. */
+  @media (min-width: 48rem) {
+    .field--wide {
+      grid-column: span 2;
+    }
+  }
   .field-value {
     font-size: 0.9375rem;
     line-height: 1.4;
