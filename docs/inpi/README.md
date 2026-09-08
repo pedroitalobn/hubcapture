@@ -121,13 +121,16 @@ digitalmente.
 ## Passo 3 — Emitir e pagar a GRU
 
 - Serviço: **código 730 — Pedido de registro de programa de computador (RPC)**.
-- Valor: **R$ 210,00** na tabela vigente em 2026. Atenção: a Portaria INPI/PR nº
-  10/2025 **não estendeu aos serviços de software** o desconto de 50% que vale
-  para marcas e patentes — para o 730 não há valor reduzido para pessoa física,
-  ME/EPP ou instituição de ensino. **Confira a tabela no dia**, ela muda.
-- Ao emitir a GRU, **baixe também a Declaração de Veracidade (DV)** disponibilizada
-  pelo sistema. Ela precisa ser **assinada digitalmente** e anexada no passo
-  seguinte.
+- Valor: da ordem de **R$ 200** (fontes de 2026 indicam R$ 210,00; páginas mais
+  antigas ainda trazem R$ 185,00). **Confira a tabela oficial no dia da emissão** —
+  o valor correto é o que o próprio sistema apresentar. Atenção: a Portaria
+  INPI/PR nº 10/2025 **não estendeu aos serviços de software** o desconto de 50%
+  que vale para marcas e patentes — para o 730 não há valor reduzido para pessoa
+  física, ME/EPP ou instituição de ensino.
+- Emita em <https://gru.inpi.gov.br/pag/>, logado com a conta do e-INPI. Na
+  mesma tela em que sai o boleto, **baixe a Declaração de Veracidade (DV)** — ela
+  é **vinculada ao número daquela GRU**, então não existe antes da emissão e não
+  se reaproveita de outro pedido. Assine-a digitalmente e anexe no passo seguinte.
 - Só prossiga após o **pagamento compensar** (costuma levar 1–2 dias úteis).
 
 ### O que se assina: só a Declaração de Veracidade
