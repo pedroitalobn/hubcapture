@@ -114,9 +114,8 @@ Crie o cadastro em <https://www.gov.br/inpi> → *Serviços* → *Programas de
 Computador*. O cadastro é do **titular** (CPF ou CNPJ). Se for PJ, o representante
 legal precisa estar habilitado.
 
-Tenha à mão um **certificado digital ICP-Brasil** (e-CPF/e-CNPJ) ou a conta
-**gov.br nível prata ou ouro** — a Declaração de Veracidade precisa ser assinada
-digitalmente.
+Tenha à mão um **certificado digital ICP-Brasil** (e-CPF/e-CNPJ) **do titular** —
+é com ele que a Declaração de Veracidade será assinada.
 
 ## Passo 3 — Emitir e pagar a GRU
 
@@ -147,9 +146,10 @@ legal (e-CNPJ, ou e-CPF de quem tem poderes no contrato social). Se houver
 procurador — advogado ou agente da propriedade industrial —, ele assina, mas
 precisa de procuração. Os **autores não assinam** a DV.
 
-**Com o quê**: certificado digital **ICP-Brasil** (e-CPF/e-CNPJ) ou a conta
-**gov.br nível prata ou ouro**, pelo assinador do gov.br. Assinatura escaneada ou
-imagem colada não vale.
+**Com o quê**: certificado digital **ICP-Brasil** (e-CPF/e-CNPJ). O próprio
+formulário do e-Software diz: "o requerente do serviço deverá assinar digitalmente
+(ICP-Brasil) o documento DV". Não conte com o assinador gov.br para esta etapa —
+providencie o certificado antes de emitir a GRU, porque a DV só existe depois dela.
 
 **O que você está declarando**: que as informações do pedido são verdadeiras — o
 que inclui a **autoria** e a correspondência entre o hash informado e a

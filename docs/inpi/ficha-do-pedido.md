@@ -5,16 +5,36 @@ como `[preencher]` depende de decisão sua, não do código.
 
 ## Dados do programa
 
+Valores para o formulário e-Software, com os códigos das tabelas do próprio INPI.
+
 | Campo do formulário | Valor |
 |---|---|
 | Título | **Hub Capture** |
 | Data de criação | `[preencher]` — ver critério abaixo |
 | Data de publicação | `[preencher]` — só se já está acessível ao público |
-| Linguagens de programação | **Python**, **TypeScript**, **SQL** (+ CSS, HTML, Shell) |
-| Campo de aplicação | escolher na lista do e-Software (administração pública / gestão) |
-| Tipo de programa | escolher na lista do e-Software (sistema aplicativo / aplicação web) |
-| Algoritmo do resumo | **SHA-512** |
+| Linguagem (repetível) | **Python**, **TypeScript**, **SQL** |
+| Campo de Aplicação | **AD04 — Adm Publ** (Administr. Federal, Estadual, **Municipal**…) |
+| Tipo de Programa | **IA01 — Inteligência Artificial** (alternativa conservadora: AP01 — Aplicativos) |
+| Algorítimo hash | **SHA-512 — Secure Hash Algorithm** |
 | Resumo digital hash | copiar de `dist/inpi/*.hash.txt` (128 caracteres hex) |
+| Derivação Autorizada | **deixar desmarcado** — ver abaixo |
+
+**Campo de Aplicação = o setor onde o programa é aplicado**, não o assunto que ele
+trata. O gestor público municipal é o usuário, então AD04. `FN01 — Finan Públ`
+(receita pública, orçamento, despesa) é o segundo mais próximo e serve se a leitura
+preferida for a financeira; se o formulário aceitar mais de um, valem os dois.
+
+**Tipo de Programa**: `IA01` é sustentado pelo código que acompanha o pacote
+(agente com chamada de ferramentas, curadoria por modelo de linguagem, embeddings
+e busca semântica) e é coerente com a originalidade declarada na identificação.
+`AP01 — Aplicativos` é a opção genérica, também correta e mais conservadora. Se o
+campo aceitar mais de um, `AP03 — Controle` cobre a vigilância das propostas.
+
+**Derivação Autorizada — deixar desmarcado.** O campo trata do art. 5º da Lei
+9.609/98: programa derivado de OUTRO programa, com autorização do titular daquele.
+Não é o caso. Usar bibliotecas de terceiros (FastAPI, Next.js, SQLAlchemy) **não**
+é derivação — marcar "Sim" obrigaria a guardar um documento de autorização que não
+existe.
 
 ### Data de criação — como escolher
 
