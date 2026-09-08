@@ -33,7 +33,7 @@ import html as html_
 import logging
 import re
 import unicodedata
-from urllib.parse import urljoin
+from urllib.parse import unquote, urljoin, urlparse
 
 log = logging.getLogger(__name__)
 
@@ -361,6 +361,75 @@ def parse_documentos(html_pagina: str) -> list[dict]:
     return saida
 
 
+# ── Baixar o arquivo ───────────────────────────────────────────────────────
+# O href da lista NÃO é um link público: é uma ação `.do` do webapp, servida
+# só dentro da sessão. Aberto no navegador do gestor (que não tem sessão
+# nenhuma), o Struts manda para o SSO e ele aterrissa em
+# `idp.transferegov.sistema.gov.br/idp/` — tela de login, nunca o documento.
+#
+# Então o Hub faz a PONTE, como no PDF do DOU (§56c): refaz o rito do guest,
+# baixa pela MESMA sessão e devolve os bytes. Nada é persistido — o arquivo é
+# público na origem e cachear binário de terceiro cria acervo que ninguém
+# pediu para manter (§56).
+
+#: teto do arquivo trazido pela ponte — projeto básico com planta chega a
+#: dezenas de MB; acima disso é a fonte devolvendo outra coisa.
+MAX_DOCUMENTO_BYTES = 40 * 1024 * 1024
+
+#: domínio da fonte. A URL vem de HTML raspado, então ela é ENTRADA externa:
+#: sem esta trava, uma página adulterada faria a API buscar qualquer host da
+#: rede interna e devolver o corpo ao usuário autenticado (SSRF).
+HOST_FONTE = "transferegov.sistema.gov.br"
+
+_RE_FILENAME = re.compile(r"""filename\*?=(?:UTF-8''|["']?)([^"';]+)""", re.I)
+
+
+class DocumentoIndisponivel(RuntimeError):
+    """A fonte não entregou o arquivo. Nunca é "o documento não existe"."""
+
+
+def e_url_da_fonte(url: str | None) -> bool:
+    """A URL é do webapp do Transferegov?"""
+    try:
+        partes = urlparse(str(url or ""))
+    except ValueError:
+        return False
+    host = (partes.hostname or "").lower()
+    return partes.scheme in ("http", "https") and (
+        host == HOST_FONTE or host.endswith(f".{HOST_FONTE}")
+    )
+
+
+def nome_do_cabecalho(content_disposition: str | None) -> str | None:
+    """O nome do arquivo que a fonte declarou, quando declarou."""
+    if not content_disposition:
+        return None
+    m = _RE_FILENAME.search(content_disposition)
+    if not m:
+        return None
+    nome = unquote(m.group(1).strip().strip('"\'')).strip()
+    return nome.replace("/", "_").replace("\\", "_") or None
+
+
+def e_pagina_de_login(url_final: str, content_type: str | None, conteudo: bytes) -> bool:
+    """A resposta é o arquivo, ou é o SSO disfarçado de 200?
+
+    O Struts responde 200 com a página do IdP (ou com o auto-post SAML) quando
+    a sessão caiu. Entregar isso ao gestor com o nome do documento seria pior
+    que falhar: ele anexaria ao processo um HTML de login.
+    """
+    try:
+        host = (urlparse(url_final or "").hostname or "").lower()
+    except ValueError:
+        host = ""
+    if host.startswith("idp.") or "/idp/" in (url_final or ""):
+        return True
+    if content_type and "text/html" in content_type.lower():
+        return True
+    inicio = conteudo[:1024].lstrip().lower()
+    return inicio.startswith(b"<!doctype html") or inicio.startswith(b"<html")
+
+
 class ParecerSiconvConnector:
     source_id = SOURCE_ID
 
@@ -507,6 +576,78 @@ class ParecerSiconvConnector:
                         "(caiu na tela de login) — o rito do guest pode ter mudado"
                     )
                 return parse_documentos(await pg.content())
+            finally:
+                await browser.close()
+
+    async def baixar_documento(
+        self, id_proposta: str, url: str
+    ) -> tuple[bytes, str | None, str | None]:
+        """Os BYTES de um documento digitalizado, pela sessão do acesso livre.
+
+        Devolve `(conteúdo, content_type, nome declarado pela fonte)`.
+
+        O rito é o mesmo dos pareceres, e o detalhe da proposta continua sendo
+        obrigatório: o webapp guarda "a proposta corrente" na sessão, e a ação
+        de download só serve o arquivo da proposta que ela conhece. Pular o
+        detalhe devolve o login, que é exatamente o defeito que esta ponte
+        existe para corrigir.
+
+        A busca sai de `page.request`, que compartilha os cookies do contexto —
+        `httpx` não serve aqui: a sessão vive no browser (o SSO depende de JS,
+        e reproduzi-lo na mão termina em 401).
+        """
+        id_proposta = str(id_proposta).strip()
+        if not id_proposta.isdigit():
+            raise ValueError(
+                f"idProposta do SIconv deve ser o id numérico interno (veio {id_proposta!r})"
+            )
+        if not e_url_da_fonte(url):
+            raise DocumentoIndisponivel(
+                "o endereço do arquivo não é do portal do Transferegov"
+            )
+        from playwright.async_api import async_playwright
+
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(
+                args=["--no-sandbox", "--disable-dev-shm-usage"]
+            )
+            try:
+                pg = await (await browser.new_context(locale="pt-BR")).new_page()
+                await pg.goto(ENTRADA, wait_until="networkidle", timeout=TIMEOUT_MS)
+                await pg.goto(
+                    f"{DETALHE}?idProposta={id_proposta}&destino=&idConvenio=",
+                    wait_until="networkidle",
+                    timeout=TIMEOUT_MS,
+                )
+                if "Login" in (await pg.title()):
+                    raise DocumentoIndisponivel(
+                        "o acesso livre do Transferegov não abriu a proposta "
+                        "(caiu na tela de login) — o rito do guest pode ter mudado"
+                    )
+                resposta = await pg.request.get(url, timeout=TIMEOUT_MS)
+                if resposta.status >= 400:
+                    raise DocumentoIndisponivel(
+                        f"o portal do Transferegov respondeu {resposta.status}"
+                    )
+                conteudo = await resposta.body()
+                cabecalhos = {k.lower(): v for k, v in (resposta.headers or {}).items()}
+                content_type = cabecalhos.get("content-type")
+                if e_pagina_de_login(resposta.url, content_type, conteudo):
+                    raise DocumentoIndisponivel(
+                        "o portal devolveu a tela de login em vez do arquivo — "
+                        "o acesso livre do Transferegov pode estar indisponível"
+                    )
+                if not conteudo:
+                    raise DocumentoIndisponivel("o portal devolveu um arquivo vazio")
+                if len(conteudo) > MAX_DOCUMENTO_BYTES:
+                    raise DocumentoIndisponivel(
+                        "o arquivo é grande demais para a ponte — baixe pelo portal"
+                    )
+                return (
+                    conteudo,
+                    content_type,
+                    nome_do_cabecalho(cabecalhos.get("content-disposition")),
+                )
             finally:
                 await browser.close()
 

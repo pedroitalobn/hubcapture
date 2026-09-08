@@ -345,6 +345,29 @@ async def documentos(
     )
 
 
+async def referencia_do_documento(
+    session: AsyncSession,
+    proposta_id: uuid.UUID,
+    documento_id: uuid.UUID,
+):
+    """Fase 1 da ponte de download: a referência do arquivo, lida sob RLS.
+
+    `None` = a proposta não é do território ou o documento não é dela. Quem
+    busca os bytes é `documentos_proposta.buscar`, JÁ FORA da sessão (§38): o
+    browser leva segundos e não pode segurar a conexão do request.
+    """
+    proposta = (
+        await session.execute(
+            select(Proposta).where(
+                Proposta.id == proposta_id, Proposta.excluido_em.is_(None)
+            )
+        )
+    ).scalar_one_or_none()
+    if proposta is None:
+        return None
+    return await documentos_service.referencia(session, proposta, documento_id)
+
+
 async def publicacao(
     session: AsyncSession,
     proposta_id: uuid.UUID,

@@ -2929,3 +2929,53 @@ O painel não conhece as consultas.
   clique seguinte cria outra em vez de sobrescrever o que virou do gestor.
   Voltando do detalhe (`?view=`) o destino é sempre a consulta de origem, nunca
   esse recorte.
+
+## 56e. Baixar o documento da proposta — a PONTE, não o link (decisão travada)
+
+Relato do gestor: clicar em "Baixar" num documento digitalizado leva para
+`https://idp.transferegov.sistema.gov.br/idp/` — a tela de login do SSO, onde
+devia estar o arquivo. O endereço que a §56 guardou não é um link público: é
+uma ação `.do` do webapp Struts (`DetalharPropostaBaixar.do?id=…`), servida só
+DENTRO da sessão que o connector estabelece com o acesso livre (`Usr=guest`).
+No navegador do gestor não há sessão nenhuma, então o Struts faz o que sempre
+fez: manda para o IdP.
+
+- **Quem tem a sessão baixa** — `pareceres_siconv.baixar_documento` refaz o
+  rito de sempre (entrada guest → detalhe da proposta, que é obrigatório: o
+  webapp guarda "a proposta corrente" na sessão e a ação só serve o arquivo
+  dela) e busca a URL por `page.request`, que compartilha os cookies do
+  contexto. `httpx` não serve — o SSO depende de JS e reproduzi-lo na mão
+  termina em 401 (§ do cabeçalho do connector).
+- **Ponte, nunca acervo** (§56/§56c): `GET /proposals/{id}/documents/{doc}/file`
+  devolve os bytes na hora e não persiste nada — o arquivo é público na origem
+  e cachear binário de terceiro cria acervo que ninguém pediu para manter. É a
+  mesma disciplina do PDF do DOU.
+- **A URL nunca vem do cliente**: sai do documento já cacheado PARA ESTA
+  proposta, sob RLS (`documentos_proposta.referencia`) — senão o endpoint seria
+  um proxy aberto. Além disso `e_url_da_fonte` exige o domínio do Transferegov:
+  a URL nasce de HTML raspado, e sem essa trava uma página adulterada faria a
+  API buscar qualquer host da rede interna e devolver o corpo ao usuário
+  autenticado (SSRF).
+- **Tela de login não sai como documento** (`e_pagina_de_login`): o Struts
+  responde **200** com o SSO quando a sessão caiu. Entregar isso com o nome do
+  arquivo seria pior que falhar — o gestor anexaria ao processo um HTML de
+  login. HTML, host `idp.` ou corpo vazio viram `DocumentoIndisponivel` → **502**
+  (quem falhou foi a FONTE), enquanto documento que a fonte lista SEM endereço
+  é `SemArquivoNaFonte` → **404**: o gestor pede o arquivo ao órgão pelo nome.
+- **Duas fases, como na §38**: a referência é lida sob a sessão RLS e a sessão é
+  FECHADA antes da coleta — o browser leva segundos e segurar a conexão do
+  request é o que esgota o pool e faz o painel inteiro esperar. Semáforo de 2
+  pontes simultâneas (cada download levanta um Chromium).
+- **O nome sobrevive ao cabeçalho**: `content_disposition` manda as duas formas
+  da RFC 6266 (`filename` só-ASCII + `filename*=UTF-8''…`) — cabeçalho HTTP é
+  latin-1 e "Ofício de Celebração.pdf" quebraria a resposta ou chegaria
+  mutilado. O tipo sai da EXTENSÃO do nome (`content_type_de`): o Struts manda
+  `application/octet-stream` até no PDF, e com ele o celular do gestor guarda o
+  arquivo em vez de abri-lo.
+- **Web**: `DocumentosProposta` troca a âncora pelo botão que chama
+  `baixarDocumentoProposta` (client), com "Baixando…" e a razão da falha na
+  tela; a entrega reusa a mecânica do espelho (`entregarArquivo` — folha nativa
+  de compartilhamento no celular, download no desktop), agora com o tipo vindo
+  da resposta e não fixo em PDF.
+- Regressão: seção §56e de `tests/test_documentos.py` (SSRF, login-como-200,
+  nome/tipo, ponta a ponta sob RLS e documento de outra proposta).

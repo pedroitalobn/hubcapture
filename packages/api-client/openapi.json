@@ -19000,6 +19000,75 @@
         ]
       }
     },
+    "/api/v1/proposals/{proposta_id}/documents/{documento_id}/file": {
+      "get": {
+        "description": "O ARQUIVO do documento digitalizado, servido pela ponte do Hub.\n\nO endereço que a fonte publica na lista não é um link público: é uma ação\ndo webapp do Transferegov, válida só dentro da sessão. Aberto no navegador\ndo gestor ele cai no SSO (`idp.transferegov.sistema.gov.br/idp/`) e a\nresposta ao \"Baixar\" vira uma tela de login. Aqui o Hub refaz o rito do\nacesso livre, baixa pela mesma sessão e devolve os bytes.\n\nPonte, não acervo (§56): nada é persistido. A URL nunca vem do cliente —\nsai do documento que já está no cache DESTA proposta, sob RLS.\n\nLeitura de cache, logo panel-core (§40): não depende do módulo captação.",
+        "operationId": "arquivo_do_documento_api_v1_proposals__proposta_id__documents__documento_id__file_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposta Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "documento_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Documento Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "abrir no visualizador em vez de baixar",
+            "in": "query",
+            "name": "inline",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "abrir no visualizador em vez de baixar",
+              "title": "Inline",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Arquivo Do Documento",
+        "tags": [
+          "andamento"
+        ]
+      }
+    },
     "/api/v1/proposals/{proposta_id}/opinions": {
       "get": {
         "description": "Pareceres do plano de trabalho vinculado à proposta.",

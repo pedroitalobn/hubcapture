@@ -10,6 +10,7 @@ que pertence ao módulo é a EXPLORAÇÃO ativa: com `captacao` desligado o
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import date
 
@@ -27,9 +28,12 @@ from ...services import andamento as service
 from ...services import modulos as modulos_service
 from ..deps import get_rls_db
 
+log = logging.getLogger(__name__)
+
 router = APIRouter(tags=["andamento"])
 
 _NAO_ENCONTRADA = "Proposta não encontrada no seu território."
+_NAO_ENCONTRADO = "Documento não encontrado nesta proposta."
 
 
 def _iso(valor: str | None) -> date | None:
@@ -106,6 +110,67 @@ async def documentos_da_proposta(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=_NAO_ENCONTRADA)
     itens, coleta = resultado
     return DocumentoPagina(itens=itens, coleta=coleta)
+
+
+@router.get("/proposals/{proposta_id}/documents/{documento_id}/file")
+async def arquivo_do_documento(
+    proposta_id: uuid.UUID,
+    documento_id: uuid.UUID,
+    inline: bool = Query(default=False, description="abrir no visualizador em vez de baixar"),
+    session: AsyncSession = Depends(get_rls_db),
+    usuario: Usuario = Depends(current_active_user),
+) -> Response:
+    """O ARQUIVO do documento digitalizado, servido pela ponte do Hub.
+
+    O endereço que a fonte publica na lista não é um link público: é uma ação
+    do webapp do Transferegov, válida só dentro da sessão. Aberto no navegador
+    do gestor ele cai no SSO (`idp.transferegov.sistema.gov.br/idp/`) e a
+    resposta ao "Baixar" vira uma tela de login. Aqui o Hub refaz o rito do
+    acesso livre, baixa pela mesma sessão e devolve os bytes.
+
+    Ponte, não acervo (§56): nada é persistido. A URL nunca vem do cliente —
+    sai do documento que já está no cache DESTA proposta, sob RLS.
+
+    Leitura de cache, logo panel-core (§40): não depende do módulo captação.
+    """
+    from ...connectors import pareceres_siconv
+    from ...services import documentos_proposta as documentos_service
+
+    try:
+        ref = await service.referencia_do_documento(session, proposta_id, documento_id)
+    except documentos_service.SemArquivoNaFonte as exc:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail=f"DOCUMENTO_SEM_ARQUIVO: {exc}"
+        ) from exc
+    if ref is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=_NAO_ENCONTRADO)
+
+    # a coleta é I/O externo de segundos: a conexão RLS volta ao pool ANTES
+    # dela, senão um download segura o painel inteiro (§38)
+    await session.close()
+    try:
+        arquivo = await documentos_service.buscar(ref)
+    except pareceres_siconv.DocumentoIndisponivel as exc:
+        # 502: a falha é da FONTE. O front diz isso ao gestor em vez de
+        # sugerir que o documento não existe.
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001 — browser/SSO caem; 500 não explica
+        log.warning("documento %s: ponte de download falhou", documento_id, exc_info=True)
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            detail="não foi possível baixar o arquivo no portal do Transferegov agora",
+        ) from exc
+    return Response(
+        content=arquivo.conteudo,
+        media_type=arquivo.content_type,
+        headers={
+            "Content-Disposition": documentos_service.content_disposition(
+                arquivo.nome, inline=inline
+            ),
+            # o arquivo é da FONTE e pode ser republicado sem aviso
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 @router.get("/proposals/{proposta_id}/publication", response_model=PublicacaoPagina)
