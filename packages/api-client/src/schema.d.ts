@@ -2208,6 +2208,37 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/proposals/{proposta_id}/documents/{documento_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Arquivo Do Documento
+         * @description O ARQUIVO do documento digitalizado, servido pela ponte do Hub.
+         *
+         *     O endereço que a fonte publica na lista não é um link público: é uma ação
+         *     do webapp do Transferegov, válida só dentro da sessão. Aberto no navegador
+         *     do gestor ele cai no SSO (`idp.transferegov.sistema.gov.br/idp/`) e a
+         *     resposta ao "Baixar" vira uma tela de login. Aqui o Hub refaz o rito do
+         *     acesso livre, baixa pela mesma sessão e devolve os bytes.
+         *
+         *     Ponte, não acervo (§56): nada é persistido. A URL nunca vem do cliente —
+         *     sai do documento que já está no cache DESTA proposta, sob RLS.
+         *
+         *     Leitura de cache, logo panel-core (§40): não depende do módulo captação.
+         */
+        get: operations["arquivo_do_documento_api_v1_proposals__proposta_id__documents__documento_id__file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/proposals/{proposta_id}/opinions": {
         parameters: {
             query?: never;
@@ -10862,6 +10893,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DocumentoPagina"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    arquivo_do_documento_api_v1_proposals__proposta_id__documents__documento_id__file_get: {
+        parameters: {
+            query?: {
+                /** @description abrir no visualizador em vez de baixar */
+                inline?: boolean;
+            };
+            header?: never;
+            path: {
+                proposta_id: string;
+                documento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

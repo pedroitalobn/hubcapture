@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { api } from "@/lib/api/client";
+import { api, baixarDocumentoProposta } from "@/lib/api/client";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDate } from "@/lib/format";
 
@@ -13,9 +13,11 @@ import { formatDate } from "@/lib/format";
  * manda para o jurídico e leva para a reunião. A tela mostrava o rótulo e
  * parava ali, com o PDF a três cliques dentro do portal.
  *
- * O link aponta para a FONTE, não para o Hub: o arquivo é público na origem e
- * cachear binário de terceiro criaria um acervo que ninguém pediu para manter
- * — e que envelhece sem aviso quando a fonte republica.
+ * O ARQUIVO vem da fonte pela ponte da API (§56e), não de um acervo do Hub: o
+ * endereço que a lista publica é uma ação do webapp do Transferegov, válida só
+ * dentro da sessão dele — clicado direto, leva o gestor para a tela de login do
+ * SSO em vez do documento. A API refaz o acesso livre, baixa e devolve os
+ * bytes, sem guardar nada.
  */
 
 type Documento = {
@@ -57,6 +59,8 @@ export function DocumentosProposta({
   const [coleta, setColeta] = useState<Coleta | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [atualizando, setAtualizando] = useState(false);
+  const [baixando, setBaixando] = useState<string | null>(null);
+  const [falha, setFalha] = useState<string | null>(null);
 
   const carregar = useCallback(
     async (atualizar = false) => {
@@ -77,6 +81,19 @@ export function DocumentosProposta({
   useEffect(() => {
     void carregar();
   }, [carregar]);
+
+  async function baixar(d: Documento) {
+    setBaixando(d.id);
+    setFalha(null);
+    try {
+      await baixarDocumentoProposta(proposta.id, d.id, d.nome || "documento");
+    } catch (e) {
+      setFalha((e as Error)?.message ?? "Não foi possível baixar o arquivo.");
+    } finally {
+      // promessa rejeitada não pode deixar o botão preso em "Baixando…" (§52)
+      setBaixando(null);
+    }
+  }
 
   // Fonte que não publica esta lista (FNS, FNDE, fundo a fundo) não ganha uma
   // seção vazia permanente na página — seria ruído em toda proposta delas.
@@ -140,14 +157,13 @@ export function DocumentosProposta({
                 <span className="break-words text-sm text-ink">{d.nome}</span>
               </span>
               {d.url ? (
-                <a
-                  href={d.url}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  onClick={() => void baixar(d)}
+                  disabled={baixando === d.id}
                   className="btn btn-ghost btn-sm shrink-0"
                 >
-                  Baixar ↗
-                </a>
+                  {baixando === d.id ? "Baixando…" : "Baixar"}
+                </button>
               ) : (
                 // Sem link, o nome ainda vale: o gestor pede o arquivo ao órgão
                 // pelo nome exato. Fingir um botão que não baixa seria pior.
@@ -156,6 +172,12 @@ export function DocumentosProposta({
             </li>
           ))}
         </ul>
+      )}
+
+      {falha && (
+        <p className="mt-3 text-xs text-danger">
+          {falha} O arquivo continua disponível no portal do Transferegov.
+        </p>
       )}
 
       {coleta?.status === "erro" && itens.length > 0 && (

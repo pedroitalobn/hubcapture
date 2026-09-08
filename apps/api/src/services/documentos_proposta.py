@@ -16,8 +16,12 @@ proposta não tem documento", e a tela precisa dessa diferença.
 
 from __future__ import annotations
 
+import asyncio
+import unicodedata
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from urllib.parse import quote
 
 from sqlalchemy import or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -200,3 +204,152 @@ async def por_proposta(
         coleta.total = len(itens)
     lidos = [DocumentoRead.model_validate(d) for d in itens]
     return await municipios_service.enriquecer(session, lidos), coleta
+
+
+# ── A ponte do download ─────────────────────────────────────────────────────
+#: extensão → content type, para quando a fonte não declara (o Struts costuma
+#: mandar `application/octet-stream` em tudo). O nome do arquivo é o que o
+#: gestor tem: se ele diz `.pdf`, o navegador dele deve abrir um PDF.
+_TIPOS = {
+    "pdf": "application/pdf",
+    "doc": "application/msword",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "xls": "application/vnd.ms-excel",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "ppt": "application/vnd.ms-powerpoint",
+    "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "txt": "text/plain",
+    "csv": "text/csv",
+    "zip": "application/zip",
+    "rar": "application/vnd.rar",
+    "7z": "application/x-7z-compressed",
+    "p7s": "application/pkcs7-signature",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png": "image/png",
+    "gif": "image/gif",
+    "tif": "image/tiff",
+    "tiff": "image/tiff",
+    "bmp": "image/bmp",
+    "odt": "application/vnd.oasis.opendocument.text",
+    "ods": "application/vnd.oasis.opendocument.spreadsheet",
+    "rtf": "application/rtf",
+}
+_PADRAO = "application/octet-stream"
+
+
+@dataclass(frozen=True)
+class Referencia:
+    """O que a ponte precisa para buscar UM arquivo — lido do cache, sob RLS."""
+
+    id_proposta_fonte: str
+    url: str
+    nome: str
+
+
+@dataclass(frozen=True)
+class Arquivo:
+    """Os bytes do documento, prontos para a resposta. Nada disso é gravado."""
+
+    nome: str
+    conteudo: bytes
+    content_type: str
+
+
+def _sanear(nome: str) -> str:
+    """Nome de arquivo seguro para o `Content-Disposition`.
+
+    O nome vem de HTML raspado: aspas e quebra de linha nele injetariam
+    parâmetros no cabeçalho da resposta.
+    """
+    limpo = " ".join(str(nome or "").split()).replace('"', "").replace("\\", "_")
+    limpo = limpo.replace("/", "_").strip(". ")
+    return limpo[:180] or "documento"
+
+
+def content_disposition(nome: str, *, inline: bool = False) -> str:
+    """Cabeçalho de download com o nome ACENTUADO preservado.
+
+    Duas formas no mesmo cabeçalho, como manda a RFC 6266: `filename` só-ASCII
+    para o cliente antigo e `filename*` em UTF-8 para o resto. Sem o par, o
+    "Ofício de Celebração.pdf" da fonte quebraria a resposta — cabeçalho HTTP
+    é latin-1 — ou chegaria ao gestor com o nome mutilado.
+    """
+    seguro = _sanear(nome)
+    ascii_ = unicodedata.normalize("NFKD", seguro).encode("ascii", "ignore").decode()
+    ascii_ = "".join(c for c in ascii_ if c.isprintable()) or "documento"
+    return (
+        f'{"inline" if inline else "attachment"}; filename="{ascii_}"; '
+        f"filename*=UTF-8''{quote(seguro)}"
+    )
+
+
+def content_type_de(nome: str, declarado: str | None) -> str:
+    """O tipo do arquivo — a extensão do NOME vence o que o portal declarou.
+
+    O Struts manda `application/octet-stream` até no PDF; com ele, o celular
+    do gestor não abre o documento, só o guarda. `octet-stream` declarado com
+    um nome `.pdf` é falta de informação da fonte, não informação.
+    """
+    ext = nome.rsplit(".", 1)[-1].lower() if "." in nome else ""
+    do_nome = _TIPOS.get(ext)
+    if do_nome:
+        return do_nome
+    tipo = (declarado or "").split(";")[0].strip().lower()
+    return tipo or _PADRAO
+
+
+class SemArquivoNaFonte(LookupError):
+    """A fonte lista o documento mas não publica endereço para baixá-lo.
+
+    É diferente de "a fonte caiu" (`DocumentoIndisponivel`, 502): aqui não há o
+    que buscar, e o gestor pede o arquivo ao órgão pelo nome exato.
+    """
+
+
+#: Cada download levanta um Chromium (o rito do acesso livre depende de JS).
+#: Sem teto, três cliques simultâneos disputariam a CPU do container com a
+#: coleta e derrubariam o painel inteiro — a lição da §38, aplicada aqui.
+_PONTES = asyncio.Semaphore(2)
+
+
+async def referencia(
+    session: AsyncSession, proposta: Proposta, documento_id: uuid.UUID
+) -> Referencia | None:
+    """O que a ponte precisa saber, lido sob a sessão RLS. `None` = o documento
+    não é desta proposta (ou não está no cache do território).
+
+    A URL NUNCA vem do cliente: sai do documento já cacheado para esta
+    proposta, senão o endpoint viraria um proxy aberto.
+    """
+    documento = next(
+        (d for d in await listar(session, proposta) if d.id == documento_id), None
+    )
+    if documento is None:
+        return None
+    if not documento.url:
+        raise SemArquivoNaFonte(
+            "a fonte não publicou endereço de download para este documento"
+        )
+    id_siconv = documento.id_proposta_fonte or id_siconv_de(proposta)
+    if not id_siconv:
+        raise SemArquivoNaFonte(
+            "esta proposta não expõe o identificador que o portal exige"
+        )
+    return Referencia(id_proposta_fonte=id_siconv, url=documento.url, nome=documento.nome)
+
+
+async def buscar(ref: Referencia) -> Arquivo:
+    """Os bytes, pela sessão de acesso livre da fonte. NÃO toca o banco.
+
+    Separado de `referencia` de propósito (§38): o browser leva segundos, e
+    segurar a conexão RLS do request durante a coleta é o que esgota o pool e
+    faz o painel inteiro esperar. Falha da FONTE sobe como
+    `DocumentoIndisponivel` — quem falhou foi ela.
+    """
+    async with _PONTES:
+        conteudo, tipo, nome_fonte = await pareceres_siconv.get_connector().baixar_documento(
+            ref.id_proposta_fonte, ref.url
+        )
+    nome = _sanear(nome_fonte or ref.nome)
+    return Arquivo(nome=nome, conteudo=conteudo, content_type=content_type_de(nome, tipo))

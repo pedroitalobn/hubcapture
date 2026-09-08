@@ -266,6 +266,16 @@ export async function testarEmail(
 /** Nome do arquivo servido pela API (`Content-Disposition`), com retaguarda. */
 function nomeDoArquivo(resp: Response, padrao: string): string {
   const disp = resp.headers.get("Content-Disposition") ?? "";
+  // `filename*` (RFC 6266) vem primeiro: é a forma que preserva o acento —
+  // "Ofício de Celebração.pdf" chega mutilado no `filename` só-ASCII.
+  const utf8 = /filename\*=UTF-8''([^;]+)/i.exec(disp)?.[1]?.trim();
+  if (utf8) {
+    try {
+      return decodeURIComponent(utf8);
+    } catch {
+      // percent-encoding quebrado não pode custar o download
+    }
+  }
   return /filename="?([^"';]+)"?/.exec(disp)?.[1]?.trim() || padrao;
 }
 
@@ -287,7 +297,7 @@ export async function exportarEspelhoProposta(
     headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
   });
   if (!resp.ok) throw new Error("Não foi possível gerar o espelho em PDF");
-  return entregarPdf(resp, `espelho-proposta-${id}.pdf`, compartilhar);
+  return entregarArquivo(resp, `espelho-proposta-${id}.pdf`, compartilhar);
 }
 
 /**
@@ -313,23 +323,54 @@ export async function baixarPdfPublicacao(
       mensagemDaFalha(corpo, "Não foi possível baixar o PDF do Diário Oficial"),
     );
   }
-  return entregarPdf(resp, `publicacao-dou-${id}.pdf`, compartilhar);
+  return entregarArquivo(resp, `publicacao-dou-${id}.pdf`, compartilhar);
 }
 
 /**
- * Entrega um PDF já buscado: folha nativa de compartilhamento no celular,
- * download no resto. A mecânica é a mesma para o espelho e para o comprovante
- * do DOU — mora aqui uma vez só.
+ * Baixa um documento digitalizado da proposta pela PONTE do Hub (§56e).
+ *
+ * O endereço que a fonte publica não é link público: é uma ação do webapp do
+ * Transferegov, válida só dentro da sessão. Aberto direto, o gestor cai na
+ * tela de login do SSO em vez do arquivo — por isso o pedido passa pela API,
+ * que refaz o acesso livre e devolve os bytes.
  */
-async function entregarPdf(
+export async function baixarDocumentoProposta(
+  propostaId: string,
+  documentoId: string,
+  nomePadrao: string,
+  compartilhar?: boolean,
+): Promise<ResultadoEspelho> {
+  const resp = await fetch(
+    `${API_ORIGIN}/api/v1/proposals/${propostaId}/documents/${documentoId}/file`,
+    { headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` } },
+  );
+  if (!resp.ok) {
+    const corpo = await resp.json().catch(() => null);
+    throw new Error(
+      mensagemDaFalha(corpo, "Não foi possível baixar o arquivo na fonte agora"),
+    );
+  }
+  return entregarArquivo(resp, nomePadrao, compartilhar);
+}
+
+/**
+ * Entrega um arquivo já buscado: folha nativa de compartilhamento no celular,
+ * download no resto. A mecânica é a mesma para o espelho, para o comprovante
+ * do DOU e para o documento da fonte — mora aqui uma vez só.
+ */
+async function entregarArquivo(
   resp: Response,
   padrao: string,
   compartilhar?: boolean,
 ): Promise<ResultadoEspelho> {
   const blob = await resp.blob();
   const nome = nomeDoArquivo(resp, padrao);
+  // o tipo é o que a resposta declarou — o espelho é PDF, mas o documento da
+  // fonte pode ser .docx, .zip ou imagem, e um blob rotulado errado abre no
+  // aplicativo errado no celular
+  const tipo = blob.type || resp.headers.get("Content-Type") || "application/octet-stream";
 
-  const arquivo = new File([blob], nome, { type: "application/pdf" });
+  const arquivo = new File([blob], nome, { type: tipo });
   // Compartilhar é o gesto do CELULAR. No desktop o Chrome com telefone
   // vinculado também aceita `canShare`, e aí um clique em "Espelho PDF" abria
   // a folha do Android em vez de baixar o arquivo — o usuário ficava sem o
