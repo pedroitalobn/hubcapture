@@ -130,6 +130,35 @@ digitalmente.
   seguinte.
 - Só prossiga após o **pagamento compensar** (costuma levar 1–2 dias úteis).
 
+### O que se assina: só a Declaração de Veracidade
+
+| Documento | Assina? |
+|---|---|
+| **Declaração de Veracidade (DV)** | **Sim** — é o único |
+| O `.zip` da documentação técnica | **Não** — ver abaixo |
+| Código-fonte, inventário, recibo do hash | Não |
+| Formulário e-Software | Não — o envio é autenticado pelo login no e-INPI |
+
+**Quem assina**: o **titular**. Se o titular for PJ, quem assina é o representante
+legal (e-CNPJ, ou e-CPF de quem tem poderes no contrato social). Se houver
+procurador — advogado ou agente da propriedade industrial —, ele assina, mas
+precisa de procuração. Os **autores não assinam** a DV.
+
+**Com o quê**: certificado digital **ICP-Brasil** (e-CPF/e-CNPJ) ou a conta
+**gov.br nível prata ou ouro**, pelo assinador do gov.br. Assinatura escaneada ou
+imagem colada não vale.
+
+**O que você está declarando**: que as informações do pedido são verdadeiras — o
+que inclui a **autoria** e a correspondência entre o hash informado e a
+documentação que ficou com você. É declaração sob responsabilidade, então é
+antes de assinar que se resolvem as dúvidas de autoria (ver **⚠ 1** ao final).
+
+> **Nunca assine digitalmente o `.zip`.** Assinatura embutida reescreve o
+> arquivo, e o hash deixa de bater com o que está no certificado — destruindo
+> exatamente a prova que o registro deveria criar. Se quiser carimbo de tempo
+> sobre o pacote, use assinatura **destacada** (arquivo `.p7s` separado) ou
+> assine uma **cópia**, preservando o original intocado.
+
 ## Passo 4 — Preencher o formulário e-Software
 
 No módulo **e-Software**, com a GRU paga:
