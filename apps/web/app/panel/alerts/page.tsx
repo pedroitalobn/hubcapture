@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { linkProposta } from "@/lib/navegacao";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api/client";
 import { ModuloGate } from "@/components/ModuloGate";
@@ -440,7 +441,7 @@ function AlertasConteudo() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="flex items-center gap-2">
                     <Link
-                      href={`/panel/funding/${m.proposta_id}`}
+                      href={linkProposta(m.proposta_id, "alerts")}
                       className="font-medium hover:underline"
                     >
                       {titulos[m.proposta_id] ?? "Proposta monitorada"}
@@ -538,7 +539,7 @@ function AlertasConteudo() {
               <div className="flex gap-2">
                 {a.proposta_id && (
                   <Link
-                    href={`/panel/funding/${a.proposta_id}`}
+                    href={linkProposta(a.proposta_id, "alerts")}
                     className="btn btn-ghost btn-sm"
                   >
                     Abrir proposta

@@ -1,7 +1,7 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
 import { CriteriosAlerta } from "@/components/CriteriosAlerta";
@@ -29,6 +29,7 @@ import {
   prazoLabel,
   tomPrazo,
 } from "@/lib/format";
+import { PARAM_ABA, PARAM_ORIGEM, retorno } from "@/lib/navegacao";
 import { useTerritorio } from "@/lib/territorio";
 
 type Prazo = { tipo?: string | null; data_limite?: string | null };
@@ -160,22 +161,45 @@ function Carregando() {
   );
 }
 
+/** `useSearchParams` exige fronteira de Suspense no App Router — a origem do
+ *  retorno vem da querystring (§61). */
 export default function PropostaDetalhePage() {
+  return (
+    <Suspense fallback={<Carregando />}>
+      <PropostaDetalhe />
+    </Suspense>
+  );
+}
+
+function PropostaDetalhe() {
   const params = useParams<{ id: string }>();
+  const busca = useSearchParams();
   // módulos efetivos do perfil — decide se a seção de pareceres (exploração
   // ao vivo do módulo captação) aparece; o detalhe em si é panel-core (§40)
   const { perfil, carregando: perfilCarregando } = useTerritorio();
   // §40: o detalhe é panel-core; o módulo captação governa só a consulta ATIVA
   // às fontes (o botão "Consultar fonte" das seções de andamento e emenda).
   const podeExplorar = (perfil?.modulos ?? []).includes("captacao");
-  // VOLTAR: com o módulo captação desligado, a lista de propostas não existe
-  // para este usuário — devolvê-lo a ela é jogá-lo no ModuloGate ("este módulo
-  // está desativado"), um beco. O retorno natural passa a ser o Meu painel, que
-  // é panel-core como o próprio detalhe. Enquanto o perfil carrega mantemos a
-  // captação: é de onde a maioria chega, e o gate ainda cobre o caso raro.
-  const voltarParaPainel = !perfilCarregando && !podeExplorar;
-  const voltarHref = voltarParaPainel ? "/panel" : "/panel/funding";
-  const voltarRotulo = voltarParaPainel ? "Meu painel" : "Propostas";
+  // VOLTAR para ONDE O GESTOR ESTAVA (§61). O retorno era fixo na lista de
+  // propostas: quem abria a proposta pelo Meu painel era despejado no
+  // construtor de consultas — outra tela, outro recorte, que ele não pediu.
+  // A tela de origem viaja no link (`?de=`), e a aba junto (`?view=`), então
+  // voltar do construtor devolve à MESMA consulta.
+  //
+  // Com o módulo captação desligado a lista não existe para este usuário —
+  // devolvê-lo a ela é jogá-lo no ModuloGate ("este módulo está desativado"),
+  // um beco. Aí o padrão passa a ser o Meu painel, que é panel-core como o
+  // próprio detalhe. Enquanto o perfil carrega mantemos o construtor: é de
+  // onde a maioria chega, e o gate ainda cobre o caso raro.
+  const semExploracao = !perfilCarregando && !podeExplorar;
+  const origemLink = busca.get(PARAM_ORIGEM);
+  const { href: voltarHref, rotulo: voltarRotulo } = retorno(
+    // sem o módulo, o construtor não é destino nem quando foi a origem: o
+    // gestor sairia do detalhe direto para o ModuloGate
+    semExploracao && (!origemLink || origemLink === "funding") ? null : origemLink,
+    busca.get(PARAM_ABA),
+    semExploracao ? "panel" : "funding",
+  );
   const [p, setP] = useState<Proposta | null>(null);
   const [resumoEmpenhos, setResumoEmpenhos] = useState<{
     valor_empenhado?: string | null;

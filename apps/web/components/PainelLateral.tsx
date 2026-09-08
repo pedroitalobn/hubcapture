@@ -17,6 +17,7 @@
  */
 
 import Link from "next/link";
+import { linkProposta } from "@/lib/navegacao";
 import { useEffect, useState } from "react";
 import { Caixa } from "@/components/kit";
 import { api } from "@/lib/api/client";
@@ -111,7 +112,7 @@ export function CardPrazos({ municipios }: { municipios: string[] }) {
               </div>
               <div className="tl-body">
                 <Link
-                  href={`/panel/funding/${p.proposta.id}`}
+                  href={linkProposta(p.proposta.id, "panel")}
                   className="block text-[13px] leading-snug text-ink hover:text-brand"
                 >
                   {recortarTexto(humanizarCaixa(p.proposta.titulo), 70).trecho ||
@@ -176,7 +177,7 @@ export function CardAlertas({
         {alertas.slice(0, MAX_ITENS).map((a) => {
           const p = (a.payload ?? {}) as Record<string, string | undefined>;
           const destino = a.proposta_id
-            ? `/panel/funding/${a.proposta_id}`
+            ? linkProposta(a.proposta_id, "panel")
             : "/panel/alerts";
           return (
             <li key={a.id}>
