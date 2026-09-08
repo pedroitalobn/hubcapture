@@ -2783,3 +2783,66 @@ linha saía com números em alturas diferentes).
 
 Regra que fica: recorte de alcance global mora na barra, ao lado dos irmãos —
 não há "quase global" no canto da página.
+
+## 61. Meu painel × Propostas — duas entidades independentes (decisão travada)
+
+As duas telas se comportavam como uma só: o recorte era o mesmo (a barra
+global), o retorno do detalhe era sempre `/panel/funding` e as "abas" da
+captação eram estado de navegador. Agora cada uma tem o seu papel, o seu
+recorte e a sua memória.
+
+- **Meu painel é a VISÃO GERAL** do território, dentro do que o plano libera
+  (§39): dimensões do ciclo, panorama financeiro e feed, sob o recorte GLOBAL
+  (município · origem · ano, §33/§33b/§60). Ele não constrói consulta e não faz
+  coleta ativa (§40).
+- **Propostas é o CONSTRUTOR DE CONSULTAS**: cada aba é um recorte inteiro —
+  município(s), origem(ns), busca, faceta, faixa de valor, ordenação — que o
+  gestor nomeia e guarda. É o que responde "uma aba por município" e as
+  "visualizações rápidas" de frentes diferentes ao mesmo tempo.
+
+**A aba virou ENTIDADE** (`consultas_propostas`, migration `d2e3f4a5b6c7`) —
+dado PESSOAL por-tenant (RLS `FOR ALL` por `usuario_id`, molde de `pastas`),
+com `nome`, `filtros` jsonb e `ordem`. Antes vivia em `localStorage`
+(`hub_captacao_abas`): a consulta montada no escritório não existia no
+notebook de casa, e nenhuma outra superfície sabia dela.
+
+- **As chaves de `filtros` são as MESMAS dos query params de `GET /proposals`**
+  (`schemas/consultas.py::FiltrosConsulta`, `extra="forbid"`): a aba é
+  literalmente a consulta, então executá-la é mandar o objeto como
+  querystring. Chave desconhecida é **422 ao salvar** — aba que guarda lixo
+  volta filtrando outra coisa, e ninguém percebe. O de-para com as chaves da
+  tela (camelCase) mora em UM lugar: `apps/web/lib/consultas.ts`.
+- **Endpoints** (router inteiro atrás do módulo `captacao` — montar consulta é
+  exploração, §40): `GET/POST /proposals/views`, `PATCH/DELETE
+  /proposals/views/{id}` e `PUT /proposals/views/order`. O GET **cria a aba
+  inicial** quando não há nenhuma (fileira vazia lê como tela quebrada);
+  `PATCH` substitui `filtros` por INTEIRO (merge parcial deixaria filtro
+  removido grudado); reordenar com lista incompleta só reposiciona o que ela
+  nomeia, nunca apaga aba. Teto de 40 abas (`LIMITE_CONSULTAS`).
+- **`/proposals/views` é montado ANTES de `propostas`** em `main.py`: senão
+  "views" cairia em `/proposals/{proposta_id}` e viraria um UUID inválido.
+- **Web**: a fileira carrega do banco, migra UMA vez as abas que ficaram no
+  navegador (só esquece a chave local quando TUDO subiu — migração pela metade
+  apagaria consulta do gestor) e salva o recorte com atraso de 800ms (um PATCH
+  por tecla digitada, não). Criar em branco, **duplicar** (o jeito rápido de
+  repetir o recorte noutro município), renomear, excluir e **arrastar para
+  reordenar**.
+- **Município e origem saíram da barra global em `/panel/funding`** (e no
+  resumo dela): no construtor quem recorta é a ABA. O mesmo filtro em dois
+  lugares dessincroniza — era o defeito que a §33 corrigiu no sentido
+  contrário. `SeletorMultiplo` (novo no `components/kit`) é a peça: nada
+  marcado = todos, e marcar tudo item a item volta a nada.
+- **O resumo é o da CONSULTA**: "Ver resumo" leva `?view=<aba>` e
+  `/panel/funding/summary` lê o recorte dela (e volta para a mesma aba).
+
+**O "voltar" devolve à tela de ORIGEM** (`apps/web/lib/navegacao.ts`): o link
+para o detalhe carimba `?de=panel|funding|my-proposals|alerts` — e `?view=`
+quando vem do construtor, para reabrir na MESMA consulta. Origem desconhecida
+cai no padrão; com o módulo `captacao` desligado o padrão é o Meu painel (o
+construtor seria um beco no `ModuloGate`). Aplicado no feed do Meu painel, no
+trilho lateral (prazos e alertas), na central de alertas, em Minhas Propostas
+e na lista do construtor.
+
+**A aba fixa "★ Acompanhamento" saiu** da captação: desde que Minhas Propostas
+virou item de menu (`/panel/my-proposals`) não havia como ativá-la — era
+caminho morto carregando o recorte global numa tela que não o usa mais.

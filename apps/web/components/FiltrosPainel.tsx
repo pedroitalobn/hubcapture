@@ -42,8 +42,10 @@ const FILTROS_DA_ROTA: {
   ano?: boolean;
 }[] = [
   { rota: /^\/panel$/, municipio: true, origem: true, ano: true },
-  { rota: /^\/panel\/funding\/summary$/, municipio: true, origem: true },
-  { rota: /^\/panel\/funding$/, municipio: true, origem: true },
+  // `/panel/funding` e o resumo dele FICAM DE FORA de propósito (§61): a tela
+  // de Propostas é o construtor de consultas e cada ABA carrega o próprio
+  // município e a própria origem. Mantê-los também aqui seria o mesmo filtro
+  // em dois lugares — um recortando a aba, outro a tela, dessincronizados.
   { rota: /^\/panel\/transfers(\/amendments)?$/, municipio: true, origem: true },
   {
     rota: /^\/panel\/(my-proposals|opportunities|regularity|compliance|works|alerts|advisory)$/,

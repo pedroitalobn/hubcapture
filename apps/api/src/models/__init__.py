@@ -6,6 +6,7 @@ from .audit_log import AuditLog
 from .base_conhecimento import BaseConhecimento
 from .configuracao import Configuracao
 from .conformidade import Conformidade
+from .consulta_proposta import ConsultaProposta
 from .contato import Contato
 from .convite import Convite
 from .demanda import Demanda
@@ -41,6 +42,7 @@ __all__ = [
     "BaseConhecimento",
     "Configuracao",
     "Conformidade",
+    "ConsultaProposta",
     "Contato",
     "ContatoVinculo",
     "Convite",

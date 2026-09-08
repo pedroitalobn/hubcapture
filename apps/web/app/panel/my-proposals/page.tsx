@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { linkProposta } from "@/lib/navegacao";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api/client";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
@@ -147,7 +148,7 @@ export default function MinhasPropostasPage() {
                       className="block"
                       vazio={
                         <Link
-                          href={`/panel/funding/${p.id}`}
+                          href={linkProposta(p.id, "my-proposals")}
                           className="block font-medium hover:underline"
                         >
                           Proposta sem título na fonte
@@ -155,7 +156,7 @@ export default function MinhasPropostasPage() {
                       }
                       envolver={(trecho) => (
                         <Link
-                          href={`/panel/funding/${p.id}`}
+                          href={linkProposta(p.id, "my-proposals")}
                           className="font-medium hover:underline"
                         >
                           {trecho}

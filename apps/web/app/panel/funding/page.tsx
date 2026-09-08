@@ -12,7 +12,12 @@ import { NumeroProposta } from "@/components/NumeroProposta";
 import { PageHeader } from "@/components/PageHeader";
 import { Skeleton } from "@/components/Skeleton";
 import { IconeAcao, IconeNav } from "@/components/icons";
-import { ItemMenu, Seletor, SeletorSimples } from "@/components/kit";
+import {
+  ItemMenu,
+  Seletor,
+  SeletorMultiplo,
+  SeletorSimples,
+} from "@/components/kit";
 import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { TextoLimitado } from "@/components/TextoLimitado";
 import {
@@ -25,9 +30,20 @@ import {
   municipioPrincipal,
   municipioSecundario,
 } from "@/lib/format";
+import {
+  FILTROS_VAZIOS,
+  abaDaApi,
+  abaVazia,
+  abasLocais,
+  esquecerAbasLocais,
+  paraApi,
+  type Aba,
+  type FiltrosAba as Filtros,
+} from "@/lib/consultas";
 import { rotuloFonte } from "@/lib/fontes";
-import { paramFonte, useOrigem } from "@/lib/origem";
-import { paramMunicipio, rotuloMunicipio, useTerritorio } from "@/lib/territorio";
+import { PARAM_ABA, linkProposta } from "@/lib/navegacao";
+import { useOrigem } from "@/lib/origem";
+import { rotuloMunicipio, useTerritorio } from "@/lib/territorio";
 import { cx } from "@/components/ui";
 
 // mapeia a situação da proposta para o tom do badge (verde = bom andamento,
@@ -107,52 +123,14 @@ type Facetas = {
 
 type Pasta = { id: string; nome: string; cor?: string | null };
 
-// O município NÃO é filtro desta tela: quais dos municípios do perfil entram
-// no painel é escolha global (barra de filtros, `lib/territorio`), válida para
-// todas as lentes. Aqui só se lê o recorte ativo.
-type Filtros = {
-  uf: string;
-  ano: string;
-  mes: string;
-  tipo: "" | "cadastrada" | "disponivel";
-  area: string;
-  categoria: string;
-  situacao: string;
-  q: string;
-  modalidade: string;
-  orgao: string;
-  naturezaJuridica: string;
-  naturezaGrupo: string;
-  qualificacao: string;
-  ordenar: string;
-  valorMin: string;
-  valorMax: string;
-  soFavoritas: boolean;
-  pastaId: string;
-};
+/* O recorte de uma aba (`Filtros`) e a própria aba vivem em `lib/consultas`:
+   a aba é ENTIDADE de banco (§61), não estado de tela, e o de-para entre as
+   chaves daqui e as do contrato mora num lugar só.
 
-type Aba = { id: string; nome: string; filtros: Filtros };
-
-const FILTROS_VAZIOS: Filtros = {
-  uf: "",
-  ano: "",
-  mes: "",
-  tipo: "",
-  area: "",
-  categoria: "",
-  situacao: "",
-  q: "",
-  modalidade: "",
-  orgao: "",
-  naturezaJuridica: "",
-  naturezaGrupo: "",
-  qualificacao: "",
-  ordenar: "recentes",
-  valorMin: "",
-  valorMax: "",
-  soFavoritas: false,
-  pastaId: "",
-};
+   ATENÇÃO: aqui o MUNICÍPIO e a ORIGEM DO RECURSO são filtros da ABA, não o
+   recorte global da barra do painel (§33/§33b). Esta tela é o construtor de
+   consultas — é o que permite "uma aba por município". O Meu painel continua
+   com o recorte global; as duas telas são independentes. */
 
 const AREAS = [
   "saude",
@@ -195,9 +173,6 @@ const ORDENACOES: [string, string][] = [
   ["valor", "Maior valor"],
 ];
 
-const ABAS_KEY = "hub_captacao_abas";
-const ABA_ACOMPANHAMENTO = "acompanhamento";
-
 // ── Paginação da lista ──────────────────────────────────────────────────────
 // A tela lê do BANCO, de página em página. Antes ela chamava
 // `/proposals/live-search` a CADA carregamento: isso coletava nas fontes ao
@@ -222,32 +197,6 @@ function lerPorPaginaSalvo(): number | null {
 function num(v?: string | number | null): number {
   const n = Number(v);
   return Number.isNaN(n) ? 0 : n;
-}
-
-function abasIniciais(): Aba[] {
-  if (typeof window !== "undefined") {
-    try {
-      const salvo = window.localStorage.getItem(ABAS_KEY);
-      if (salvo) {
-        const abas = JSON.parse(salvo) as Aba[];
-        // Reescreve pelas chaves de HOJE: completa filtros novos e descarta os
-        // que saíram (o município virou seleção global de território).
-        return abas.map((a) => {
-          const salvos = (a.filtros ?? {}) as Record<string, unknown>;
-          const filtros = Object.fromEntries(
-            Object.entries(FILTROS_VAZIOS).map(([k, padrao]) => [
-              k,
-              salvos[k] ?? padrao,
-            ]),
-          ) as Filtros;
-          return { ...a, filtros };
-        });
-      }
-    } catch {
-      /* estado corrompido → recomeça */
-    }
-  }
-  return [{ id: "aba-1", nome: "Geral", filtros: { ...FILTROS_VAZIOS } }];
 }
 
 /** Seletor alimentado por faceta: só mostra o que EXISTE no recorte, com
@@ -379,6 +328,7 @@ function SkeletonLista() {
 }
 
 function CaptacaoExploracao() {
+  const paramsUrl = useSearchParams();
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   // total do recorte no banco — `propostas` é só o que já foi carregado dele
   const [total, setTotal] = useState(0);
@@ -399,47 +349,135 @@ function CaptacaoExploracao() {
   const [alertas, setAlertas] = useState<Map<string, string>>(new Map());
   const [pastas, setPastas] = useState<Pasta[]>([]);
   const [pastaPropostas, setPastaPropostas] = useState<Set<string>>(new Set());
-  // território ativo: quais dos municípios do perfil estão em tela agora
-  const { selecionados, ativos: municipiosAtivos } = useTerritorio();
-  // origem do recurso ativa: de QUAIS fontes o gestor quer ver agora. Como o
-  // território, é escolha GLOBAL do trilho — não um filtro desta tela.
-  const { selecionadas: origens } = useOrigem();
-  const [abas, setAbas] = useState<Aba[]>(abasIniciais);
-  const [abaAtiva, setAbaAtiva] = useState<string>(
-    () => abasIniciais()[0]?.id ?? "aba-1",
-  );
+  // O território do PERFIL (todos os municípios do onboarding) e o catálogo de
+  // origens alimentam os seletores da aba. O recorte global da barra do painel
+  // não vale aqui: no construtor quem recorta é a aba (§61).
+  const { municipios: municipiosPerfil } = useTerritorio();
+  const { origens: origensPerfil } = useOrigem();
+  const [abas, setAbas] = useState<Aba[]>([]);
+  const [abaAtiva, setAbaAtiva] = useState<string>("");
+  // enquanto as abas não chegam do banco não existe recorte para consultar:
+  // buscar antes traria a lista de um filtro que não é o do gestor
+  const [abasProntas, setAbasProntas] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const buscaSeq = useRef(0);
 
-  const acompanhando = abaAtiva === ABA_ACOMPANHAMENTO;
   const aba: Aba = abas.find((a) => a.id === abaAtiva) ??
-    abas[0] ?? { id: "aba-1", nome: "Geral", filtros: { ...FILTROS_VAZIOS } };
+    abas[0] ?? { id: "", nome: "Geral", filtros: { ...FILTROS_VAZIOS } };
   const filtros = aba.filtros;
-  const [acompanhadas, setAcompanhadas] = useState<Proposta[]>([]);
+  const municipiosAtivos = useMemo(
+    () =>
+      filtros.municipios.length
+        ? municipiosPerfil.filter((m) => filtros.municipios.includes(m.ibge))
+        : [],
+    [filtros.municipios, municipiosPerfil],
+  );
 
-  // aba ACOMPANHAMENTO: as favoritas completas, direto da API
-  const carregarAcompanhadas = useCallback(async () => {
-    const { data } = await api.GET("/api/v1/favorites/proposals");
-    if (data) setAcompanhadas(data as Proposta[]);
+  // ── As abas são REGISTROS do usuário (§61) ───────────────────────────────
+  // A fileira vem do banco; na primeira carga, as abas que ficaram no
+  // navegador (a versão anterior guardava tudo em `localStorage`) sobem para
+  // lá e a chave local é esquecida.
+  const carregarAbas = useCallback(async (abrir?: string | null) => {
+    const { data, error } = await api.GET("/api/v1/proposals/views");
+    if (error || !data) {
+      setMsg("Não consegui carregar suas consultas salvas. Recarregue a página.");
+      setAbasProntas(true);
+      return;
+    }
+    type AbaApi = { id: string; nome: string; filtros?: unknown };
+    let lista = (data as AbaApi[]).map(abaDaApi);
+    const locais = abasLocais();
+    const soAPadrao = lista.length === 1 && !!lista[0] && abaVazia(lista[0]);
+    if (locais.length > 0 && soAPadrao) {
+      const criadas: Aba[] = [];
+      for (const local of locais) {
+        const { data: nova } = await api.POST("/api/v1/proposals/views", {
+          body: { nome: local.nome, filtros: paraApi(local.filtros) } as never,
+        });
+        if (nova) criadas.push(abaDaApi(nova as AbaApi));
+      }
+      if (criadas.length === locais.length) {
+        // só esquece o navegador quando TUDO subiu — migração pela metade
+        // apagaria consulta que o gestor montou
+        esquecerAbasLocais();
+        const padrao = lista[0]!;
+        await api.DELETE("/api/v1/proposals/views/{consulta_id}", {
+          params: { path: { consulta_id: padrao.id } },
+        });
+        lista = criadas;
+      } else {
+        lista = [...lista, ...criadas];
+      }
+    }
+    setAbas(lista);
+    setAbaAtiva((atual) => {
+      if (abrir && lista.some((a) => a.id === abrir)) return abrir;
+      if (lista.some((a) => a.id === atual)) return atual;
+      return lista[0]?.id ?? "";
+    });
+    setAbasProntas(true);
   }, []);
-  useEffect(() => {
-    if (acompanhando) void carregarAcompanhadas();
-  }, [acompanhando, carregarAcompanhadas]);
 
+  // Voltando do detalhe (`?view=<aba>`), a tela reabre na MESMA consulta: a
+  // proposta foi aberta dali, e cair noutra aba é chegar noutra tela.
+  const abaUrl = paramsUrl.get(PARAM_ABA);
   useEffect(() => {
-    window.localStorage.setItem(ABAS_KEY, JSON.stringify(abas));
-  }, [abas]);
+    void carregarAbas(abaUrl);
+    // só na montagem: depois quem troca de aba é o gestor
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // O recorte é salvo com atraso: o gestor ajusta vários filtros seguidos e
+  // isso não pode virar um PATCH por tecla digitada.
+  const salvarTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  /** O que ainda não foi gravado, por aba — é o que o unmount precisa salvar. */
+  const salvarPendentes = useRef(new Map<string, Filtros>());
+  const gravar = useCallback((id: string, novos: Filtros) => {
+    salvarPendentes.current.delete(id);
+    void api.PATCH("/api/v1/proposals/views/{consulta_id}", {
+      params: { path: { consulta_id: id } },
+      body: { filtros: paraApi(novos) } as never,
+    });
+  }, []);
+  const agendarSalvar = useCallback(
+    (id: string, novos: Filtros) => {
+      if (!id) return;
+      const timers = salvarTimers.current;
+      const pendente = timers.get(id);
+      if (pendente) clearTimeout(pendente);
+      salvarPendentes.current.set(id, novos);
+      timers.set(
+        id,
+        setTimeout(() => {
+          timers.delete(id);
+          gravar(id, novos);
+        }, 800),
+      );
+    },
+    [gravar],
+  );
+  useEffect(() => {
+    const timers = salvarTimers.current;
+    const pendentes = salvarPendentes.current;
+    return () => {
+      // sair da tela dentro da janela do atraso não pode PERDER o ajuste: o
+      // que estava a caminho é gravado agora, não descartado
+      timers.forEach(clearTimeout);
+      timers.clear();
+      pendentes.forEach((filtros, id) => gravar(id, filtros));
+    };
+  }, [gravar]);
 
   // Os filtros que viajam para a API (os de curadoria ficam no cliente).
   // Vazio vira `undefined` para o parâmetro simplesmente não ir na query.
   const filtrosApi = useCallback(
     () => ({
-      // território: o recorte global do painel (barra de filtros), não um filtro
-      // desta tela — vazio quando o usuário está vendo todos os municípios.
-      municipio: paramMunicipio(selecionados),
+      // território DA ABA: vazio = todo o território do perfil (o RLS segue
+      // sendo o limite — a aba só estreita).
+      municipio: filtros.municipios.length ? filtros.municipios : undefined,
       uf: filtros.uf || undefined,
-      // origem: idem território — vem do trilho, vazio = todas as fontes
-      fonte: paramFonte(origens),
+      // origem do recurso DA ABA: vazio = todas as fontes do perfil
+      fonte: filtros.fontes.length ? filtros.fontes : undefined,
       area: filtros.area || undefined,
       categoria: filtros.categoria || undefined,
       situacao: filtros.situacao || undefined,
@@ -456,7 +494,7 @@ function CaptacaoExploracao() {
       valor_max: filtros.valorMax || undefined,
       tipo: filtros.tipo || undefined,
     }),
-    [filtros, selecionados, origens],
+    [filtros],
   );
 
   /**
@@ -477,7 +515,7 @@ function CaptacaoExploracao() {
    * do ajuste do filtro até a resposta chegar.
    */
   const carregando =
-    !acompanhando && (buscando || atualizando || chaveCarregada !== chaveFiltros);
+    !abasProntas || buscando || atualizando || chaveCarregada !== chaveFiltros;
 
   /**
    * Carrega uma página do banco. `offset` 0 substitui a lista (troca de filtro);
@@ -536,12 +574,12 @@ function CaptacaoExploracao() {
   // dropdown e ordenação são um clique só — segurar 400ms ali era delay puro.
   const qAnterior = useRef(filtros.q);
   useEffect(() => {
-    if (acompanhando) return;
+    if (!abasProntas) return; // sem aba não há recorte para consultar
     const digitando = qAnterior.current !== filtros.q;
     qAnterior.current = filtros.q;
     const t = setTimeout(() => void carregarPagina(0), digitando ? 400 : 0);
     return () => clearTimeout(t);
-  }, [carregarPagina, acompanhando, filtros.q]);
+  }, [carregarPagina, abasProntas, filtros.q]);
 
   const temMais = propostas.length < total;
 
@@ -555,7 +593,7 @@ function CaptacaoExploracao() {
   // presa em outro contêiner não fica sem saída.
   useEffect(() => {
     const alvo = sentinela.current;
-    if (!alvo || acompanhando || !temMais) return;
+    if (!alvo || !temMais) return;
     const obs = new IntersectionObserver(
       (entradas) => {
         if (entradas[0]?.isIntersecting) carregarMais();
@@ -564,7 +602,7 @@ function CaptacaoExploracao() {
     );
     obs.observe(alvo);
     return () => obs.disconnect();
-  }, [carregarMais, acompanhando, temMais]);
+  }, [carregarMais, temMais]);
 
   // Restaura a preferência de itens por vez uma única vez, no cliente (ler o
   // localStorage no initializer divergiria do HTML do servidor → hidratação).
@@ -690,52 +728,121 @@ function CaptacaoExploracao() {
   }, [filtros.pastaId]);
 
   // Chegando do Meu painel (`/panel/funding?natureza_grupo=…&ano=…`), a tela
-  // abre já na lente E na ano escolhidas no card — o clique não pode trocar o
+  // abre já na lente E no ano escolhidos no card — o clique não pode trocar o
   // recorte por baixo do usuário. Só na chegada: depois quem manda são os chips.
-  const paramsUrl = useSearchParams();
   const lenteUrl = paramsUrl.get("natureza_grupo");
   const lenteValida = LENTES_NATUREZA.some(([v]) => v && v === lenteUrl) ? lenteUrl : null;
   const anoUrl = paramsUrl.get("ano");
   const anoValido = anoUrl && /^\d{4}$/.test(anoUrl) ? anoUrl : null;
+  // `abasProntas` no gatilho: sem aba carregada não há onde gravar o filtro —
+  // o recorte que veio do card do painel se perderia em silêncio.
   useEffect(() => {
-    if (lenteValida) setFiltros({ naturezaGrupo: lenteValida });
+    if (abasProntas && lenteValida) setFiltros({ naturezaGrupo: lenteValida });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lenteValida]);
+  }, [lenteValida, abasProntas]);
   useEffect(() => {
-    if (anoValido) setFiltros({ ano: anoValido });
+    if (abasProntas && anoValido) setFiltros({ ano: anoValido });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anoValido]);
+  }, [anoValido, abasProntas]);
 
   function setFiltros(patch: Partial<Filtros>) {
+    if (!aba.id) return; // sem aba carregada não há consulta para ajustar
+    const novos = { ...aba.filtros, ...patch };
     setAbas((prev) =>
-      prev.map((a) =>
-        a.id === aba.id ? { ...a, filtros: { ...a.filtros, ...patch } } : a,
-      ),
+      prev.map((a) => (a.id === aba.id ? { ...a, filtros: novos } : a)),
     );
+    agendarSalvar(aba.id, novos);
   }
 
-  function novaAba() {
-    const id = `aba-${Date.now()}`;
-    setAbas((prev) => [
-      ...prev,
-      { id, nome: `Frente ${prev.length + 1}`, filtros: { ...filtros } },
-    ]);
-    setAbaAtiva(id);
-  }
-
-  function fecharAba(id: string) {
-    setAbas((prev) => {
-      const rest = prev.filter((a) => a.id !== id);
-      if (rest.length === 0)
-        return [{ id: "aba-1", nome: "Geral", filtros: { ...FILTROS_VAZIOS } }];
-      return rest;
+  /** Nova consulta — em branco, ou cópia da aba atual (o jeito rápido de
+   *  fazer "a mesma consulta, outro município"). */
+  async function novaAba(copiar = false) {
+    const sugestao = copiar ? `${aba.nome} (cópia)` : `Consulta ${abas.length + 1}`;
+    const nome = window.prompt(
+      "Nome da consulta (município, área, projeto…):",
+      sugestao,
+    );
+    if (!nome) return;
+    const novosFiltros = copiar ? filtros : { ...FILTROS_VAZIOS };
+    const { data, error } = await api.POST("/api/v1/proposals/views", {
+      body: { nome, filtros: paraApi(novosFiltros) } as never,
     });
-    if (abaAtiva === id) setAbaAtiva(abas.find((a) => a.id !== id)?.id ?? "aba-1");
+    if (error || !data) {
+      setMsg("Não consegui criar a consulta agora. Tente novamente.");
+      return;
+    }
+    const nova = abaDaApi(data as { id: string; nome: string; filtros?: unknown });
+    setAbas((prev) => [...prev, nova]);
+    setAbaAtiva(nova.id);
   }
 
-  function renomearAba(id: string) {
-    const nome = window.prompt("Nome da aba (projeto, área, região…):");
-    if (nome) setAbas((prev) => prev.map((a) => (a.id === id ? { ...a, nome } : a)));
+  async function fecharAba(id: string) {
+    const alvo = abas.find((a) => a.id === id);
+    if (!alvo) return;
+    if (
+      !window.confirm(
+        `Excluir a consulta “${alvo.nome}”? Os filtros salvos nela serão perdidos.`,
+      )
+    )
+      return;
+    const pendente = salvarTimers.current.get(id);
+    if (pendente) {
+      // um PATCH a caminho recriaria o recorte de uma aba que já não existe
+      clearTimeout(pendente);
+      salvarTimers.current.delete(id);
+    }
+    salvarPendentes.current.delete(id);
+    const { error } = await api.DELETE("/api/v1/proposals/views/{consulta_id}", {
+      params: { path: { consulta_id: id } },
+    });
+    if (error) {
+      setMsg("Não consegui excluir a consulta agora. Tente novamente.");
+      return;
+    }
+    const resto = abas.filter((a) => a.id !== id);
+    if (resto.length === 0) {
+      // a fileira nunca fica vazia: a API devolve a consulta inicial
+      void carregarAbas();
+      return;
+    }
+    setAbas(resto);
+    if (abaAtiva === id) setAbaAtiva(resto[0]!.id);
+  }
+
+  async function renomearAba(id: string) {
+    const atual = abas.find((a) => a.id === id);
+    const nome = window.prompt(
+      "Nome da consulta (município, área, projeto…):",
+      atual?.nome ?? "",
+    );
+    if (!nome || nome === atual?.nome) return;
+    setAbas((prev) => prev.map((a) => (a.id === id ? { ...a, nome } : a)));
+    const { error } = await api.PATCH("/api/v1/proposals/views/{consulta_id}", {
+      params: { path: { consulta_id: id } },
+      body: { nome } as never,
+    });
+    if (error) {
+      setMsg("Não consegui renomear a consulta.");
+      void carregarAbas(id); // a tela volta a mostrar o que está no banco
+    }
+  }
+
+  /** Arrastar reordena a fileira — a ordem é do gestor, não da criação. */
+  const arrastando = useRef<string | null>(null);
+  async function soltarSobre(id: string) {
+    const origem = arrastando.current;
+    arrastando.current = null;
+    if (!origem || origem === id) return;
+    const resto = abas.filter((a) => a.id !== origem);
+    const alvo = resto.findIndex((a) => a.id === id);
+    const movida = abas.find((a) => a.id === origem);
+    if (!movida || alvo < 0) return;
+    const nova = [...resto.slice(0, alvo), movida, ...resto.slice(alvo)];
+    setAbas(nova);
+    const { error } = await api.PUT("/api/v1/proposals/views/order", {
+      body: { ids: nova.map((a) => a.id) } as never,
+    });
+    if (error) void carregarAbas(abaAtiva);
   }
 
   // A estrela só muda depois que a API confirmou. Marcar antes e ignorar o
@@ -762,7 +869,6 @@ function CaptacaoExploracao() {
       else s.delete(p.id);
       return s;
     });
-    if (acompanhando) void carregarAcompanhadas();
   }
 
   // liga/desliga o alerta (monitoramento) direto do card — canal painel por padrão
@@ -810,19 +916,11 @@ function CaptacaoExploracao() {
   // Por isso, com um deles ligado, o contador passa a falar em "carregadas" (o
   // `total` do servidor não os conhece e seria um denominador mentiroso).
   const visiveis = useMemo(() => {
-    let lista = acompanhando ? acompanhadas : propostas;
-    // no acompanhamento a fonte é a lista de favoritas (não passou pelo filtro
-    // da API): o recorte de território vale aqui também.
-    if (acompanhando && selecionados.length > 0) {
-      const escolhidos = new Set(selecionados);
-      lista = lista.filter(
-        (p) => p.municipio_ibge && escolhidos.has(p.municipio_ibge),
-      );
-    }
+    let lista = propostas;
     if (filtros.soFavoritas) lista = lista.filter((p) => favoritos.has(p.id));
     if (filtros.pastaId) lista = lista.filter((p) => pastaPropostas.has(p.id));
     return lista;
-  }, [propostas, acompanhadas, acompanhando, selecionados, filtros.soFavoritas, filtros.pastaId, favoritos, pastaPropostas]);
+  }, [propostas, filtros.soFavoritas, filtros.pastaId, favoritos, pastaPropostas]);
 
   const curadoriaAtiva = filtros.soFavoritas || !!filtros.pastaId;
 
@@ -854,6 +952,25 @@ function CaptacaoExploracao() {
     const rotuloDe = (dim: keyof Facetas, valor: string) =>
       (facetas[dim] ?? []).find((o) => o.valor === valor)?.rotulo ?? valor;
     const lista: { chave: string; rotulo: string; limpar: Partial<Filtros> }[] = [];
+    // município e origem entram na fila dos filtros ativos como os demais: são
+    // filtros DA CONSULTA e precisam poder sair com um clique
+    if (filtros.municipios.length)
+      lista.push({
+        chave: "municipios",
+        rotulo:
+          municipiosAtivos.length === 1 && municipiosAtivos[0]
+            ? rotuloMunicipio(municipiosAtivos[0])
+            : `${filtros.municipios.length} municípios`,
+        limpar: { municipios: [] },
+      });
+    if (filtros.fontes.length)
+      lista.push({
+        chave: "fontes",
+        rotulo: filtros.fontes
+          .map((c) => origensPerfil.find((o) => o.chave === c)?.label ?? c)
+          .join(", "),
+        limpar: { fontes: [] },
+      });
     if (filtros.q) lista.push({ chave: "q", rotulo: `"${filtros.q}"`, limpar: { q: "" } });
     if (filtros.tipo)
       lista.push({
@@ -932,7 +1049,7 @@ function CaptacaoExploracao() {
         limpar: { pastaId: "" },
       });
     return lista;
-  }, [filtros, facetas, pastas]);
+  }, [filtros, facetas, pastas, municipiosAtivos, origensPerfil]);
 
   /** "Baixar relatório": mesmo recorte da tela, em CSV. */
   async function baixarRelatorio() {
@@ -940,11 +1057,10 @@ function CaptacaoExploracao() {
       await baixarCsv(
         "/api/v1/proposals/report.csv",
         {
-          // o relatório sai no mesmo recorte da tela, território incluído
-          municipio: selecionados,
+          // o relatório sai no mesmo recorte da CONSULTA, território incluído
+          municipio: filtros.municipios,
           uf: filtros.uf,
-          // origem: o recorte global do trilho, o mesmo que a tela está vendo
-          fonte: origens,
+          fonte: filtros.fontes,
           area: filtros.area,
           categoria: filtros.categoria,
           situacao: filtros.situacao,
@@ -1007,11 +1123,10 @@ function CaptacaoExploracao() {
         titulo="Propostas"
         descricao={
           <>
+            {/* o recorte anunciado é o DA CONSULTA ativa (§61) — no construtor
+                cada aba tem o seu; o recorte global é do Meu painel */}
             Propostas e oportunidades de{" "}
-            {/* condiciona ao que JÁ carregou (não ao recorte salvo no
-                localStorage): antes do perfil chegar, cliente e servidor
-                precisam renderizar o mesmo texto — senão é erro de hidratação */}
-            {selecionados.length > 0 && municipiosAtivos.length > 0 ? (
+            {municipiosAtivos.length > 0 ? (
               <strong className="font-medium text-ink">
                 {municipiosAtivos.map(rotuloMunicipio).join(", ")}
               </strong>
@@ -1023,15 +1138,22 @@ function CaptacaoExploracao() {
         }
         acoes={
           <>
-            <Link href="/panel/funding/summary" className="btn btn-ghost btn-sm">
+            <Link
+              // o resumo é o da CONSULTA ativa, não o do território inteiro
+              href={
+                aba.id
+                  ? `/panel/funding/summary?${PARAM_ABA}=${aba.id}`
+                  : "/panel/funding/summary"
+              }
+              className="btn btn-ghost btn-sm"
+            >
               <IconeAcao nome="resumo" />
               Ver resumo
             </Link>
             {/* A ação MAIS importante da tela (consultar as fontes agora)
                 vivia enterrada como ghost pequeno no meio da página; é ação
                 primária e mora no cabeçalho, onde toda tela põe a sua. */}
-            {!acompanhando && (
-              <button
+            <button
                 onClick={() => void atualizarFontes()}
                 disabled={atualizando}
                 className="btn btn-primary"
@@ -1048,17 +1170,25 @@ function CaptacaoExploracao() {
                     Atualizar fontes
                   </>
                 )}
-              </button>
-            )}
+            </button>
           </>
         }
       />
 
-      {/* abas — várias frentes de trabalho ao mesmo tempo */}
+      {/* ── Consultas salvas (§61) ─────────────────────────────────────────
+          Cada aba é um recorte inteiro guardado no banco: município, origem,
+          filtros e ordenação. É o que permite "uma aba por município" e faz a
+          consulta acompanhar o gestor entre navegadores. Arrastar reordena. */}
       <div className="flex flex-wrap items-center gap-1.5">
         {abas.map((a) => (
           <span
             key={a.id}
+            draggable
+            onDragStart={() => {
+              arrastando.current = a.id;
+            }}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={() => void soltarSobre(a.id)}
             /* a aba ativa carrega o fio de gradiente da marca (mesma
                assinatura do card); a inativa reage ao ponteiro em vez de
                ficar parada — era o único controle da tela sem hover. */
@@ -1078,9 +1208,9 @@ function CaptacaoExploracao() {
             </button>
             {abas.length > 1 && (
               <button
-                onClick={() => fecharAba(a.id)}
+                onClick={() => void fecharAba(a.id)}
                 className="pressable pr-2 text-ink-3 hover:text-danger"
-                aria-label={`Fechar aba ${a.nome}`}
+                aria-label={`Excluir a consulta ${a.nome}`}
               >
                 ×
               </button>
@@ -1088,13 +1218,26 @@ function CaptacaoExploracao() {
           </span>
         ))}
         {/* "Minhas Propostas" agora vive no menu lateral (/panel/my-proposals) */}
-        <button onClick={novaAba} className="btn btn-ghost btn-sm" title="Nova aba">
-          + aba
+        <button
+          onClick={() => void novaAba(false)}
+          className="btn btn-ghost btn-sm"
+          title="Cria uma consulta em branco"
+        >
+          + consulta
         </button>
+        {abas.length > 0 && (
+          <button
+            onClick={() => void novaAba(true)}
+            className="btn btn-ghost btn-sm"
+            title="Duplica esta consulta — o jeito rápido de repetir o recorte noutro município"
+          >
+            Duplicar
+          </button>
+        )}
       </div>
 
-      {/* filtros — cada mudança dispara a busca ao vivo */}
-      {!acompanhando && (
+      {/* filtros — o recorte da consulta ativa; cada mudança recarrega a lista
+          e é salva na aba */}
       <div className="card flex flex-col gap-3 p-4">
         {/* linha 1 — essenciais (sempre visíveis) */}
         <div className="flex flex-wrap items-end gap-3">
@@ -1109,6 +1252,32 @@ function CaptacaoExploracao() {
               className="input w-full"
             />
           </label>
+          {/* MUNICÍPIO e ORIGEM são filtros DA CONSULTA (§61): é assim que
+              "uma aba por município" existe. No Meu painel eles seguem sendo o
+              recorte global — as duas telas são independentes. */}
+          {municipiosPerfil.length > 1 && (
+            <SeletorMultiplo
+              rotulo="Município"
+              titulo="Quais municípios do seu território esta consulta cobre"
+              rotuloTodos="Todo o território"
+              opcoes={municipiosPerfil.map((m) => ({
+                valor: m.ibge,
+                rotulo: rotuloMunicipio(m),
+              }))}
+              selecionados={filtros.municipios}
+              aoMudar={(municipios) => setFiltros({ municipios })}
+            />
+          )}
+          {origensPerfil.length > 1 && (
+            <SeletorMultiplo
+              rotulo="Origem do recurso"
+              titulo="De quais fontes esta consulta traz propostas"
+              rotuloTodos="Todas as origens"
+              opcoes={origensPerfil.map((o) => ({ valor: o.chave, rotulo: o.label }))}
+              selecionados={filtros.fontes}
+              aoMudar={(fontes) => setFiltros({ fontes })}
+            />
+          )}
           <SelectFaceta
             rotulo="UF"
             valor={filtros.uf}
@@ -1361,10 +1530,8 @@ function CaptacaoExploracao() {
           </div>
         )}
       </div>
-      )}
 
       {/* estado honesto da lista: o que já veio, de quanto, e a coleta sob demanda */}
-      {!acompanhando && (
       <div className="flex flex-wrap items-center gap-2 text-sm text-ink-2">
         {carregando ? (
           <span className="label-mono flex items-center gap-2">
@@ -1427,14 +1594,6 @@ function CaptacaoExploracao() {
           </>
         )}
       </div>
-      )}
-
-      {acompanhando && (
-        <p className="text-sm text-ink-2">
-          Suas propostas favoritadas ★ — toque na estrela para parar de
-          acompanhar. Favorite na busca (abas ao lado) para adicionar aqui.
-        </p>
-      )}
 
       {msg && <p className="text-sm text-ink-2">{msg}</p>}
 
@@ -1534,9 +1693,8 @@ function CaptacaoExploracao() {
           <SkeletonLista />
         ) : visiveis.length === 0 ? (
           <p className="text-ink-3">
-            {acompanhando
-              ? "Nenhuma favorita ainda — favorite ★ uma proposta na busca para acompanhá-la aqui."
-              : "Nenhuma proposta com esses filtros. Tente afrouxar o recorte ou use “Atualizar fontes”, no topo da página."}
+            Nenhuma proposta com esses filtros. Tente afrouxar o recorte ou use
+            “Atualizar fontes”, no topo da página.
           </p>
         ) : (
           <div className="card overflow-hidden">
@@ -1637,7 +1795,7 @@ function CaptacaoExploracao() {
                         className="block"
                         vazio={
                           <Link
-                            href={`/panel/funding/${p.id}`}
+                            href={linkProposta(p.id, "funding", aba.id)}
                             className="block font-medium hover:underline"
                           >
                             Proposta sem título na fonte
@@ -1645,7 +1803,7 @@ function CaptacaoExploracao() {
                         }
                         envolver={(trecho) => (
                           <Link
-                            href={`/panel/funding/${p.id}`}
+                            href={linkProposta(p.id, "funding", aba.id)}
                             className="font-medium hover:underline"
                           >
                             {trecho}
@@ -1772,7 +1930,7 @@ function CaptacaoExploracao() {
 
         {/* Fim da lista: a sentinela dispara a próxima página ao entrar na tela
             e o botão faz o mesmo por clique. */}
-        {!acompanhando && propostas.length > 0 && (
+        {propostas.length > 0 && (
           <div ref={sentinela} className="flex flex-col items-center gap-2 py-6">
             {temMais ? (
               <>

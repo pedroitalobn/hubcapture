@@ -30,7 +30,8 @@ from src.services import plano_gates as _plano_gates
 _owner_engine = create_async_engine(settings.database_migrator_url, poolclass=NullPool)
 
 _TABLES = (
-    "alertas, monitoramentos, monitoramentos_busca, favoritos, pasta_propostas, pastas, audit_log, "
+    "alertas, monitoramentos, monitoramentos_busca, favoritos, pasta_propostas, pastas, "
+    "consultas_propostas, audit_log, "
     "demandas, "
     "sync_runs, proposta_embeddings, proposta_emendas, proposta_empenhos, "
     "proposta_documentos, pareceres, propostas, "

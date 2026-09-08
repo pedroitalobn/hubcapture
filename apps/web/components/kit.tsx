@@ -11,6 +11,7 @@
  *
  * - `Seletor`      gatilho (rótulo em cima, valor embaixo) + menu suspenso;
  * - `ItemMenu`     linha do menu, com caixa de seleção ou marca de escolha;
+ * - `SeletorMultiplo` escolha de VÁRIOS sobre uma lista (nenhum = todos);
  * - `ChipFiltro`   filtro APLICADO, com × para remover;
  * - `Caixa`        a unidade de conteúdo (cabeçalho + corpo) do painel.
  *
@@ -337,5 +338,113 @@ export function Caixa({
       </div>
       <div className={corpoRente ? "box-body-flush" : "box-body"}>{children}</div>
     </section>
+  );
+}
+
+
+/* ────────────────────────────────────────────── SeletorMultiplo ───────── */
+
+/**
+ * Escolha de VÁRIOS sobre uma lista fechada — município e origem do recurso
+ * dentro de uma consulta salva (§61), por exemplo.
+ *
+ * Nada marcado = TODOS (o padrão), e marcar tudo um a um volta para nada: as
+ * duas coisas dizem a mesma frase, e guardar "todos" item a item deixaria a
+ * consulta presa numa lista que o perfil pode mudar amanhã.
+ */
+export function SeletorMultiplo({
+  rotulo,
+  titulo,
+  rotuloTodos,
+  opcoes,
+  selecionados,
+  aoMudar,
+  largura = "17rem",
+}: {
+  rotulo: string;
+  titulo?: string;
+  /** Como se lê "sem recorte" nesta dimensão ("Todo o território"). */
+  rotuloTodos: string;
+  opcoes: { valor: string; rotulo: string }[];
+  selecionados: string[];
+  aoMudar: (valores: string[]) => void;
+  largura?: string;
+}) {
+  const [busca, setBusca] = useState("");
+  const marcados = selecionados.filter((v) => opcoes.some((o) => o.valor === v));
+  const tudo = marcados.length === 0;
+  const valor = tudo
+    ? `${rotuloTodos} (${opcoes.length})`
+    : marcados.length === 1
+      ? (opcoes.find((o) => o.valor === marcados[0])?.rotulo ?? marcados[0]!)
+      : `${marcados.length} de ${opcoes.length}`;
+
+  const alternar = (v: string) => {
+    const novo = marcados.includes(v)
+      ? marcados.filter((x) => x !== v)
+      : [...marcados, v];
+    aoMudar(novo.length === opcoes.length ? [] : novo);
+  };
+
+  const termo = busca.trim().toLowerCase();
+  const lista = termo
+    ? opcoes.filter((o) => o.rotulo.toLowerCase().includes(termo))
+    : opcoes;
+
+  return (
+    <Seletor rotulo={rotulo} valor={valor} ativo={!tudo} largura={largura} titulo={titulo}>
+      {(fechar) => (
+        <>
+          {opcoes.length >= COM_BUSCA && (
+            <div className="menu-head">
+              <input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Filtrar…"
+                className="input w-full text-sm"
+                autoFocus
+              />
+            </div>
+          )}
+          <ItemMenu
+            marcado={tudo}
+            radio
+            rotulo={rotuloTodos}
+            contagem={opcoes.length}
+            onClick={() => {
+              aoMudar([]);
+              fechar();
+            }}
+          />
+          <div className="menu-sep" />
+          <div className="menu-scroll" role="listbox" aria-label={rotulo}>
+            {lista.map((o) => (
+              <ItemMenu
+                key={o.valor}
+                marcado={!tudo && marcados.includes(o.valor)}
+                rotulo={o.rotulo}
+                onClick={() => alternar(o.valor)}
+                acessorio={
+                  <button
+                    type="button"
+                    onClick={() => {
+                      aoMudar([o.valor]);
+                      fechar();
+                    }}
+                    title={`Só ${o.rotulo}`}
+                    className="shrink-0 rounded px-1.5 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-ink-3 opacity-0 transition hover:text-ink group-hover:opacity-100 focus:opacity-100"
+                  >
+                    só este
+                  </button>
+                }
+              />
+            ))}
+            {lista.length === 0 && (
+              <p className="px-2 py-2 text-sm text-ink-3">Nada com esse nome.</p>
+            )}
+          </div>
+        </>
+      )}
+    </Seletor>
   );
 }

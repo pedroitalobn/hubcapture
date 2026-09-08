@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { SkeletonCards } from "@/components/Skeleton";
 import { StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api/client";
 import { formatBRL, formatBRLCompact, formatDate } from "@/lib/format";
-import { paramFonte, useOrigem } from "@/lib/origem";
-import { paramMunicipio, useTerritorio } from "@/lib/territorio";
+import { daApi } from "@/lib/consultas";
+import { PARAM_ABA } from "@/lib/navegacao";
 import { SeletorSimples } from "@/components/kit";
 
 type Opcao = { valor: string; rotulo: string; total: number };
@@ -68,10 +69,38 @@ function num(v?: string | null): number {
   return Number.isNaN(n) ? 0 : n;
 }
 
+/** `useSearchParams` (a consulta de origem) exige fronteira de Suspense. */
 export default function ResumoCaptacaoPage() {
-  const { selecionados } = useTerritorio();
-  // origem do recurso: recorte global do trilho, como o território
-  const { selecionadas: origens } = useOrigem();
+  return (
+    <Suspense fallback={<SkeletonCards />}>
+      <ResumoCaptacao />
+    </Suspense>
+  );
+}
+
+function ResumoCaptacao() {
+  // O resumo é o da CONSULTA de onde o gestor veio (§61): o construtor guarda
+  // município e origem na aba, então ler o recorte global aqui resumiria um
+  // território diferente do que está na tela ao lado.
+  const abaId = useSearchParams().get(PARAM_ABA);
+  const [recorte, setRecorte] = useState<{ municipio: string[]; fonte: string[] }>({
+    municipio: [],
+    fonte: [],
+  });
+  const [nomeAba, setNomeAba] = useState<string | null>(null);
+  useEffect(() => {
+    if (!abaId) return;
+    void (async () => {
+      const { data } = await api.GET("/api/v1/proposals/views");
+      const aba = (data as { id: string; nome: string; filtros?: unknown }[] | undefined)?.find(
+        (a) => a.id === abaId,
+      );
+      if (!aba) return; // consulta excluída noutra aba: o resumo vale o território todo
+      const f = daApi(aba.filtros);
+      setNomeAba(aba.nome);
+      setRecorte({ municipio: f.municipios, fonte: f.fontes });
+    })();
+  }, [abaId]);
   const [resumo, setResumo] = useState<ResumoCaptacao | null>(null);
   const [facetas, setFacetas] = useState<Facetas>({});
   const [filtros, setFiltros] = useState<Filtros>(VAZIO);
@@ -81,8 +110,8 @@ export default function ResumoCaptacaoPage() {
     setCarregando(true);
     const query = {
       ...Object.fromEntries(Object.entries(filtros).filter(([, v]) => v !== "")),
-      municipio: paramMunicipio(selecionados), // recorte de território do painel
-      fonte: paramFonte(origens),
+      municipio: recorte.municipio.length ? recorte.municipio : undefined,
+      fonte: recorte.fonte.length ? recorte.fonte : undefined,
     };
     const [r, f] = await Promise.all([
       api.GET("/api/v1/proposals/summary", { params: { query } as never }),
@@ -91,7 +120,7 @@ export default function ResumoCaptacaoPage() {
     if (r.data) setResumo(r.data as ResumoCaptacao);
     if (f.data) setFacetas(f.data as Facetas);
     setCarregando(false);
-  }, [filtros, selecionados, origens]);
+  }, [filtros, recorte]);
 
   useEffect(() => {
     void carregar();
@@ -127,9 +156,17 @@ export default function ResumoCaptacaoPage() {
   return (
     <>
       <PageHeader
-        voltar={{ href: "/panel/funding", rotulo: "Captação" }}
+        voltar={{
+          // volta para a MESMA consulta de onde saiu
+          href: abaId ? `/panel/funding?${PARAM_ABA}=${abaId}` : "/panel/funding",
+          rotulo: "Propostas",
+        }}
         titulo="Resumo da captação"
-        descricao="Consolidado do que o seu território já conveniou, o que foi desembolsado e o que ainda está aberto."
+        descricao={
+          nomeAba
+            ? `Consolidado da consulta “${nomeAba}”: o que já foi conveniado, o que foi desembolsado e o que ainda está aberto.`
+            : "Consolidado do que o seu território já conveniou, o que foi desembolsado e o que ainda está aberto."
+        }
       />
 
       <div className="card flex flex-col gap-3 p-4">

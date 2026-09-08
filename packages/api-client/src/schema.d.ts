@@ -2072,6 +2072,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/proposals/views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Consultas
+         * @description As abas do gestor. Sem nenhuma, devolve a inicial já criada.
+         */
+        get: operations["listar_consultas_api_v1_proposals_views_get"];
+        put?: never;
+        /** Criar Consulta */
+        post: operations["criar_consulta_api_v1_proposals_views_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/views/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reordenar Consultas */
+        put: operations["reordenar_consultas_api_v1_proposals_views_order_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/views/{consulta_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remover Consulta */
+        delete: operations["remover_consulta_api_v1_proposals_views__consulta_id__delete"];
+        options?: never;
+        head?: never;
+        /** Atualizar Consulta */
+        patch: operations["atualizar_consulta_api_v1_proposals_views__consulta_id__patch"];
+        trace?: never;
+    };
     "/api/v1/proposals/{proposta_id}": {
         parameters: {
             query?: never;
@@ -3106,6 +3162,55 @@ export interface components {
             /** Titulo */
             titulo: string;
         };
+        /** ConsultaCreate */
+        ConsultaCreate: {
+            filtros?: components["schemas"]["FiltrosConsulta-Input"];
+            /** Nome */
+            nome: string;
+        };
+        /** ConsultaRead */
+        ConsultaRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            filtros: components["schemas"]["FiltrosConsulta-Output"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Nome */
+            nome: string;
+            /** Ordem */
+            ordem: number;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /**
+         * ConsultaUpdate
+         * @description PATCH parcial: campo ausente fica como está.
+         *
+         *     `filtros` é substituído por INTEIRO quando vem — limpar um filtro é
+         *     mandar o recorte sem ele, e um merge parcial deixaria filtro removido
+         *     grudado na aba.
+         */
+        ConsultaUpdate: {
+            filtros?: components["schemas"]["FiltrosConsulta-Input"] | null;
+            /** Nome */
+            nome?: string | null;
+            /** Ordem */
+            ordem?: number | null;
+        };
+        /**
+         * ConsultasOrdem
+         * @description Nova ordem da fileira de abas (ids na sequência desejada).
+         */
+        ConsultasOrdem: {
+            /** Ids */
+            ids: string[];
+        };
         /** ContatoAssessoria */
         ContatoAssessoria: {
             /** Descricao */
@@ -4011,6 +4116,104 @@ export interface components {
              * Format: uuid
              */
             proposta_id: string;
+        };
+        /**
+         * FiltrosConsulta
+         * @description O recorte guardado pela aba. Campo ausente/vazio = sem aquele filtro.
+         */
+        "FiltrosConsulta-Input": {
+            /** Ano */
+            ano?: string[];
+            /** Area */
+            area?: string | null;
+            /** Categoria */
+            categoria?: string | null;
+            /** Fonte */
+            fonte?: string[];
+            /** Mes */
+            mes?: string | null;
+            /** Modalidade */
+            modalidade?: string | null;
+            /** Municipio */
+            municipio?: string[];
+            /** Natureza Grupo */
+            natureza_grupo?: string | null;
+            /** Natureza Juridica */
+            natureza_juridica?: string | null;
+            /** Ordenar */
+            ordenar?: string | null;
+            /** Orgao */
+            orgao?: string | null;
+            /** Pasta Id */
+            pasta_id?: string | null;
+            /** Q */
+            q?: string | null;
+            /** Qualificacao */
+            qualificacao?: string | null;
+            /** Situacao */
+            situacao?: string | null;
+            /**
+             * So Favoritas
+             * @default false
+             */
+            so_favoritas: boolean;
+            /** Tipo */
+            tipo?: string | null;
+            /** Uf */
+            uf?: string | null;
+            /** Valor Max */
+            valor_max?: number | string | null;
+            /** Valor Min */
+            valor_min?: number | string | null;
+        };
+        /**
+         * FiltrosConsulta
+         * @description O recorte guardado pela aba. Campo ausente/vazio = sem aquele filtro.
+         */
+        "FiltrosConsulta-Output": {
+            /** Ano */
+            ano?: string[];
+            /** Area */
+            area?: string | null;
+            /** Categoria */
+            categoria?: string | null;
+            /** Fonte */
+            fonte?: string[];
+            /** Mes */
+            mes?: string | null;
+            /** Modalidade */
+            modalidade?: string | null;
+            /** Municipio */
+            municipio?: string[];
+            /** Natureza Grupo */
+            natureza_grupo?: string | null;
+            /** Natureza Juridica */
+            natureza_juridica?: string | null;
+            /** Ordenar */
+            ordenar?: string | null;
+            /** Orgao */
+            orgao?: string | null;
+            /** Pasta Id */
+            pasta_id?: string | null;
+            /** Q */
+            q?: string | null;
+            /** Qualificacao */
+            qualificacao?: string | null;
+            /** Situacao */
+            situacao?: string | null;
+            /**
+             * So Favoritas
+             * @default false
+             */
+            so_favoritas: boolean;
+            /** Tipo */
+            tipo?: string | null;
+            /** Uf */
+            uf?: string | null;
+            /** Valor Max */
+            valor_max?: string | null;
+            /** Valor Min */
+            valor_min?: string | null;
         };
         /** FonteDiagnostico */
         FonteDiagnostico: {
@@ -10374,6 +10577,156 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResumoCaptacao"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_consultas_api_v1_proposals_views_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultaRead"][];
+                };
+            };
+        };
+    };
+    criar_consulta_api_v1_proposals_views_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsultaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reordenar_consultas_api_v1_proposals_views_order_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsultasOrdem"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultaRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_consulta_api_v1_proposals_views__consulta_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                consulta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    atualizar_consulta_api_v1_proposals_views__consulta_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                consulta_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsultaUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultaRead"];
                 };
             };
             /** @description Validation Error */

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { comOrigem } from "@/lib/navegacao";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { BotaoEspelho } from "@/components/BotaoEspelho";
@@ -794,7 +795,10 @@ function MeuPainel() {
                               dentro; inteiro, ele empurra valor e data para
                               fora do olho. */}
                           <Link
-                            href={n.href}
+                            /* o link carimba de ONDE o gestor saiu: voltar do
+                               detalhe o devolve ao Meu painel, não à tela de
+                               Propostas (§61) */
+                            href={comOrigem(n.href, "panel")}
                             className="prow-title min-w-0 truncate transition-colors hover:text-brand"
                           >
                             {recortarTexto(humanizarCaixa(n.titulo), 80).trecho}

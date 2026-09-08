@@ -98,6 +98,7 @@ def register_routers() -> None:
         auth,
         conformidade,
         consulta_avulsa,
+        consultas_propostas,
         conta,
         contatos,
         contatos_institucionais,
@@ -124,6 +125,9 @@ def register_routers() -> None:
         auth,
         perfil,
         municipios,
+        # ANTES de `propostas`: /proposals/views precisa casar antes de
+        # /proposals/{proposta_id}, senão "views" viraria um UUID
+        consultas_propostas,
         propostas,
         pareceres,
         andamento,

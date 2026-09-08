@@ -1544,6 +1544,131 @@
         "title": "ConhecimentoCreate",
         "type": "object"
       },
+      "ConsultaCreate": {
+        "properties": {
+          "filtros": {
+            "$ref": "#/components/schemas/FiltrosConsulta-Input"
+          },
+          "nome": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Nome",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nome"
+        ],
+        "title": "ConsultaCreate",
+        "type": "object"
+      },
+      "ConsultaRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "filtros": {
+            "$ref": "#/components/schemas/FiltrosConsulta-Output"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "ordem": {
+            "title": "Ordem",
+            "type": "integer"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "filtros",
+          "ordem",
+          "created_at"
+        ],
+        "title": "ConsultaRead",
+        "type": "object"
+      },
+      "ConsultaUpdate": {
+        "description": "PATCH parcial: campo ausente fica como está.\n\n`filtros` é substituído por INTEIRO quando vem — limpar um filtro é\nmandar o recorte sem ele, e um merge parcial deixaria filtro removido\ngrudado na aba.",
+        "properties": {
+          "filtros": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FiltrosConsulta-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "ordem": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ordem"
+          }
+        },
+        "title": "ConsultaUpdate",
+        "type": "object"
+      },
+      "ConsultasOrdem": {
+        "description": "Nova ordem da fileira de abas (ids na sequência desejada).",
+        "properties": {
+          "ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "title": "ConsultasOrdem",
+        "type": "object"
+      },
       "ContatoAssessoria": {
         "properties": {
           "descricao": {
@@ -4359,6 +4484,452 @@
           "created_at"
         ],
         "title": "FavoritoRead",
+        "type": "object"
+      },
+      "FiltrosConsulta-Input": {
+        "additionalProperties": false,
+        "description": "O recorte guardado pela aba. Campo ausente/vazio = sem aquele filtro.",
+        "properties": {
+          "ano": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ano",
+            "type": "array"
+          },
+          "area": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
+          },
+          "categoria": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Categoria"
+          },
+          "fonte": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Fonte",
+            "type": "array"
+          },
+          "mes": {
+            "anyOf": [
+              {
+                "pattern": "^(0[1-9]|1[0-2])$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mes"
+          },
+          "modalidade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modalidade"
+          },
+          "municipio": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Municipio",
+            "type": "array"
+          },
+          "natureza_grupo": {
+            "anyOf": [
+              {
+                "pattern": "^(entes_municipais|outros)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Natureza Grupo"
+          },
+          "natureza_juridica": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Natureza Juridica"
+          },
+          "ordenar": {
+            "anyOf": [
+              {
+                "pattern": "^(recentes|prazo|prazo_distante|nome|orgao|valor)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ordenar"
+          },
+          "orgao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgao"
+          },
+          "pasta_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pasta Id"
+          },
+          "q": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q"
+          },
+          "qualificacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualificacao"
+          },
+          "situacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Situacao"
+          },
+          "so_favoritas": {
+            "default": false,
+            "title": "So Favoritas",
+            "type": "boolean"
+          },
+          "tipo": {
+            "anyOf": [
+              {
+                "pattern": "^(cadastrada|disponivel)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "maxLength": 2,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          },
+          "valor_max": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Max"
+          },
+          "valor_min": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Min"
+          }
+        },
+        "title": "FiltrosConsulta",
+        "type": "object"
+      },
+      "FiltrosConsulta-Output": {
+        "additionalProperties": false,
+        "description": "O recorte guardado pela aba. Campo ausente/vazio = sem aquele filtro.",
+        "properties": {
+          "ano": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ano",
+            "type": "array"
+          },
+          "area": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
+          },
+          "categoria": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Categoria"
+          },
+          "fonte": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Fonte",
+            "type": "array"
+          },
+          "mes": {
+            "anyOf": [
+              {
+                "pattern": "^(0[1-9]|1[0-2])$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mes"
+          },
+          "modalidade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modalidade"
+          },
+          "municipio": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Municipio",
+            "type": "array"
+          },
+          "natureza_grupo": {
+            "anyOf": [
+              {
+                "pattern": "^(entes_municipais|outros)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Natureza Grupo"
+          },
+          "natureza_juridica": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Natureza Juridica"
+          },
+          "ordenar": {
+            "anyOf": [
+              {
+                "pattern": "^(recentes|prazo|prazo_distante|nome|orgao|valor)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ordenar"
+          },
+          "orgao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgao"
+          },
+          "pasta_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pasta Id"
+          },
+          "q": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q"
+          },
+          "qualificacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualificacao"
+          },
+          "situacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Situacao"
+          },
+          "so_favoritas": {
+            "default": false,
+            "title": "So Favoritas",
+            "type": "boolean"
+          },
+          "tipo": {
+            "anyOf": [
+              {
+                "pattern": "^(cadastrada|disponivel)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "maxLength": 2,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          },
+          "valor_max": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Max"
+          },
+          "valor_min": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Min"
+          }
+        },
+        "title": "FiltrosConsulta",
         "type": "object"
       },
       "FonteDiagnostico": {
@@ -17962,6 +18533,228 @@
         "summary": "Resumo Propostas",
         "tags": [
           "propostas"
+        ]
+      }
+    },
+    "/api/v1/proposals/views": {
+      "get": {
+        "description": "As abas do gestor. Sem nenhuma, devolve a inicial já criada.",
+        "operationId": "listar_consultas_api_v1_proposals_views_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ConsultaRead"
+                  },
+                  "title": "Response Listar Consultas Api V1 Proposals Views Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listar Consultas",
+        "tags": [
+          "consultas"
+        ]
+      },
+      "post": {
+        "operationId": "criar_consulta_api_v1_proposals_views_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsultaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Criar Consulta",
+        "tags": [
+          "consultas"
+        ]
+      }
+    },
+    "/api/v1/proposals/views/order": {
+      "put": {
+        "operationId": "reordenar_consultas_api_v1_proposals_views_order_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsultasOrdem"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ConsultaRead"
+                  },
+                  "title": "Response Reordenar Consultas Api V1 Proposals Views Order Put",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Reordenar Consultas",
+        "tags": [
+          "consultas"
+        ]
+      }
+    },
+    "/api/v1/proposals/views/{consulta_id}": {
+      "delete": {
+        "operationId": "remover_consulta_api_v1_proposals_views__consulta_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "consulta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Consulta Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Remover Consulta",
+        "tags": [
+          "consultas"
+        ]
+      },
+      "patch": {
+        "operationId": "atualizar_consulta_api_v1_proposals_views__consulta_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "consulta_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Consulta Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsultaUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Atualizar Consulta",
+        "tags": [
+          "consultas"
         ]
       }
     },
