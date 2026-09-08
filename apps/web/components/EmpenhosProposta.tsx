@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
-import { useEhAdmin } from "@/lib/admin";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatBRL, formatDate, humanizarCaixa } from "@/lib/format";
 
@@ -61,7 +60,6 @@ interface Props {
 }
 
 export function EmpenhosProposta({ proposta, podeConsultarFonte = true }: Props) {
-  const admin = useEhAdmin();
   const [itens, setItens] = useState<Empenho[]>([]);
   const [resumo, setResumo] = useState<EmpenhoResumo | null>(null);
   const [coleta, setColeta] = useState<Coleta | null>(null);
@@ -128,17 +126,6 @@ export function EmpenhosProposta({ proposta, podeConsultarFonte = true }: Props)
           <p className="text-sm text-ink-3">
             Não foi possível consultar a fonte agora.
           </p>
-          {admin && coleta.erro && (
-            <details className="text-xs text-ink-3">
-              <summary className="cursor-pointer select-none">
-                Detalhe técnico (para a administração)
-              </summary>
-              <p className="mt-1.5 break-words">
-                {coleta.erro} A rota é calibrável em Administração →
-                Configurações → Fontes.
-              </p>
-            </details>
-          )}
         </div>
       ) : coleta?.status === "sem_chave" ? (
         <p className="text-sm text-ink-3">Sem dados.</p>

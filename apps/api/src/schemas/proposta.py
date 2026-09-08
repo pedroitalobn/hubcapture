@@ -94,6 +94,10 @@ class PublicacaoRead(BaseModel):
     data: date | None = None
     #: de onde veio o dado exibido (DOU, consulta ao vivo, pacote, relatório)
     origem: str | None = None
+    #: por que a afirmação da fonte não foi aceita — hoje, publicação sem
+    #: empenho (§56d). Vem preenchida junto de `sem_informacao`, para a tela
+    #: dizer o que a fonte informou E por que o Hub não afirma junto.
+    ressalva: str | None = None
     #: o extrato do DOU que PROVA a publicação, quando a conferência o achou —
     #: é o link que o gestor abre em vez de acreditar na tela (§56c)
     prova: ProvaPublicacao | None = None
@@ -177,10 +181,17 @@ class PropostaRead(BaseModel):
         from ..services import publicacao as publicacao_service
 
         ex = self.execucao or {}
-        estado = publicacao_service.do_execucao(ex)
+        # Sem sessão aqui, então a regra do empenho (§56d) roda com o AGREGADO
+        # da execução. Proposta cujo empenho só existe em nota é resolvida pela
+        # seção Publicação (`GET /proposals/{id}/publication`), que tem as duas
+        # origens — e o pior caso aqui é "sem informação" com a ressalva à
+        # vista, nunca uma afirmação de publicação que não se sustenta.
+        leitura = publicacao_service.resolver(ex)
+        estado = leitura.estado
         prova = publicacao_service.prova_dou(ex)
         return PublicacaoRead(
             estado=estado,
+            ressalva=leitura.ressalva,
             rotulo=publicacao_service.ROTULOS[estado],
             valor=ex.get("valor_publicado"),
             data=publicacao_service.data_publicacao(ex),
@@ -190,9 +201,11 @@ class PropostaRead(BaseModel):
             if prova
             else None,
             # sem estado não há dado exibido, logo não há origem a atribuir
+            # com ressalva a origem CONTINUA (é a fonte que afirmou e o gestor
+            # precisa saber qual); sem ressalva e sem estado, não há o que atribuir
             origem=(
-                publicacao_service.origem(ex)
-                if estado != publicacao_service.SEM_INFORMACAO
+                leitura.origem
+                if estado != publicacao_service.SEM_INFORMACAO or leitura.ressalva
                 else None
             ),
         )

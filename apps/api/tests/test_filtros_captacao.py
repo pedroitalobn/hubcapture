@@ -663,7 +663,12 @@ def test_esta_publicada_le_a_situacao_e_nao_o_valor() -> None:
     from src.models.proposta import Proposta
     from src.services.propostas import esta_publicada, estados_de
 
-    assert esta_publicada(Proposta(execucao={"situacao_publicacao": "Publicado"})) is True
+    publicada = Proposta(
+        execucao={"situacao_publicacao": "Publicado", "valor_empenhado": "390000"}
+    )
+    assert esta_publicada(publicada) is True
+    # §56d: sem empenho a afirmação da ficha não se sustenta
+    assert esta_publicada(Proposta(execucao={"situacao_publicacao": "Publicado"})) is False
     assert esta_publicada(Proposta(execucao={"situacao_publicacao": "Não publicado"})) is False
     assert esta_publicada(Proposta(execucao={})) is False
     assert esta_publicada(Proposta()) is False

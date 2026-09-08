@@ -772,9 +772,21 @@ def _valor_publicado(p: Proposta) -> Decimal:
     return _dec(_execucao(p).get("valor_publicado"))
 
 
-def esta_publicada(p: Proposta) -> bool:
-    """A proposta/convênio foi publicado, segundo a SITUAÇÃO informada pela fonte."""
-    return publicacao_service.do_execucao(_execucao(p)) == publicacao_service.PUBLICADO
+def esta_publicada(p: Proposta, docs: dict | None = None) -> bool:
+    """A proposta/convênio foi publicado, segundo a SITUAÇÃO informada pela fonte.
+
+    `docs` são os totais das NOTAS de empenho do recorte: publicação sem empenho
+    não existe (§56d), e o empenho tem duas origens (§56) — sem os documentos, a
+    proposta cujo empenho só existe em nota seria rebaixada por falta nossa.
+    """
+    resumo_docs = (docs or {}).get(p.id)
+    return (
+        publicacao_service.do_execucao(
+            _execucao(p),
+            empenho_documentos=resumo_docs.valor_empenhado if resumo_docs else None,
+        )
+        == publicacao_service.PUBLICADO
+    )
 
 
 def _empenhado_de(p: Proposta, docs: dict) -> Decimal:
@@ -816,8 +828,9 @@ def estados_de(p: Proposta, docs: dict | None = None) -> set[str]:
     if _empenhado_de(p, docs) > 0:
         estados.add("empenhado")
     # Só a SITUAÇÃO entra: o card "Publicado" listava proposta não publicada
-    # que trazia um valor na coluna de publicação (§56b).
-    if esta_publicada(p):
+    # que trazia um valor na coluna de publicação (§56b). E publicação sem
+    # empenho não existe (§56d) — daí `docs` seguir junto.
+    if esta_publicada(p, docs):
         estados.add("publicado")
     if _pago_de(p, docs) > 0:
         estados.add("pago")
@@ -873,7 +886,7 @@ async def resumo(session: AsyncSession, **filtros) -> dict:
     # O valor publicado é somado só do que a fonte DIZ publicado: card e filtro
     # ("Publicado" recorta o feed) precisam contar o mesmo conjunto, senão o
     # número afirma uma publicação que a lista não mostra.
-    publicadas_rows = [p for p in rows if esta_publicada(p)]
+    publicadas_rows = [p for p in rows if esta_publicada(p, docs)]
     publicado = sum((_valor_publicado(p) for p in publicadas_rows), Decimal(0))
     publicadas = len(publicadas_rows)
     conveniado = sum((_valor_global(p) for p in rows), Decimal(0))

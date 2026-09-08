@@ -5832,6 +5832,8 @@ export interface components {
             /** Origem */
             origem?: string | null;
             prova?: components["schemas"]["ProvaPublicacao"] | null;
+            /** Ressalva */
+            ressalva?: string | null;
             /** Rotulo */
             rotulo: string;
             /** Valor */

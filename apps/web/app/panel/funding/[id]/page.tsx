@@ -669,7 +669,10 @@ function PropostaDetalhe() {
         <hr className="hairline-rule" />
 
         <div className="data-grid">
-          <div className="field">
+          {/* `field--wide`: a situação é a única frase de texto livre desta
+              grade — nas trilhas de 11rem dos campos vizinhos ela empilharia
+              em quatro linhas. */}
+          <div className="field field--wide">
             <span className="field-label">
               Situação <Hint chave="proposta.situacao" />
             </span>

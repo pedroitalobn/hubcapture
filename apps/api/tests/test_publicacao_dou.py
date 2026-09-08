@@ -223,7 +223,9 @@ async def test_dou_fora_do_ar_nao_nega_a_publicacao(
         "2300804",
         municipio_nome="Apuiarés",
         numero_proposta="023951/2026",
-        execucao=json.dumps({"situacao_publicacao": "Publicado"}),
+        execucao=json.dumps(
+            {"situacao_publicacao": "Publicado", "valor_empenhado": "390000"}
+        ),
     )
     await _seed_empenho("023951/2026", "2026NE001245", "2300804")
     uid = await seed_user("gestor.dou2@x.com")
@@ -331,3 +333,71 @@ def test_carimbo_leva_o_pdf_para_a_tela() -> None:
     marca = publicacao_dou.carimbo(conf)
     assert marca and marca["pdf_url"].startswith("https://pesquisa.in.gov.br/")
     assert marca["secao"] == "DO3" and marca["pagina"] == "7"
+
+
+# ── a busca precisa ser EFETIVA: duas vias e dois formatos ─────────────────
+def test_cards_da_pagina_valem_quando_o_json_nao_vem() -> None:
+    """O JSON embutido é o caminho bom, não o único. Quando o portal serve só os
+    cards renderizados, desistir fazia "não consegui perguntar" chegar ao gestor
+    com o mesmo peso de "não achei"."""
+    serp = (
+        '<a href="/web/dou/-/extrato-111">EXTRATO DE CONTRATO</a>'
+        f"<p>{EXTRATO}</p>"
+        '<a href="/web/dou/-/extrato-222">EXTRATO DE CONTRATO</a>'
+        "<p>Contrato de Repasse nº 111111/2026, PM Fortaleza/CE, NE 2026NE009999.</p>"
+    )
+    materias = dou.parse_resultados(serp)
+    assert len(materias) == 2
+    assert materias[0].url and materias[0].url.startswith("https://www.in.gov.br/")
+
+
+def test_card_nao_herda_o_texto_do_vizinho() -> None:
+    """O corte no link seguinte não é detalhe: um trecho fixo depois do link
+    misturaria matérias, e o município de uma com a NE de outra casariam as duas
+    âncoras — um falso positivo montado por acidente de recorte."""
+    serp = (
+        '<a href="/web/dou/-/extrato-111">EXTRATO</a>'
+        f"<p>{EXTRATO}</p>"
+        '<a href="/web/dou/-/extrato-222">EXTRATO</a>'
+        "<p>PM Fortaleza/CE, NE 2026NE009999.</p>"
+    )
+    primeiro = dou.parse_resultados(serp)[0]
+    assert publicacao_dou.casa(primeiro, "2026NE001244", "apuiares") is True
+    assert publicacao_dou.casa(primeiro, "2026NE009999", "apuiares") is False
+
+
+async def test_busca_renderiza_quando_a_via_direta_nao_traz_lista(monkeypatch) -> None:
+    """Via direta com 200 e sem lista não é o fim: a mesma busca vai ao browser."""
+    chamadas: list[str] = []
+
+    async def direta(url, params):
+        chamadas.append("direta")
+        return "<html><body>sem lista aqui</body></html>"
+
+    async def renderizada(url, params):
+        chamadas.append("renderizada")
+        return _pagina(
+            [{"title": "EXTRATO DE CONTRATO", "content": EXTRATO, "pubName": "DO3"}]
+        )
+
+    monkeypatch.setattr(dou, "_baixar_direto", direta)
+    monkeypatch.setattr(dou, "_baixar_renderizado", renderizada)
+    monkeypatch.setattr(dou, "_base_url", lambda: _pronto("https://www.in.gov.br/x"))
+    monkeypatch.setattr(dou, "_secao", lambda: _pronto("do3"))
+
+    materias = await dou.buscar("2026NE001244")
+    assert chamadas == ["direta", "renderizada"]
+    assert len(materias) == 1
+
+
+async def _pronto(valor):
+    return valor
+
+
+def test_termo_de_token_unico_vai_sem_aspas() -> None:
+    """Aspas casam EXPRESSÃO; num token único (uma NE) elas não ajudam e há
+    portal que não devolve nada com elas."""
+    import inspect
+
+    fonte = inspect.getsource(dou.buscar)
+    assert 'if " " in termo else termo' in fonte

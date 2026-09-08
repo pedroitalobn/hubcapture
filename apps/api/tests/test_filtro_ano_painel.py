@@ -229,7 +229,12 @@ async def test_cards_do_painel_recortam_o_feed(
         "3550308",
         "Publicada",
         data_proposta=date(2026, 2, 2),
-        execucao=json.dumps({"situacao_publicacao": "Publicado"}),
+        # §56d: publicação sem empenho não existe. Aqui a publicação se sustenta
+        # pelo EXTRATO do DOU, que é o ato e vence a regra do empenho — assim o
+        # cenário segue com uma proposta por card.
+        execucao=json.dumps(
+            {"dou": {"situacao_publicacao": "Publicado", "url": "https://in.gov.br/x"}}
+        ),
     )
     await seed_proposta(
         "transferegov_ff",
