@@ -396,7 +396,12 @@ def test_proposta_publicada_e_estado_nao_so_texto() -> None:
         "publicacao_valor": None,
     }
     publicada = detect_changes.snapshot(
-        _proposta(execucao={"situacao_publicacao": "Publicado em 12/03/2026"}),
+        _proposta(
+            execucao={
+                "situacao_publicacao": "Publicado em 12/03/2026",
+                "valor_empenhado": "390000",  # §56d
+            }
+        ),
         hoje=date(2026, 1, 1),
     )
     assert publicada["publicada"] is True

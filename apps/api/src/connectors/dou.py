@@ -184,6 +184,43 @@ def _pdf_publicado(item: dict) -> str | None:
     return None
 
 
+#: link de uma matéria na SERP do in.gov.br — é o que ancora cada card.
+_RE_LINK_MATERIA = re.compile(r"""<a[^>]+href=["']([^"']*/web/dou/-/[^"']+)["']""", re.I)
+
+
+def parse_cards(pagina: str) -> list[Publicacao]:
+    """Leitura de retaguarda: os cards renderizados da página de busca.
+
+    Cada matéria é ancorada pelo seu link `/web/dou/-/…`; o texto de um card é o
+    que existe ATÉ o link seguinte. Esse corte não é detalhe: pegar um trecho
+    fixo depois do link misturaria matérias vizinhas, e aí o município de uma
+    com a NE de outra casariam as duas âncoras de `publicacao_dou.casa()` — um
+    falso positivo montado por acidente de recorte.
+    """
+    achados = list(_RE_LINK_MATERIA.finditer(pagina or ""))
+    saida: list[Publicacao] = []
+    for i, m in enumerate(achados):
+        fim = achados[i + 1].start() if i + 1 < len(achados) else len(pagina)
+        bloco = _texto(pagina[m.start() : fim])
+        if not bloco:
+            continue
+        saida.append(
+            Publicacao(
+                titulo=bloco[:120],
+                texto=bloco,
+                data=_data(bloco),
+                url=_absoluta_dou(m.group(1)),
+            )
+        )
+        if len(saida) >= MAX_RESULTADOS:
+            break
+    return saida
+
+
+def _absoluta_dou(href: str) -> str:
+    return href if href.startswith("http") else f"https://www.in.gov.br{href}"
+
+
 def parse_resultados(pagina: str) -> list[Publicacao]:
     """Os resultados embutidos no HTML da busca.
 
@@ -194,6 +231,13 @@ def parse_resultados(pagina: str) -> list[Publicacao]:
     """
     m = _SCRIPT_PARAMS.search(pagina or "")
     if not m:
+        # O JSON embutido é o caminho bom, não o único. Quando ele não vem —
+        # portal renderizando só os cards, formato novo — ainda dá para ler a
+        # lista do HTML; desistir aqui fazia "não consegui perguntar" chegar ao
+        # gestor com o mesmo peso de "não achei".
+        cards = parse_cards(pagina or "")
+        if cards:
+            return cards
         raise DouIndisponivel(
             "a busca do DOU não devolveu a lista de resultados "
             "(página de erro/desafio, ou o portal mudou o formato)"
@@ -243,39 +287,43 @@ async def _secao() -> str:
     ) or settings.dou_secao or SECAO_CONTRATOS
 
 
-async def _baixar(url: str, params: dict[str, str]) -> str:
-    """O HTML da busca — direto, e pelo egresso quando o IP é recusado.
+async def _baixar_direto(url: str, params: dict[str, str]) -> str:
+    """O HTML da busca por httpx. Desafio/queda vira `DouIndisponivel`."""
+    completa = str(httpx.URL(url).copy_merge_params(params))
+    if _egress.bloqueado(completa):
+        raise DouIndisponivel("host marcado como bloqueado para este servidor")
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
+            resp = await client.get(url, params=params, headers=_CABECALHOS)
+    except httpx.TransportError as exc:
+        _egress.marcar_bloqueado(completa)
+        raise DouIndisponivel(f"busca do DOU inacessível daqui: {exc}") from exc
+    if _egress.e_desafio(resp):
+        _egress.marcar_bloqueado(completa)
+        raise DouIndisponivel("busca do DOU desafiada (Cloudflare)")
+    if resp.status_code >= 400:
+        raise DouIndisponivel(f"busca do DOU respondeu {resp.status_code}")
+    _egress.desmarcar(completa)
+    return resp.text
 
-    Mesmo desenho de `_http.get_json`: gov.br responde 403 com desafio da
-    Cloudflare para o IP deste servidor, e isso não se resolve com retry. A
-    diferença é que aqui a resposta é HTML, então quem serve de egresso é o
-    scraper remoto (que devolve a página inteira), não o desembrulhador de JSON.
+
+async def _baixar_renderizado(url: str, params: dict[str, str]) -> str:
+    """A MESMA busca, com um browser: a página monta os resultados por JS.
+
+    Este caminho não é só para o IP recusado. A busca do in.gov.br responde 200
+    com um esqueleto quando o conteúdo depende de JS — e aí o HTML do httpx não
+    tem lista nenhuma. Desistir ali era o que fazia a tela dizer "não foi
+    possível consultar o Diário Oficial" com o portal no ar.
     """
     completa = str(httpx.URL(url).copy_merge_params(params))
-    if not _egress.bloqueado(completa):
-        try:
-            async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
-                resp = await client.get(url, params=params, headers=_CABECALHOS)
-            if not _egress.e_desafio(resp):
-                resp.raise_for_status()
-                _egress.desmarcar(completa)
-                return resp.text
-            _egress.marcar_bloqueado(completa)
-            log.warning("DOU: busca desafiada pela Cloudflare — tentando scraper remoto")
-        except httpx.TransportError as exc:
-            _egress.marcar_bloqueado(completa)
-            log.warning("DOU: busca inacessível daqui (%s) — tentando scraper remoto", exc)
-        except httpx.HTTPStatusError as exc:
-            raise DouIndisponivel(f"busca do DOU respondeu {exc.response.status_code}") from exc
-
     from ..scraping.scraper import ScraperNotConfigured, get_scraper
 
     try:
         resultado = await get_scraper().scrape(completa, ["html", "rawHtml"])
     except ScraperNotConfigured as exc:
         raise DouIndisponivel(
-            "o DOU recusa o IP deste servidor e nenhum scraper com egresso "
-            "próprio está configurado (painel admin → Scraping)"
+            "a busca do DOU não respondeu por HTTP e nenhum scraper está "
+            "configurado para renderizar a página (painel admin → Scraping)"
         ) from exc
     except Exception as exc:  # noqa: BLE001 — provider fora do ar não é "não publicado"
         raise DouIndisponivel(f"não foi possível consultar o DOU: {exc}") from exc
@@ -286,19 +334,41 @@ async def _baixar(url: str, params: dict[str, str]) -> str:
 
 
 async def buscar(termo: str, *, secao: str | None = None) -> list[Publicacao]:
-    """Matérias da seção que casam o termo (busca textual do portal)."""
+    """Matérias da seção que casam o termo (busca textual do portal).
+
+    Duas vias, nesta ordem: HTTP direto (barato) e, se ele não trouxer uma lista
+    legível, a MESMA busca renderizada por browser. Uma via só era frágil demais
+    para o que está em jogo — "não consegui consultar" tem o mesmo efeito
+    prático de "não achei" para quem olha a tela.
+    """
     termo = str(termo or "").strip()
     if not termo:
         return []
     base = await _base_url()
     params = {
-        "q": f'"{termo}"',  # aspas: o portal casa a expressão, não as palavras soltas
+        # Aspas só quando o termo tem espaço: aí elas casam a EXPRESSÃO. Num
+        # token único (uma NE, um código de instrumento) elas não ajudam e há
+        # portal que não devolve nada com elas.
+        "q": f'"{termo}"' if " " in termo else termo,
         "s": secao or await _secao(),
         "exactDate": "all",
         "sortType": "0",
         "delta": str(MAX_RESULTADOS),
     }
-    return parse_resultados(await _baixar(base, params))
+
+    primeiro: Exception | None = None
+    try:
+        return parse_resultados(await _baixar_direto(base, params))
+    except DouIndisponivel as exc:
+        primeiro = exc
+        log.info("DOU: via direta não serviu (%s) — renderizando a busca", exc)
+    try:
+        return parse_resultados(await _baixar_renderizado(base, params))
+    except DouIndisponivel as exc:
+        # a mensagem que sobe é a da ÚLTIMA via, mas com a primeira anexada:
+        # sem isso, o log dizia só "scraper não configurado" e escondia o que o
+        # portal tinha respondido
+        raise DouIndisponivel(f"{exc} (via direta: {primeiro})") from exc
 
 
 async def health_check() -> bool:

@@ -29,7 +29,11 @@ class EvidenciaPublicacao(BaseModel):
 class ConferenciaPublicacao(BaseModel):
     """Estado da ida ao DOU — "não consegui" nunca vira "não foi publicado"."""
 
-    status: str = "ok"  # ok | erro | sem_termo | nao_consultado
+    #: ok | erro | sem_termo | nao_consultado. `sem_termo` = a proposta não tem
+    #: NE nem código de instrumento — e, pela regra do negócio (§56d), sem nota
+    #: de empenho ela não está publicada, então isso é resposta, não só falta
+    #: de chave para procurar.
+    status: str = "ok"
     confirmado: bool = False
     #: o que foi procurado (NEs e o código do instrumento) — é o que se confere
     #: na mão quando o gestor discorda do resultado

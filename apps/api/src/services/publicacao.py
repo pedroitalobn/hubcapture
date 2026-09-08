@@ -37,6 +37,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from datetime import date
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 PUBLICADO = "publicado"
@@ -151,6 +152,9 @@ class Leitura:
     estado: str
     situacao: str | None = None
     origem: str | None = None
+    #: por que a afirmação da fonte não foi aceita (§56d) — a tela mostra isto
+    #: em vez de simplesmente calar o dado
+    ressalva: str | None = None
 
 
 def declaracoes(execucao: dict | None) -> list[Leitura]:
@@ -180,15 +184,67 @@ def declaracoes(execucao: dict | None) -> list[Leitura]:
     return saida
 
 
-def resolver(execucao: dict | None) -> Leitura:
+# ── publicação sem empenho não existe (§56d) ───────────────────────────────
+# Regra de negócio do cliente, e a CONTRAPOSITIVA da que destravou o DOU (§56c):
+# se toda proposta publicada tem nota de empenho, então proposta sem empenho
+# nenhum não pode estar publicada. É a rede que pega o que a leitura sozinha não
+# alcança — dado ANTIGO já gravado no cache com "Publicado" indevido, de antes
+# das correções da §56b, que a nova leitura respeitaria por ser texto afirmativo.
+#
+# O rebaixamento é para `sem_informacao`, NUNCA para `nao_publicado`: a ausência
+# de empenho no nosso cache é um sinal de inconsistência, não uma declaração da
+# fonte de que não saiu. Negar por inferência seria o mesmo defeito ao contrário
+# — o falso negativo que a §56c evita no DOU.
+RESSALVA_SEM_EMPENHO = (
+    "a fonte informa publicação, mas não há empenho registrado — "
+    "proposta publicada sempre tem nota de empenho"
+)
+
+
+def _positivo(valor: Any) -> bool:
+    try:
+        return Decimal(str(valor)) > 0
+    except (TypeError, ValueError, InvalidOperation):
+        return False
+
+
+def tem_empenho(execucao: dict | None, empenho_documentos: Any = None) -> bool:
+    """Há empenho conhecido? As DUAS origens contam (§56).
+
+    O agregado da execução é o número que a fonte publica; `empenho_documentos`
+    é a soma das notas, que só quem tem a sessão consegue ler. Quem não a tem
+    passa `None` — e aí vale o agregado, que é o caso da lista e do detalhe.
+    """
+    ex = execucao if isinstance(execucao, dict) else {}
+    return _positivo(ex.get("valor_empenhado")) or _positivo(empenho_documentos)
+
+
+def resolver(execucao: dict | None, *, empenho_documentos: Any = None) -> Leitura:
     """A leitura da publicação, com a fonte que a sustenta — a primeira que
-    responde na ordem de veracidade."""
+    responde na ordem de veracidade, e só quando há empenho que a sustente.
+
+    O extrato do DOU é a exceção: ele é o ATO publicado, com o município e a NE
+    na matéria. Se ele confirma e o empenho não está no nosso cache, quem está
+    incompleto somos nós — não a publicação.
+    """
     declaradas = declaracoes(execucao)
-    return declaradas[0] if declaradas else Leitura(estado=SEM_INFORMACAO)
+    leitura = declaradas[0] if declaradas else Leitura(estado=SEM_INFORMACAO)
+    if leitura.estado != PUBLICADO or leitura.origem == ORIGEM_DOU:
+        return leitura
+    if tem_empenho(execucao, empenho_documentos):
+        return leitura
+    # a declaração da fonte fica registrada na leitura: a tela diz o que ela
+    # informou E por que o Hub não afirma junto
+    return Leitura(
+        estado=SEM_INFORMACAO,
+        situacao=leitura.situacao,
+        origem=leitura.origem,
+        ressalva=RESSALVA_SEM_EMPENHO,
+    )
 
 
-def do_execucao(execucao: dict | None) -> str:
-    return resolver(execucao).estado
+def do_execucao(execucao: dict | None, *, empenho_documentos: Any = None) -> str:
+    return resolver(execucao, empenho_documentos=empenho_documentos).estado
 
 
 def origem(execucao: dict | None) -> str | None:

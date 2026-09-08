@@ -202,3 +202,26 @@ async def test_fonte_sem_lista_de_documentos_diz_isso(
 
 async def _carregar(session, pid: uuid.UUID) -> Proposta:
     return (await session.execute(select(Proposta).where(Proposta.id == pid))).scalar_one()
+
+
+def test_campo_com_data_nao_e_documento() -> None:
+    """A página segue com campos como "Data da Proposta" logo depois da lista de
+    documentos, e "nome + data" os fazia entrar como arquivo: a seção anunciava
+    "5 arquivos na fonte" com quatro marcados "sem link na fonte" — porque não
+    eram arquivos. Documento é o que se BAIXA."""
+    from src.connectors.pareceres_siconv import e_documento, parse_documentos
+
+    assert e_documento("Publicação 999293.pdf", None) is True
+    assert e_documento("Declaração assinada", "https://x/baixarArquivo.do?id=9") is True
+    assert e_documento("Data da Proposta", None) is False
+    assert e_documento("Data Limite p/ Prestação de Contas", None) is False
+
+    html = (
+        "<b>Lista de Documentos Digitalizados</b>"
+        "<table><tr><td>Nome Arquivo</td><td>Data Upload</td></tr>"
+        "<tr><td>Publicacao 999293.pdf</td><td>22/06/2026</td>"
+        '<tr><td><a href="baixarArquivo.do?id=9">Baixar</a></td></tr></tr></table>'
+        "<table><tr><td>Data da Proposta</td><td>02/07/2026</td></tr>"
+        "<tr><td>Data Inicio de Vigencia</td><td>05/07/2026</td></tr></table>"
+    )
+    assert [d["nome"] for d in parse_documentos(html)] == ["Publicacao 999293.pdf"]

@@ -393,6 +393,15 @@ async def publicacao(
                 erro=feita.erro,
             )
 
+    # Publicação sem empenho não existe (§56d) — e o empenho tem duas origens
+    # (§56). Aqui há sessão, então a regra roda completa: o agregado da execução
+    # e a soma das NOTAS. É esta leitura que o badge da seção mostra.
+    notas = await empenhos_service.listar(session, proposta)
+    empenhado_notas = empenhos_service.resumir(notas).valor_empenhado if notas else None
+    leitura_final = publicacao_service.resolver(
+        proposta.execucao, empenho_documentos=empenhado_notas
+    )
+
     evidencias: list[EvidenciaPublicacao] = []
     for leitura in publicacao_service.declaracoes(proposta.execucao):
         e_dou = leitura.origem == publicacao_service.ORIGEM_DOU
@@ -423,8 +432,18 @@ async def publicacao(
             )
         )
 
+    lida = PropostaRead.model_validate(proposta).publicacao
     return PublicacaoPagina(
-        publicacao=PropostaRead.model_validate(proposta).publicacao,
+        # o estado vem da leitura COMPLETA (com as notas); o resto do
+        # `PublicacaoRead` (valor, data, prova) já está resolvido no schema
+        publicacao=lida.model_copy(
+            update={
+                "estado": leitura_final.estado,
+                "rotulo": publicacao_service.ROTULOS[leitura_final.estado],
+                "ressalva": leitura_final.ressalva,
+                "data": lida.data if leitura_final.estado == publicacao_service.PUBLICADO else None,
+            }
+        ),
         evidencias=evidencias,
         conferencia=estado_conferencia,
     )

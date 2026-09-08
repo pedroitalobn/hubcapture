@@ -2598,6 +2598,73 @@ na mesma matéria:
   já lê por candidatos e a falha degrada para `DouIndisponivel` — nunca para
   "não publicado" nem para um arquivo que não é PDF.
 
+### 56d. Publicação sem empenho não existe — o segundo check (decisão travada)
+
+Relato do gestor, com a tela como prova: uma proposta aparecia **Publicado** e a
+própria seção Publicação, logo abaixo, dizia "sem nota de empenho registrada
+nesta proposta". Regra de negócio que ele fixou e que é a **contrapositiva** da
+que destravou o DOU (§56c): se toda proposta publicada tem nota de empenho,
+então proposta sem empenho nenhum **não está publicada**.
+
+- **Por que a §56b não bastava.** Ela corrigiu a LEITURA, e leitura não reescreve
+  o que já está gravado: `propostas` é cache (§4), e o registro antigo tinha a
+  STRING "Publicado" em `execucao` — texto afirmativo, que a leitura nova
+  respeita por construção. A regra do empenho é a rede que pega isso **sem
+  esperar re-coleta**, porque é derivada em tempo de resposta.
+- **Rebaixa para `sem_informacao`, NUNCA para `nao_publicado`**
+  (`publicacao.RESSALVA_SEM_EMPENHO`). A ausência de empenho no nosso cache é
+  sinal de inconsistência, não declaração da fonte de que não saiu; negar por
+  inferência seria o mesmo defeito ao contrário — o falso negativo que a §56c
+  evita no DOU. A declaração original segue na `Leitura` (situação + origem) e a
+  tela diz o que a fonte informou **e por que o Hub não afirma junto**.
+- **O extrato do DOU vence a regra.** Ele é o ATO, com o município e a NE na
+  matéria: se ele confirma e o empenho não está no cache, quem está incompleto
+  somos nós, não a publicação.
+- **As DUAS origens do empenho contam** (§56): o agregado
+  (`execucao.valor_empenhado`) e a soma das NOTAS. `resolver(execucao, *,
+  empenho_documentos=…)` — quem tem sessão passa as notas
+  (`andamento.publicacao`, `detect_changes.snapshot`, `propostas.estados_de` via
+  `docs`); `PropostaRead.publicacao` roda com o agregado, e o pior caso ali é
+  "sem informação" com a ressalva à vista, nunca uma afirmação que não se
+  sustenta.
+- Regressão: seção §56d de `tests/test_publicacao.py`.
+
+**A busca do DOU precisa ser EFETIVA, não elegante.** Em produção ela falhou com
+"a busca do DOU não devolveu a lista de resultados" e parou ali — para o gestor,
+"não consegui perguntar" tem o mesmo efeito prático de "não achei". Três
+correções em `connectors/dou.py`:
+
+- **Duas vias, não uma**: `_baixar_direto` (httpx) e `_baixar_renderizado`
+  (scraper). A via renderizada deixou de ser exclusiva do IP recusado — a busca
+  responde **200 com um esqueleto** quando a lista depende de JS, e desistir ali
+  era o defeito.
+- **Dois formatos**: sem o `<script id="params">`, `parse_cards` lê os cards da
+  SERP pelo link `/web/dou/-/…`. O texto de cada card vai **até o link
+  seguinte** — recorte fixo misturaria matérias vizinhas, e o município de uma
+  com a NE de outra casariam as duas âncoras de `casa()`: um falso positivo
+  montado por acidente de recorte.
+- **Aspas só em expressão**: `q="2026NE001191"` num token único não ajuda e há
+  portal que não devolve nada com elas.
+
+**O botão "Baixar" apontava para uma URL que não existe.** `_absoluta`
+concatenava o href com a base, e o href do SIconv vem absoluto no host
+(`/voluntarias/EditarDadosProposta/…`): saía
+`/voluntarias/voluntarias/…`. Agora é `urljoin`, que trata a barra inicial como
+raiz do host. O link continua sendo o da FONTE — nada é proxiado nem
+armazenado (§56).
+
+**Campo com data não é documento** (`pareceres_siconv.e_documento`). "Nome +
+data" fazia entrar na lista "Data da Proposta", "Data Início de Vigência" e
+"Data Limite p/ Prestação de Contas": a seção anunciava "5 arquivos na fonte"
+com quatro marcados "sem link na fonte" — porque não eram arquivos. Documento é
+o que se BAIXA: tem link de download ou o nome traz extensão.
+
+**Detalhe técnico saiu da página da proposta.** Os blocos "Detalhe técnico (para
+a administração)" (rota, exceção, termos procurados) foram removidos de
+`DocumentosProposta`, `EmendasProposta`, `EmpenhosProposta` e
+`PublicacaoConferencia`. A página da proposta é do gestor; diagnóstico de
+integração vive no log e em `/admin/sources`.
+
 ## 57. Design system v1 "Hub Capture" — a migração da Bancada v2 (decisão travada)
 
 A UI saiu da **"Bancada v2"** (canvas quase-preto com aurora, cards de vidro,

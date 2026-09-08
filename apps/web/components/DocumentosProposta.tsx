@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
-import { useEhAdmin } from "@/lib/admin";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDate } from "@/lib/format";
 
@@ -54,7 +53,6 @@ export function DocumentosProposta({
   publicado = false,
   podeConsultarFonte = true,
 }: Props) {
-  const admin = useEhAdmin();
   const [itens, setItens] = useState<Documento[]>([]);
   const [coleta, setColeta] = useState<Coleta | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -114,14 +112,6 @@ export function DocumentosProposta({
           <p className="text-sm text-ink-3">
             Não foi possível consultar a fonte agora.
           </p>
-          {admin && coleta.erro && (
-            <details className="text-xs text-ink-3">
-              <summary className="cursor-pointer select-none">
-                Detalhe técnico (para a administração)
-              </summary>
-              <p className="mt-1.5 break-words">{coleta.erro}</p>
-            </details>
-          )}
         </div>
       ) : itens.length === 0 ? (
         <p className="text-sm text-ink-3">

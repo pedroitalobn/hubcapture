@@ -58,6 +58,7 @@ def test_consulta_ao_vivo_vence_o_pacote_mensal() -> None:
 
 def test_fonte_ilegivel_passa_a_vez_em_vez_de_travar_a_leitura() -> None:
     ex = {
+        "valor_empenhado": "390000",  # §56d: publicação precisa de empenho
         "webapp": {"situacao_publicacao": "sim"},
         "convenio": {"situacao_publicacao": "Publicado"},
     }
@@ -72,7 +73,10 @@ def test_data_de_publicacao_so_sai_de_proposta_publicada() -> None:
         {"situacao_publicacao": "Não publicado", "data_publicacao": "12/03/2026"}
     ) is None
     assert publicacao.data_publicacao(
-        {"convenio": {"situacao_publicacao": "Publicado", "publicado_em": "12/03/2026"}}
+        {
+            "valor_empenhado": "390000",
+            "convenio": {"situacao_publicacao": "Publicado", "publicado_em": "12/03/2026"},
+        }
     ) is not None
 
 
@@ -102,3 +106,58 @@ def test_campo_ausente_na_ficha_nao_herda_resposta_vizinha() -> None:
     html = "<table><tr><td>Empenhado</td><td>sim</td></tr></table>"
     corpo = "Empenhado sim"
     assert "situacao_publicacao" not in pareceres_siconv._parse_execucao(corpo, html)
+
+
+# ── §56d: publicação sem empenho não existe ────────────────────────────────
+def test_publicado_sem_empenho_nao_e_afirmado() -> None:
+    """A regra do gestor: proposta publicada SEMPRE tem nota de empenho. Sem
+    empenho nenhum, a afirmação da ficha não se sustenta — e é assim que o dado
+    ANTIGO, gravado como "Publicado" antes da §56b, para de mentir sem esperar
+    re-coleta."""
+    leitura = publicacao.resolver({"situacao_publicacao": "Publicado"})
+    assert leitura.estado == publicacao.SEM_INFORMACAO
+    assert leitura.ressalva == publicacao.RESSALVA_SEM_EMPENHO
+    # a declaração da fonte NÃO some: a tela diz o que ela informou e por quê
+    assert leitura.situacao == "Publicado" and leitura.origem
+
+
+def test_rebaixa_para_sem_informacao_e_NUNCA_para_nao_publicado() -> None:
+    """Negar por inferência seria o mesmo defeito ao contrário (o falso
+    negativo que a §56c evita no DOU)."""
+    assert (
+        publicacao.resolver({"situacao_publicacao": "Publicado"}).estado
+        != publicacao.NAO_PUBLICADO
+    )
+    # e a NEGATIVA da fonte é consistente com a falta de empenho: fica de pé
+    assert (
+        publicacao.resolver({"situacao_publicacao": "Não Publicado"}).estado
+        == publicacao.NAO_PUBLICADO
+    )
+
+
+def test_as_duas_origens_do_empenho_sustentam_a_publicacao() -> None:
+    """O empenho tem duas origens (§56): o agregado da execução e a soma das
+    NOTAS. Ignorar a segunda rebaixaria proposta cujo empenho só existe em nota."""
+    agregado = {"situacao_publicacao": "Publicado", "valor_empenhado": "390000"}
+    assert publicacao.resolver(agregado).estado == publicacao.PUBLICADO
+
+    so_nota = {"situacao_publicacao": "Publicado"}
+    assert (
+        publicacao.resolver(so_nota, empenho_documentos="390000").estado
+        == publicacao.PUBLICADO
+    )
+    # zero não é empenho
+    assert (
+        publicacao.resolver(so_nota, empenho_documentos="0").estado
+        == publicacao.SEM_INFORMACAO
+    )
+
+
+def test_o_extrato_do_DOU_vence_a_regra_do_empenho() -> None:
+    """O DOU é o ATO publicado, com o município e a NE na matéria. Se ele
+    confirma e o empenho não está no nosso cache, quem está incompleto somos
+    nós — não a publicação."""
+    ex = {"dou": {"situacao_publicacao": "Publicado", "url": "https://in.gov.br/x"}}
+    leitura = publicacao.resolver(ex)
+    assert leitura.estado == publicacao.PUBLICADO
+    assert leitura.ressalva is None
