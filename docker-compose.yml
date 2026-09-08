@@ -126,6 +126,10 @@ services:
     environment:
       # dentro da rede do compose o host do banco é "postgres" (não localhost)
       DB_HOST: postgres
+      # Migrations no boot (docker-entrypoint.sh). Ligado por padrão: o deploy
+      # sobe com o schema em dia, sem passo manual. `AUTOMIGRATE=false` no .env
+      # (ou no painel do Dokploy) desliga sem rebuild da imagem.
+      AUTOMIGRATE: ${AUTOMIGRATE:-true}
       COLETA_TIMEOUT_SECONDS: ${COLETA_TIMEOUT_SECONDS:-900}
       DATABASE_URL: postgresql+asyncpg://hubcapture_app:${APP_DB_PASSWORD:-app_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}
       DATABASE_MIGRATOR_URL: postgresql+asyncpg://${POSTGRES_USER:-hubcapture}:${POSTGRES_PASSWORD:-postgres_secret}@postgres:5432/${POSTGRES_DB:-hubcapture}

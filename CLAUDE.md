@@ -651,6 +651,15 @@ Stack completo sobe com um comando; o superadmin é criado no boot.
 - **Dockerfiles**: `apps/api/Dockerfile` (uv sync; `docker-entrypoint.sh` espera o
   Postgres → `alembic upgrade head` → uvicorn) e `apps/web/Dockerfile` (build pnpm do
   monorepo → Next standalone). `.dockerignore` na raiz enxuga o contexto.
+- **`AUTOMIGRATE` (padrão `true`)**: as migrations rodam no BOOT do container da
+  API, então todo deploy sobe com o schema em dia sem passo manual — é o
+  comportamento desde sempre; a variável só o tornou governável. `false`
+  (aceita `0`/`off`/`no`) PULA o `alembic upgrade` e diz isso no log — schema
+  desatualizado sem aviso viraria erro de consulta longe da causa. Desligue
+  quando as migrations forem aplicadas por fora (janela controlada, DBA) ou
+  quando houver mais de uma réplica da API subindo junto: dois `alembic
+  upgrade` concorrentes disputam a mesma tabela de versão. Só o serviço `api`
+  migra — os workers sobrescrevem o entrypoint.
 - **Admin inicial (bootstrap)**: `core/bootstrap.ensure_admin()` roda no `lifespan` da
   API. Com `ADMIN_EMAIL`+`ADMIN_PASSWORD` no `.env`, cria/promove um superusuário
   (idempotente — não duplica nem reseta senha existente). Destrava o 1º login no painel.
