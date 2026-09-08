@@ -34,14 +34,47 @@ foi para o ar / foi demonstrada — algo que você consiga comprovar por outro m
 
 ## Descrição sugerida do programa
 
-> Plataforma web que concentra, organiza e monitora propostas, editais e repasses
-> de recursos das plataformas de transferência voluntária do governo federal
-> brasileiro (TransfereGov e Fundo Nacional de Saúde), com ingestão automatizada
-> por conectores de API e extração de páginas, normalização e deduplicação em
-> esquema canônico, curadoria assistida por modelos de linguagem, detecção de
-> alterações com alertas por painel, e-mail e WhatsApp, e um copiloto
-> conversacional com acesso às ferramentas do próprio sistema. Arquitetura
-> multi-inquilino com isolamento por usuário no banco de dados.
+Texto para o campo de descrição do e-Software. É ele que caracteriza a criação
+para o examinador — e, num litígio, é por ele que se argumenta o que o programa
+faz de próprio. Por isso abre pela **IA lendo o perfil**, que é o diferencial em
+relação às demais plataformas de captação, e não pela lista de fontes de dados,
+que qualquer concorrente também tem.
+
+> Plataforma web que concentra, organiza e monitora propostas, editais e
+> repasses de recursos das plataformas de transferência voluntária do governo
+> federal brasileiro, voltada ao gestor público municipal. O programa emprega
+> inteligência artificial para interpretar as demandas e necessidades do
+> município e do gestor e, a partir dessa leitura do perfil — território, áreas
+> de atuação, papel do usuário e histórico de acompanhamento —, selecionar entre
+> as oportunidades disponíveis as pertinentes àquele município e sugerir o
+> acompanhamento das propostas correspondentes, ajustando seleção e sugestões à
+> medida que apura o entendimento do perfil. Reúne ainda cadastro conversacional
+> conduzido por assistente, curadoria automática em duas camadas
+> (classificação determinística e refinamento por modelo de linguagem),
+> copiloto com chamada de ferramentas sobre as próprias funções do sistema,
+> vigilância de propostas por critérios escolhidos pelo usuário com detecção de
+> alteração por comparação de estados sucessivos, e ingestão combinada por
+> interface de programação e extração automatizada de páginas com fusão por
+> precedência declarada de campo. Arquitetura multi-inquilino com isolamento por
+> usuário no banco de dados.
+
+### Diferenciação frente aos concorrentes
+
+O `00-IDENTIFICACAO.txt` do pacote traz a seção **Características originais**,
+que detalha os seis pontos e diz explicitamente o que as outras plataformas
+fazem de diferente. O mais relevante — e o que sustenta os demais:
+
+> As soluções concorrentes organizam a interface **por plataforma de origem**
+> (uma aba para o TransfereGov, outra para o FNS, outra para o FNDE), cabendo ao
+> gestor percorrer fonte por fonte. No Hub Capture a navegação parte do
+> **perfil**; as fontes são detalhe interno de ingestão e não aparecem como
+> divisão da interface.
+
+Vale como caracterização de originalidade porque é uma **decisão de arquitetura
+verificável no código** que acompanha o pacote (a navegação por lentes sobre o
+território, a derivação das fontes a partir das áreas declaradas), não uma
+alegação de marketing. Ao registrar uma versão nova, revise essa seção: é ela
+que envelhece primeiro.
 
 ## Composição da documentação técnica
 

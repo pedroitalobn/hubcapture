@@ -64,7 +64,12 @@ carimba o commit de origem. Ele produz, em `dist/inpi/`:
 
 Dentro do `.zip`:
 
-- `00-IDENTIFICACAO.txt` — título, commit, contagem de arquivos/linhas, linguagens;
+- `00-IDENTIFICACAO.txt` — a **descrição** do programa (a leitura do perfil
+  por IA e o acompanhamento que decorre dela), a seção **Características
+  originais** (o que distingue das plataformas concorrentes) e os números do
+  pacote: commit, arquivos, linhas, linguagens. É este texto que diz ao
+  examinador — e, depois, ao perito — o que no meio de 100 mil linhas é a
+  criação; revise-o a cada versão que for registrar;
 - `01-INVENTARIO.txt` — **SHA-256 de cada arquivo**, individualmente;
 - `codigo-fonte/…` — o código versionado (Python, TypeScript/TSX, SQL das
   migrations, CSS, Dockerfiles, compose, docs de arquitetura).
