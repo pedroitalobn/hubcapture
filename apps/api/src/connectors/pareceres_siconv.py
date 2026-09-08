@@ -33,6 +33,7 @@ import html as html_
 import logging
 import re
 import unicodedata
+from urllib.parse import urljoin
 
 log = logging.getLogger(__name__)
 
@@ -283,17 +284,44 @@ def _url_da_linha(linha: str) -> str | None:
 
 
 def _absoluta(alvo: str) -> str:
+    """Resolve o href da linha contra a base — pela RFC, não por concatenação.
+
+    O href de download vem absoluto no host (`/voluntarias/EditarDadosProposta/
+    DetalharPropostaBaixar.do?id=…`) e a concatenação com a base, que já termina
+    em `/voluntarias`, produzia `/voluntarias/voluntarias/…`: o botão "Baixar"
+    apontava para uma URL que não existe. `urljoin` trata a barra inicial como
+    raiz do host e o relativo puro como irmão da base.
+    """
     if alvo.startswith("http"):
         return alvo
-    return f"{BASE}/{alvo.lstrip('/')}"
+    return urljoin(f"{BASE}/", alvo)
+
+
+#: extensões que fazem de um texto o NOME DE UM ARQUIVO.
+_EXTENSAO_ARQUIVO = re.compile(
+    r"\.(pdf|docx?|xlsx?|pptx?|odt|ods|rtf|txt|csv|zip|rar|7z|p7s|jpe?g|png|tiff?|gif|bmp)\s*$",
+    re.I,
+)
+
+
+def e_documento(nome: str, url: str | None) -> bool:
+    """A linha é um ARQUIVO, ou é outro campo da ficha que por acaso tem data?
+
+    "nome + data" não basta: a página segue com campos como "Data da Proposta"
+    e "Data Início de Vigência", que casam o mesmo formato e entravam na lista
+    como se fossem documentos — a seção anunciava "5 arquivos na fonte" com
+    quatro deles marcados "sem link na fonte", porque não eram arquivos.
+    Documento é o que se BAIXA: tem link de download, ou o nome traz extensão.
+    """
+    return bool(url) or bool(_EXTENSAO_ARQUIVO.search(nome or ""))
 
 
 def parse_documentos(html_pagina: str) -> list[dict]:
     """Linhas da lista de documentos digitalizados da página de detalhe.
 
-    Tolerante de propósito: a tabela é Struts de 2004, sem id nem classe. O que
-    define uma linha VÁLIDA é ter um nome de arquivo e uma data — cabeçalho,
-    rodapé e "Nenhum registro" não têm as duas coisas e caem fora sozinhos.
+    Tolerante de propósito: a tabela é Struts de 2004, sem id nem classe —
+    cabeçalho, rodapé e "Nenhum registro" caem fora por não terem nome e data.
+    O que separa documento de campo-com-data é `e_documento`.
     """
     marca = _MARCA_DOCUMENTOS.search(html_pagina)
     if not marca:
@@ -317,11 +345,14 @@ def parse_documentos(html_pagina: str) -> list[dict]:
         if not candidatos:
             continue
         nome = max(candidatos, key=len)
+        url = _url_da_linha(linha)
+        if not e_documento(nome, url):
+            continue
         saida.append(
             {
                 "nome": nome,
                 "data_upload": datas[0],
-                "url": _url_da_linha(linha),
+                "url": url,
                 "_scraper": "playwright",
             }
         )

@@ -193,7 +193,11 @@ def snapshot(
     ids_parecer = {
         _identidade(p, prefixo="parecer", indice=i): _veredito(p) for i, p in enumerate(pareceres)
     }
-    leitura = publicacao_service.resolver(execucao)
+    # publicação sem empenho não existe (§56d): o alerta lê pela MESMA régua da
+    # tela, com as notas que o snapshot já tem em mãos
+    leitura = publicacao_service.resolver(
+        execucao, empenho_documentos=max(empenhado_docs, Decimal("0"))
+    )
     publicacao_situacao = leitura.situacao
     publicacao_valor = execucao.get("valor_publicado")
 

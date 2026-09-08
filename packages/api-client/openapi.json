@@ -8784,6 +8784,17 @@
               }
             ]
           },
+          "ressalva": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ressalva"
+          },
           "rotulo": {
             "title": "Rotulo",
             "type": "string"

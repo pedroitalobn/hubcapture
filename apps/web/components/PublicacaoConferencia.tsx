@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, baixarPdfPublicacao, mensagemDaFalha } from "@/lib/api/client";
-import { useEhAdmin } from "@/lib/admin";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDate } from "@/lib/format";
 
@@ -41,7 +40,12 @@ type Conferencia = {
   erro?: string | null;
 };
 
-type Publicacao = { estado: string; rotulo: string };
+type Publicacao = {
+  estado: string;
+  rotulo: string;
+  /** Por que a afirmação da fonte não foi aceita (§56d: sem empenho). */
+  ressalva?: string | null;
+};
 
 const TIPO_ROTULO: Record<string, string> = {
   dou: "Diário Oficial",
@@ -62,7 +66,6 @@ interface Props {
 }
 
 export function PublicacaoConferencia({ proposta, podeConsultarFonte = true }: Props) {
-  const admin = useEhAdmin();
   const [publicacao, setPublicacao] = useState<Publicacao | null>(null);
   const [evidencias, setEvidencias] = useState<Evidencia[]>([]);
   const [conferencia, setConferencia] = useState<Conferencia | null>(null);
@@ -140,6 +143,17 @@ export function PublicacaoConferencia({ proposta, podeConsultarFonte = true }: P
           </button>
         )}
       </div>
+
+      {/* §56d: a fonte afirmou publicação, mas não há empenho que a sustente.
+          O Hub não repete a afirmação — e diz por quê, em vez de calar o dado
+          e deixar o gestor achando que a informação sumiu. */}
+      {publicacao?.ressalva && (
+        <p className="mb-3 text-sm text-ink-2">
+          A fonte informa esta proposta como publicada, mas não há nota de
+          empenho nem valor empenhado registrado. Proposta publicada sempre tem
+          empenho — por isso o Hub não confirma a publicação aqui.
+        </p>
+      )}
 
       {divergem && (
         <p className="mb-3 text-sm text-ink-2">
@@ -220,24 +234,11 @@ export function PublicacaoConferencia({ proposta, podeConsultarFonte = true }: P
             {conferencia.confirmado
               ? "Publicação confirmada no Diário Oficial da União, Seção 3."
               : conferencia.status === "sem_termo"
-                ? "Sem nota de empenho registrada nesta proposta — é por ela que a busca no Diário Oficial é feita. Consulte os empenhos primeiro."
+                ? "Sem nota de empenho registrada nesta proposta. Toda proposta publicada tem empenho, então não há o que confirmar no Diário Oficial enquanto ele não aparecer."
                 : conferencia.status === "erro"
                   ? "Não foi possível consultar o Diário Oficial agora — isso não quer dizer que a proposta não tenha sido publicada."
                   : "Nada encontrado no Diário Oficial para esta proposta. A busca é por texto, então não encontrar não significa que não tenha saído."}
           </p>
-          {admin && (conferencia.termos?.length ?? 0) > 0 && (
-            <p className="num text-xs text-ink-3">
-              Procurado por: {conferencia.termos!.join(" · ")}
-            </p>
-          )}
-          {admin && conferencia.erro && (
-            <details className="text-xs text-ink-3">
-              <summary className="cursor-pointer select-none">
-                Detalhe técnico (para a administração)
-              </summary>
-              <p className="mt-1.5 break-words">{conferencia.erro}</p>
-            </details>
-          )}
         </div>
       )}
     </section>
