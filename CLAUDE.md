@@ -3012,10 +3012,27 @@ para ser definitivo, durava até a madrugada seguinte.
   que toda leitura trataria como "sem execução". Só OBJETO entra na fusão
   (`jsonb_typeof = 'object'`); o resto conta como `{}`. O teste de regressão pegou
   isso na primeira versão da correção.
-- **Nada a restaurar**: o que foi apagado não volta por migration — o pacote (07:00) e
-  o enriquecimento (08:00) reconstroem, e desta vez o resultado fica. A conferência no
-  DOU precisa ser refeita nas propostas em que ela já tinha confirmado.
-- Regressão: `tests/test_cache_execucao.py`.
+- **O que foi apagado não volta por migration** (não há de onde tirar): o pacote
+  (07:00) e o enriquecimento (08:00) reconstroem, e desta vez o resultado fica. A
+  conferência no DOU precisa ser refeita nas propostas em que ela já tinha confirmado.
+- **Migration de DADOS `e6f7a8b9c0d1`** limpa o que SOBROU errado no banco e evita a
+  enxurrada de alertas falsos da reconstrução (idempotente; marca, nunca apaga):
+  (1) `execucao.situacao_publicacao` de TOPO sem bloco `webapp`/`convenio`/`dou` que o
+  sustente é removido — sozinho, é o palpite do normalizador (coluna booleana, painel
+  raspado), a classe exata do "Publicado" indevido; o estado honesto é "sem informação"
+  até a ficha responder (§56b), e a recoleta recoloca a chave por fusão se o connector
+  ainda a emite. (2) Carimbo `enriquecimento` sem bloco `webapp` (disc/voluntárias):
+  o resultado foi apagado, a proposta volta ao INÍCIO da fila em vez de esperar
+  `REVISITA_DIAS`. (3) `monitoramentos.snapshot` perde os campos de publicação/empenho/
+  pagamento — eles fotografaram o estado APAGADO, e comparar a reconstrução com eles
+  emitiria "passou a publicada" para toda proposta que sempre esteve assim; sem a chave,
+  `avaliar` re-baseia em silêncio (§53). Custo assumido: fato real desses critérios na
+  janela da oscilação vira baseline, não alerta. (4) `alertas` marcados como LIDOS:
+  os artefatos do apagamento (`publicada` true→false, empenho/pago que "voltou a zero" —
+  estados que não existem na fonte) e as repetições do mesmo `mudou` para a mesma
+  (usuário, proposta, tipo), ficando não lido só o mais recente.
+- Regressão: `tests/test_cache_execucao.py` e `tests/test_migracao_publicacao_residuo.py`
+  (este importa os passos do arquivo da migration e os roda contra dados semeados).
 
 **Sobra conhecida (não corrigida aqui)**: o `situacao_publicacao` de TOPO do jsonb é
 escrito pelo pacote E pelo webapp (além do connector), então "relatório da fonte"
