@@ -3039,3 +3039,48 @@ escrito pelo pacote E pelo webapp (além do connector), então "relatório da fo
 (`_ORIGEM_TOPO`) é rótulo aproximado quando os blocos próprios não respondem; e
 `_carimbar_execucao_webapp` substitui o bloco `webapp` inteiro, então uma leitura que
 não reconheceu o campo apaga a anterior (vira "sem informação", nunca uma afirmação).
+
+### 56f. Documentos da proposta — trazer o MÁXIMO da lista e da ponte
+
+Relato do gestor: "nem todos os documentos anexados estão disponíveis para download;
+alguns sim, outros não". A seção nasceu calibrada num print (§56), não no HTML real
+da página, e cada regra estrita do parser ou da ponte virava um arquivo a menos. O
+sandbox de CI/agente não alcança o gov.br, então a rodada teve dois lados: corrigir
+o que é defeito por construção e entregar a ferramenta que fecha a calibração.
+
+- **Parser (`connectors/pareceres_siconv.parse_documentos`)** — o que descartava
+  linha ou perdia o link: (1) o `href` era lido CRU — no atributo o `&` vem como
+  `&amp;`, e a URL com dois parâmetros chegava ao Struts com `amp;tipo`: só as
+  linhas com mais de um parâmetro falhavam. Agora `html.unescape` antes de ler.
+  (2) O regex do onclick exigia `.do?`; `window.open('X.do')`, `location.href=` e
+  ação sem query ficavam sem link. Qualquer string com `.do` conta, e entre vários
+  alvos vence o que fala em baixar/download (o "Detalhar" do lado não é o link).
+  (3) Linha que só publica o ID do arquivo (hidden input, `baixar(123)`) ganha a
+  ação conhecida do webapp (`ACAO_BAIXAR`, a mesma onde o gestor aterrissava no
+  IdP, §56e), marcada `_url_derivada` — a calibração distingue o que a página disse
+  do que o Hub inferiu. (4) Linha SEM data entra quando o nome tem extensão (a
+  exigência descartava documento cuja data a página não mostra; a trava evita que o
+  "2" do paginador vire documento); data com hora é aceita. (5) O nome prefere a
+  célula com extensão — "mais longa" pegava a descrição. (6) Teto 60 → 300.
+- **Paginação** (`links_de_paginacao` + `_documentos_completos`): a lista Struts
+  pagina e só a 1ª página era lida. As demais são seguidas (parâmetro de página no
+  alvo, ou texto de paginador apontando para `.do`), best-effort por página, com
+  dedupe por (nome, url), teto de 30 páginas — nos dois caminhos: consulta unitária
+  e lote do enriquecimento.
+- **Ponte (`_requisitar_arquivo`)**: (1) teto 40 MB → 100 MB (projeto básico com
+  planta passava de 40 e voltava "grande demais"); (2) timeout PRÓPRIO de download
+  (180 s) — o do rito (60 s) estourava em arquivo grande e virava "não foi possível
+  baixar" sem a fonte ter negado nada; (3) `Referer` da página de detalhe; (4) ação
+  que só lê o FORM devolve a listagem (HTML) no GET e a ponte lia como login — agora
+  tenta POST com os mesmos parâmetros antes de desistir, e a mensagem de erro traz os
+  dois motivos.
+- **Probe** — `python -m src.tools.probe_documentos <idProposta> [--baixar] [--salvar DIR]
+  [--json]`: abre a sessão de acesso livre, mostra CADA `<tr>` da seção (células,
+  hrefs, ações js, ids), o que o parser reconheceu, os links de paginação e, com
+  `--baixar`, o resultado da ponte por arquivo (status/tipo/tamanho/nome ou o motivo
+  da recusa). `--salvar` grava o HTML para anexar ao chamado. **É este probe, rodado
+  de uma máquina com saída para gov.br, que fecha a calibração** — o que ele mostrar
+  na coluna "hrefs/ações js" das linhas sem link é o padrão que falta no parser.
+- Regressão: bloco §56f de `tests/test_documentos.py` (entidade HTML, onclick fora
+  do padrão, preferência pelo link de download, id derivado, linha sem data,
+  paginação, GET→POST na ponte).

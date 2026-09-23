@@ -33,7 +33,7 @@ import html as html_
 import logging
 import re
 import unicodedata
-from urllib.parse import unquote, urljoin, urlparse
+from urllib.parse import parse_qsl, unquote, urljoin, urlparse, urlunparse
 
 log = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ ABA_REPASSES = (
 
 TIMEOUT_MS = 60_000
 MAX_PARECERES = 30  # trava: uma proposta não tem centenas de pareceres
-MAX_DOCUMENTOS = 60  # idem para a lista de documentos digitalizados
+MAX_DOCUMENTOS = 300  # idem para a lista de documentos digitalizados (pode paginar)
 SOURCE_ID_DOCUMENTO = "siconv_documento"
 
 # Os rótulos da página, na ordem em que aparecem. O TEXTO do parecer não está
@@ -124,9 +124,7 @@ _RE_EMPENHO = re.compile(
 _RE_EXECUCAO = (
     (
         "situacao_instrumento",
-        re.compile(
-            r"Situação\s+(?!no SIAFI|de Contratação)([A-Za-zÀ-ú ]{3,40}?)\s+Empenhado\b"
-        ),
+        re.compile(r"Situação\s+(?!no SIAFI|de Contratação)([A-Za-zÀ-ú ]{3,40}?)\s+Empenhado\b"),
     ),
     ("empenhado_flag", re.compile(r"Empenhado\s+(sim|não)\b", re.I)),
     ("situacao_siafi", re.compile(r"Situação no SIAFI\s+(.{3,60}?)\s+Subtipo")),
@@ -214,6 +212,7 @@ def _situacao_publicacao(plano: str, html_pagina: str | None = None) -> str | No
             return valor
     return None
 
+
 # Resumo da "Listagem de Repasses": total, desembolsado (o PAGO de verdade),
 # a desembolsar e a data do último desembolso (ausente quando nada saiu).
 _RE_REPASSES = re.compile(
@@ -262,25 +261,80 @@ def _parse_repasses(corpo: str) -> dict:
 _MARCA_DOCUMENTOS = re.compile(r"documentos?\s+digitalizados?", re.I)
 _LINHA = re.compile(r"<tr\b.*?</tr>", re.I | re.S)
 _CELULA = re.compile(r"<t[dh]\b[^>]*>(.*?)</t[dh]>", re.I | re.S)
+_ANCORA = re.compile(r"<a\b([^>]*)>(.*?)</a>", re.I | re.S)
 _TAGS = re.compile(r"<[^>]+>")
-_DATA_BR = re.compile(r"\b(\d{2}/\d{2}/\d{4})\b")
+# a data pode vir com hora ("22/06/2026 14:32") — o grupo 1 é só a data
+_DATA_BR = re.compile(r"\b(\d{2}/\d{2}/\d{4})(?:\s+\d{2}:\d{2}(?::\d{2})?)?\b")
 _HREF = re.compile(r"""href\s*=\s*['"]([^'"]+)['"]""", re.I)
-_ACAO_JS = re.compile(r"""['"]([^'"]*\.do\?[^'"]+)['"]""", re.I)
+# qualquer string entre aspas que aponte para uma ação Struts (`.do`), COM ou
+# SEM query — o onclick da página varia: baixar('X.do?id=1'), window.open("X.do"),
+# location.href='X.do?id=1'. A versão anterior exigia `.do?` e perdia as demais.
+_ACAO_JS = re.compile(r"""['"]([^'"]*\.do(?:\?[^'"]*)?)['"]""", re.I)
+# id numérico solto na linha: `<input type=hidden name="idArquivo" value="123">`
+# ou `baixarArquivo(123)` / `download('123')` — sem ação nenhuma escrita
+_HIDDEN_ID = re.compile(
+    r"""<input\b[^>]*name\s*=\s*['"]id\w*['"][^>]*value\s*=\s*['"](\d{1,12})['"]""", re.I
+)
+_ID_NUMERICO = re.compile(
+    r"""\b(?:id(?:Arquivo|Documento|Anexo)?|arquivo|documento|anexo|baixar\w*|download\w*)"""
+    r"""\s*[=:(]\s*['"]?(\d{1,12})\b""",
+    re.I,
+)
+#: a ação de download que o webapp usa para o documento da proposta (§56e —
+#: é onde o gestor aterrissava no IdP). Retaguarda para a linha que só publica
+#: o id do arquivo, sem escrever a ação.
+ACAO_BAIXAR = f"{BASE}/EditarDadosProposta/DetalharPropostaBaixar.do?id="
+# ordem de preferência entre alvos da mesma linha: o que fala em BAIXAR vence o
+# que fala em arquivo (o "Detalhar" do arquivo também fala em arquivo)
+_PREFERENCIA_ALVO = (re.compile(r"baix|download", re.I), re.compile(r"arquivo|anexo", re.I))
+_ROTULOS_BOTAO = {"baixar", "detalhar", "excluir", "download", "visualizar", "abrir", "ver"}
 
 
 def _texto_da_celula(html_bruto: str) -> str:
     return " ".join(html_.unescape(_TAGS.sub(" ", html_bruto)).split())
 
 
-def _url_da_linha(linha: str) -> str | None:
-    """O link de download da linha, absoluto. Âncora morta (`#`, `javascript:`)
-    não conta como link: o alvo real, nessas páginas, vem no onclick."""
+def _alvos_da_linha(linha: str) -> list[str]:
+    """Todos os alvos de navegação da linha — hrefs vivos e ações nos scripts.
+
+    `html.unescape` ANTES de ler: no atributo, o `&` vem como `&amp;`, e uma
+    URL com dois parâmetros (`?id=1&amp;tipo=2`) mandada crua chega ao Struts
+    com o parâmetro `amp;tipo` — o download "falhava" só nas linhas com mais
+    de um parâmetro, e ninguém via por quê.
+    """
+    alvos: list[str] = []
     for bruto in _HREF.findall(linha):
-        alvo = bruto.strip()
+        alvo = html_.unescape(bruto).strip()
         if alvo and not alvo.startswith("#") and not alvo.lower().startswith("javascript:"):
-            return _absoluta(alvo)
-    m = _ACAO_JS.search(linha)
-    return _absoluta(m.group(1)) if m else None
+            alvos.append(alvo)
+    for bruto in _ACAO_JS.findall(html_.unescape(linha)):
+        alvo = bruto.strip()
+        if alvo and alvo not in alvos:
+            alvos.append(alvo)
+    return alvos
+
+
+def _url_da_linha(linha: str) -> tuple[str | None, bool]:
+    """O link de download da linha, absoluto, e se ele foi DERIVADO.
+
+    Âncora morta (`#`, `javascript:`) não conta: o alvo real, nessas páginas,
+    vem no onclick. Havendo mais de um alvo (o botão "Detalhar" ao lado do
+    "Baixar"), fica o que fala de download. Sem ação escrita mas com o id do
+    arquivo à vista, a ação conhecida do webapp é montada — marcada como
+    derivada, para a calibração distinguir o que a página disse do que o Hub
+    inferiu.
+    """
+    alvos = _alvos_da_linha(linha)
+    if alvos:
+        for padrao in _PREFERENCIA_ALVO:
+            preferidos = [a for a in alvos if padrao.search(a)]
+            if preferidos:
+                return _absoluta(preferidos[0]), False
+        return _absoluta(alvos[0]), False
+    m = _HIDDEN_ID.search(linha) or _ID_NUMERICO.search(html_.unescape(linha))
+    if m:
+        return ACAO_BAIXAR + m.group(1), True
+    return None, False
 
 
 def _absoluta(alvo: str) -> str:
@@ -299,7 +353,8 @@ def _absoluta(alvo: str) -> str:
 
 #: extensões que fazem de um texto o NOME DE UM ARQUIVO.
 _EXTENSAO_ARQUIVO = re.compile(
-    r"\.(pdf|docx?|xlsx?|pptx?|odt|ods|rtf|txt|csv|zip|rar|7z|p7s|jpe?g|png|tiff?|gif|bmp)\s*$",
+    r"\.(pdf|docx?|xlsx?|pptx?|odt|ods|odp|rtf|txt|csv|xml|json|zip|rar|7z|gz|tar"
+    r"|p7s|p7m|jpe?g|png|tiff?|gif|bmp|webp|heic|dwg|dxf|kmz|kml|shp|mp4|mp3)\s*$",
     re.I,
 )
 
@@ -316,12 +371,25 @@ def e_documento(nome: str, url: str | None) -> bool:
     return bool(url) or bool(_EXTENSAO_ARQUIVO.search(nome or ""))
 
 
+def _escolher_nome(candidatos: list[str]) -> str:
+    """O nome do arquivo: a célula com EXTENSÃO; sem ela, a mais longa.
+
+    "Mais longa" sozinha pegava a coluna de descrição quando a tabela a tinha,
+    e o gestor pedia ao órgão um arquivo pelo texto errado.
+    """
+    com_extensao = [c for c in candidatos if _EXTENSAO_ARQUIVO.search(c)]
+    return max(com_extensao or candidatos, key=len)
+
+
 def parse_documentos(html_pagina: str) -> list[dict]:
     """Linhas da lista de documentos digitalizados da página de detalhe.
 
     Tolerante de propósito: a tabela é Struts de 2004, sem id nem classe —
-    cabeçalho, rodapé e "Nenhum registro" caem fora por não terem nome e data.
-    O que separa documento de campo-com-data é `e_documento`.
+    cabeçalho, rodapé e "Nenhum registro" caem fora por não serem arquivo.
+    O que separa documento de campo-com-data é `e_documento`; linha SEM data
+    só entra quando o nome é inequivocamente um arquivo (tem extensão) — a
+    exigência de data descartava documento cuja data a página não mostra, e
+    afrouxá-la sem essa trava transformaria o "2" da paginação em documento.
     """
     marca = _MARCA_DOCUMENTOS.search(html_pagina)
     if not marca:
@@ -329,35 +397,101 @@ def parse_documentos(html_pagina: str) -> list[dict]:
     trecho = html_pagina[marca.end() :]
     saida: list[dict] = []
     for linha in _LINHA.findall(trecho):
-        celulas = [_texto_da_celula(c) for c in _CELULA.findall(linha)]
-        celulas = [c for c in celulas if c]
-        if len(celulas) < 2:
+        celulas = [c for c in (_texto_da_celula(x) for x in _CELULA.findall(linha)) if c]
+        if not celulas:
             continue
-        datas = [c for c in celulas if _DATA_BR.fullmatch(c)]
-        if not datas:
-            continue
-        # o nome é a célula mais longa que não é data nem rótulo de botão
+        datas = [m.group(1) for m in (_DATA_BR.fullmatch(c) for c in celulas) if m]
         candidatos = [
             c
             for c in celulas
-            if not _DATA_BR.fullmatch(c) and c.lower() not in ("baixar", "detalhar", "excluir")
+            if not _DATA_BR.fullmatch(c) and c.lower().strip(" .:") not in _ROTULOS_BOTAO
         ]
         if not candidatos:
             continue
-        nome = max(candidatos, key=len)
-        url = _url_da_linha(linha)
-        if not e_documento(nome, url):
+        nome = _escolher_nome(candidatos)
+        url, derivada = _url_da_linha(linha)
+        if datas:
+            if not e_documento(nome, url):
+                continue
+        elif not _EXTENSAO_ARQUIVO.search(nome):
+            continue
+        item = {
+            "nome": nome,
+            "data_upload": datas[0] if datas else None,
+            "url": url,
+            "_scraper": "playwright",
+        }
+        if derivada:
+            item["_url_derivada"] = True
+        saida.append(item)
+        if len(saida) >= MAX_DOCUMENTOS:
+            break
+    return saida
+
+
+# ── Paginação da lista ────────────────────────────────────────────────────────
+# A lista Struts pagina (10–20 por página). Ler só a primeira era entregar ao
+# gestor uma fração dos arquivos e chamar de "documentos da proposta".
+_PAGINACAO_PARAM = re.compile(
+    r"(?:^|[?&])(?:pagina|page|numeroPagina|paginaAtual|inicio|offset|pag|indice)=\d+", re.I
+)
+_TEXTO_PAGINACAO = re.compile(r"^(\d{1,3}|pr[óo]xim[ao]s?|>{1,2}|»|[úu]ltim[ao]s?)$", re.I)
+MAX_PAGINAS_DOCUMENTOS = 30
+
+
+def links_de_paginacao(html_pagina: str) -> list[str]:
+    """Links de OUTRAS páginas da lista de documentos, absolutos, sem repetição.
+
+    Entra o link cujo alvo carrega parâmetro de paginação, ou cujo texto é o de
+    um paginador ("2", "Próxima", "»") apontando para uma ação Struts. Texto
+    numérico sozinho não basta — "2" também é um número de qualquer célula.
+    """
+    marca = _MARCA_DOCUMENTOS.search(html_pagina)
+    if not marca:
+        return []
+    saida: list[str] = []
+    for attrs, texto_html in _ANCORA.findall(html_pagina[marca.end() :]):
+        texto = _texto_da_celula(texto_html)
+        alvos = _alvos_da_linha(attrs)
+        if not alvos:
+            continue
+        alvo = alvos[0]
+        if not (
+            _PAGINACAO_PARAM.search(alvo)
+            or (_TEXTO_PAGINACAO.match(texto) and ".do" in alvo.lower())
+        ):
+            continue
+        absoluta = _absoluta(alvo)
+        if absoluta not in saida:
+            saida.append(absoluta)
+        if len(saida) >= MAX_PAGINAS_DOCUMENTOS:
+            break
+    return saida
+
+
+def linhas_brutas_documentos(html_pagina: str) -> list[dict]:
+    """O que a página TEM na seção de documentos, sem interpretar — para o probe.
+
+    É o que se olha quando o parser e a página discordam: cada `<tr>` com as
+    células em texto, os hrefs, as ações nos scripts e os ids numéricos.
+    """
+    marca = _MARCA_DOCUMENTOS.search(html_pagina)
+    if not marca:
+        return []
+    saida = []
+    for linha in _LINHA.findall(html_pagina[marca.end() :]):
+        celulas = [c for c in (_texto_da_celula(x) for x in _CELULA.findall(linha)) if c]
+        if not celulas:
             continue
         saida.append(
             {
-                "nome": nome,
-                "data_upload": datas[0],
-                "url": url,
-                "_scraper": "playwright",
+                "celulas": celulas,
+                "hrefs": [html_.unescape(h) for h in _HREF.findall(linha)],
+                "acoes_js": _ACAO_JS.findall(html_.unescape(linha)),
+                "ids": [m.group(1) for m in _HIDDEN_ID.finditer(linha)]
+                + [m.group(1) for m in _ID_NUMERICO.finditer(html_.unescape(linha))],
             }
         )
-        if len(saida) >= MAX_DOCUMENTOS:
-            break
     return saida
 
 
@@ -372,9 +506,15 @@ def parse_documentos(html_pagina: str) -> list[dict]:
 # público na origem e cachear binário de terceiro cria acervo que ninguém
 # pediu para manter (§56).
 
-#: teto do arquivo trazido pela ponte — projeto básico com planta chega a
-#: dezenas de MB; acima disso é a fonte devolvendo outra coisa.
-MAX_DOCUMENTO_BYTES = 40 * 1024 * 1024
+#: teto do arquivo trazido pela ponte — projeto básico com planta e memorial
+#: passa de 40 MB (era o teto, e recusava documento legítimo com "grande
+#: demais"). Acima de 100 MB é a fonte devolvendo outra coisa. A ponte carrega o
+#: corpo em memória, com no máximo `_PONTES` simultâneas (§56e).
+MAX_DOCUMENTO_BYTES = 100 * 1024 * 1024
+#: o download tem timeout PRÓPRIO: o rito de sessão cabe em 60 s, mas um
+#: projeto de 80 MB saindo de servidor de governo não — e estourar aqui era
+#: "não foi possível baixar" sem a fonte ter negado nada.
+TIMEOUT_DOWNLOAD_MS = 180_000
 
 #: domínio da fonte. A URL vem de HTML raspado, então ela é ENTRADA externa:
 #: sem esta trava, uma página adulterada faria a API buscar qualquer host da
@@ -407,7 +547,7 @@ def nome_do_cabecalho(content_disposition: str | None) -> str | None:
     m = _RE_FILENAME.search(content_disposition)
     if not m:
         return None
-    nome = unquote(m.group(1).strip().strip('"\'')).strip()
+    nome = unquote(m.group(1).strip().strip("\"'")).strip()
     return nome.replace("/", "_").replace("\\", "_") or None
 
 
@@ -444,9 +584,7 @@ class ParecerSiconvConnector:
 
         saida: list[dict] = []
         async with async_playwright() as p:
-            browser = await p.chromium.launch(
-                args=["--no-sandbox", "--disable-dev-shm-usage"]
-            )
+            browser = await p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
             try:
                 pg = await (await browser.new_context(locale="pt-BR")).new_page()
                 await pg.goto(ENTRADA, wait_until="networkidle", timeout=TIMEOUT_MS)
@@ -476,9 +614,7 @@ class ParecerSiconvConnector:
                         )
                     except Exception:  # noqa: BLE001 — sem textarea = sem texto
                         texto = ""
-                    parecer = _parse_parecer(
-                        await pg.inner_text("body"), texto, id_proposta, idp
-                    )
+                    parecer = _parse_parecer(await pg.inner_text("body"), texto, id_proposta, idp)
                     if parecer:
                         saida.append(parecer)
                     else:
@@ -508,9 +644,7 @@ class ParecerSiconvConnector:
 
         saida: list[dict] = []
         async with async_playwright() as p:
-            browser = await p.chromium.launch(
-                args=["--no-sandbox", "--disable-dev-shm-usage"]
-            )
+            browser = await p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
             try:
                 pg = await (await browser.new_context(locale="pt-BR")).new_page()
                 await pg.goto(ENTRADA, wait_until="networkidle", timeout=TIMEOUT_MS)
@@ -559,9 +693,7 @@ class ParecerSiconvConnector:
         from playwright.async_api import async_playwright
 
         async with async_playwright() as p:
-            browser = await p.chromium.launch(
-                args=["--no-sandbox", "--disable-dev-shm-usage"]
-            )
+            browser = await p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
             try:
                 pg = await (await browser.new_context(locale="pt-BR")).new_page()
                 await pg.goto(ENTRADA, wait_until="networkidle", timeout=TIMEOUT_MS)
@@ -575,9 +707,96 @@ class ParecerSiconvConnector:
                         "o acesso livre do Transferegov não abriu a proposta "
                         "(caiu na tela de login) — o rito do guest pode ter mudado"
                     )
-                return parse_documentos(await pg.content())
+                return await self._documentos_completos(pg, await pg.content())
             finally:
                 await browser.close()
+
+    async def _documentos_completos(self, pg, pagina: str) -> list[dict]:
+        """A lista INTEIRA: a página aberta mais as outras páginas do paginador.
+
+        Best-effort por página: a que não abrir é registrada e pulada — perder
+        uma página não pode custar as demais. Deduplica por (nome, url), porque
+        o paginador costuma repetir a página corrente.
+        """
+        docs = parse_documentos(pagina)
+        vistos = {(d["nome"], d.get("url")) for d in docs}
+        visitadas: set[str] = set()
+        fila = links_de_paginacao(pagina)
+        while fila and len(visitadas) < MAX_PAGINAS_DOCUMENTOS:
+            url = fila.pop(0)
+            if url in visitadas:
+                continue
+            visitadas.add(url)
+            try:
+                await pg.goto(url, wait_until="networkidle", timeout=TIMEOUT_MS)
+                outra = await pg.content()
+            except Exception as exc:  # noqa: BLE001 — uma página não derruba a lista
+                log.warning("siconv documentos: página %s não abriu: %s", url, exc)
+                continue
+            for d in parse_documentos(outra):
+                chave = (d["nome"], d.get("url"))
+                if chave not in vistos:
+                    vistos.add(chave)
+                    docs.append(d)
+            for extra in links_de_paginacao(outra):
+                if extra not in visitadas and extra not in fila:
+                    fila.append(extra)
+        return docs[:MAX_DOCUMENTOS]
+
+    async def _requisitar_arquivo(
+        self, pg, url: str, referer: str
+    ) -> tuple[bytes, str | None, str | None]:
+        """Pede o arquivo pela sessão da página: GET e, se a ação recusar, POST.
+
+        Ação Struts de download costuma aceitar os parâmetros pela query, mas
+        há as que só leem o FORM (o botão da página submete um formulário, não
+        segue um link) — para essas o GET devolve a própria página de novo, em
+        HTML, e a ponte lia isso como "tela de login". O POST com os mesmos
+        parâmetros é a segunda tentativa. O `Referer` entra porque é o que a
+        página mandaria; sem ele há filtro que devolve a listagem.
+        """
+        motivos: list[str] = []
+        cabecalhos = {"Referer": referer}
+        tentativas = [
+            ("GET", lambda: pg.request.get(url, timeout=TIMEOUT_DOWNLOAD_MS, headers=cabecalhos))
+        ]
+        partes = urlparse(url)
+        if partes.query:
+            form = dict(parse_qsl(partes.query, keep_blank_values=True))
+            sem_query = urlunparse(partes._replace(query=""))
+            tentativas.append(
+                (
+                    "POST",
+                    lambda: pg.request.post(
+                        sem_query, form=form, timeout=TIMEOUT_DOWNLOAD_MS, headers=cabecalhos
+                    ),
+                )
+            )
+        for metodo, pedir in tentativas:
+            resposta = await pedir()
+            if resposta.status >= 400:
+                motivos.append(f"{metodo}: o portal do Transferegov respondeu {resposta.status}")
+                continue
+            conteudo = await resposta.body()
+            headers = {k.lower(): v for k, v in (resposta.headers or {}).items()}
+            content_type = headers.get("content-type")
+            if e_pagina_de_login(resposta.url, content_type, conteudo):
+                motivos.append(
+                    f"{metodo}: o portal devolveu uma página HTML (login ou listagem) "
+                    "em vez do arquivo"
+                )
+                continue
+            if not conteudo:
+                motivos.append(f"{metodo}: o portal devolveu um arquivo vazio")
+                continue
+            if len(conteudo) > MAX_DOCUMENTO_BYTES:
+                raise DocumentoIndisponivel(
+                    "o arquivo é grande demais para a ponte — baixe pelo portal"
+                )
+            return conteudo, content_type, nome_do_cabecalho(headers.get("content-disposition"))
+        raise DocumentoIndisponivel(
+            " · ".join(motivos) + " — o acesso livre do Transferegov pode estar indisponível"
+        )
 
     async def baixar_documento(
         self, id_proposta: str, url: str
@@ -602,52 +821,22 @@ class ParecerSiconvConnector:
                 f"idProposta do SIconv deve ser o id numérico interno (veio {id_proposta!r})"
             )
         if not e_url_da_fonte(url):
-            raise DocumentoIndisponivel(
-                "o endereço do arquivo não é do portal do Transferegov"
-            )
+            raise DocumentoIndisponivel("o endereço do arquivo não é do portal do Transferegov")
         from playwright.async_api import async_playwright
 
+        detalhe = f"{DETALHE}?idProposta={id_proposta}&destino=&idConvenio="
         async with async_playwright() as p:
-            browser = await p.chromium.launch(
-                args=["--no-sandbox", "--disable-dev-shm-usage"]
-            )
+            browser = await p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
             try:
                 pg = await (await browser.new_context(locale="pt-BR")).new_page()
                 await pg.goto(ENTRADA, wait_until="networkidle", timeout=TIMEOUT_MS)
-                await pg.goto(
-                    f"{DETALHE}?idProposta={id_proposta}&destino=&idConvenio=",
-                    wait_until="networkidle",
-                    timeout=TIMEOUT_MS,
-                )
+                await pg.goto(detalhe, wait_until="networkidle", timeout=TIMEOUT_MS)
                 if "Login" in (await pg.title()):
                     raise DocumentoIndisponivel(
                         "o acesso livre do Transferegov não abriu a proposta "
                         "(caiu na tela de login) — o rito do guest pode ter mudado"
                     )
-                resposta = await pg.request.get(url, timeout=TIMEOUT_MS)
-                if resposta.status >= 400:
-                    raise DocumentoIndisponivel(
-                        f"o portal do Transferegov respondeu {resposta.status}"
-                    )
-                conteudo = await resposta.body()
-                cabecalhos = {k.lower(): v for k, v in (resposta.headers or {}).items()}
-                content_type = cabecalhos.get("content-type")
-                if e_pagina_de_login(resposta.url, content_type, conteudo):
-                    raise DocumentoIndisponivel(
-                        "o portal devolveu a tela de login em vez do arquivo — "
-                        "o acesso livre do Transferegov pode estar indisponível"
-                    )
-                if not conteudo:
-                    raise DocumentoIndisponivel("o portal devolveu um arquivo vazio")
-                if len(conteudo) > MAX_DOCUMENTO_BYTES:
-                    raise DocumentoIndisponivel(
-                        "o arquivo é grande demais para a ponte — baixe pelo portal"
-                    )
-                return (
-                    conteudo,
-                    content_type,
-                    nome_do_cabecalho(cabecalhos.get("content-disposition")),
-                )
+                return await self._requisitar_arquivo(pg, url, detalhe)
             finally:
                 await browser.close()
 
@@ -672,9 +861,7 @@ class ParecerSiconvConnector:
         if not alvos:
             return resultado
         async with async_playwright() as p:
-            browser = await p.chromium.launch(
-                args=["--no-sandbox", "--disable-dev-shm-usage"]
-            )
+            browser = await p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
             try:
                 pg = await (await browser.new_context(locale="pt-BR")).new_page()
                 await pg.goto(ENTRADA, wait_until="networkidle", timeout=TIMEOUT_MS)
@@ -700,13 +887,9 @@ class ParecerSiconvConnector:
                         # rótulo da célula (não do texto corrido) e a lista de
                         # documentos está NESTA mesma página — de graça
                         pagina = await pg.content()
-                        item["execucao"] = _parse_execucao(
-                            await pg.inner_text("body"), pagina
-                        )
-                        item["documentos"] = parse_documentos(pagina)
-                        await pg.goto(
-                            ABA_PARECERES, wait_until="networkidle", timeout=TIMEOUT_MS
-                        )
+                        item["execucao"] = _parse_execucao(await pg.inner_text("body"), pagina)
+                        item["documentos"] = await self._documentos_completos(pg, pagina)
+                        await pg.goto(ABA_PARECERES, wait_until="networkidle", timeout=TIMEOUT_MS)
                         ids = sorted(
                             set(
                                 re.findall(
@@ -763,9 +946,7 @@ class ParecerSiconvConnector:
                             await pg.goto(
                                 ABA_REPASSES, wait_until="networkidle", timeout=TIMEOUT_MS
                             )
-                            item["repasses"] = _parse_repasses(
-                                await pg.inner_text("body")
-                            )
+                            item["repasses"] = _parse_repasses(await pg.inner_text("body"))
                     except Exception as exc:  # noqa: BLE001 — uma proposta não derruba o lote
                         item["erro"] = f"{type(exc).__name__}: {exc}"
                         log.warning(
@@ -781,9 +962,7 @@ class ParecerSiconvConnector:
             from playwright.async_api import async_playwright
 
             async with async_playwright() as p:
-                browser = await p.chromium.launch(
-                    args=["--no-sandbox", "--disable-dev-shm-usage"]
-                )
+                browser = await p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
                 try:
                     pg = await (await browser.new_context()).new_page()
                     await pg.goto(ENTRADA, wait_until="networkidle", timeout=30_000)

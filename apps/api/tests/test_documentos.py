@@ -128,7 +128,7 @@ async def test_documentos_da_proposta_entram_no_cache(
 async def test_fonte_fora_do_ar_nao_apaga_o_que_ja_esta_em_cache(
     seed_user, seed_municipio, seed_proposta, monkeypatch
 ) -> None:
-    """"Não consegui consultar" ≠ "não tem documento"."""
+    """ "Não consegui consultar" ≠ "não tem documento"."""
     from src.db.session import rls_session
 
     class ConnectorOk:
@@ -252,9 +252,7 @@ def test_tela_de_login_nunca_sai_como_documento() -> None:
     """O Struts responde 200 com o SSO quando a sessão caiu. Entregar isso com
     o nome do arquivo faria o gestor anexar um HTML de login ao processo."""
     url = "https://discricionarias.transferegov.sistema.gov.br/voluntarias/x.do"
-    assert siconv.e_pagina_de_login(
-        "https://idp.transferegov.sistema.gov.br/idp/", None, b"<html>"
-    )
+    assert siconv.e_pagina_de_login("https://idp.transferegov.sistema.gov.br/idp/", None, b"<html>")
     assert siconv.e_pagina_de_login(url, "text/html; charset=ISO-8859-1", b"%PDF-1.4")
     assert siconv.e_pagina_de_login(url, None, b"\n  <!DOCTYPE html><html>")
     assert not siconv.e_pagina_de_login(url, "application/pdf", b"%PDF-1.4 ...")
@@ -362,7 +360,7 @@ async def test_documento_de_outra_proposta_nao_baixa(
 async def test_falha_da_fonte_sobe_como_indisponivel(
     seed_user, seed_municipio, seed_proposta, monkeypatch
 ) -> None:
-    """"Não consegui baixar" é da FONTE (502 no router), nunca "não existe"."""
+    """ "Não consegui baixar" é da FONTE (502 no router), nunca "não existe"."""
     import pytest
 
     from src.db.session import rls_session
@@ -392,7 +390,7 @@ async def test_falha_da_fonte_sobe_como_indisponivel(
 async def test_documento_sem_endereco_nao_e_falha_da_fonte(
     seed_user, seed_municipio, seed_proposta, monkeypatch
 ) -> None:
-    """"A fonte não publicou o arquivo" (404) ≠ "a fonte caiu" (502).
+    """ "A fonte não publicou o arquivo" (404) ≠ "a fonte caiu" (502).
 
     O gestor precisa da diferença: no primeiro caso ele pede o arquivo ao órgão
     pelo nome exato; no segundo, tenta de novo mais tarde.
@@ -419,3 +417,201 @@ async def test_documento_sem_endereco_nao_e_falha_da_fonte(
         assert itens and not itens[0].url
         with pytest.raises(service.SemArquivoNaFonte):
             await andamento.referencia_do_documento(s, pid, itens[0].id)
+
+
+# ── §56f — trazer o máximo de documentos: parser tolerante, paginação, ponte ──
+
+
+def _pagina_docs(linhas: str) -> str:
+    return (
+        "<html><body><table><tr><td>Situação</td><td>Em execução</td></tr></table>"
+        "<table><tr><td class='tituloSecao'>Lista de Documentos Digitalizados</td></tr></table>"
+        "<table><tr><th>Nome Arquivo</th><th>Data Upload</th><th>&nbsp;</th></tr>"
+        f"{linhas}"
+        "<tr><td colspan='3'>Total de registros</td></tr></table></body></html>"
+    )
+
+
+def test_href_com_entidade_html_chega_desescapado() -> None:
+    """`&amp;` no atributo virava `amp;tipo` no Struts: só as linhas com mais de
+    um parâmetro falhavam, e ninguém via por quê."""
+    docs = parse_documentos(
+        _pagina_docs(
+            "<tr><td>Contrato.pdf</td><td>10/06/2026</td>"
+            '<td><a href="/voluntarias/X.do?id=1&amp;tipo=2">Baixar</a></td></tr>'
+        )
+    )
+    assert docs[0]["url"].endswith("/voluntarias/X.do?id=1&tipo=2")
+    assert "&amp;" not in docs[0]["url"]
+
+
+def test_onclick_fora_do_padrao_unico_ainda_da_link() -> None:
+    """window.open, location.href e ação SEM query — o regex antigo exigia `.do?`."""
+    docs = parse_documentos(
+        _pagina_docs(
+            "<tr><td>A.pdf</td><td>10/06/2026</td>"
+            "<td><a href='#' onclick=\"window.open('/voluntarias/Baixar.do?id=5')\">"
+            "Baixar</a></td></tr>"
+            "<tr><td>B.pdf</td><td>11/06/2026</td>"
+            "<td><input type='button' onclick=\"location.href='DownloadArquivo.do'\" "
+            "value='Baixar'></td></tr>"
+        )
+    )
+    assert [d["url"].rsplit("/", 1)[-1] for d in docs] == ["Baixar.do?id=5", "DownloadArquivo.do"]
+
+
+def test_prefere_o_link_de_download_ao_de_detalhe() -> None:
+    docs = parse_documentos(
+        _pagina_docs(
+            "<tr><td>A.pdf</td><td>10/06/2026</td>"
+            '<td><a href="/voluntarias/DetalharArquivo.do?id=5">Detalhar</a> '
+            '<a href="/voluntarias/BaixarArquivo.do?id=5">Baixar</a></td></tr>'
+        )
+    )
+    assert docs[0]["url"].endswith("BaixarArquivo.do?id=5")
+
+
+def test_id_solto_na_linha_vira_a_acao_conhecida_marcada_como_derivada() -> None:
+    """Linha que só publica o id do arquivo (hidden input / função com número):
+    a ação de download do webapp é montada, e a origem fica registrada."""
+    docs = parse_documentos(
+        _pagina_docs(
+            "<tr><td>A.pdf</td><td>10/06/2026</td>"
+            "<td><input type='hidden' name='idArquivo' value='8813'>"
+            "<a href='#' onclick='baixar(this)'>Baixar</a></td></tr>"
+            "<tr><td>B.pdf</td><td>11/06/2026</td>"
+            "<td><a href='javascript:baixarArquivo(8814)'>Baixar</a></td></tr>"
+        )
+    )
+    assert docs[0]["url"] == siconv.ACAO_BAIXAR + "8813" and docs[0]["_url_derivada"]
+    assert docs[1]["url"] == siconv.ACAO_BAIXAR + "8814" and docs[1]["_url_derivada"]
+
+
+def test_linha_sem_data_entra_so_quando_o_nome_e_arquivo() -> None:
+    """A exigência de data descartava documento cuja data a página não mostra;
+    sem a trava da extensão, o "2" do paginador viraria documento."""
+    docs = parse_documentos(
+        _pagina_docs(
+            "<tr><td>Oficio_assinado.pdf</td>"
+            '<td><a href="/voluntarias/Baixar.do?id=1">Baixar</a></td></tr>'
+            '<tr><td><a href="/voluntarias/Lista.do?pagina=2">2</a></td></tr>'
+        )
+    )
+    assert [d["nome"] for d in docs] == ["Oficio_assinado.pdf"]
+    assert docs[0]["data_upload"] is None
+
+
+def test_data_com_hora_e_nome_com_extensao_vencem_a_descricao() -> None:
+    docs = parse_documentos(
+        _pagina_docs(
+            "<tr><td>Contrato de repasse assinado pelas partes em cartório</td>"
+            "<td>Contrato.pdf</td><td>10/06/2026 14:32</td>"
+            '<td><a href="/voluntarias/Baixar.do?id=1">Baixar</a></td></tr>'
+        )
+    )
+    assert docs[0]["nome"] == "Contrato.pdf"
+    assert docs[0]["data_upload"] == "10/06/2026"
+
+
+def test_links_de_paginacao_da_lista() -> None:
+    pagina = _pagina_docs(
+        "<tr><td>A.pdf</td><td>10/06/2026</td>"
+        '<td><a href="/voluntarias/Baixar.do?id=1">Baixar</a></td></tr>'
+        '<tr><td><a href="/voluntarias/Lista.do?pagina=1">1</a> '
+        '<a href="/voluntarias/Lista.do?pagina=2&amp;ordem=x">2</a> '
+        "<a href='#' onclick=\"ir('/voluntarias/Lista.do?pagina=3')\">Próxima</a> "
+        '<a href="/voluntarias/OutraCoisa.do">Voltar</a></td></tr>'
+    )
+    links = siconv.links_de_paginacao(pagina)
+    assert [u.rsplit("/", 1)[-1] for u in links] == [
+        "Lista.do?pagina=1",
+        "Lista.do?pagina=2&ordem=x",
+        "Lista.do?pagina=3",
+    ]
+    # fora da seção de documentos não há paginação a seguir
+    assert siconv.links_de_paginacao("<html><a href='x.do?pagina=2'>2</a></html>") == []
+
+
+def test_linhas_brutas_expoem_o_que_a_pagina_tem() -> None:
+    linhas = siconv.linhas_brutas_documentos(
+        _pagina_docs(
+            "<tr><td>A.pdf</td><td>10/06/2026</td>"
+            "<td><input type='hidden' name='idArquivo' value='77'>"
+            "<a href='#' onclick=\"baixar('X.do?id=77')\">Baixar</a></td></tr>"
+        )
+    )
+    assert linhas[1]["celulas"][0] == "A.pdf"
+    assert linhas[1]["acoes_js"] == ["X.do?id=77"]
+    assert "77" in linhas[1]["ids"]
+
+
+async def test_ponte_tenta_post_quando_o_get_devolve_html() -> None:
+    """Ação Struts que só lê o FORM devolve a listagem (HTML) no GET; o POST
+    com os mesmos parâmetros é a segunda tentativa — antes era "login"."""
+
+    class _Resp:
+        def __init__(self, status, body, headers, url):
+            self.status, self._body, self.headers, self.url = status, body, headers, url
+
+        async def body(self):
+            return self._body
+
+    chamadas: list[tuple[str, dict]] = []
+
+    class _Req:
+        async def get(self, url, **kw):
+            chamadas.append(("GET", kw))
+            return _Resp(200, b"<html>listagem</html>", {"content-type": "text/html"}, url)
+
+        async def post(self, url, **kw):
+            chamadas.append(("POST", kw))
+            return _Resp(
+                200,
+                b"%PDF-1.4 ...",
+                {
+                    "content-type": "application/octet-stream",
+                    "content-disposition": 'attachment; filename="A.pdf"',
+                },
+                url,
+            )
+
+    class _Pg:
+        request = _Req()
+
+    conteudo, tipo, nome = await siconv.ParecerSiconvConnector()._requisitar_arquivo(
+        _Pg(),
+        "https://discricionarias.transferegov.sistema.gov.br/voluntarias/X.do?id=7&t=1",
+        "ref",
+    )
+    assert conteudo.startswith(b"%PDF") and nome == "A.pdf"
+    assert [m for m, _ in chamadas] == ["GET", "POST"]
+    assert chamadas[1][1]["form"] == {"id": "7", "t": "1"}
+    assert chamadas[0][1]["headers"]["Referer"] == "ref"
+
+
+async def test_ponte_relata_os_dois_motivos_quando_nada_serve() -> None:
+    class _Resp:
+        status = 500
+        headers: dict = {}
+        url = "x"
+
+        async def body(self):
+            return b""
+
+    class _Req:
+        async def get(self, url, **kw):
+            return _Resp()
+
+        async def post(self, url, **kw):
+            return _Resp()
+
+    class _Pg:
+        request = _Req()
+
+    try:
+        await siconv.ParecerSiconvConnector()._requisitar_arquivo(_Pg(), "https://h/x.do?id=1", "r")
+    except siconv.DocumentoIndisponivel as exc:
+        assert "GET: o portal do Transferegov respondeu 500" in str(exc)
+        assert "POST: o portal do Transferegov respondeu 500" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("devia ter levantado DocumentoIndisponivel")
