@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, literal_column, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -1070,6 +1070,29 @@ async def upsert(session: AsyncSession, canonica: PropostaCanonica) -> None:
 
     stmt = pg_insert(Proposta).values(**values)
     update_set = {k: getattr(stmt.excluded, k) for k in _UPSERT_FIELDS}
+    # `execucao` é FUNDIDA, nunca substituída (§62). O jsonb é escrito por
+    # QUATRO caminhos que não se conhecem: esta recoleta (o que o connector
+    # normalizou), o pacote SIconv (`convenio`, empenhado/pago), o enriquecimento
+    # (`webapp`, `enriquecimento`) e a conferência no DOU (`dou`). `EXCLUDED`
+    # cru aqui era o refresh das 06:00 apagando, todo dia, a publicação lida ao
+    # vivo às 08:00 do dia anterior, o extrato do DOU e o carimbo que impede o
+    # enriquecimento de repetir a proposta — o "Publicado" oscilava com a hora
+    # em que o gestor abria o painel. Mesma disciplina do pacote (§54): o que o
+    # connector trouxe vence chave a chave; o que ele não conhece sobrevive.
+    # ATENÇÃO: `None` num JSONB do SQLAlchemy vira o jsonb `null` (a string), não
+    # SQL NULL — `coalesce` não o pega, e `{…} || 'null'::jsonb` não é merge: é
+    # um ARRAY `[{…}, null]`, que a leitura inteira trataria como "sem execução".
+    # Só OBJETO entra na fusão; qualquer outra coisa (SQL NULL, jsonb null,
+    # array) conta como vazio.
+    vazio = literal_column("'{}'::jsonb")
+    existente = case(
+        (func.jsonb_typeof(Proposta.execucao) == "object", Proposta.execucao), else_=vazio
+    )
+    novo = case(
+        (func.jsonb_typeof(stmt.excluded.execucao) == "object", stmt.excluded.execucao),
+        else_=vazio,
+    )
+    update_set["execucao"] = existente.op("||")(novo)
     update_set["cache_atualizado_em"] = now
     update_set["updated_at"] = now
     # RESSUSCITA o que foi zerado: a fonte ainda publica esta proposta, então
