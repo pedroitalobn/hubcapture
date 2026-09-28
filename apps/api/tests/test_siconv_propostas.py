@@ -271,8 +271,9 @@ def test_catalogo_cobre_o_pacote_e_marca_o_que_tem_destino():
     # o que a carga alimenta hoje
     assert {"proposta", "emenda", "convenio", "empenho"} <= set(catalogo)
     assert catalogo["proposta"].carrega
+    # programa ganhou destino (`programas`, as Oportunidades — §63)
+    assert catalogo["programa"].carrega
     # mapeado para conferência, mas fora da carga (baixar sem destino é desperdício)
-    assert not catalogo["programa"].carrega
     assert not catalogo["historico_situacao"].carrega
 
 

@@ -24,6 +24,7 @@ Ao final, os alertas criados são despachados por email/WhatsApp conforme os
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 
 from sqlalchemy import select
@@ -36,13 +37,15 @@ from ..models.usuario import Usuario
 from ..notifications import email as email_notif
 from ..notifications import uniq
 from ..notifications.email_templates import alertas_resumo
+from . import canais_alerta, criterios_alerta, detect_changes, plano_gates
 from . import config as config_service
-from . import criterios_alerta, detect_changes, plano_gates
 from . import emendas_proposta as emendas_service
 from . import empenhos_proposta as empenhos_service
 from . import monitoramentos as monitoramentos_service
 from . import pareceres as pareceres_service
 from .perfil import AREA_FONTES
+
+log = logging.getLogger("hubcapture.alertas")
 
 
 def _fontes_da_busca(busca: MonitoramentoBusca) -> set[str] | None:
@@ -216,19 +219,57 @@ def _linha(alerta: Alerta) -> str:
     return f"Atualização em {municipio}"
 
 
-async def _despachar(usuario: Usuario, alertas: list[Alerta], canais: set[str]) -> None:
-    """Email/WhatsApp best-effort — provider ausente degrada em silêncio."""
+def mensagem_push(alertas: list[Alerta]) -> dict:
+    """Payload do Web Push: UMA notificação por lote (dez alertas numa
+    madrugada viram um aviso, não dez vibrações seguidas)."""
+    linhas = [_linha(a) for a in alertas]
+    if len(alertas) == 1:
+        a = alertas[0]
+        url = f"/panel/funding/{a.proposta_id}?de=alerts" if a.proposta_id else "/panel/alerts"
+        titulo = criterios_alerta.rotulo(a.tipo) if a.tipo else "Atualização"
+        return {"title": f"Hub Capture · {titulo}", "body": linhas[0], "url": url, "tag": "alertas"}
+    corpo = "\n".join(linhas[:3]) + (f"\n+{len(linhas) - 3} outras" if len(linhas) > 3 else "")
+    return {
+        "title": f"Hub Capture · {len(alertas)} atualizações",
+        "body": corpo,
+        "url": "/panel/alerts",
+        "tag": "alertas",
+    }
+
+
+async def _despachar(
+    session: AsyncSession, usuario: Usuario, alertas: list[Alerta], canais: set[str]
+) -> None:
+    """E-mail/WhatsApp/push best-effort — provider ausente degrada em silêncio.
+
+    CADA canal no seu `try`: antes, um 4xx do Uniq ou um SMTP recusado
+    estourava a varredura depois do flush, a transação voltava e os alertas —
+    e a fotografia do monitoramento — sumiam junto. No dia seguinte a mesma
+    mudança era detectada, o mesmo canal falhava, e o gestor nunca era avisado
+    nem pelo painel.
+    """
     if not alertas:
         return
     linhas = [_linha(a) for a in alertas]
     if "email" in canais and usuario.email:
-        base = await config_service.resolver("app_base_url")
-        url = f"{base.rstrip('/')}/panel/alerts" if base else None
-        assunto, txt, html = alertas_resumo(linhas, url)
-        await email_notif.enviar(usuario.email, assunto, txt, html)
+        try:
+            base = await config_service.resolver("app_base_url")
+            url = f"{base.rstrip('/')}/panel/alerts" if base else None
+            assunto, txt, html = alertas_resumo(linhas, url)
+            await email_notif.enviar(usuario.email, assunto, txt, html)
+        except Exception:  # noqa: BLE001 — canal best-effort
+            log.warning("alertas: e-mail falhou para %s", usuario.id, exc_info=True)
     if "wpp" in canais and usuario.optin_wpp and usuario.telefone_wpp:
-        msg = "🔔 Hub Capture — novidades:\n" + "\n".join(f"• {li}" for li in linhas)
-        await uniq.enviar(usuario.telefone_wpp, msg)
+        try:
+            msg = "🔔 Hub Capture — novidades:\n" + "\n".join(f"• {li}" for li in linhas)
+            await uniq.enviar(usuario.telefone_wpp, msg)
+        except Exception:  # noqa: BLE001
+            log.warning("alertas: WhatsApp falhou para %s", usuario.id, exc_info=True)
+    if "push" in canais:
+        try:
+            await canais_alerta.enviar_push(session, usuario.id, mensagem_push(alertas))
+        except Exception:  # noqa: BLE001
+            log.warning("alertas: push falhou para %s", usuario.id, exc_info=True)
 
 
 async def varredura(session: AsyncSession, usuario: Usuario) -> int:
@@ -237,6 +278,9 @@ async def varredura(session: AsyncSession, usuario: Usuario) -> int:
     buscas = await _buscas_ativas(session, usuario)
     novos, canais_busca = await _novas_propostas(session, usuario, buscas)
     canais |= canais_busca
+    # os canais da CONTA valem para todo alerta (§63) — antes só o do
+    # monitoramento contava, e ele nascia 'painel' em quase toda porta
+    canais |= await canais_alerta.da_conta(session, usuario)
     # canal fora do plano (§39) não despacha — o alerta continua no painel
     cfg = await plano_gates.config_do_usuario(session, usuario.id)
     if not plano_gates.feature_liberada(cfg, "alertas_email"):
@@ -245,5 +289,5 @@ async def varredura(session: AsyncSession, usuario: Usuario) -> int:
         canais.discard("wpp")
     todos = mudancas + novos
     await session.flush()
-    await _despachar(usuario, todos, canais)
+    await _despachar(session, usuario, todos, canais)
     return len(todos)

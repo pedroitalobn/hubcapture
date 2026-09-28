@@ -555,6 +555,179 @@ def sql_upsert_empenhos(
 
 
 # --------------------------------------------------------------------------
+# programas — o catálogo das Oportunidades (§63)
+# --------------------------------------------------------------------------
+
+
+def col_any(colunas: list[str], tabela: str, *nomes: str) -> str:
+    """A primeira coluna que existir entre os candidatos; `NULL` se nenhuma.
+
+    O dicionário do SIconv já trocou nome de coluna entre versões do pacote
+    (`desc_orgao_sup_programa` × `desc_orgao_superior`…): candidato em ordem
+    é mais barato que descobrir a renomeação pelo painel vazio.
+    """
+    for nome in nomes:
+        if nome in colunas:
+            return f"{tabela}.{nome}"
+    return "NULL::text"
+
+
+def data_flex(expr: str) -> str:
+    """Como `data()`, mas aceita hora grudada (`31/12/2026 23:59:59`).
+
+    As janelas do programa vêm com hora em parte do arquivo; a regra estrita
+    de `data()` devolveria NULL e o programa sumiria das Oportunidades como
+    se a janela não existisse.
+    """
+    e = f"btrim(coalesce({expr}, ''))"
+    return (
+        f"(CASE WHEN {e} ~ '^[0-9]{{2}}/[0-9]{{2}}/[0-9]{{4}}' "
+        f"THEN to_date(left({e}, 10), 'DD/MM/YYYY') "
+        f"WHEN {e} ~ '^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}' "
+        f"THEN to_date(left({e}, 10), 'YYYY-MM-DD') END)"
+    )
+
+
+#: `fonte` dos programas carregados do pacote.
+FONTE_PROGRAMA = "siconv"
+
+#: Programa cuja última janela fechou há mais que isso não interessa às
+#: Oportunidades — e carregar o histórico inteiro (desde 2008) multiplicaria a
+#: tabela por dez para nada.
+JANELA_RETENCAO_DIAS = 365
+
+
+def sql_upsert_programas(
+    cols_programa: list[str],
+    *,
+    historico: tuple[list[str], list[str]] | None = None,
+    ibges: list[str] | None = None,
+) -> str:
+    """`programa.csv` → `programas`, UMA linha por programa.
+
+    O arquivo repete o programa por UF habilitada e por natureza jurídica
+    aceita; aqui ele é agregado por `ID_PROGRAMA` e as repetições viram listas
+    (`ufs`, `naturezas`, `modalidades`). Sem o GROUP BY o `ON CONFLICT`
+    recusaria o comando inteiro ("cannot affect row a second time").
+
+    `historico` = (colunas de `programa_proposta`, colunas de `proposta`):
+    quando os dois arquivos vieram na carga, cada programa ganha a lista dos
+    municípios do TERRITÓRIO (`ibges`) que já propuseram nele — é o sinal mais
+    forte de "vocês deveriam se inscrever de novo".
+    """
+    c = lambda *n: col_any(cols_programa, "pr", *n)  # noqa: E731
+
+    ini_prop = data_flex(c("dt_prog_ini_receb_prop", "dt_ini_receb_prop"))
+    fim_prop = data_flex(c("dt_prog_fim_receb_prop", "dt_fim_receb_prop"))
+    ini_emenda = data_flex(c("dt_prog_ini_emenda_par", "dt_ini_emenda_par"))
+    fim_emenda = data_flex(c("dt_prog_fim_emenda_par", "dt_fim_emenda_par"))
+    ini_benef = data_flex(c("dt_prog_ini_benef_esp", "dt_ini_benef_esp"))
+    fim_benef = data_flex(c("dt_prog_fim_benef_esp", "dt_fim_benef_esp"))
+    uf = f"upper(nullif(btrim({c('uf_programa', 'uf')}), ''))"
+    natureza = f"nullif(btrim({c('natureza_juridica_programa', 'natureza_juridica')}), '')"
+    modalidade = f"nullif(btrim({c('modalidade_programa', 'modalidade')}), '')"
+
+    juncao_historico = (
+        "LEFT JOIN (SELECT NULL::text AS id_programa, NULL::text[] AS ibges) h ON false"
+    )
+    if historico is not None and ibges:
+        cols_pp, cols_prop = historico
+        pp_prog = col_any(cols_pp, "pp", "id_programa")
+        pp_prop = col_any(cols_pp, "pp", "id_proposta")
+        munic = ibge(col_any(cols_prop, "p", "cod_munic_ibge"))
+        lista = ", ".join(f"'{i}'" for i in ibges)
+        juncao_historico = f"""
+        LEFT JOIN (
+            SELECT btrim({pp_prog}) AS id_programa, array_agg(DISTINCT {munic}) AS ibges
+            FROM stg_programa_proposta pp
+            JOIN stg_proposta p ON p.id_proposta = {pp_prop}
+            WHERE {munic} IN ({lista})
+            GROUP BY btrim({pp_prog})
+        ) h ON h.id_programa = g.id_programa"""
+
+    return f"""
+    INSERT INTO programas (
+        id, fonte, id_externo, codigo, nome, orgao_superior, orgao, situacao, ano,
+        acao_orcamentaria, modalidades, naturezas, ufs, disponibilizado_em,
+        inicio_proposta, fim_proposta, inicio_emenda, fim_emenda,
+        inicio_beneficiario, fim_beneficiario, municipios_historico,
+        detalhe, hash_conteudo, cache_atualizado_em
+    )
+    SELECT
+        gen_random_uuid(), '{FONTE_PROGRAMA}', left(g.id_programa, 64),
+        g.codigo, g.nome, g.orgao_superior, g.orgao, g.situacao, g.ano,
+        g.acao, g.modalidades, g.naturezas, g.ufs, g.disponibilizado_em,
+        g.ini_prop, g.fim_prop, g.ini_emenda, g.fim_emenda, g.ini_benef, g.fim_benef,
+        h.ibges,
+        jsonb_strip_nulls(jsonb_build_object(
+            'cod_orgao_superior', g.cod_orgao_superior,
+            'descricao', g.descricao
+        )),
+        md5(concat_ws('|', g.nome, g.situacao, g.ini_prop::text, g.fim_prop::text,
+                      g.ini_emenda::text, g.fim_emenda::text, g.ini_benef::text,
+                      g.fim_benef::text, array_to_string(g.ufs, ','),
+                      array_to_string(g.naturezas, ','))),
+        now()
+    FROM (
+        SELECT
+            btrim(pr.id_programa) AS id_programa,
+            max(left(nullif(btrim({c("cod_programa", "codigo_programa")}), ''), 64)) AS codigo,
+            max(nullif(btrim({c("nome_programa", "nm_programa")}), '')) AS nome,
+            max(left(nullif(btrim({
+        c("desc_orgao_sup_programa", "desc_orgao_superior", "desc_orgao_sup")
+    }), ''), 255)) AS orgao_superior,
+            max(left(nullif(btrim({c("desc_orgao_programa", "desc_orgao")}), ''), 255)) AS orgao,
+            max(nullif(btrim({c("cod_orgao_sup_programa", "cod_orgao_sup")}), ''))
+                AS cod_orgao_superior,
+            max(left(nullif(btrim({c("sit_programa", "situacao_programa")}), ''), 64)) AS situacao,
+            max({ano(c("ano_disponibilizacao", "ano_programa"))}) AS ano,
+            max(left(nullif(btrim({c("acao_orcamentaria")}), ''), 255)) AS acao,
+            max(nullif(btrim({c("desc_programa", "descricao_programa")}), '')) AS descricao,
+            array_agg(DISTINCT {modalidade}) FILTER (WHERE {modalidade} IS NOT NULL)
+                AS modalidades,
+            array_agg(DISTINCT {natureza}) FILTER (WHERE {natureza} IS NOT NULL) AS naturezas,
+            array_agg(DISTINCT {uf}) FILTER (WHERE {uf} IS NOT NULL) AS ufs,
+            min({data_flex(c("data_disponibilizacao", "dt_disponibilizacao"))})
+                AS disponibilizado_em,
+            min({ini_prop}) AS ini_prop, max({fim_prop}) AS fim_prop,
+            min({ini_emenda}) AS ini_emenda, max({fim_emenda}) AS fim_emenda,
+            min({ini_benef}) AS ini_benef, max({fim_benef}) AS fim_benef
+        FROM stg_programa pr
+        WHERE nullif(btrim(pr.id_programa), '') IS NOT NULL
+        GROUP BY btrim(pr.id_programa)
+    ) g
+    {juncao_historico}
+    WHERE greatest(g.fim_prop, g.fim_emenda, g.fim_benef)
+          >= current_date - {JANELA_RETENCAO_DIAS}
+    ON CONFLICT (fonte, id_externo) DO UPDATE SET
+        codigo              = EXCLUDED.codigo,
+        nome                = EXCLUDED.nome,
+        orgao_superior      = EXCLUDED.orgao_superior,
+        orgao               = EXCLUDED.orgao,
+        situacao            = EXCLUDED.situacao,
+        ano                 = EXCLUDED.ano,
+        acao_orcamentaria   = EXCLUDED.acao_orcamentaria,
+        modalidades         = EXCLUDED.modalidades,
+        naturezas           = EXCLUDED.naturezas,
+        ufs                 = EXCLUDED.ufs,
+        disponibilizado_em  = EXCLUDED.disponibilizado_em,
+        inicio_proposta     = EXCLUDED.inicio_proposta,
+        fim_proposta        = EXCLUDED.fim_proposta,
+        inicio_emenda       = EXCLUDED.inicio_emenda,
+        fim_emenda          = EXCLUDED.fim_emenda,
+        inicio_beneficiario = EXCLUDED.inicio_beneficiario,
+        fim_beneficiario    = EXCLUDED.fim_beneficiario,
+        -- sem o arquivo do histórico nesta carga, o que já se sabia fica
+        municipios_historico = coalesce(EXCLUDED.municipios_historico,
+                                        programas.municipios_historico),
+        detalhe             = EXCLUDED.detalhe,
+        hash_conteudo       = EXCLUDED.hash_conteudo,
+        cache_atualizado_em = EXCLUDED.cache_atualizado_em,
+        updated_at          = now()
+    """
+
+
+# --------------------------------------------------------------------------
 # orquestração
 # --------------------------------------------------------------------------
 
@@ -656,6 +829,17 @@ async def aplicar_carga(conn: AsyncConnection, arquivos: dict[str, Path]) -> dic
     if "convenio" in colunas:
         resultado = await conn.execute(text(sql_carimbar_convenio(colunas["convenio"])))
         gravadas["convenios_carimbados"] = resultado.rowcount or 0
+
+    if "programa" in colunas:
+        historico = None
+        territorio: list[str] = []
+        if {"programa_proposta", "proposta"} <= colunas.keys():
+            historico = (colunas["programa_proposta"], colunas["proposta"])
+            territorio = await ibges_do_territorio(conn)
+        resultado = await conn.execute(
+            text(sql_upsert_programas(colunas["programa"], historico=historico, ibges=territorio))
+        )
+        gravadas["programas"] = resultado.rowcount or 0
 
     return gravadas
 

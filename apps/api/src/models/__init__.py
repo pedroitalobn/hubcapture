@@ -26,11 +26,13 @@ from .parecer import Parecer
 from .pasta import Pasta, PastaProposta
 from .plano import Plano
 from .preferencias import PreferenciasUsuario
+from .programa import Programa
 from .proposta import Proposta
 from .proposta_documento import PropostaDocumento
 from .proposta_embedding import PropostaEmbedding
 from .proposta_emenda import PropostaEmenda
 from .proposta_empenho import PropostaEmpenho
+from .push_inscricao import PushInscricao
 from .repasse import Repasse
 from .sync_run import SyncRun
 from .usuario import Usuario
@@ -63,11 +65,13 @@ __all__ = [
     "PastaProposta",
     "Plano",
     "PreferenciasUsuario",
+    "Programa",
     "Proposta",
     "PropostaDocumento",
     "PropostaEmbedding",
     "PropostaEmenda",
     "PropostaEmpenho",
+    "PushInscricao",
     "Repasse",
     "SyncRun",
     "Usuario",
