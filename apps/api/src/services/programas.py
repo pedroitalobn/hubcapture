@@ -105,9 +105,27 @@ def situacao_aberta(situacao: str | None) -> bool:
 class Janela:
     tipo: str
     inicio: date | None
-    fim: date
+    fim: date | None  # None = a consulta oficial diz "apto", mas sem a data (§64)
     status: str  # 'aberta' | 'em_breve'
-    dias_restantes: int  # até o FIM (aberta) ou até o INÍCIO (em breve)
+    dias_restantes: int | None  # até o FIM (aberta) ou até o INÍCIO (em breve)
+
+
+#: Por quantos dias vale o "apto a receber proposta: Sim" da consulta oficial
+#: quando ela não publicou a data de fim. Depois disso o programa só volta a
+#: aparecer se a consulta seguinte o listar de novo.
+APTO_VALIDADE_DIAS = 3
+
+
+def apto_no_webapp(p: Programa, hoje: date) -> bool:
+    """A consulta oficial listou o programa como APTO há no máximo N dias?"""
+    web = (p.detalhe or {}).get("webapp") or {}
+    if not web.get("apto"):
+        return False
+    try:
+        visto = date.fromisoformat(str(web.get("verificado_em"))[:10])
+    except ValueError:
+        return False
+    return (hoje - visto).days <= APTO_VALIDADE_DIAS
 
 
 def janelas_ativas(p: Programa, hoje: date) -> list[Janela]:
@@ -124,6 +142,10 @@ def janelas_ativas(p: Programa, hoje: date) -> list[Janela]:
             saida.append(Janela(tipo, ini, fim, "aberta", (fim - hoje).days))
         elif (ini - hoje).days <= DIAS_EM_BREVE:
             saida.append(Janela(tipo, ini, fim, "em_breve", (ini - hoje).days))
+    if not saida and apto_no_webapp(p, hoje):
+        # a fonte oficial afirma que recebe proposta HOJE; só não disse até
+        # quando — esconder seria negar uma inscrição que está aberta
+        saida.append(Janela("voluntaria", p.inicio_proposta, None, "aberta", None))
     return saida
 
 
@@ -154,7 +176,7 @@ class Avaliacao:
 
     @property
     def prazo_final(self) -> date | None:
-        abertas = [j.fim for j in self.janelas if j.status == "aberta"]
+        abertas = [j.fim for j in self.janelas if j.status == "aberta" and j.fim]
         return min(abertas) if abertas else None
 
 
@@ -280,7 +302,33 @@ async def _candidatos(session: AsyncSession, hoje: date) -> list[Programa]:
         (Programa.inicio_beneficiario, Programa.fim_beneficiario),
     ):
         abertas.append((fim >= hoje) & (or_(ini.is_(None), ini <= limite_inicio)))
-    return list((await session.execute(select(Programa).where(or_(*abertas)))).scalars().all())
+    # apto na consulta oficial (§64): entra mesmo sem data; a validade é
+    # conferida em Python (`apto_no_webapp`)
+    abertas.append(Programa.detalhe["webapp"]["apto"].astext == "true")
+    linhas = (await session.execute(select(Programa).where(or_(*abertas)))).scalars().all()
+    return deduplicar(list(linhas))
+
+
+def deduplicar(programas: list[Programa]) -> list[Programa]:
+    """Um programa, uma linha — mesmo que as duas fontes o tenham gravado.
+
+    A consulta oficial nem sempre expõe o `ID_PROGRAMA`; sem ele o registro
+    nasce como `cod:<codigo>` e a carga do pacote, com o id, grava outro. O
+    CÓDIGO é o mesmo nas duas: fica a linha com id real (a do pacote, mais
+    completa em UF/natureza) — a carga ainda apaga o `cod:` redundante.
+    """
+    por_codigo: dict[str, Programa] = {}
+    sem_codigo: list[Programa] = []
+    for p in programas:
+        if not p.codigo:
+            sem_codigo.append(p)
+            continue
+        atual = por_codigo.get(p.codigo)
+        if atual is None or (
+            atual.id_externo.startswith("cod:") and not p.id_externo.startswith("cod:")
+        ):
+            por_codigo[p.codigo] = p
+    return sem_codigo + list(por_codigo.values())
 
 
 async def estado_catalogo(session: AsyncSession) -> dict:
@@ -393,7 +441,7 @@ async def listar(
 
 def serializar(p: Programa, av: Avaliacao) -> dict:
     prazo = av.prazo_final
-    abertas = [j for j in av.janelas if j.status == "aberta"]
+    abertas = [j for j in av.janelas if j.status == "aberta" and j.fim]
     dias = min(abertas, key=lambda j: j.fim).dias_restantes if abertas else None
     return {
         "id": p.id,
@@ -427,3 +475,91 @@ def serializar(p: Programa, av: Avaliacao) -> dict:
         "recomendado": av.recomendado,
         "url_consulta": URL_CONSULTA,
     }
+
+
+# ------------------------------------------------ consulta oficial (§64)
+
+_CAMPOS_WEBAPP = (
+    "nome",
+    "orgao_superior",
+    "orgao",
+    "situacao",
+    "ano",
+    "acao_orcamentaria",
+    "inicio_proposta",
+    "fim_proposta",
+    "inicio_emenda",
+    "fim_emenda",
+    "inicio_beneficiario",
+    "fim_beneficiario",
+)
+_LISTAS_WEBAPP = ("ufs", "naturezas", "modalidades")
+
+
+async def upsert_do_webapp(
+    session: AsyncSession, programas: list[dict], *, hoje: date | None = None
+) -> dict[str, int]:
+    """Grava o que a Consulta de Programas listou como APTO.
+
+    Casa com a linha do pacote pelo `ID_PROGRAMA` (quando a página o expõe) ou
+    pelo CÓDIGO do programa. A consulta é mais FRESCA que o pacote nas janelas
+    e na situação, então vence nesses campos; nas listas (UF, natureza,
+    modalidade) só sobrescreve quando trouxe algo — a ficha às vezes não
+    publica, e lista vazia aqui apagaria a restrição que o pacote conhece.
+    """
+    hoje = hoje or datetime.now().date()
+    agora = datetime.now().astimezone()
+    novos = atualizados = ignorados = 0
+    for prog in programas:
+        id_programa = (prog.get("id_programa") or "").strip() or None
+        codigo = (prog.get("codigo") or "").strip() or None
+        if not (id_programa or codigo):
+            ignorados += 1  # só nome não identifica programa com segurança
+            continue
+        existente = None
+        if id_programa:
+            existente = (
+                await session.execute(
+                    select(Programa).where(
+                        Programa.fonte == "siconv", Programa.id_externo == id_programa
+                    )
+                )
+            ).scalar_one_or_none()
+        if existente is None and codigo:
+            candidatos = (
+                (await session.execute(select(Programa).where(Programa.codigo == codigo)))
+                .scalars()
+                .all()
+            )
+            existente = next(
+                (c for c in candidatos if not c.id_externo.startswith("cod:")),
+                candidatos[0] if candidatos else None,
+            )
+        if existente is None:
+            existente = Programa(
+                fonte="siconv", id_externo=id_programa or f"cod:{codigo}", codigo=codigo
+            )
+            session.add(existente)
+            novos += 1
+        else:
+            atualizados += 1
+        for campo in _CAMPOS_WEBAPP:
+            if prog.get(campo) not in (None, ""):
+                setattr(existente, campo, prog[campo])
+        for campo in _LISTAS_WEBAPP:
+            if prog.get(campo):
+                setattr(existente, campo, list(prog[campo]))
+        if codigo and not existente.codigo:
+            existente.codigo = codigo
+        detalhe = dict(existente.detalhe or {})
+        if prog.get("descricao") and not detalhe.get("descricao"):
+            detalhe["descricao"] = prog["descricao"]
+        detalhe["webapp"] = {
+            "apto": True,
+            "verificado_em": hoje.isoformat(),
+            "url": prog.get("url_detalhe"),
+        }
+        existente.detalhe = detalhe  # nova dict: o ORM só vê reatribuição
+        existente.cache_atualizado_em = agora
+    await session.flush()
+    return {"novos": novos, "atualizados": atualizados, "ignorados": ignorados}

@@ -3111,3 +3111,51 @@ notificações push não funcionam".
   ser avisado" em Minha conta; versão compacta na central de Alertas), e
   `app/manifest.ts` — no iPhone o Safari só entrega push a site INSTALADO na tela
   de início (iOS 16.4+), e a tela explica isso.
+
+## 64. Consulta de Programas do TransfereGov via Playwright (Oportunidades no mesmo dia)
+
+O pacote SIconv (§63) traz os programas com atraso. A página oficial
+`/voluntarias/programa/ConsultarPrograma/ConsultarPrograma.do`, com os filtros
+**Qualificação = Proposta Voluntária · Ano · Apto a receber proposta = Sim**,
+responde no dia em que o concedente abre a janela. Ela virou a 2ª fonte das
+Oportunidades.
+
+- **Connector** `connectors/programas_webapp.py`: Chromium (mesmo rito guest do
+  `pareceres_siconv`, validado em produção) → preenche os filtros → consulta →
+  pagina ("Próxima") → abre a ficha só do programa sem UF/natureza/fim de janela.
+  **Nada depende de id/classe CSS**: campo achado pelo TEXTO do rótulo, opção pelo
+  texto da opção, tabela de resultado pelo texto do cabeçalho ("programa"/"código").
+  Parse PURO (`tabela_de_programas`, `programa_da_linha`, `detalhe_do_programa`);
+  janela decidida pelo rótulo (emenda × beneficiário × voluntária; "vigência" do
+  programa NÃO é janela). UF casada por palavra (`\bufs?\b`), nunca substring.
+- **Navegação**: toda ação passa por `_agir` (`expect_navigation` amarrado ao
+  clique). `wait_for_load_state` sozinho volta na hora — o estado já era "carregado"
+  antes do clique — e o `content()` pegava a página trocando. "Próxima" é
+  verificada ANTES do clique (sem ela, a espera custaria o timeout inteiro).
+- **Gravação** (`services/programas.upsert_do_webapp`): casa com a linha do pacote
+  pelo `ID_PROGRAMA` (quando o link expõe) ou pelo CÓDIGO; sem os dois → ignora
+  (nome não identifica). A consulta vence nas janelas/situação; nas listas (UF,
+  natureza, modalidade) só sobrescreve quando trouxe algo. Sem id nasce
+  `cod:<codigo>`; a carga do pacote apaga o `cod:` quando grava o id real
+  (`SQL_LIMPA_PROGRAMAS_SEM_ID`) e `deduplicar` cobre o intervalo. A carga do
+  pacote agora FUNDE `detalhe` (`||`) — sobrescrever apagaria a marca do webapp
+  (o defeito da §62).
+- **"Apto" sem data**: `detalhe.webapp = {apto, verificado_em}`. Programa que a
+  consulta listou como apto mas sem fim publicado aparece como janela aberta com
+  `fim=None` ("prazo não publicado") por `APTO_VALIDADE_DIAS` (3) — a fonte oficial
+  afirma que recebe proposta hoje; esconder negaria uma inscrição aberta.
+- **Job** `jobs/programas_webapp.py`: 09:00 UTC no processo do `worker`
+  (`PROGRAMAS_WEBAPP_HORA_UTC`), advisory lock, `sync_runs` fonte `programas_webapp`
+  — status `degradado` quando algum filtro não casou (a lista pode conter programa
+  não apto: é o sinal para calibrar). Pausável em `/admin/sources`
+  (`CATALOGO_FONTES`). Disparo manual: `POST /admin/siconv/programs/refresh`
+  (botão "Consultar programas agora" em `/admin/siconv`). Overrides no painel:
+  `programas_webapp_url`, `programas_webapp_ano`.
+- **Calibração** (o sandbox não alcança o gov.br): `python -m
+  src.tools.probe_programas --formulario` lista campos, rótulos e opções como a
+  página os desenha; sem a flag roda a consulta e mostra filtro a filtro se casou,
+  páginas e os programas lidos. Sai 1 se algum filtro falhar.
+- Regressão: `tests/test_programas_webapp.py` — parse puro, fluxo de BROWSER real
+  contra uma réplica local do formulário Struts (servidor HTTP no teste: filtros
+  pelos rótulos, 2 páginas, fichas; o programa "fechado" só aparece se o filtro
+  não for aplicado), upsert convergindo com o pacote e o job pausado/degradado.

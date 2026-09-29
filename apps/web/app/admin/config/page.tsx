@@ -99,6 +99,12 @@ const GRUPOS: { id: string; label: string; categoria: string; prefixos: string[]
     prefixos: ["fns_"],
   },
   { id: "fnde", label: "FNDE", categoria: "fonte", prefixos: ["fnde_"] },
+  {
+    id: "programas_webapp",
+    label: "TransfereGov — Consulta de Programas (Oportunidades)",
+    categoria: "fonte",
+    prefixos: ["programas_webapp_"],
+  },
   { id: "serpro", label: "SERPRO", categoria: "fonte", prefixos: ["serpro_"] },
   { id: "fpm", label: "FPM (Tesouro)", categoria: "fonte", prefixos: ["fpm_"] },
   { id: "emendas", label: "Emendas", categoria: "fonte", prefixos: ["emendas_"] },

@@ -273,6 +273,8 @@ CATALOGO_FONTES: list[dict] = [
     {"chave": "fns", "label": "FNS — repasses", "padrao": True},
     {"chave": "fns_propostas", "label": "FNS — propostas", "padrao": True},
     {"chave": "fnde", "label": "FNDE — liberações", "padrao": True},
+    # Consulta de Programas (webapp, Playwright) — alimenta as Oportunidades (§64)
+    {"chave": "programas_webapp", "label": "TransfereGov — Consulta de Programas", "padrao": True},
 ]
 
 _POR_CHAVE_FONTE = {f["chave"]: f for f in CATALOGO_FONTES}
