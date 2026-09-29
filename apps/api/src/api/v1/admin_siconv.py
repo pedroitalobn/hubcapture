@@ -153,3 +153,26 @@ async def disparar_carga(
             "(são centenas de MB por arquivo; leva minutos)"
         ),
     )
+
+
+@router.post("/programs/refresh", status_code=202)
+async def disparar_consulta_programas(_admin: Usuario = Depends(current_superuser)) -> dict:
+    """Roda AGORA a Consulta de Programas do TransfereGov (§64), em segundo plano.
+
+    Mesma disciplina da carga: `create_task` (nunca `BackgroundTasks`) e o
+    advisory lock do próprio `sweep` contra dois browsers na mesma consulta.
+    O resultado sai em `sync_runs` (fonte `programas_webapp`).
+    """
+    from ...jobs import programas_webapp
+
+    async def _rodar() -> None:
+        try:
+            await programas_webapp.sweep()
+        except Exception:  # noqa: BLE001 — a task é órfã: o erro só existe no log
+            log.exception("programas_webapp: disparo do admin falhou")
+
+    asyncio.create_task(_rodar())
+    return {
+        "iniciada": True,
+        "detalhe": "consulta iniciada — o resultado aparece em sync_runs (programas_webapp)",
+    }

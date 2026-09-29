@@ -8,6 +8,7 @@ import {
   type CatalogoSiconv,
   carregarSiconv,
   catalogoSiconv,
+  consultarProgramasAgora,
 } from "@/lib/api/client";
 
 /**
@@ -78,6 +79,22 @@ export default function AdminSiconvPage() {
     }
   }, [selecionadas]);
 
+  // Consulta de Programas (§64): a mesma lista das Oportunidades, direto da
+  // página oficial — o pacote traz os programas com atraso
+  const [consultando, setConsultando] = useState(false);
+  const consultarProgramas = useCallback(async () => {
+    setConsultando(true);
+    setMsg(null);
+    try {
+      const r = await consultarProgramasAgora();
+      setMsg(`✓ ${r.detalhe}`);
+    } catch (e) {
+      setMsg(`Falha: ${e instanceof Error ? e.message : "erro desconhecido"}`);
+    } finally {
+      setConsultando(false);
+    }
+  }, []);
+
   const daCarga = (a: ArquivoSiconv) => catalogo?.tabelas_da_carga.includes(a.tabela);
 
   return (
@@ -92,9 +109,19 @@ export default function AdminSiconvPage() {
             as propostas, emendas e empenhos do painel.
           </p>
         </div>
-        <button onClick={carregar} disabled={carregando} className="btn btn-ghost">
-          {carregando ? "Sondando…" : "Sondar de novo"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={consultarProgramas}
+            disabled={consultando}
+            className="btn btn-ghost"
+            title="Consulta de Programas do TransfereGov (apto a receber proposta, ano corrente)"
+          >
+            {consultando ? "Disparando…" : "Consultar programas agora"}
+          </button>
+          <button onClick={carregar} disabled={carregando} className="btn btn-ghost">
+            {carregando ? "Sondando…" : "Sondar de novo"}
+          </button>
+        </div>
       </header>
 
       {erro && (

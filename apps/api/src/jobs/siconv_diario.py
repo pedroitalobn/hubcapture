@@ -720,11 +720,22 @@ def sql_upsert_programas(
         -- sem o arquivo do histórico nesta carga, o que já se sabia fica
         municipios_historico = coalesce(EXCLUDED.municipios_historico,
                                         programas.municipios_historico),
-        detalhe             = EXCLUDED.detalhe,
+        -- FUNDE: o bloco `webapp` (apto na consulta oficial, §64) vive no
+        -- mesmo jsonb e a carga não pode apagá-lo (o defeito da §62)
+        detalhe             = coalesce(programas.detalhe, '{{}}'::jsonb) || EXCLUDED.detalhe,
         hash_conteudo       = EXCLUDED.hash_conteudo,
         cache_atualizado_em = EXCLUDED.cache_atualizado_em,
         updated_at          = now()
     """
+
+
+#: Linha criada pela consulta oficial SEM o id do programa (`cod:<codigo>`)
+#: que a carga acabou de gravar com o id real: a do pacote fica.
+SQL_LIMPA_PROGRAMAS_SEM_ID = """
+DELETE FROM programas p USING programas q
+WHERE p.id_externo LIKE 'cod:%' AND q.id_externo NOT LIKE 'cod:%'
+  AND p.codigo IS NOT NULL AND p.codigo = q.codigo
+"""
 
 
 # --------------------------------------------------------------------------
@@ -840,6 +851,7 @@ async def aplicar_carga(conn: AsyncConnection, arquivos: dict[str, Path]) -> dic
             text(sql_upsert_programas(colunas["programa"], historico=historico, ibges=territorio))
         )
         gravadas["programas"] = resultado.rowcount or 0
+        await conn.execute(text(SQL_LIMPA_PROGRAMAS_SEM_ID))
 
     return gravadas
 

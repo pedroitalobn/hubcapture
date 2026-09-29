@@ -13,9 +13,9 @@ class JanelaRead(BaseModel):
     rotulo: str
     como: str
     inicio: date | None = None
-    fim: date
+    fim: date | None = None  # None = "apto" na consulta oficial, sem data (§64)
     status: str  # aberta | em_breve
-    dias_restantes: int
+    dias_restantes: int | None = None
 
 
 class MunicipioElegivel(BaseModel):

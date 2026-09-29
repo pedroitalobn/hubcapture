@@ -270,6 +270,19 @@ CATALOGO: list[dict] = [
         "microsoft",
     ),
     _c("apple_carddav_url", "Apple/iCloud CardDAV URL", "integracoes", False, "apple"),
+    # Consulta de Programas do TransfereGov (§64) — Oportunidades no mesmo dia
+    _c(
+        "programas_webapp_url",
+        "Consulta de Programas — URL (vazio = ConsultarPrograma.do oficial)",
+        "fonte",
+        False,
+    ),
+    _c(
+        "programas_webapp_ano",
+        "Consulta de Programas — ano do filtro (vazio = ano corrente)",
+        "fonte",
+        False,
+    ),
     _c("uniq_api_key", "Uniq API Key (WhatsApp)", "whatsapp", True),
     _c("uniq_base_url", "Uniq base URL", "whatsapp", False),
     _c("uniq_webhook_token", "Uniq webhook token", "whatsapp", True),

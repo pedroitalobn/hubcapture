@@ -192,9 +192,11 @@ if __name__ == "__main__":
         # propostas (06:00) e o enriquecimento de pareceres/empenhos (08:00,
         # `enriquecimento_diario`). Um container a mais só para o segundo
         # relógio custaria memória que este host não tem.
-        from . import enriquecimento_diario
+        from . import enriquecimento_diario, programas_webapp
 
         async def _loops() -> None:
-            await asyncio.gather(loop(), enriquecimento_diario.loop())
+            # 09:00: a Consulta de Programas (§64) roda depois do
+            # enriquecimento — os dois levantam Chromium e não devem somar
+            await asyncio.gather(loop(), enriquecimento_diario.loop(), programas_webapp.loop())
 
         asyncio.run(_loops())

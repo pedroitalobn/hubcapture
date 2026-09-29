@@ -183,6 +183,16 @@ export async function carregarSiconv(
   return resp.json();
 }
 
+/** Roda AGORA a Consulta de Programas do TransfereGov (Playwright, §64). */
+export async function consultarProgramasAgora(): Promise<{ iniciada: boolean; detalhe: string }> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/admin/siconv/programs/refresh`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+  });
+  if (!resp.ok) throw new Error(`Falha ao disparar a consulta (HTTP ${resp.status})`);
+  return resp.json();
+}
+
 export interface ResetPerfil {
   municipios: number;
   propostas: number;

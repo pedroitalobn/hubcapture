@@ -30,9 +30,10 @@ interface Janela {
   rotulo: string;
   como: string;
   inicio?: string | null;
-  fim: string;
+  /** null = a consulta oficial diz "apto", mas não publicou até quando */
+  fim: string | null;
   status: "aberta" | "em_breve";
-  dias_restantes: number;
+  dias_restantes: number | null;
 }
 
 interface MunicipioElegivel {
@@ -93,6 +94,7 @@ async function buscar(params: URLSearchParams): Promise<Resposta> {
 }
 
 function rotuloPrazo(j: Janela): string {
+  if (j.dias_restantes === null) return "inscrição aberta";
   if (j.status === "em_breve") {
     return j.dias_restantes === 0 ? "abre hoje" : `abre em ${j.dias_restantes} dia(s)`;
   }
@@ -346,12 +348,14 @@ function CartaoPrograma({ p, multiplos }: { p: Programa; multiplos: boolean }) {
               tone={
                 principal.status === "em_breve"
                   ? "info"
-                  : TOM_BADGE[tomPrazo(principal.dias_restantes) ?? "ok"]
+                  : TOM_BADGE[tomPrazo(principal.dias_restantes ?? null) ?? "ok"]
               }
             >
               {rotuloPrazo(principal)}
             </StatusBadge>
-            <span className="text-[12px] text-ink-3">até {formatDate(principal.fim)}</span>
+            <span className="text-[12px] text-ink-3">
+              {principal.fim ? `até ${formatDate(principal.fim)}` : "prazo não publicado"}
+            </span>
           </div>
         )}
       </div>
@@ -370,8 +374,11 @@ function CartaoPrograma({ p, multiplos }: { p: Programa; multiplos: boolean }) {
           {p.janelas.map((j) => (
             <p key={j.tipo} className="text-ink-2">
               <strong className="text-ink">{j.rotulo}</strong>{" "}
-              {j.inicio ? `${formatDate(j.inicio)} a ` : "até "}
-              {formatDate(j.fim)}
+              {j.inicio
+                ? `${formatDate(j.inicio)} a ${j.fim ? formatDate(j.fim) : "(fim não publicado)"}`
+                : j.fim
+                  ? `até ${formatDate(j.fim)}`
+                  : "aberta hoje — prazo não publicado na fonte"}
               {j.status === "em_breve" && " (ainda não abriu)"}
               <span className="block text-[12px] text-ink-3">{j.como}</span>
             </p>

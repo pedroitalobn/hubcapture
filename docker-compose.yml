@@ -62,6 +62,9 @@ services:
       # egresso) não cabe em 5 min — o teto padrão derrubava a coleta INTEIRA
       COLETA_TIMEOUT_SECONDS: ${COLETA_TIMEOUT_SECONDS:-900}
       REFRESH_DIARIO_ATIVO: ${REFRESH_DIARIO_ATIVO:-1}
+      # Consulta de Programas do TransfereGov (Playwright) — Oportunidades (§64)
+      PROGRAMAS_WEBAPP_HORA_UTC: ${PROGRAMAS_WEBAPP_HORA_UTC:-9}
+      PROGRAMAS_WEBAPP_ATIVO: ${PROGRAMAS_WEBAPP_ATIVO:-1}
     # Sobrescreve o entrypoint da api (que sobe o uvicorn) — aqui o processo é o
     # agendador. Sem `--` o módulo herdaria o boot HTTP e subiria uma 2ª API.
     entrypoint: ["/app/apps/api/.venv/bin/python", "-m", "src.jobs.refresh_diario"]
