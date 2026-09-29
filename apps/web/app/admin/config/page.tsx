@@ -37,6 +37,7 @@ const CATEGORIAS: { id: string; label: string; desc: string }[] = [
     desc: "Contatos do usuário no Google, Microsoft e Apple",
   },
   { id: "whatsapp", label: "WhatsApp", desc: "Alertas e chat (Uniq)" },
+  { id: "push", label: "Notificações push", desc: "Web Push no navegador (chaves VAPID)" },
   { id: "email", label: "E-mail", desc: "SMTP transacional" },
   { id: "plataforma", label: "Plataforma", desc: "Aparência e comportamento do app" },
 ];
@@ -140,6 +141,12 @@ const GRUPOS: { id: string; label: string; categoria: string; prefixos: string[]
     prefixos: ["apple_"],
   },
   { id: "uniq", label: "Uniq (WhatsApp)", categoria: "whatsapp", prefixos: ["uniq_"] },
+  {
+    id: "webpush",
+    label: "Web Push (VAPID) — gerado automaticamente no 1º uso",
+    categoria: "push",
+    prefixos: ["webpush_"],
+  },
   {
     id: "smtp",
     label: "SMTP / E-mail transacional",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { NotificacoesConta } from "@/components/NotificacoesConta";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   api,
@@ -188,6 +189,8 @@ export default function ContaPage() {
           Salvar perfil
         </button>
       </form>
+
+      <NotificacoesConta />
 
       <form onSubmit={trocarSenha} className="card flex max-w-md flex-col gap-4 p-6">
         <h2 className="label-mono">

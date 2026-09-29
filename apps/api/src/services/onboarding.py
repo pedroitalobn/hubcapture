@@ -94,6 +94,10 @@ async def onboarding(
         fontes=fontes_escolhidas,
         areas=req.areas,
         monitorar_ativo=req.monitorar_ativo,
+        # o e-mail escolhido no onboarding vale para a CONTA (§63), não só
+        # para as buscas: sem isto, o alerta de uma proposta favoritada
+        # depois nunca ia por e-mail
+        canais_alerta=["email"] if "email" in (req.canais_alerta or []) else [],
     )
     prefs = prefs.on_conflict_do_update(
         index_elements=["usuario_id"],
@@ -101,6 +105,7 @@ async def onboarding(
             "fontes": prefs.excluded.fontes,
             "areas": prefs.excluded.areas,
             "monitorar_ativo": prefs.excluded.monitorar_ativo,
+            "canais_alerta": prefs.excluded.canais_alerta,
         },
     )
     await session.execute(prefs)

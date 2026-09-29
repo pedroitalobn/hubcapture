@@ -128,7 +128,7 @@ async def _carimbar(session, proposta_id, situacao: str) -> None:
 
 
 def _decimal_br(v: str | None) -> str | None:
-    """"8.048.614,32" → "8048614.32" (texto pronto p/ jsonb; None passa)."""
+    """ "8.048.614,32" → "8048614.32" (texto pronto p/ jsonb; None passa)."""
     if not v:
         return None
     return v.replace(".", "").replace(",", ".")
@@ -296,9 +296,7 @@ async def sweep() -> dict:
                 fila_web = await _fila(
                     session, ["transferegov_disc", "transferegov_voluntarias"], TETO_WEBAPP
                 )
-                fila_api = await _fila(
-                    session, ["transferegov_ff", "transferegov_esp"], TETO_API
-                )
+                fila_api = await _fila(session, ["transferegov_ff", "transferegov_esp"], TETO_API)
                 log.info(
                     "enriquecimento: fila webapp=%d, fila api=%d",
                     len(fila_web),
@@ -333,6 +331,15 @@ async def loop() -> None:
             await sweep()
         except Exception:  # noqa: BLE001 — a rodada de amanhã tenta de novo
             log.exception("enriquecimento: rodada falhou")
+        # Parecer, empenho e publicação chegam AQUI (08:00) e no pacote SIconv
+        # (07:00) — depois da varredura que o refresh roda às 06:00. Sem uma
+        # segunda varredura, o alerta do parecer novo saía só no dia seguinte.
+        try:
+            from . import alertas as alertas_job
+
+            await alertas_job.varrer_todos()
+        except Exception:  # noqa: BLE001
+            log.exception("enriquecimento: varredura de alertas falhou")
 
 
 if __name__ == "__main__":

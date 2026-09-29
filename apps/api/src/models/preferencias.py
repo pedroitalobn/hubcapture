@@ -23,3 +23,7 @@ class PreferenciasUsuario(Base):
     fontes: Mapped[list[str] | None] = mapped_column(ARRAY(TEXT), nullable=True)
     areas: Mapped[list[str] | None] = mapped_column(ARRAY(TEXT), nullable=True)
     monitorar_ativo: Mapped[bool] = mapped_column(default=True)
+    # Canais de alerta escolhidos para a CONTA (hoje: 'email'). WhatsApp segue
+    # o opt-in do usuário e o push, a inscrição do navegador — ver
+    # `services/canais_alerta.py`. NULL = conta anterior à escolha.
+    canais_alerta: Mapped[list[str] | None] = mapped_column(ARRAY(TEXT), nullable=True)

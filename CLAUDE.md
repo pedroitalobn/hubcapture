@@ -3039,3 +3039,75 @@ escrito pelo pacote E pelo webapp (além do connector), então "relatório da fo
 (`_ORIGEM_TOPO`) é rótulo aproximado quando os blocos próprios não respondem; e
 `_carimbar_execucao_webapp` substitui o bloco `webapp` inteiro, então uma leitura que
 não reconheceu o campo apaga a anterior (vira "sem informação", nunca uma afirmação).
+
+## 63. Oportunidades com dado + notificações que chegam (push, e-mail, WhatsApp)
+
+Duas queixas do gestor na mesma rodada: "a aba Oportunidades precisa mostrar os
+programas em que os municípios selecionados podem e devem se inscrever" e "as
+notificações push não funcionam".
+
+**Oportunidades = catálogo de PROGRAMAS recortado pelo território.**
+- **Carga**: `programa` e `programa_proposta` passaram a `carrega=True` no pacote
+  SIconv (§50/§54). `jobs/siconv_diario.sql_upsert_programas` agrega o arquivo — que
+  repete o programa por UF habilitada e por natureza jurídica — numa linha por
+  `ID_PROGRAMA` (`ufs`, `naturezas`, `modalidades` viram listas) e grava em
+  **`programas`** (migration `f7a8b9c0d1e2`, nível-plataforma, SEM RLS: é o mesmo
+  catálogo para todos). As três janelas do SIconv (proposta voluntária, emenda
+  parlamentar, beneficiário específico) viram colunas de início/fim; `data_flex`
+  aceita data com hora grudada. Só entra programa com janela fechada há ≤365 dias.
+  `municipios_historico` = municípios do TERRITÓRIO que já propuseram no programa
+  (`programa_proposta → proposta`); sem o arquivo na carga, o que se sabia fica.
+- **Recorte** (`services/programas.py`, funções puras testáveis): PODE = janela
+  aberta (ou abrindo em ≤30 dias, "em breve") + situação não encerrada + UF do
+  município habilitada (lista vazia ou valor que não é sigla = sem restrição) +
+  natureza que aceita ente municipal (municipal ou consórcio; vazio = aceita).
+  DEVE (`recomendado`) = o município já propôs neste programa OU o tema (categorias
+  da §32 sobre o nome) casa com as ÁREAS do perfil. "Órgão com quem o município já
+  tem proposta" aparece como motivo, mas NÃO recomenda — quase todo município já
+  tratou com os grandes ministérios, e marcar tudo é não recomendar nada.
+- **API** `GET /opportunities?municipio=&q=&orgao=&categoria=&janela=&recomendados=&todas_naturezas=`
+  (módulo `oportunidades`), com facetas que ignoram o próprio filtro (§26b) e o
+  estado do catálogo (`catalogo.total` = 0 → a tela explica que a carga ainda não
+  rodou, em vez de "nenhum programa").
+- **Web** `app/panel/opportunities`: usa o recorte de município da BARRA (§33 — a
+  rota já estava em `FILTROS_DA_ROTA`), cards Programas abertos · Recomendados
+  (clicável = filtro) · Encerrando (≤15 dias), e por programa: janelas com prazo,
+  municípios que podem se inscrever (destacado quem já propôs), motivos, código
+  copiável e "Consultar no TransfereGov". Chamamento público (MROSC) segue como
+  link: não está no pacote.
+
+**Notificações — por que não chegavam** (três defeitos, nenhum era "push"):
+1. **Canal preso ao monitoramento**: toda porta de criação (favoritar, 🔔 do
+   detalhe, lista da Captação) gravava `canais=['painel']` — ligar o WhatsApp em
+   Minha conta não mudava nada. Agora os canais efetivos são a UNIÃO dos canais do
+   monitoramento com os da CONTA (`services/canais_alerta.da_conta`): e-mail
+   escolhido na conta (`preferencias_usuario.canais_alerta`), WhatsApp pelo opt-in
+   + telefone, push pela existência de inscrição. O plano (§39) continua podando.
+2. **Canal que falhava apagava o alerta**: `_despachar` não tinha `try` — um 4xx do
+   Uniq ou SMTP recusado estourava a varredura depois do flush, a transação voltava
+   e o alerta (e a fotografia do monitoramento) sumia; no dia seguinte, idem. Cada
+   canal agora é best-effort isolado.
+3. **Alerta um dia atrasado**: a varredura rodava às 06:00, antes do pacote SIconv
+   (07:00) e do enriquecimento (08:00), que trazem parecer/empenho/publicação. O
+   loop do enriquecimento roda `alertas.varrer_todos()` ao terminar.
+
+**Web Push de verdade** (não existia nada — nem service worker):
+- `notifications/webpush.py`: RFC 8291 (aes128gcm) + RFC 8292 (VAPID ES256) com a
+  `cryptography` que já era dependência — sem pywebpush. Validado pelo vetor do
+  Apêndice A da RFC em `test_push_notificacoes.py`. O par VAPID é GERADO no 1º uso
+  e gravado no painel (`webpush_vapid_*`, categoria "Notificações push"; trocar o
+  par invalida as inscrições). `endpoint_permitido` só aceita os serviços de push
+  dos navegadores (FCM, Mozilla, Apple, Windows) — o endpoint vem do cliente e
+  vira destino de POST do servidor (SSRF). 404/410 apaga a inscrição.
+- Tabela `push_inscricoes` (RLS por-tenant, único por `(usuario_id, endpoint)` —
+  único só por endpoint quebraria o ON CONFLICT sob RLS quando duas contas usam o
+  mesmo navegador). Rotas: `GET/PUT /notifications/preferences`,
+  `GET /notifications/push/key`, `POST /notifications/push/subscriptions`,
+  `POST /notifications/push/unsubscribe`, `POST /notifications/push/test`.
+- Uma notificação por LOTE da varredura (`oportunidades.mensagem_push`): um alerta
+  abre a proposta; vários abrem a central.
+- Web: `public/sw.js` (só push + clique; nada de cache de página, e `no-store` no
+  `next.config.mjs`), `lib/push.ts`, `components/NotificacoesConta.tsx` ("Como quero
+  ser avisado" em Minha conta; versão compacta na central de Alertas), e
+  `app/manifest.ts` — no iPhone o Safari só entrega push a site INSTALADO na tela
+  de início (iOS 16.4+), e a tela explica isso.

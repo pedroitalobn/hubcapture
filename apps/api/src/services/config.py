@@ -273,6 +273,12 @@ CATALOGO: list[dict] = [
     _c("uniq_api_key", "Uniq API Key (WhatsApp)", "whatsapp", True),
     _c("uniq_base_url", "Uniq base URL", "whatsapp", False),
     _c("uniq_webhook_token", "Uniq webhook token", "whatsapp", True),
+    # Web Push (§63) — o par VAPID é GERADO no primeiro uso e gravado aqui
+    # (`notifications/webpush.garantir_chaves`); trocar o par invalida as
+    # inscrições existentes (o navegador inscreveu com a chave pública antiga).
+    _c("webpush_vapid_public_key", "VAPID chave pública (base64url)", "push", False),
+    _c("webpush_vapid_private_key", "VAPID chave privada (base64url)", "push", True),
+    _c("webpush_contato", "Contato VAPID (mailto: ou https:)", "push", False),
     # E-mail transacional (SMTP) — recuperação de senha, convites, boas-vindas
     _c("email_smtp_host", "SMTP host", "email", False),
     _c("email_smtp_port", "SMTP porta (587 TLS / 465 SSL)", "email", False),

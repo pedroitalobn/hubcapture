@@ -10,6 +10,19 @@ const nextConfig = {
   // NEXT_PUBLIC_API_URL for definido, o client chama a API direto e este proxy
   // fica ocioso. API_INTERNAL_URL é resolvido no build (standalone congela o
   // config) — o default cobre compose (api) e dev local (localhost).
+  // O service worker do push (§63) nunca pode ficar preso no cache: um SW
+  // velho continuaria tratando o clique da notificação com a regra antiga.
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     const apiInterna =
       process.env.API_INTERNAL_URL ?? "http://localhost:8000";

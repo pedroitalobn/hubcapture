@@ -5,6 +5,7 @@ import { linkProposta } from "@/lib/navegacao";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api/client";
 import { ModuloGate } from "@/components/ModuloGate";
+import { NotificacoesConta } from "@/components/NotificacoesConta";
 import { PageHeader } from "@/components/PageHeader";
 import { IconeAcao } from "@/components/icons";
 import { SeletorSimples } from "@/components/kit";
@@ -311,13 +312,16 @@ function AlertasConteudo() {
 
       {msg && <Aviso tom={msg.tom}>{msg.texto}</Aviso>}
 
+      {/* push deste navegador: some quando já está ativo */}
+      <NotificacoesConta compacto />
+
       {/* monitorar FUTURAS propostas */}
       <section className="card p-5">
         <h2 className="label-mono mb-3">Monitorar futuras propostas</h2>
         <p className="mb-3 text-sm text-ink-2">
           Vigie um município (e, se quiser, uma área): quando uma proposta nova
-          aparecer nas fontes, você recebe alerta no painel — e por e-mail ou
-          WhatsApp, se marcar os canais.
+          aparecer nas fontes, você recebe alerta no painel — e pelos canais
+          ligados em Minha conta (notificação push, e-mail, WhatsApp).
         </p>
         <form onSubmit={criarBusca} className="flex flex-col gap-4">
           <div className="flex flex-wrap items-end gap-3">

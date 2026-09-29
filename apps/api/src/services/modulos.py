@@ -64,12 +64,12 @@ MODULOS: list[dict] = [
         "padrao": False,
     },
     {
-        # Oportunidades abertas do TransfereGov (chamamento público e programas
-        # aptos a receber proposta). Fase 1 leva à consulta oficial; a coleta
-        # dentro do Hub entra na Fase 2 do plano de melhorias.
+        # Programas do TransfereGov com inscrição aberta em que o território
+        # pode (UF + natureza) e deve (histórico, áreas) se inscrever — §63.
+        # Catálogo carregado do pacote SIconv (`programa.csv`).
         "chave": "oportunidades",
         "label": "Oportunidades",
-        "descricao": "Chamamentos públicos e programas abertos a proposta (TransfereGov)",
+        "descricao": "Programas abertos em que os municípios do território podem se inscrever",
         "padrao": True,
     },
     {

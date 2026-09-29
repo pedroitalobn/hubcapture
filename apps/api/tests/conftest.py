@@ -31,7 +31,7 @@ _owner_engine = create_async_engine(settings.database_migrator_url, poolclass=Nu
 
 _TABLES = (
     "alertas, monitoramentos, monitoramentos_busca, favoritos, pasta_propostas, pastas, "
-    "consultas_propostas, audit_log, "
+    "consultas_propostas, audit_log, push_inscricoes, programas, "
     "demandas, "
     "sync_runs, proposta_embeddings, proposta_emendas, proposta_empenhos, "
     "proposta_documentos, pareceres, propostas, "

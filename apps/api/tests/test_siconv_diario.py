@@ -88,7 +88,14 @@ def test_proveniencia_marca_o_ano_como_derivado():
 
 
 def test_catalogo_carrega_apenas_o_que_tem_destino():
-    assert siconv_downloads.CARREGADAS == ("emenda", "proposta", "convenio", "empenho")
+    assert siconv_downloads.CARREGADAS == (
+        "emenda",
+        "proposta",
+        "convenio",
+        "empenho",
+        "programa",
+        "programa_proposta",
+    )
     # pagamento/desembolso são por CONVÊNIO, não por empenho: sem
     # `empenho_desembolso` não há como atribuí-los a um documento.
     assert not siconv_downloads.ARQUIVOS["pagamento"].carrega

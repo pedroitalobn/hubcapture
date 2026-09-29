@@ -126,9 +126,17 @@ ARQUIVOS: dict[str, Arquivo] = {
         "empenho_desembolso",
         "De-para empenho↔desembolso — o elo que falta para o pago POR EMPENHO",
     ),
-    "programa": Arquivo("programa", "Programas do órgão concedente (o que se pode captar)"),
+    # Oportunidades (§63): o catálogo de programas com as janelas de
+    # recebimento, UFs habilitadas e naturezas aceitas — é o que responde "em
+    # que o município pode se inscrever". `programa_proposta` dá o histórico
+    # (o município já propôs neste programa?).
+    "programa": Arquivo(
+        "programa", "Programas do órgão concedente (o que se pode captar)", carrega=True
+    ),
     "programa_proposta": Arquivo(
-        "programa_proposta", "De-para programa↔proposta (a qual programa a proposta concorre)"
+        "programa_proposta",
+        "De-para programa↔proposta (a qual programa a proposta concorre)",
+        carrega=True,
     ),
     "proponentes": Arquivo("proponentes", "Proponentes cadastrados (CNPJ, natureza jurídica)"),
     "plano_aplicacao_detalhado": Arquivo(
