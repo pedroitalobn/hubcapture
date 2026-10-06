@@ -2067,6 +2067,28 @@ html {
     overflow-y: auto;
     scrollbar-width: thin;
   }
+  /* Menu dos seletores do kit: vive num PORTAL no <body>, posição fixa
+     calculada a partir do gatilho (`components/kit.tsx::Seletor`). Dentro da
+     árvore o `overflow: hidden` do `.card` cortava a lista. A altura máxima
+     vem do espaço livre na janela; a lista (`.menu-scroll`) é quem encolhe e
+     rola — cabeçalho de busca, "todos" e rodapé ficam sempre à vista.
+     z-index acima do Modal (100): um seletor dentro de modal abre por cima. */
+  .menu-flutuante {
+    position: fixed;
+    z-index: 110;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .menu-flutuante > * {
+    flex-shrink: 0;
+  }
+  .menu-flutuante > .menu-scroll {
+    flex: 0 1 auto;
+    min-height: 3rem;
+    max-height: none;
+  }
 
   /* ── Caixa de seleção (o quadrado do multi-select) ───────────── */
   .ck {

@@ -22,6 +22,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ChipFiltro, ItemMenu, Seletor } from "@/components/kit";
+import { filtrarPorBusca } from "@/lib/busca";
 import { useOrigem } from "@/lib/origem";
 import { useAno } from "@/lib/ano";
 import { rotuloMunicipio, useTerritorio } from "@/lib/territorio";
@@ -109,11 +110,9 @@ function SeletorMunicipio() {
       ? rotuloMunicipio(unico)
       : `${ativos.length} de ${municipios.length}`;
 
-  const lista = busca.trim()
-    ? municipios.filter((m) =>
-        rotuloMunicipio(m).toLowerCase().includes(busca.trim().toLowerCase()),
-      )
-    : municipios;
+  // tolerante a acento e erro de digitação ("apuiarez" acha Apuiarés); o
+  // código IBGE também é procurado
+  const lista = filtrarPorBusca(municipios, busca, (m) => `${rotuloMunicipio(m)} ${m.ibge}`);
 
   return (
     <Seletor
@@ -122,6 +121,7 @@ function SeletorMunicipio() {
       ativo={!tudo}
       largura="17rem"
       titulo="Quais municípios do seu território entram no painel agora"
+      aoFechar={() => setBusca("")}
     >
       {(fechar) => (
         <>

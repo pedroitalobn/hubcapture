@@ -23,16 +23,39 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import { cx } from "@/components/ui";
+import { filtrarPorBusca } from "@/lib/busca";
 
 /** A partir de quantas opções o menu ganha campo de busca. */
 const COM_BUSCA = 8;
 
 /* ─────────────────────────────────────────────────────── Seletor ──────── */
+
+/** Folga entre o menu e a borda da janela, e entre o menu e o gatilho (px). */
+const FOLGA_JANELA = 8;
+const FOLGA_GATILHO = 6;
+/** Abaixo disso de espaço livre sob o gatilho, o menu abre para CIMA (px). */
+const ALTURA_CONFORTAVEL = 280;
+/** Teto de altura do menu, mesmo com a janela inteira livre (px). */
+const ALTURA_TETO = 560;
+
+type Posicao = {
+  left: number;
+  top?: number;
+  bottom?: number;
+  alturaMax: number;
+  paraCima: boolean;
+};
+
+const SELETOR_FOCAVEL =
+  'button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
 
 export function Seletor({
   rotulo,
@@ -41,6 +64,7 @@ export function Seletor({
   alinhar = "start",
   largura,
   titulo,
+  aoFechar,
   children,
 }: {
   /** Rótulo fixo do gatilho ("Município", "Origem do recurso"). */
@@ -52,25 +76,119 @@ export function Seletor({
   alinhar?: "start" | "end";
   largura?: string;
   titulo?: string;
+  /** Chamado sempre que o menu fecha — quem tem campo de busca o limpa aqui:
+   *  reabrir o menu com o termo antigo mostrava a lista já recortada, e os
+   *  municípios "sumiam" sem o gestor ter digitado nada. */
+  aoFechar?: () => void;
   /** Conteúdo do menu; recebe `fechar` para itens que encerram a escolha. */
   children: (fechar: () => void) => ReactNode;
 }) {
   const [aberto, setAberto] = useState(false);
+  const [pos, setPos] = useState<Posicao | null>(null);
   const caixa = useRef<HTMLDivElement>(null);
+  const gatilho = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
   const idMenu = useId();
-  const fechar = useCallback(() => setAberto(false), []);
+  // em ref: `fechar` precisa ser estável (é dependência dos efeitos abaixo)
+  const aoFecharRef = useRef(aoFechar);
+  useLayoutEffect(() => {
+    aoFecharRef.current = aoFechar;
+  });
+
+  const fechar = useCallback(() => {
+    setAberto(false);
+    setPos(null);
+    aoFecharRef.current?.();
+  }, []);
+
+  /* O menu é desenhado num PORTAL no <body>, com posição fixa calculada a
+     partir do gatilho. Dentro da árvore ele herdava o `overflow: hidden` do
+     `.card` (a barra de filtros da Captação é um card): a lista era cortada
+     na borda do card, sumiam os municípios e a barra de rolagem junto — o
+     gestor via só "Todo o território" e um pedaço da linha seguinte. Mesma
+     razão do `Modal`. */
+  const posicionar = useCallback(() => {
+    const g = gatilho.current;
+    if (!g) return;
+    const r = g.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const abaixo = vh - r.bottom - FOLGA_GATILHO - FOLGA_JANELA;
+    const acima = r.top - FOLGA_GATILHO - FOLGA_JANELA;
+    // abre para cima só quando embaixo não cabe com conforto E em cima cabe mais
+    const paraCima = abaixo < ALTURA_CONFORTAVEL && acima > abaixo;
+    const alturaMax = Math.max(
+      120,
+      Math.min(paraCima ? acima : abaixo, ALTURA_TETO),
+    );
+    const larguraMenu = menu.current?.getBoundingClientRect().width ?? 0;
+    let left = alinhar === "end" ? r.right - larguraMenu : r.left;
+    // nunca vaza da janela — no celular o gatilho da direita empurraria o
+    // menu para fora da tela
+    left = Math.min(left, vw - FOLGA_JANELA - larguraMenu);
+    left = Math.max(FOLGA_JANELA, left);
+    const nova: Posicao = {
+      left,
+      top: paraCima ? undefined : r.bottom + FOLGA_GATILHO,
+      bottom: paraCima ? vh - r.top + FOLGA_GATILHO : undefined,
+      alturaMax,
+      paraCima,
+    };
+    // mesma posição = mesmo estado: sem isso o observador de tamanho e o
+    // re-render se alimentariam em laço
+    setPos((atual) =>
+      atual &&
+      atual.left === nova.left &&
+      atual.top === nova.top &&
+      atual.bottom === nova.bottom &&
+      atual.alturaMax === nova.alturaMax &&
+      atual.paraCima === nova.paraCima
+        ? atual
+        : nova,
+    );
+  }, [alinhar]);
+
+  // Antes da pintura: o menu nasce já no lugar (sem piscar no canto da tela).
+  useLayoutEffect(() => {
+    if (aberto) posicionar();
+  }, [aberto, posicionar]);
+
+  // Acompanha rolagem (de qualquer contêiner), redimensionamento da janela e
+  // mudança de tamanho do próprio menu (a busca encolhe a lista).
+  useEffect(() => {
+    if (!aberto) return;
+    let quadro = 0;
+    const agendar = () => {
+      cancelAnimationFrame(quadro);
+      quadro = requestAnimationFrame(posicionar);
+    };
+    window.addEventListener("scroll", agendar, true);
+    window.addEventListener("resize", agendar);
+    const observador =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(agendar) : null;
+    if (menu.current) observador?.observe(menu.current);
+    return () => {
+      cancelAnimationFrame(quadro);
+      window.removeEventListener("scroll", agendar, true);
+      window.removeEventListener("resize", agendar);
+      observador?.disconnect();
+    };
+  }, [aberto, posicionar]);
 
   // Fecha no clique fora e no Esc — e devolve o foco ao gatilho, senão o
-  // teclado cai no começo da página a cada menu fechado.
+  // teclado cai no começo da página a cada menu fechado. "Fora" agora são
+  // DOIS lugares: o gatilho e o menu (que mora no portal).
   useEffect(() => {
     if (!aberto) return;
     function fora(e: MouseEvent) {
-      if (!caixa.current?.contains(e.target as Node)) setAberto(false);
+      const alvo = e.target as Node;
+      if (caixa.current?.contains(alvo) || menu.current?.contains(alvo)) return;
+      fechar();
     }
     function tecla(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
-      setAberto(false);
-      caixa.current?.querySelector("button")?.focus();
+      fechar();
+      gatilho.current?.focus();
     }
     document.addEventListener("mousedown", fora);
     document.addEventListener("keydown", tecla);
@@ -78,13 +196,41 @@ export function Seletor({
       document.removeEventListener("mousedown", fora);
       document.removeEventListener("keydown", tecla);
     };
-  }, [aberto]);
+  }, [aberto, fechar]);
+
+  // No portal o menu fica no FIM do documento: sem isto, Tab a partir do
+  // gatilho pularia o menu inteiro e Tab no último item cairia no rodapé.
+  function focaveis(): HTMLElement[] {
+    return Array.from(
+      menu.current?.querySelectorAll<HTMLElement>(SELETOR_FOCAVEL) ?? [],
+    );
+  }
+  function tabNoGatilho(e: ReactKeyboardEvent) {
+    if (!aberto || e.key !== "Tab" || e.shiftKey) return;
+    const [primeiro] = focaveis();
+    if (!primeiro) return;
+    e.preventDefault();
+    primeiro.focus();
+  }
+  function tabNoMenu(e: ReactKeyboardEvent) {
+    if (e.key !== "Tab") return;
+    const lista = focaveis();
+    const sai = e.shiftKey
+      ? document.activeElement === lista[0]
+      : document.activeElement === lista[lista.length - 1];
+    if (!sai) return;
+    e.preventDefault();
+    fechar();
+    gatilho.current?.focus();
+  }
 
   return (
     <div ref={caixa} className="relative">
       <button
+        ref={gatilho}
         type="button"
-        onClick={() => setAberto((v) => !v)}
+        onClick={() => (aberto ? fechar() : setAberto(true))}
+        onKeyDown={tabNoGatilho}
         aria-expanded={aberto}
         aria-haspopup="true"
         aria-controls={aberto ? idMenu : undefined}
@@ -98,18 +244,30 @@ export function Seletor({
         <Caret />
       </button>
 
-      {aberto && (
-        <div
-          id={idMenu}
-          className={cx(
-            "menu anim-pop mt-1.5",
-            alinhar === "end" ? "right-0" : "left-0",
-          )}
-          style={largura ? { minWidth: largura } : undefined}
-        >
-          {children(fechar)}
-        </div>
-      )}
+      {aberto &&
+        createPortal(
+          <div
+            id={idMenu}
+            ref={menu}
+            onKeyDown={tabNoMenu}
+            className={cx("menu menu-flutuante", pos && "anim-pop")}
+            style={{
+              ...(largura ? { minWidth: largura } : {}),
+              left: pos?.left ?? 0,
+              top: pos ? pos.top : 0,
+              bottom: pos?.bottom,
+              maxHeight: pos?.alturaMax,
+              transformOrigin: pos?.paraCima ? "bottom" : "top",
+              // até a 1ª medida o menu existe só para ser medido. Opacidade, não
+              // `visibility: hidden`: elemento invisível não recebe foco, e o
+              // `autoFocus` do campo de busca roda justamente nesse instante
+              opacity: pos ? undefined : 0,
+            }}
+          >
+            {children(fechar)}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
@@ -213,11 +371,7 @@ export function SeletorSimples({
 }) {
   const [busca, setBusca] = useState("");
   const atual = opcoes.find((o) => o.valor === valor);
-  const lista = busca.trim()
-    ? opcoes.filter((o) =>
-        o.rotulo.toLowerCase().includes(busca.trim().toLowerCase()),
-      )
-    : opcoes;
+  const lista = filtrarPorBusca(opcoes, busca, (o) => o.rotulo);
 
   return (
     <Seletor
@@ -226,6 +380,7 @@ export function SeletorSimples({
       ativo={Boolean(valor)}
       largura={largura}
       alinhar={alinhar}
+      aoFechar={() => setBusca("")}
     >
       {(fechar) => (
         <>
@@ -365,7 +520,8 @@ export function SeletorMultiplo({
   titulo?: string;
   /** Como se lê "sem recorte" nesta dimensão ("Todo o território"). */
   rotuloTodos: string;
-  opcoes: { valor: string; rotulo: string }[];
+  /** `busca`: texto extra que a busca também enxerga (o código IBGE). */
+  opcoes: { valor: string; rotulo: string; busca?: string }[];
   selecionados: string[];
   aoMudar: (valores: string[]) => void;
   largura?: string;
@@ -386,13 +542,20 @@ export function SeletorMultiplo({
     aoMudar(novo.length === opcoes.length ? [] : novo);
   };
 
-  const termo = busca.trim().toLowerCase();
-  const lista = termo
-    ? opcoes.filter((o) => o.rotulo.toLowerCase().includes(termo))
-    : opcoes;
+  // tolerante a acento e erro de digitação: "apuiarez" acha Apuiarés
+  const lista = filtrarPorBusca(opcoes, busca, (o) =>
+    o.busca ? `${o.rotulo} ${o.busca}` : o.rotulo,
+  );
 
   return (
-    <Seletor rotulo={rotulo} valor={valor} ativo={!tudo} largura={largura} titulo={titulo}>
+    <Seletor
+      rotulo={rotulo}
+      valor={valor}
+      ativo={!tudo}
+      largura={largura}
+      titulo={titulo}
+      aoFechar={() => setBusca("")}
+    >
       {(fechar) => (
         <>
           {opcoes.length >= COM_BUSCA && (
