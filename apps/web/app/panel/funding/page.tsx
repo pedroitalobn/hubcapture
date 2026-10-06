@@ -1733,8 +1733,8 @@ function CaptacaoExploracao() {
             “Atualizar fontes”, no topo da página.
           </p>
         ) : (
-          <div className="card overflow-hidden">
-            <table className="tbl">
+          <div className="card @container overflow-hidden">
+            <table className="tbl tbl-cards">
               <thead>
                 <tr>
                   <th className="w-20"></th>
@@ -1753,7 +1753,7 @@ function CaptacaoExploracao() {
               <tbody>
                 {visiveis.map((p) => (
                   <tr key={p.id}>
-                    <td>
+                    <td className="tbl-acts">
                       <div className="flex items-center gap-2">
                         <Favorito
                           ativo={favoritos.has(p.id)}
@@ -1791,7 +1791,7 @@ function CaptacaoExploracao() {
                         <BotaoEspelho propostaId={p.id} formato="icone" />
                       </div>
                     </td>
-                    <td>
+                    <td className="tbl-full">
                       <div className="flex items-start gap-3">
                       {/* Miniatura do registro, como no feed do Meu painel: o
                           alvo marca a proposta DISPONÍVEL (ainda sem cadastro)
@@ -1883,7 +1883,7 @@ function CaptacaoExploracao() {
                       </div>
                       </div>
                     </td>
-                    <td className="text-ink-2">
+                    <td data-label="Município" className="text-ink-2">
                       {/* nome do município; o código só como apoio (seção 23) */}
                       <span className="block">{municipioPrincipal(p)}</span>
                       {municipioSecundario(p) && (
@@ -1894,17 +1894,17 @@ function CaptacaoExploracao() {
                     </td>
                     {/* Ano da proposta (ANO_PROP na fonte) — a ano, no lugar
                         do prazo. É o mesmo critério do filtro de ano. */}
-                    <td className="text-ink-2">
+                    <td data-label="Ano" className="text-ink-2">
                       {p.ano ? (
                         <span className="num">{p.ano}</span>
                       ) : (
                         <span className="text-ink-3">—</span>
                       )}
                     </td>
-                    <td className="num text-right">
+                    <td data-label="Valor global" className="num text-right">
                       {formatBRL(p.execucao?.valor_global ?? p.valor_total)}
                     </td>
-                    <td className="num text-right">
+                    <td data-label="Empenhado" className="num text-right">
                       {p.execucao?.valor_empenhado != null ? (
                         <>
                           {formatBRL(p.execucao.valor_empenhado)}
@@ -1921,7 +1921,7 @@ function CaptacaoExploracao() {
                         <span className="text-ink-3">—</span>
                       )}
                     </td>
-                    <td>
+                    <td data-label="Situação">
                       {p.situacao ? (
                         <StatusBadge tone={tomSituacao(p.situacao)}>
                           {humanizarCaixa(p.situacao)}
@@ -1939,7 +1939,7 @@ function CaptacaoExploracao() {
                         {p.tipo === "disponivel" ? "disponível" : "cadastrada"}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Pasta">
                       <select
                         defaultValue=""
                         onChange={(e) => {

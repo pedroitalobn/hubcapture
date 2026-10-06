@@ -183,8 +183,8 @@ export default function AdminSiconvPage() {
             {msg && <p className="mt-3 text-xs text-ink-2">{msg}</p>}
           </section>
 
-          <section className="card anim-fade-up overflow-x-auto">
-            <table className="tbl">
+          <section className="card anim-fade-up @container overflow-x-auto">
+            <table className="tbl tbl-cards">
               <thead>
                 <tr>
                   <th>Carregar</th>
@@ -198,7 +198,7 @@ export default function AdminSiconvPage() {
               <tbody>
                 {catalogo.arquivos.map((a) => (
                   <tr key={a.tabela} className="border-b border-hairline/60 last:border-0">
-                    <td>
+                    <td data-label="Carregar" className="tbl-acts">
                       <input
                         type="checkbox"
                         aria-label={`carregar ${a.tabela}`}
@@ -207,8 +207,8 @@ export default function AdminSiconvPage() {
                         disabled={!a.disponivel}
                       />
                     </td>
-                    <td>
-                      <div className="flex items-center gap-2">
+                    <td className="tbl-full">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono text-xs">{a.tabela}</span>
                         {daCarga(a) && (
                           <StatusBadge tone="success">na carga diária</StatusBadge>
@@ -216,15 +216,19 @@ export default function AdminSiconvPage() {
                       </div>
                       <p className="mt-0.5 text-xs text-ink-3">{a.descricao}</p>
                     </td>
-                    <td className="font-mono text-xs text-ink-2">{a.nome ?? "—"}</td>
-                    <td>
+                    <td data-label="Arquivo na fonte" className="font-mono text-xs text-ink-2 wrap-anywhere">
+                      {a.nome ?? "—"}
+                    </td>
+                    <td data-label="Estado">
                       <StatusBadge tone={a.disponivel ? "success" : "danger"}>
                         {a.disponivel ? "publicado" : "indisponível"}
                       </StatusBadge>
                       {a.erro && <p className="mt-1 max-w-xs text-xs text-ink-3">{a.erro}</p>}
                     </td>
-                    <td className="text-xs text-ink-2">{tamanhoLegivel(a.tamanho)}</td>
-                    <td>
+                    <td data-label="Tamanho" className="text-xs text-ink-2">
+                      {tamanhoLegivel(a.tamanho)}
+                    </td>
+                    <td data-label="Download">
                       {a.url ? (
                         <a
                           href={a.url}
@@ -244,9 +248,9 @@ export default function AdminSiconvPage() {
             </table>
           </section>
 
-          <section className="card anim-fade-up overflow-x-auto">
+          <section className="card anim-fade-up @container overflow-x-auto">
             <h2 className="px-5 pt-4 text-sm font-medium">Últimas cargas</h2>
-            <table className="mt-2 tbl">
+            <table className="mt-2 tbl tbl-cards">
               <thead>
                 <tr>
                   <th>Início</th>
@@ -259,22 +263,30 @@ export default function AdminSiconvPage() {
               <tbody>
                 {catalogo.ultimas_cargas.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-5 py-4 text-xs text-ink-3">
+                    <td colSpan={5} className="tbl-full px-5 py-4 text-xs text-ink-3">
                       Nenhuma carga registrada ainda.
                     </td>
                   </tr>
                 ) : (
                   catalogo.ultimas_cargas.map((c, i) => (
                     <tr key={i} className="border-b border-hairline/60 last:border-0">
-                      <td className="text-xs">{dataBr(c.iniciado_em)}</td>
-                      <td className="text-xs">{dataBr(c.finalizado_em)}</td>
-                      <td>
+                      <td data-label="Início" className="text-xs">
+                        {dataBr(c.iniciado_em)}
+                      </td>
+                      <td data-label="Fim" className="text-xs">
+                        {dataBr(c.finalizado_em)}
+                      </td>
+                      <td data-label="Status">
                         <StatusBadge tone={c.status === "ok" ? "success" : "danger"}>
                           {c.status}
                         </StatusBadge>
                       </td>
-                      <td className="text-xs">{c.registros}</td>
-                      <td className="max-w-md text-xs text-ink-3">{c.erro ?? "—"}</td>
+                      <td data-label="Registros" className="text-xs">
+                        {c.registros}
+                      </td>
+                      <td data-label="Erro" className="tbl-full max-w-md text-xs text-ink-3">
+                        {c.erro ?? "—"}
+                      </td>
                     </tr>
                   ))
                 )}

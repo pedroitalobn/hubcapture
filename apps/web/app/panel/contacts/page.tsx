@@ -456,8 +456,13 @@ export default function ContatosPage() {
         ) : (
           <ul className="flex flex-col divide-y divide-hairline">
             {contatos.map((c) => (
-              <li key={c.id} className="flex items-start justify-between gap-3 py-3 text-sm">
-                <span className="min-w-0">
+              <li
+                key={c.id}
+                className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 py-3 text-sm"
+              >
+                {/* base de 14rem: no celular as ações descem para a linha de
+                    baixo em vez de espremer o nome até sumir */}
+                <span className="min-w-0 flex-[1_1_14rem]">
                   <span className="block truncate font-medium">
                     {[c.nome, c.sobrenome].filter(Boolean).join(" ")}
                   </span>
@@ -479,7 +484,7 @@ export default function ContatosPage() {
                     </span>
                   )}
                 </span>
-                <span className="flex shrink-0 items-center gap-2">
+                <span className="flex min-w-0 flex-wrap items-center gap-2">
                   <StatusBadge tone="neutral">
                     {ORIGEM_LABEL[c.origem] ?? c.origem}
                   </StatusBadge>
@@ -602,7 +607,9 @@ function DiretorioInstitucional() {
         <ul className="flex flex-col divide-y divide-hairline">
           {itens.map((c, i) => (
             <li key={`${c.nome}-${i}`} className="flex flex-wrap gap-3 py-3 text-sm">
-              <span className="min-w-0 flex-1">
+              {/* base de 16rem (não 0): com `flex-1` a linha nunca quebrava e
+                  os botões espremiam o órgão a uma palavra por linha */}
+              <span className="min-w-0 flex-[1_1_16rem]">
                 {/* o ÓRGÃO lidera: é por ele que o gestor procura */}
                 <span className="block text-ink">
                   {humanizarCaixa(c.orgao) || humanizarCaixa(c.nome)}
@@ -637,7 +644,7 @@ function DiretorioInstitucional() {
                   <span className="mt-1 block text-xs text-ink-3">{c.observacao}</span>
                 )}
               </span>
-              <span className="flex shrink-0 flex-wrap items-start gap-2">
+              <span className="flex min-w-0 flex-wrap items-start gap-2">
                 {c.email && (
                   <a href={`mailto:${c.email}`} className="btn btn-ghost btn-sm">
                     E-mail

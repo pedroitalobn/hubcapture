@@ -138,7 +138,10 @@ export function EmendasProposta({ proposta, podeConsultarFonte = true }: Props) 
                     .join(" · ")}
                 </span>
               </span>
-              <span className="flex shrink-0 flex-wrap gap-x-5 gap-y-1">
+              {/* sem `shrink-0`: com ele o bloco ficava do tamanho dos três
+                  valores lado a lado e, no celular, o último saía cortado —
+                  o `flex-wrap` nunca chegava a agir */}
+              <span className="flex min-w-0 flex-wrap gap-x-5 gap-y-1">
                 {num(e.valor) > 0 && (
                   <span className="field">
                     <span className="field-label">Valor</span>

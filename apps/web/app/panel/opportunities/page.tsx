@@ -325,7 +325,9 @@ function CartaoPrograma({ p, multiplos }: { p: Programa; multiplos: boolean }) {
   return (
     <article className="card flex flex-col gap-3 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
+        {/* base de 16rem: no celular o prazo desce para baixo do nome em vez
+            de dividir a linha e espremer o título numa coluna estreita */}
+        <div className="min-w-0 flex-[1_1_16rem]">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             {p.recomendado && <StatusBadge tone="success">Recomendado</StatusBadge>}
             {p.categorias.map((c) => (

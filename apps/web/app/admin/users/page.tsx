@@ -216,8 +216,8 @@ export default function AdminUsuariosPage() {
         </button>
       </form>
 
-      <section className="card overflow-x-auto">
-        <table className="tbl">
+      <section className="card @container overflow-x-auto">
+        <table className="tbl tbl-cards">
           <thead>
             <tr>
               <th>Usuário</th>
@@ -235,17 +235,17 @@ export default function AdminUsuariosPage() {
                 key={u.id}
                 className="border-b border-hairline last:border-0 row-interactive"
               >
-                <td>
+                <td className="tbl-full">
                   <span className="block tracking-tight">
                     {u.nome ?? "—"}
                   </span>
-                  <span className="text-xs text-ink-3">{u.email}</span>
+                  <span className="text-xs text-ink-3 wrap-anywhere">{u.email}</span>
                 </td>
-                <td>
+                <td data-label="Papel">
                   <select
                     value={u.papel ?? ""}
                     onChange={(e) => atualizar(u.id, { papel: e.target.value })}
-                    className="input w-auto px-2 py-1 text-xs"
+                    className="input w-auto max-w-full px-2 py-1 text-xs"
                   >
                     <option value="">—</option>
                     {PAPEIS.map((p) => (
@@ -255,13 +255,13 @@ export default function AdminUsuariosPage() {
                     ))}
                   </select>
                 </td>
-                <td>
+                <td data-label="Plano">
                   <select
                     value={u.plano_id ?? ""}
                     onChange={(e) =>
                       atualizar(u.id, { plano_id: e.target.value || null })
                     }
-                    className="input w-auto px-2 py-1 text-xs"
+                    className="input w-auto max-w-full px-2 py-1 text-xs"
                   >
                     <option value="">— sem plano —</option>
                     {planos.map((p) => (
@@ -271,7 +271,7 @@ export default function AdminUsuariosPage() {
                     ))}
                   </select>
                 </td>
-                <td>
+                <td data-label="Admin">
                   <button
                     onClick={() => atualizar(u.id, { is_superuser: !u.is_superuser })}
                     title="Alternar permissão de admin"
@@ -281,7 +281,7 @@ export default function AdminUsuariosPage() {
                     </StatusBadge>
                   </button>
                 </td>
-                <td>
+                <td data-label="Ativo">
                   <button
                     onClick={() => atualizar(u.id, { is_active: !u.is_active })}
                     title="Ativar/desativar"
@@ -291,10 +291,10 @@ export default function AdminUsuariosPage() {
                     </StatusBadge>
                   </button>
                 </td>
-                <td className="text-xs text-ink-3">
+                <td data-label="E-mail" className="text-xs text-ink-3">
                   {u.is_verified ? "verificado" : "—"}
                 </td>
-                <td>
+                <td className="tbl-acts">
                   <button
                     onClick={() => void remover(u.id, u.email)}
                     className="text-xs text-danger hover:underline"

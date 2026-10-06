@@ -109,8 +109,8 @@ export default function MinhasPropostasPage() {
           )}
         </div>
       ) : (
-        <div className="card overflow-x-auto">
-          <table className="tbl">
+        <div className="card @container overflow-x-auto">
+          <table className="tbl tbl-cards">
             <thead>
               <tr>
                 <th className="w-16" />
@@ -123,7 +123,7 @@ export default function MinhasPropostasPage() {
             <tbody>
               {visiveis.map((p) => (
                 <tr key={p.id}>
-                  <td>
+                  <td className="tbl-acts">
                     <div className="flex items-center gap-2">
                       <Favorito
                         ativo
@@ -133,7 +133,7 @@ export default function MinhasPropostasPage() {
                       <BotaoEspelho propostaId={p.id} formato="icone" />
                     </div>
                   </td>
-                  <td>
+                  <td className="tbl-full">
                     {/* mesma pílula da captação e do feed. O `id_externo` saiu
                         da linha de apoio: é plumbing da integração e ocupava o
                         lugar da referência que o gestor de fato usa (§35). */}
@@ -167,7 +167,7 @@ export default function MinhasPropostasPage() {
                       {[p.orgao_superior, p.modalidade].filter(Boolean).join(" · ")}
                     </p>
                   </td>
-                  <td className="text-ink-2">
+                  <td data-label="Município" className="text-ink-2">
                     {/* nome do município lidera; código IBGE é apoio (seção 23) */}
                     <span className="block">{municipioPrincipal(p)}</span>
                     {municipioSecundario(p) && (
@@ -176,8 +176,12 @@ export default function MinhasPropostasPage() {
                       </span>
                     )}
                   </td>
-                  <td className="tabular-nums">{brl(p.valor_total)}</td>
-                  <td className="text-ink-2">{p.situacao ?? "—"}</td>
+                  <td data-label="Valor" className="tabular-nums">
+                    {brl(p.valor_total)}
+                  </td>
+                  <td data-label="Situação" className="text-ink-2">
+                    {p.situacao ?? "—"}
+                  </td>
                 </tr>
               ))}
             </tbody>

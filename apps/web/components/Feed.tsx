@@ -54,8 +54,13 @@ export function Feed({ dias }: { dias: DiaGroup[] }) {
           </div>
           <ul className="flex flex-col gap-2.5">
             {dia.itens.map((it) => (
-              <li key={it.id} className="flex items-center justify-between gap-4 text-sm">
-                <div className="flex min-w-0 items-center gap-2">
+              <li
+                key={it.id}
+                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm"
+              >
+                {/* base de 14rem: no celular o valor desce para a linha de
+                    baixo e a fonte/descrição não some atrás dele */}
+                <div className="flex min-w-0 flex-[1_1_14rem] items-center gap-2">
                   <StatusBadge tone={naturezaTone(it.natureza)}>
                     {it.natureza}
                   </StatusBadge>
@@ -69,7 +74,7 @@ export function Feed({ dias }: { dias: DiaGroup[] }) {
                     {it.descricao ? ` · ${it.descricao}` : ""}
                   </span>
                 </div>
-                <span className="shrink-0 tabular-nums">{formatBRL(it.valor)}</span>
+                <span className="ml-auto shrink-0 tabular-nums">{formatBRL(it.valor)}</span>
               </li>
             ))}
           </ul>

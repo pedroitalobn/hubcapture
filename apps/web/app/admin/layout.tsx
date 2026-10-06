@@ -59,6 +59,13 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [pronto, setPronto] = useState(false);
+  // Gaveta do menu abaixo de 1024px: o trilho sai da tela (globals.css) e,
+  // sem este botão, celular e tablet ficavam SEM navegação no admin.
+  const [gaveta, setGaveta] = useState(false);
+
+  useEffect(() => {
+    setGaveta(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!getToken()) {
@@ -89,7 +96,17 @@ export default function AdminLayout({
   );
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${gaveta ? "drawer-open" : ""}`}>
+      {/* Véu da gaveta no mobile — clicar fora fecha o menu */}
+      {gaveta && (
+        <button
+          type="button"
+          aria-label="Fechar menu"
+          onClick={() => setGaveta(false)}
+          className="fixed inset-0 z-50 bg-brand-dark/50 lg:hidden"
+        />
+      )}
+
       <aside className="sidebar">
         <Link href="/panel" className="sidebar-brand px-2 py-1">
           <span className="brand-dot" aria-hidden />
@@ -126,9 +143,20 @@ export default function AdminLayout({
 
       <div className="app-main">
         <header className="app-header">
+          <button
+            type="button"
+            onClick={() => setGaveta((v) => !v)}
+            aria-label="Abrir menu"
+            aria-expanded={gaveta}
+            className="icon-btn lg:hidden"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
+          </button>
           <nav className="flex min-w-0 items-center gap-2 text-[13px] text-ink-3">
-            <span>Administração</span>
-            <span aria-hidden className="h-1 w-1 shrink-0 rounded-full bg-ink-3" />
+            <span className="hidden sm:inline">Administração</span>
+            <span aria-hidden className="hidden h-1 w-1 shrink-0 rounded-full bg-ink-3 sm:inline-block" />
             <b className="truncate font-semibold text-ink">
               {atual?.label ?? "Plataforma"}
             </b>
@@ -137,7 +165,7 @@ export default function AdminLayout({
 
         <main className="mx-auto flex w-full min-w-0 max-w-[1400px] flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8">
           {/* mesma mecânica do painel: chave por rota reexecuta a entrada */}
-          <div key={pathname} className="anim-page stagger flex flex-1 flex-col gap-6">
+          <div key={pathname} className="anim-page stagger flex min-w-0 flex-1 flex-col gap-6">
             {children}
           </div>
         </main>

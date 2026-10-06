@@ -192,7 +192,7 @@ export function EmpenhosProposta({ proposta, podeConsultarFonte = true }: Props)
                         .join(" · ")}
                     </span>
                   </span>
-                  <span className="flex shrink-0 flex-wrap gap-x-5 gap-y-1">
+                  <span className="flex min-w-0 flex-wrap gap-x-5 gap-y-1">
                     <Valor rotulo="Empenhado" valor={String(liquido)} />
                     {num(e.valor_pago) > 0 && (
                       <Valor rotulo="Pago" valor={e.valor_pago} />

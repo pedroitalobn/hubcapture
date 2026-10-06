@@ -145,7 +145,7 @@ function ConformidadeConteudo() {
                   <li key={r.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                     {/* o requisito é identificado pelo que exige; o número do
                         item do CAUC é apoio, embaixo e em cinza (seção 23) */}
-                    <span className="min-w-0 text-ink-2">
+                    <span className="min-w-0 flex-1 text-ink-2">
                       <span className="block text-ink">{r.descricao ?? "—"}</span>
                       <span className="block text-xs text-ink-3">
                         <span className="font-mono">item {r.numero}</span>
