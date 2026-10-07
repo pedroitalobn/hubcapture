@@ -255,8 +255,8 @@ export default function AdminFontesPage() {
             ))}
           </section>
 
-          <section className="card anim-fade-up overflow-x-auto">
-            <table className="tbl">
+          <section className="card anim-fade-up @container overflow-x-auto">
+            <table className="tbl tbl-cards">
               <thead>
                 <tr>
                   <th>Fonte</th>
@@ -273,7 +273,7 @@ export default function AdminFontesPage() {
                     key={f.fonte}
                     className="border-b border-hairline last:border-0 row-interactive"
                   >
-                    <td>
+                    <td className="tbl-full">
                       <span className="block tracking-tight">
                         {FONTE_LABEL[f.fonte] ?? f.fonte}
                       </span>
@@ -281,12 +281,12 @@ export default function AdminFontesPage() {
                         {f.fonte}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Responde agora?">
                       <StatusBadge tone={f.saudavel ? "success" : "danger"}>
                         {f.saudavel ? "on-line" : "sem resposta"}
                       </StatusBadge>
                     </td>
-                    <td className="font-mono text-[12px] text-ink-2">
+                    <td data-label="Última coleta" className="font-mono text-[12px] text-ink-2">
                       {dataBr(f.ultima_coleta?.finalizado_em)}
                       {f.ultima_coleta?.status && (
                         <span
@@ -301,15 +301,15 @@ export default function AdminFontesPage() {
                         </span>
                       )}
                     </td>
-                    <td className="tabular-nums">
+                    <td data-label="Registros" className="tabular-nums">
                       {f.ultima_coleta?.registros ?? "—"}
                     </td>
-                    <td className="max-w-72">
+                    <td data-label="Erro" className="max-w-72">
                       <span className="block truncate text-xs text-ink-3" title={f.ultima_coleta?.erro ?? ""}>
                         {f.ultima_coleta?.erro ?? "—"}
                       </span>
                     </td>
-                                      <td className="text-right">
+                    <td data-label="Coleta" className="text-right">
                       {f.pausavel ? (
                         <button
                           type="button"
@@ -333,7 +333,7 @@ export default function AdminFontesPage() {
                         <span className="text-xs text-ink-3">—</span>
                       )}
                     </td>
-</tr>
+                  </tr>
                 ))}
               </tbody>
             </table>

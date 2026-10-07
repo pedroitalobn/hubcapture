@@ -1843,6 +1843,11 @@ html {
   .btn {
     position: relative;
     overflow: hidden;
+    /* `overflow: hidden` (o facho do hover) zera a largura mínima automática
+       de item flex: numa linha apertada o botão encolhia ABAIXO do próprio
+       rótulo e cortava a palavra ("onfigura"). Devolve o piso de sempre —
+       quebra entre palavras, nunca no meio de uma. */
+    min-width: min-content;
   }
   .btn-accent {
     background: var(--fill-accent);
@@ -1923,6 +1928,8 @@ html {
   .chip {
     position: relative;
     overflow: hidden;
+    /* mesmo motivo do `.btn`: sem o piso, o chip encolhia e cortava o rótulo */
+    min-width: min-content;
   }
   .chip-active:hover::after {
     animation: hc-sheen 0.8s var(--ease-out-soft);
@@ -2417,6 +2424,32 @@ html {
   .prow-acts:has(.fav-on) {
     opacity: 1;
   }
+  /* Celular: valor e ações têm largura fixa e, na mesma linha, sobravam
+     ~40px para o título — uma palavra por linha. Abaixo de 640px eles
+     descem para uma segunda linha, alinhados ao texto (depois do ícone). */
+  @media (max-width: 639px) {
+    .prow {
+      flex-wrap: wrap;
+      padding: 0.875rem 1rem;
+      row-gap: 0.375rem;
+    }
+    .prow-main {
+      flex-basis: calc(100% - 40px - 0.75rem);
+    }
+    .prow-num {
+      margin-left: calc(40px + 0.75rem);
+      flex-direction: row;
+      align-items: baseline;
+      text-align: left;
+    }
+    .prow-valor small {
+      display: inline;
+      margin-left: 0.375rem;
+    }
+    .prow-acts {
+      margin-left: auto;
+    }
+  }
 
   /* ── Barra de progresso fina (execução na linha) ─────────────── */
   .pgline {
@@ -2614,6 +2647,66 @@ html {
     font-weight: 700;
     color: #ffffff;
     font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ── Tabela que vira CARTÃO quando falta largura ──────────────
+   A tabela de 8 colunas cabia no desktop e, em celular e tablet, espremia
+   a coluna do título até uma palavra por linha (o resto tem largura fixa:
+   valor, situação, ações). Abaixo do limite, cada linha vira um cartão:
+   a célula principal ocupa a linha inteira e as demais viram pares
+   rótulo/valor numa grade que se ajusta à largura.
+   O limite é medido no CONTAINER (`@container` no invólucro), não na
+   tela: com o trilho lateral aberto, uma tela de 1024px sobra com menos
+   espaço útil que um tablet em pé.
+   Uso: `<table class="tbl tbl-cards">` dentro de um `@container`; cada
+   célula de dado leva `data-label` (o rótulo da coluna), a principal
+   leva `.tbl-full` e a de ações `.tbl-acts` (vai para o rodapé do
+   cartão). O rótulo só aparece no modo cartão: na tabela o `<th>` já diz.
+   FORA de `@layer`: as células carregam utilitários (`text-right`, `px-5`)
+   e utilitário vence a camada de componentes — no cartão o valor ficaria
+   colado à direita, longe do próprio rótulo. */
+@container (max-width: 56rem) {
+  .tbl-cards,
+  .tbl-cards tbody {
+    display: block;
+  }
+  .tbl-cards thead {
+    display: none;
+  }
+  .tbl-cards tbody tr {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+    gap: 0.75rem 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .tbl-cards tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .tbl-cards td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    text-align: left;
+  }
+  .tbl-cards td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.1875rem;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .tbl-cards td.tbl-full {
+    grid-column: 1 / -1;
+  }
+  .tbl-cards td.tbl-acts {
+    grid-column: 1 / -1;
+    order: 1;
   }
 }
 

@@ -295,14 +295,14 @@ function ResumoCaptacao() {
             </div>
           </section>
 
-          <section className="card overflow-hidden">
+          <section className="card @container overflow-hidden">
             <h2 className="label-mono px-5 pt-5">Convênios vigentes</h2>
             {resumo.convenios_vigentes.length === 0 ? (
               <p className="p-5 text-sm text-ink-3">
                 Nenhum convênio com vigência em aberto no recorte atual.
               </p>
             ) : (
-              <table className="mt-3 tbl">
+              <table className="mt-3 tbl tbl-cards">
                 <thead>
                   <tr>
                     <th>Convênio</th>
@@ -315,7 +315,7 @@ function ResumoCaptacao() {
                 <tbody>
                   {resumo.convenios_vigentes.map((c) => (
                     <tr key={c.id} className="border-b border-hairline last:border-0">
-                      <td>
+                      <td className="tbl-full">
                         <Link
                           href={`/panel/funding/${c.id}`}
                           className="font-medium hover:underline"
@@ -326,15 +326,19 @@ function ResumoCaptacao() {
                           {[c.orgao_superior, c.modalidade].filter(Boolean).join(" · ")}
                         </p>
                       </td>
-                      <td className="text-ink-2">
+                      <td data-label="Vigência" className="text-ink-2">
                         {formatDate(c.fim_vigencia)}
                         <span className="ml-1.5 font-mono text-[10px] text-ink-3">
                           {c.dias_restantes}d
                         </span>
                       </td>
-                      <td className="tabular-nums">{formatBRL(c.valor_global)}</td>
-                      <td className="tabular-nums">{formatBRL(c.desembolsado)}</td>
-                      <td>
+                      <td data-label="Valor global" className="tabular-nums">
+                        {formatBRL(c.valor_global)}
+                      </td>
+                      <td data-label="Desembolsado" className="tabular-nums">
+                        {formatBRL(c.desembolsado)}
+                      </td>
+                      <td data-label="% desembolso">
                         <span className="flex items-center gap-2">
                           <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
                             <span

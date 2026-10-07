@@ -170,8 +170,8 @@ export default function AdminConvitesPage() {
         </button>
       </form>
 
-      <section className="card overflow-x-auto">
-        <table className="tbl">
+      <section className="card @container overflow-x-auto">
+        <table className="tbl tbl-cards">
           <thead>
             <tr>
               <th>Convidado</th>
@@ -188,16 +188,20 @@ export default function AdminConvitesPage() {
                 key={c.id}
                 className="border-b border-hairline last:border-0 row-interactive"
               >
-                <td>{c.email}</td>
-                <td className="text-ink-2">{c.papel ?? "—"}</td>
-                <td className="text-ink-2">{planoNome(c.plano_id)}</td>
-                <td>
+                <td className="tbl-full wrap-anywhere">{c.email}</td>
+                <td data-label="Papel" className="text-ink-2">
+                  {c.papel ?? "—"}
+                </td>
+                <td data-label="Plano" className="text-ink-2">
+                  {planoNome(c.plano_id)}
+                </td>
+                <td data-label="Status">
                   <StatusBadge tone={statusTone(c.status)}>{c.status}</StatusBadge>
                 </td>
-                <td className="font-mono text-[12px] text-ink-3">
+                <td data-label="Expira" className="font-mono text-[12px] text-ink-3">
                   {c.expires_at ? c.expires_at.slice(0, 10) : "—"}
                 </td>
-                <td>
+                <td className="tbl-acts">
                   {c.status === "pendente" && (
                     <button
                       onClick={() => copiar(c.token)}
@@ -219,7 +223,7 @@ export default function AdminConvitesPage() {
             ))}
             {convites.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-4 text-ink-3">
+                <td colSpan={6} className="tbl-full px-5 py-4 text-ink-3">
                   Nenhum convite ainda.
                 </td>
               </tr>

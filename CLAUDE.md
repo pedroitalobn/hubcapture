@@ -3203,3 +3203,38 @@ Dois defeitos independentes.
   ter digitado nada.
 - Regressão: `tests/test_busca_nome.py` (os erros de digitação do relato, a
   camada exata sem brinde, termo curto e a busca de municípios do onboarding).
+
+## 66. Responsividade — celular e tablet (auditoria de todas as telas)
+
+Auditoria das 41 rotas do web em 360, 414, 768 e 1024px (e 1440 para regressão),
+com API simulada a partir do OpenAPI e textos longos de propósito. O que se
+corrigiu vira regra para tela nova:
+
+- **Tabela larga vira CARTÃO** (`.tbl-cards`, `globals.css`): abaixo de 56rem de
+  largura ÚTIL a linha vira uma grade de pares rótulo/valor. O limite é uma
+  container query (`@container` no invólucro da tabela), não media query: com o
+  trilho lateral aberto, uma tela de 1024px tem menos espaço que um tablet em
+  pé. Cada `<td>` de dado leva `data-label` (o rótulo da coluna), a célula
+  principal `.tbl-full` (linha inteira) e a de ações `.tbl-acts` (rodapé do
+  cartão). O bloco fica FORA de `@layer`: as células carregam utilitários
+  (`text-right`) que, na camada de componentes, venceriam o alinhamento do
+  cartão. Aplicado em Propostas, Minhas propostas, Resumo, Emendas e nas
+  tabelas do admin (usuários, convites, fontes, SIconv). Tabela nova usa o
+  mesmo padrão — `overflow-x-auto` sozinho não basta: a tabela de 100% de
+  largura não rola, ela ESPREME a coluna de texto até uma palavra por linha.
+- **Linha "texto + ações"**: o texto leva base mínima (`flex-[1_1_14rem]`), não
+  `flex-1`. Com base 0 a linha nunca quebra e os botões espremem o texto; com
+  base, as ações descem para a linha de baixo no celular. Bloco de ações que
+  precisa quebrar internamente é `min-w-0 flex-wrap` — `shrink-0` + `flex-wrap`
+  nunca quebra e corta o último item.
+- **`.btn` e `.chip` têm `min-width: min-content`**: o `overflow: hidden` do
+  facho do hover zerava a largura mínima de item flex, e o botão encolhia
+  abaixo do próprio rótulo ("onfigura").
+- **Feed do Meu painel** (`.prow`): abaixo de 640px valor e ações descem para
+  uma 2ª linha, alinhados ao texto — na mesma linha sobravam ~40px ao título.
+- **Admin tem gaveta**: abaixo de 1024px o trilho sai da tela e o shell do admin
+  não tinha botão de menu — celular e tablet ficavam sem navegação.
+- **Ilha do Copiloto**: centrada no topo, cobria a trilha do cabeçalho até
+  1279px. Abaixo de `xl` ela flutua no RODAPÉ (abre para cima; o `main` ganha
+  `pb-24` para o fim da página não ficar atrás dela); a partir de `xl` volta ao
+  topo, centrada sobre a coluna de conteúdo, com teto de largura na trilha.

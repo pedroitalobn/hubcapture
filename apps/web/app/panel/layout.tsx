@@ -212,6 +212,8 @@ function PainelShell({ children }: { children: React.ReactNode }) {
     ...g,
     itens: g.itens.filter((i) => !i.modulo || ativos.includes(i.modulo)),
   })).filter((g) => g.itens.length > 0);
+  // a ilha do Copiloto aparece só depois do onboarding e com o módulo no plano
+  const comIlha = municipios.length > 0 && ativos.includes("copiloto");
   const atual = grupos
     .flatMap((g) => g.itens)
     .find((item) =>
@@ -287,6 +289,7 @@ function PainelShell({ children }: { children: React.ReactNode }) {
             type="button"
             onClick={() => setGaveta((v) => !v)}
             aria-label="Abrir menu"
+            aria-expanded={gaveta}
             className="icon-btn lg:hidden"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -295,7 +298,9 @@ function PainelShell({ children }: { children: React.ReactNode }) {
           </button>
           {/* Trilha: a seção em que o gestor está. O h1 da página rola para
               fora; o cabeçalho é grudado e mantém o "onde estou" na tela. */}
-          <nav className="flex min-w-0 items-center gap-2 text-[13px] text-ink-3">
+          {/* teto em xl: a ilha do Copiloto fica centrada no topo e a trilha
+              precisa caber à esquerda dela (DynamicIsland.tsx) */}
+          <nav className="flex min-w-0 items-center gap-2 text-[13px] text-ink-3 xl:max-w-[calc(50%-12.5rem)]">
             <span className="hidden min-w-0 shrink truncate sm:inline">
               {territorioNaTrilha && rotuloTerritorio
                 ? rotuloTerritorio
@@ -336,7 +341,14 @@ function PainelShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="mx-auto flex w-full min-w-0 max-w-[1600px] flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8">
+        {/* abaixo de xl a ilha do Copiloto flutua no rodapé: a folga de baixo
+            garante que o fim da página (ex.: "Carregar mais") não fique
+            escondido atrás dela */}
+        <main
+          className={`mx-auto flex w-full min-w-0 max-w-[1600px] flex-1 flex-col px-4 pt-5 sm:px-6 lg:px-8 ${
+            comIlha ? "pb-24 xl:pb-5" : "pb-5"
+          }`}
+        >
           {/* Faixa do sandbox: dados são REAIS (cache de captação); o que é
               simulado são as ações de conta — o backend bloqueia o destrutivo. */}
           {perfil?.demo && (
@@ -370,7 +382,7 @@ function PainelShell({ children }: { children: React.ReactNode }) {
 
       {/* Copiloto em Dynamic Island — persiste em TODAS as telas do painel,
           só depois do onboarding e só quando o módulo está no plano (§39). */}
-      {municipios.length > 0 && ativos.includes("copiloto") && <DynamicIsland />}
+      {comIlha && <DynamicIsland />}
     </div>
   );
 }

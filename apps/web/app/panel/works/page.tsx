@@ -230,7 +230,9 @@ function ObrasConteudo() {
           <ul className="card flex flex-col divide-y divide-hairline px-5">
             {obras.map((o) => (
               <li key={o.id} className="flex items-start justify-between gap-3 py-3.5 text-sm">
-                <span className="min-w-0">
+                {/* `flex-1` no texto: o selo de situação fica com a largura
+                    dele e não quebra uma palavra por linha */}
+                <span className="min-w-0 flex-1">
                   {/* com território multi-município, cada obra diz de qual é —
                       o município identifica antes da fonte (seção 23) */}
                   {multiMunicipio && (

@@ -459,24 +459,26 @@ function AlertasConteudo() {
                       </span>
                     )}
                   </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <span className="min-w-0 text-xs">
                       <ResumoCriterios escopo="proposta" valor={m.criterios} />
                     </span>
-                    <button
-                      onClick={() =>
-                        setEditando(editando === m.id ? null : m.id)
-                      }
-                      className="btn btn-ghost btn-sm"
-                    >
-                      {editando === m.id ? "Fechar" : "Configurar"}
-                    </button>
-                    <button
-                      onClick={() => pararMonitor(m.id)}
-                      className="btn btn-ghost btn-sm"
-                    >
-                      Parar
-                    </button>
+                    <span className="flex shrink-0 gap-2">
+                      <button
+                        onClick={() =>
+                          setEditando(editando === m.id ? null : m.id)
+                        }
+                        className="btn btn-ghost btn-sm"
+                      >
+                        {editando === m.id ? "Fechar" : "Configurar"}
+                      </button>
+                      <button
+                        onClick={() => pararMonitor(m.id)}
+                        className="btn btn-ghost btn-sm"
+                      >
+                        Parar
+                      </button>
+                    </span>
                   </div>
                 </div>
                 {editando === m.id && (

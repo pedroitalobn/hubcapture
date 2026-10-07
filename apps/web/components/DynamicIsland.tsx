@@ -389,7 +389,13 @@ export default function DynamicIsland() {
   const temAtualizacao = alertas.length > 0;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center px-3">
+    // Posição: no topo, centrada, a ilha cobria a trilha do cabeçalho (o
+    // "onde estou") em celular, tablet e telas até 1279px. Abaixo de xl ela
+    // flutua no RODAPÉ (cresce para cima ao abrir); a partir de xl volta ao
+    // topo, centrada sobre a coluna de CONTEÚDO — não sobre a tela inteira,
+    // que a jogava em cima da trilha. A trilha tem teto de largura para caber
+    // à esquerda dela (panel/layout.tsx).
+    <div className="pointer-events-none fixed inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 flex justify-center px-3 lg:left-[var(--sidebar-w,272px)] xl:bottom-auto xl:top-3">
       <div
         style={dim ? { width: dim.w, height: dim.h } : undefined}
         className={`island pointer-events-auto relative overflow-hidden bg-abyss text-white shadow-2xl ring-1 ${

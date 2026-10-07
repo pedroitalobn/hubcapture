@@ -268,7 +268,7 @@ export default function EmendasPage() {
               <ul className="mt-4 flex flex-col gap-2">
                 {resumo.ranking_parlamentares.slice(0, 8).map((p) => (
                   <li key={p.parlamentar} className="flex items-center gap-3 text-sm">
-                    <span className="w-44 shrink-0 truncate" title={p.parlamentar}>
+                    <span className="w-28 shrink-0 truncate sm:w-44" title={p.parlamentar}>
                       {p.parlamentar}
                       {p.partido && (
                         <span className="ml-1 text-xs text-ink-3">({p.partido})</span>
@@ -303,9 +303,9 @@ export default function EmendasPage() {
             <Distribuicao titulo="Distribuição por área" itens={resumo.por_area} />
           </section>
 
-          <section className="card overflow-x-auto">
+          <section className="card @container overflow-x-auto">
             <h2 className="label-mono px-5 pt-5">Emendas que beneficiaram o município</h2>
-            <table className="mt-3 tbl">
+            <table className="mt-3 tbl tbl-cards">
               <thead>
                 <tr>
                   <th>Parlamentar</th>
@@ -321,7 +321,7 @@ export default function EmendasPage() {
               <tbody>
                 {resumo.itens.map((e) => (
                   <tr key={e.id} className="border-b border-hairline last:border-0">
-                    <td>
+                    <td className="tbl-full">
                       {e.parlamentar ?? "—"}
                       {e.partido && (
                         <span className="ml-1 text-xs text-ink-3">({e.partido})</span>
@@ -332,18 +332,28 @@ export default function EmendasPage() {
                         </p>
                       )}
                     </td>
-                    <td className="font-mono text-xs text-ink-2">
+                    <td data-label="Código / ano" className="font-mono text-xs text-ink-2">
                       {e.numero ?? e.codigo}
                       {e.ano ? ` / ${e.ano}` : ""}
                     </td>
-                    <td className="text-ink-2">{e.modalidade ?? "—"}</td>
-                    <td className="text-ink-2">{e.area ?? "—"}</td>
-                    <td className="tabular-nums">{formatBRL(e.empenhado)}</td>
-                    <td className="tabular-nums">{formatBRL(e.pago)}</td>
-                    <td className="tabular-nums">
+                    <td data-label="Modalidade" className="text-ink-2">
+                      {e.modalidade ?? "—"}
+                    </td>
+                    <td data-label="Área" className="text-ink-2">
+                      {e.area ?? "—"}
+                    </td>
+                    <td data-label="Empenhado" className="tabular-nums">
+                      {formatBRL(e.empenhado)}
+                    </td>
+                    <td data-label="Pago" className="tabular-nums">
+                      {formatBRL(e.pago)}
+                    </td>
+                    <td data-label="% exec." className="tabular-nums">
                       {e.percentual_executado.toFixed(0)}%
                     </td>
-                    <td className="text-ink-2">{formatDate(e.data_repasse)}</td>
+                    <td data-label="Última mov." className="text-ink-2">
+                      {formatDate(e.data_repasse)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -369,7 +379,7 @@ function Distribuicao({
       <ul className="mt-4 flex flex-col gap-2">
         {itens.slice(0, 8).map((i) => (
           <li key={i.chave} className="flex items-center gap-3 text-sm">
-            <span className="w-40 shrink-0 truncate text-ink-2" title={i.chave}>
+            <span className="w-28 shrink-0 truncate text-ink-2 sm:w-40" title={i.chave}>
               {i.chave}
             </span>
             <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
