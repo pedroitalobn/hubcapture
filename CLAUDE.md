@@ -3160,7 +3160,51 @@ Oportunidades.
   pelos rótulos, 2 páginas, fichas; o programa "fechado" só aparece se o filtro
   não for aplicado), upsert convergindo com o pacote e o job pausado/degradado.
 
-## 65. Responsividade — celular e tablet (auditoria de todas as telas)
+## 65. Menus do kit em PORTAL + busca de nome tolerante a erro (decisão travada)
+
+Relato do gestor com print: no seletor de Município da tela de Propostas, a
+lista "não abria" — aparecia só "Todo o território (8)" e um pedaço da linha
+seguinte, sem barra de rolagem — e digitar "apuiarez" não achava Apuiarés.
+Dois defeitos independentes.
+
+- **O menu era cortado pelo card.** `.card` tem `overflow: hidden` (cantos e
+  fio do topo), e a barra de filtros da Captação é um card: o menu absoluto do
+  `Seletor` (§58) ficava preso dentro dele e tudo abaixo da borda sumia, a
+  barra de rolagem junto. Agora `components/kit.tsx::Seletor` desenha o menu
+  num **portal no `<body>`** (`.menu-flutuante`, `position: fixed`, z-index
+  110 — acima do Modal), posicionado a partir do gatilho: abre para baixo e
+  vira para CIMA quando embaixo não cabe com conforto e em cima cabe mais; a
+  altura máxima é o espaço livre na janela e quem encolhe e ROLA é a
+  `.menu-scroll` (busca, "todos" e rodapé ficam sempre à vista); nunca vaza
+  pela lateral no celular; acompanha rolagem/redimensionamento. "Clique fora"
+  passou a considerar os DOIS lugares (gatilho e portal), Tab no gatilho entra
+  no menu e Tab no fim dele devolve o foco ao gatilho. A primeira medição é com
+  `opacity: 0`, nunca `visibility: hidden` — elemento invisível não recebe
+  foco e o `autoFocus` do campo de busca roda exatamente nesse instante.
+  Regra: menu suspenso novo é `Seletor` do kit; nada de `position: absolute`
+  solto dentro de card.
+- **A busca era `includes` cru.** `lib/busca.ts::filtrarPorBusca` (espelho em
+  Python: `services/busca_nome.py`, mesmas regras e mesma tabela de teste)
+  casa em três camadas: EXATA (sem acento/caixa, trecho ou começo de palavra,
+  palavras em qualquer ordem), FONÉTICA do português (z/s, ç/ss, ch/x, g/j
+  antes de e/i, qu/k, y/i, h mudo, letra dobrada) e APROXIMADA (Damerau-
+  Levenshtein por palavra, comparando também com o começo da palavra — quem
+  ainda está digitando não errou). A aproximada só entra quando as outras não
+  acham nada ("sao" mostra os "São …", não "Salto"); termo de até 3 letras não
+  tolera erro e a 1ª letra (escrita ou falada) tem de bater — é o corte que
+  deixa barata a varredura dos 5,5 mil municípios do IBGE (~40 ms).
+- **Onde vale**: `SeletorMultiplo` e `SeletorSimples` do kit (o município da
+  consulta procura também o código IBGE via `opcoes[].busca`), o município da
+  barra global (`FiltrosPainel`), as facetas da Captação e a busca de
+  municípios do onboarding/copiloto (`services/municipios.buscar`, que cai na
+  busca tolerante quando não há casamento exato).
+- **A busca zera ao fechar** (`Seletor.aoFechar`): reabrir o menu com o termo
+  antigo mostrava a lista já recortada e os municípios "sumiam" sem o gestor
+  ter digitado nada.
+- Regressão: `tests/test_busca_nome.py` (os erros de digitação do relato, a
+  camada exata sem brinde, termo curto e a busca de municípios do onboarding).
+
+## 66. Responsividade — celular e tablet (auditoria de todas as telas)
 
 Auditoria das 41 rotas do web em 360, 414, 768 e 1024px (e 1440 para regressão),
 com API simulada a partir do OpenAPI e textos longos de propósito. O que se

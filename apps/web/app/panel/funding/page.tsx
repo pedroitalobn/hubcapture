@@ -43,6 +43,7 @@ import {
 import { rotuloFonte } from "@/lib/fontes";
 import { PARAM_ABA, linkProposta } from "@/lib/navegacao";
 import { useOrigem } from "@/lib/origem";
+import { filtrarPorBusca } from "@/lib/busca";
 import { rotuloMunicipio, useTerritorio } from "@/lib/territorio";
 import { cx } from "@/components/ui";
 
@@ -228,11 +229,7 @@ function SelectFaceta({
   // Sem nenhuma opção e sem escolha o filtro não filtra: fica inerte, com o
   // mesmo tamanho, para a barra não dançar quando o recorte muda.
   const inerte = lista.length === 0 && !valor;
-  const filtradas = busca.trim()
-    ? lista.filter((o) =>
-        o.rotulo.toLowerCase().includes(busca.trim().toLowerCase()),
-      )
-    : lista;
+  const filtradas = filtrarPorBusca(lista, busca, (o) => o.rotulo);
 
   if (inerte) {
     return (
@@ -251,6 +248,7 @@ function SelectFaceta({
       valor={escolhida?.rotulo ?? valor ?? "todas"}
       ativo={Boolean(valor)}
       largura={largura}
+      aoFechar={() => setBusca("")}
     >
       {(fechar) => (
         <>
@@ -1299,6 +1297,7 @@ function CaptacaoExploracao() {
               opcoes={municipiosPerfil.map((m) => ({
                 valor: m.ibge,
                 rotulo: rotuloMunicipio(m),
+                busca: m.ibge,
               }))}
               selecionados={filtros.municipios}
               aoMudar={(municipios) => setFiltros({ municipios })}

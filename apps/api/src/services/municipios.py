@@ -31,6 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.config import settings
 from ..models.municipio_interesse import MunicipioInteresse
+from . import busca_nome
 from . import config as config_service
 
 ENDPOINT = "municipios"
@@ -64,13 +65,27 @@ async def _carregar() -> list[dict]:
         nome = row.get("municipio-nome") or ""
         uf = row.get("UF-sigla") or ""
         if len(ibge) == 7 and nome:
-            municipios.append({"ibge": ibge, "nome": nome, "uf": uf, "busca": _normalizar(nome)})
+            municipios.append(
+                {
+                    "ibge": ibge,
+                    "nome": nome,
+                    "uf": uf,
+                    "busca": _normalizar(nome),
+                    "termos": busca_nome.preparar(nome),
+                }
+            )
     _cache, _cache_em = municipios, time.monotonic()
     return municipios
 
 
 async def buscar(q: str, *, limite: int = 8) -> list[dict]:
-    """Top-N municípios cujo nome casa com `q` (prefixo antes de substring)."""
+    """Top-N municípios cujo nome casa com `q` (prefixo antes de substring).
+
+    Sem nenhum casamento exato, a busca TOLERA erro de digitação
+    (`services/busca_nome`): fonética do português e, por fim, distância de
+    edição — "apuiarez" acha Apuiarés. O gestor digita de ouvido; responder
+    "nenhum município" com o certo a uma letra de distância é beco sem saída.
+    """
     q = q.strip()
     if len(q) < 2:
         return []
@@ -87,7 +102,12 @@ async def buscar(q: str, *, limite: int = 8) -> list[dict]:
     alvo = _normalizar(q)
     prefixo = [m for m in municipios if m["busca"].startswith(alvo)]
     contem = [m for m in municipios if alvo in m["busca"] and not m["busca"].startswith(alvo)]
-    return [{k: m[k] for k in ("ibge", "nome", "uf")} for m in (prefixo + contem)[:limite]]
+    achados = prefixo + contem
+    if not achados:
+        achados = busca_nome.filtrar(
+            municipios, q, lambda m: m.get("termos") or busca_nome.preparar(m["nome"])
+        )
+    return [{k: m[k] for k in ("ibge", "nome", "uf")} for m in achados[:limite]]
 
 
 async def nome_uf_por_ibge(ibge: str) -> tuple[str, str] | None:
