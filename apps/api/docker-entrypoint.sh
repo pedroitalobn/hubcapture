@@ -15,11 +15,29 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 
+# Migrations no boot: LIGADAS por padrão, para todo deploy subir com o schema
+# em dia sem passo manual. `AUTOMIGRATE=false` desliga — serve para quem aplica
+# a migration por fora (janela controlada, DBA, ou mais de uma réplica da API
+# subindo ao mesmo tempo, caso em que dois `alembic upgrade` concorrentes
+# disputariam a mesma tabela de versão).
+: "${AUTOMIGRATE:=true}"
+case "$(printf '%s' "${AUTOMIGRATE}" | tr '[:upper:]' '[:lower:]')" in
+  1|true|yes|on) automigrate=1 ;;
+  *) automigrate=0 ;;
+esac
+
 # `alembic` e `uvicorn` vêm do .venv já montado na imagem (está no PATH). Não
 # use `uv run` aqui: ele re-sincroniza o ambiente a cada boot, reinstala as
 # dev-deps e recompila o bytecode — ~11s por start, com 502 na janela.
-echo "[entrypoint] aplicando migrations (alembic upgrade head)…"
-alembic upgrade head
+if [ "${automigrate}" = "1" ]; then
+  echo "[entrypoint] AUTOMIGRATE=${AUTOMIGRATE} → aplicando migrations (alembic upgrade head)…"
+  alembic upgrade head
+else
+  # Dizer o que NÃO foi feito: sem isto, um schema desatualizado aparece como
+  # erro de consulta lá na frente, longe da causa.
+  echo "[entrypoint] AUTOMIGRATE=${AUTOMIGRATE} → migrations PULADAS."
+  echo "[entrypoint] o schema precisa estar em dia: rode 'alembic upgrade head' por fora."
+fi
 
 echo "[entrypoint] subindo API (uvicorn)…"
 exec uvicorn src.main:app --host 0.0.0.0 --port 8000
