@@ -165,6 +165,15 @@ async def test_onboarding_respeita_limite_do_plano(seed_user) -> None:
         resp = await onboarding_service(s, usuario_id=u, req=req_ok)
         assert resp.municipios == 1
 
+    # ajustar perfil trocando A→B mantém 1 município: dentro do limite
+    req_troca = OnboardingRequest(
+        municipios=[MunicipioIn(ibge="3304557", nome="Rio de Janeiro", uf="RJ")],
+        monitorar_ativo=False,
+    )
+    async with rls_session(u) as s:
+        resp = await onboarding_service(s, usuario_id=u, req=req_troca)
+        assert resp.municipios == 1
+
 
 # ── onboarding cria buscas de futuras propostas + grava WhatsApp ────────────
 async def test_onboarding_cria_busca_e_whatsapp(seed_user) -> None:
