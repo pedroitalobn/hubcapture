@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { API_ORIGIN } from "@/lib/api/client";
 
 /**
@@ -13,6 +13,7 @@ import { API_ORIGIN } from "@/lib/api/client";
  * admin mudou a flag. `data-ui="v1"` liga a camada v1 do globals.css.
  */
 export function UiVersionSync() {
+  const [sandbox, setSandbox] = useState(false);
   useEffect(() => {
     void (async () => {
       try {
@@ -20,7 +21,11 @@ export function UiVersionSync() {
         // não quando o cache heurístico do navegador resolver expirar
         const resp = await fetch(`${API_ORIGIN}/api/v1/ui`, { cache: "no-store" });
         if (!resp.ok) return;
-        const { versao } = (await resp.json()) as { versao?: string };
+        const { versao, sandbox: emSandbox } = (await resp.json()) as {
+          versao?: string;
+          sandbox?: boolean;
+        };
+        setSandbox(Boolean(emSandbox));
         const v1 = versao === "v1";
         localStorage.setItem("hub_ui", v1 ? "v1" : "v2");
         if (v1) document.documentElement.setAttribute("data-ui", "v1");
@@ -30,5 +35,15 @@ export function UiVersionSync() {
       }
     })();
   }, []);
-  return null;
+  // Sandbox de integração (§67): faixa fixa no topo de TODA tela — dado
+  // fictício não pode ser confundido com o território de verdade.
+  if (!sandbox) return null;
+  return (
+    <div
+      role="status"
+      className="fixed inset-x-0 top-0 z-[120] bg-warn px-4 py-1 text-center text-xs font-medium text-[#1F2A27]"
+    >
+      Ambiente de testes (sandbox) — dados fictícios, nada é enviado para fora.
+    </div>
+  );
 }

@@ -28,6 +28,11 @@ class PlanoLimites(BaseModel):
     modulos: list[str] | None = None
     fontes: list[str] | None = None
     features: dict[str, bool] | None = None
+    # cota da API de integração (§67): requisições por minuto/dia por chave e
+    # quantas chaves ativas a conta pode ter
+    api_req_min: int | None = Field(default=None, ge=1)
+    api_req_dia: int | None = Field(default=None, ge=1)
+    api_chaves_max: int | None = Field(default=None, ge=0)
 
     @field_validator("modulos")
     @classmethod
@@ -82,6 +87,9 @@ class OpcaoCatalogo(BaseModel):
     chave: str
     label: str
     descricao: str | None = None
+    # estado quando o plano não diz nada (features: quase todas nascem
+    # liberadas; a API de integração nasce desligada)
+    padrao: bool = True
 
 
 class PlanoOpcoes(BaseModel):

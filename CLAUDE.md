@@ -3238,3 +3238,96 @@ corrigiu vira regra para tela nova:
   1279px. Abaixo de `xl` ela flutua no RODAPÉ (abre para cima; o `main` ganha
   `pb-24` para o fim da página não ficar atrás dela); a partir de `xl` volta ao
   topo, centrada sobre a coluna de conteúdo, com teto de largura na trilha.
+
+## 67. API de integração para parceiros + sandbox (decisão travada)
+
+Contas de PARCEIROS (consultorias, CRMs, sistemas de prefeitura) consomem os dados
+do território delas pela mesma API v1, autenticadas por **chave de API** em vez de
+login. A chave pertence a um USUÁRIO: quem entra com ela é aquele usuário, com o
+RLS de sempre — não existe "visão de parceiro" à parte, e nenhuma rota nova de dados
+foi criada. Guia do parceiro e da operação: `docs/API_PARCEIROS.md`.
+
+- **Chave** (`services/api_chaves.py`, tabela `api_chaves`, migration `a8b9c0d1e2f3`,
+  nível-plataforma sem RLS como `convites`): formato `hub_<live|test>_<40 base62>` —
+  o AMBIENTE vai no texto, então "chave de teste em produção" é recusado
+  (`401 API_CHAVE_AMBIENTE_ERRADO`) antes de qualquer consulta. Guardamos só o
+  **sha256** (a chave tem ~238 bits; hash lento seria gargalo sem ganho) e um
+  prefixo para exibição; o texto aparece UMA vez, na criação. Revogar não apaga
+  (o consumo continua conferível). Admin (`is_superuser`) **nunca** recebe chave —
+  emissão recusa e a resolução nega; conta desativada perde todas.
+- **Autenticação**: segundo backend do fastapi-users (`core/security.api_key_backend`,
+  cabeçalho `X-API-Key`; `Authorization: Bearer hub_…` é convertido pelo
+  middleware). Com chave, o `Authorization` original é DESCARTADO — um JWT junto não
+  troca a identidade. `services/api_chaves.resolver` é o caminho quente: cache em
+  memória de 30s (negativo 10s, contra chave inventada em laço); revogar limpa o
+  cache do processo na hora.
+- **Limite + política** (`core/limite_api.py`, middleware ASGI puro DENTRO do CORS):
+  só toca requisição com chave — o painel (JWT) segue intocado. Ordem: vagas
+  **simultâneas** (total `api_max_simultaneas` e por chave) → cota **diária** →
+  **por minuto** da chave → **teto global** por minuto somando todos os parceiros.
+  Responde `429` com `Retry-After` e `X-RateLimit-*` em toda resposta. A
+  concorrência é a trava que protege o painel: um processo, um pool (§38).
+  Contadores em memória, janela fixa — **vale por processo**; se a API ganhar mais
+  workers, dividir os tetos ou mover para o Redis. A cota do dia é retomada de
+  `api_uso` após restart.
+- **Política de rotas** (`motivo_bloqueio`, pura e testada em tabela): chave não
+  alcança `/admin`, `/auth`, `/account` (chave não emite chave), `/copilot` (custo de
+  IA), `/webhooks`, `/integrations`, `/notifications`, `/onboarding`,
+  `/proposals/live-search`, `/alerts/scan`, sufixos `/sync`, `/file`,
+  `/publication/pdf`, `DELETE /profile`, nem parâmetro `atualizar|conferir|forcar`
+  ligado — **nada que dispare coleta ao vivo** (Chromium/CSV de 1 GB é o que derruba
+  o servidor). Escopo `leitura` só faz GET. Rota nova que coleta ao vivo ENTRA nesta
+  lista.
+- **Limites vêm de três lugares**: a chave (`limite_por_minuto/dia`, só o admin
+  define) > o PLANO (`limites.api_req_min`, `api_req_dia`, `api_chaves_max` — §39,
+  editáveis em `/admin/plans`) > o padrão do servidor (`API_LIMITE_*`). A feature de
+  plano **`api`** é a exceção à regra "ausente = liberada": nasce **desligada**
+  (`FEATURES[...]["padrao"] = False`) — abrir dados para um sistema externo é
+  opt-in. Ela governa só o SELF-SERVICE; o admin emite para qualquer conta.
+- **Consumo** (`api_uso`, por chave × dia: atendidas e barradas): acumulado em
+  memória e gravado em lote a cada 60s por task do `lifespan` (e no shutdown) —
+  nunca uma escrita por requisição.
+- **Endpoints**: `GET/POST /account/api-keys`, `DELETE /account/api-keys/{id}`
+  (self-service, gate da feature `api`; demo não emite) · `GET/POST /admin/api-keys`,
+  `DELETE /admin/api-keys/{id}` (superuser; limites próprios por chave) ·
+  `GET /developer/me` (com qual conta/chave/limites a integração está falando — o 1º
+  teste) · `POST /developer/sandbox/reset` (404 fora do sandbox).
+- **Web**: `components/ChavesApi.tsx` — seção "Integração via API" em
+  `panel/account` (some quando o plano não inclui e não há chave) e
+  `app/admin/api-keys` (item "Chaves de API" no grupo Pessoas). A chave completa é
+  mostrada uma vez, com "copiar".
+
+**Sandbox** — deploy SEPARADO no mesmo VPS (`docker-compose.sandbox.yml`, projeto
+próprio no Dokploy, banco próprio), com `SANDBOX=true` FIXO no compose (um `.env`
+copiado da produção não desliga o modo nem aponta para o banco de produção):
+
+- **Nenhuma saída externa** (`core/sandbox.instalar_bloqueio`, no `lifespan`): o
+  `send` do httpx é interceptado na CLASSE — há dezenas de clientes espalhados e
+  nenhuma borda única. Host fora de `SANDBOX_HOSTS_PERMITIDOS` levanta
+  `SaidaBloqueadaSandbox`, uma `httpx.ConnectError`, então todo tratamento de "fonte
+  fora do ar" já a absorve. Transportes em memória (testes) passam. E-mail (SMTP não
+  é httpx), WhatsApp e push também checam `settings.sandbox`; `live_search` vira
+  `somente_cache`.
+- **Dados fictícios** (`services/sandbox.py`): determinísticos por município, datas
+  relativas a HOJE (prazos e novidades continuam fazendo sentido), marcados
+  `[SANDBOX]`/`SBX`/`{"sandbox": true}`. Gravados pelos MESMOS `propostas.upsert` e
+  `repasses.upsert` da coleta, dentro da sessão RLS da conta. Conta sem território
+  ganha São Paulo/Fortaleza/Recife; conta que fez onboarding ganha dados para os
+  municípios DELA (`primeiro_sync.executar` no sandbox = semear). Emitir chave no
+  sandbox semeia a conta.
+- **Recriação diária** (`SANDBOX_RESET_HORA_UTC`, padrão 06:00): apaga a curadoria
+  de cada conta (favoritos, pastas, monitoramentos, alertas, consultas salvas) e
+  regrava os valores originais. Sob demanda: `POST /developer/sandbox/reset`.
+- **Isolamento no VPS**: serviços `sbx-*` (container `hubcapture-sbx-*`). A produção e
+  o sandbox dividem a `dokploy-network` — dois serviços `api` nela fariam o DNS do
+  Docker mandar a web de um para a API do outro. Só `sbx-web` entra na rede do proxy;
+  `API_INTERNAL_URL=http://sbx-api:8000`. Teto de memória/CPU por serviço, imagem da
+  API SEM Chromium (`COM_SCRAPING=0`), sem workers/cron/n8n, Postgres enxuto. Dev
+  local: `-f docker-compose.sandbox.yml -f docker-compose.sandbox.local.yml`
+  (portas 3100/8100).
+- **Faixa no site**: `GET /ui` devolve `sandbox` e o `UiVersionSync` desenha a faixa
+  "Ambiente de testes" fixa no topo — dado fictício não pode ser confundido com o
+  território real.
+- Regressão: `tests/test_api_parceiros.py` (autenticação real, sem override: chave,
+  RLS do dono, política de rotas, 429 + consumo gravado, plano/self-service,
+  bloqueio de saída, sandbox ponta a ponta e o reset).

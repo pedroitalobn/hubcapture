@@ -17,7 +17,7 @@ from ..notifications import email as email_service
 from ..notifications import email_templates as templates
 from ..services import config as config_service
 from .config import settings
-from .security import auth_backend
+from .security import api_key_backend, auth_backend
 
 
 async def _app_base_url() -> str:
@@ -73,7 +73,11 @@ async def get_user_manager(
     yield UserManager(user_db)
 
 
-fastapi_users = FastAPIUsers[Usuario, uuid.UUID](get_user_manager, [auth_backend])
+# JWT do painel primeiro; a chave de API de parceiro (§67) é o segundo caminho.
+# Só o backend JWT tem rotas de login montadas (api/v1/auth.py).
+fastapi_users = FastAPIUsers[Usuario, uuid.UUID](
+    get_user_manager, [auth_backend, api_key_backend]
+)
 
 current_active_user = fastapi_users.current_user(active=True)
 # admin da plataforma (gestão de planos, convites, usuários)

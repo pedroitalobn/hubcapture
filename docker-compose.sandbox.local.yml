@@ -1,0 +1,16 @@
+# Sandbox em DEV LOCAL — publica portas no host (3100/8100) e cria a rede do
+# proxy localmente. Uso:
+#   docker compose -f docker-compose.sandbox.yml -f docker-compose.sandbox.local.yml up -d --build
+# Portas diferentes da produção local (3000/8000) para os dois poderem subir juntos.
+services:
+  sbx-api:
+    ports:
+      - "8100:8000"
+  sbx-web:
+    ports:
+      - "3100:3000"
+
+networks:
+  dokploy-network:
+    external: false
+    name: hubcapture-sbx-dev-proxy

@@ -15,7 +15,10 @@ Formato canônico de `planos.limites`:
       "membros_max": 2,               # convidados p/ conta; 0 = não convida
       "modulos": ["captacao", ...],   # ausente = todos os módulos da plataforma
       "fontes": ["transferegov"],     # grupos OU connector ids; ausente = todas
-      "features": {"export_pdf": true, "alertas_wpp": false}
+      "features": {"export_pdf": true, "alertas_wpp": false},
+      "api_req_min": 60,              # cota da API de integração (§67)
+      "api_req_dia": 10000,
+      "api_chaves_max": 3
     }
 
 Compat legada (seeds antigos): `municipios` → `municipios_max`; bool de módulo
@@ -66,8 +69,17 @@ FEATURES: list[dict] = [
         "label": "Alertas por WhatsApp",
         "descricao": "Despacho de alertas pelo canal WhatsApp (Uniq)",
     },
+    {
+        "chave": "api",
+        "label": "API de integração",
+        "descricao": "A conta gera as próprias chaves de API (Minha conta → Integração)",
+        # Exceção à regra "ausente = liberada": chave de API abre os dados da
+        # conta para um SISTEMA de fora. Só entra quando o plano diz que sim.
+        "padrao": False,
+    },
 ]
 _FEATURE_CHAVES = {f["chave"] for f in FEATURES}
+_FEATURE_PADRAO = {f["chave"]: bool(f.get("padrao", True)) for f in FEATURES}
 
 # chaves reservadas do formato canônico (não viram feature na normalização)
 _RESERVADAS = {
@@ -78,6 +90,9 @@ _RESERVADAS = {
     "features",
     "municipios",
     "membros",
+    "api_req_min",
+    "api_req_dia",
+    "api_chaves_max",
 }
 
 
@@ -90,6 +105,10 @@ class PlanoConfig:
     modulos: frozenset[str] | None = None
     fontes: frozenset[str] | None = None
     features: dict[str, bool] = field(default_factory=dict)
+    # cota da API de integração (§67); None = padrão do servidor
+    api_req_min: int | None = None
+    api_req_dia: int | None = None
+    api_chaves_max: int | None = None
 
 
 #: config de quem não tem plano/limites — nada é restringido
@@ -143,6 +162,9 @@ def normalizar(limites: dict | None) -> PlanoConfig:
         modulos=modulos,
         fontes=fontes,
         features=features,
+        api_req_min=_inteiro(limites.get("api_req_min")),
+        api_req_dia=_inteiro(limites.get("api_req_dia")),
+        api_chaves_max=_inteiro(limites.get("api_chaves_max")),
     )
 
 
@@ -230,10 +252,12 @@ def grupos_liberados(cfg: PlanoConfig | None) -> set[str] | None:
 
 
 def feature_liberada(cfg: PlanoConfig | None, chave: str) -> bool:
-    """Feature ausente na config = liberada (gate é opt-in)."""
+    """Feature ausente na config = o padrão dela — liberada, salvo as poucas
+    que nascem desligadas (`padrao: False`, ex.: a API de integração)."""
+    padrao = _FEATURE_PADRAO.get(chave, True)
     if cfg is None:
-        return True
-    return bool(cfg.features.get(chave, True))
+        return padrao
+    return bool(cfg.features.get(chave, padrao))
 
 
 def features_efetivas(cfg: PlanoConfig | None) -> dict[str, bool]:

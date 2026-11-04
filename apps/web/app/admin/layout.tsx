@@ -24,6 +24,7 @@ const NAV: { titulo: string; itens: { href: string; label: string; icone: NomeIc
       { href: "/admin/users", label: "Usuários", icone: "conta" },
       { href: "/admin/invites", label: "Convites", icone: "contatos" },
       { href: "/admin/plans", label: "Planos", icone: "favoritas" },
+      { href: "/admin/api-keys", label: "Chaves de API", icone: "admin" },
     ],
   },
   {

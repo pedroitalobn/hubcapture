@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...core.config import settings
 from ...services import config as config_service
 from ..deps import get_platform_db
 
@@ -29,6 +30,9 @@ def versao_ui_efetiva(valor: str | None) -> str:
 
 class UiRead(BaseModel):
     versao: str
+    # ambiente de testes de integração (§67): o site mostra a faixa "sandbox"
+    # para ninguém confundir dado fictício com dado real
+    sandbox: bool = False
     # NÃO anunciar o acesso demo aqui: a rota é pública e o demo é um link
     # RESERVADO (/demo) que o time de vendas compartilha — o /login não mostra
     # botão nem sinaliza que a conta existe.
@@ -39,4 +43,7 @@ async def get_ui(response: Response, session: AsyncSession = Depends(get_platfor
     # sem no-store o navegador serve a versão anterior do cache heurístico e a
     # troca no painel parece não ter surtido efeito por horas
     response.headers["Cache-Control"] = "no-store"
-    return UiRead(versao=versao_ui_efetiva(await config_service.get_valor(session, "ui_versao")))
+    return UiRead(
+        versao=versao_ui_efetiva(await config_service.get_valor(session, "ui_versao")),
+        sandbox=settings.sandbox,
+    )

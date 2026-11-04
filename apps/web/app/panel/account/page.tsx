@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ChavesApiConta } from "@/components/ChavesApi";
 import { NotificacoesConta } from "@/components/NotificacoesConta";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
@@ -218,6 +219,8 @@ export default function ContaPage() {
       <MeuTerritorio />
 
       <MembrosDaConta />
+
+      <ChavesApiConta />
 
       <section className="card flex max-w-md flex-col gap-4 border-danger/40 p-6">
         <h2 className="label-mono text-danger">Zona de perigo</h2>
