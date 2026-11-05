@@ -1,0 +1,156 @@
+# Compose do SANDBOX DE INTEGRAÇÃO (§67) — mesmo VPS da produção, isolado dela.
+#
+# Onde parceiros testam a API com chaves `hub_test_…` sobre dados FICTÍCIOS.
+# No Dokploy: crie um PROJETO NOVO (ex.: "hubcapture-sandbox") do tipo Compose,
+# apontando para este arquivo (composePath: ./docker-compose.sandbox.yml), com o
+# seu próprio Environment e um domínio próprio (ex.: sandbox.seudominio.com.br)
+# apontando para `sbx-web:3000`. Passo a passo em docs/API_PARCEIROS.md.
+#
+# Por que os nomes `sbx-*`: a produção e o sandbox dividem a rede do proxy
+# (`dokploy-network`). Se os dois tivessem um serviço chamado `api` nessa rede,
+# o DNS do Docker poderia mandar a web de UM para a API do OUTRO. Por isso:
+#   - todo serviço daqui tem nome `sbx-…` (e container `hubcapture-sbx-…`);
+#   - só a `sbx-web` entra na dokploy-network (é ela que tem domínio); a
+#     `sbx-api` e o `sbx-postgres` ficam só na rede interna deste projeto.
+#
+# Para não roubar recurso da produção, cada serviço tem teto de memória e CPU,
+# a imagem da API é a ENXUTA (sem Chromium) e não há workers, cron nem n8n — o
+# sandbox não coleta nada (SANDBOX=true bloqueia toda chamada externa).
+#
+# Rodar localmente (portas publicadas, sem proxy):
+#   docker compose -f docker-compose.sandbox.yml -f docker-compose.sandbox.local.yml up -d --build
+services:
+  sbx-postgres:
+    image: pgvector/pgvector:pg16
+    container_name: hubcapture-sbx-postgres
+    # Banco pequeno: dados fictícios de poucas contas. Memória enxuta.
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=40"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hubcapture}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-hubcapture_sandbox}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-app_secret}
+    expose:
+      - "5432"
+    volumes:
+      - sbx_pgdata:/var/lib/postgresql/data
+      - ./infra/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hubcapture} -d ${POSTGRES_DB:-hubcapture_sandbox}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 384M
+    networks:
+      - sbx
+    restart: unless-stopped
+
+  sbx-api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      args:
+        # imagem enxuta: sem Chromium/Playwright (~500MB a menos) — o sandbox
+        # não faz scraping
+        COM_SCRAPING: "0"
+        GIT_SHA: ${GIT_SHA:-desconhecido}
+        GIT_REF: ${GIT_REF:-}
+        BUILD_TIME: ${BUILD_TIME:-}
+    container_name: hubcapture-sbx-api
+    depends_on:
+      sbx-postgres:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Fixos aqui de propósito: um .env copiado da produção não pode desligar
+      # o modo sandbox nem apontar para o banco de produção.
+      SANDBOX: "true"
+      DB_HOST: sbx-postgres
+      DATABASE_URL: postgresql+asyncpg://hubcapture_app:${APP_DB_PASSWORD:-app_secret}@sbx-postgres:5432/${POSTGRES_DB:-hubcapture_sandbox}
+      DATABASE_MIGRATOR_URL: postgresql+asyncpg://${POSTGRES_USER:-hubcapture}:${POSTGRES_PASSWORD:-postgres_secret}@sbx-postgres:5432/${POSTGRES_DB:-hubcapture_sandbox}
+      # pool pequeno: o banco do sandbox aceita só 40 conexões
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-5}
+      # limites do sandbox (mais baixos que a produção — é ambiente de teste)
+      API_LIMITE_POR_MINUTO: ${API_LIMITE_POR_MINUTO:-30}
+      API_LIMITE_POR_DIA: ${API_LIMITE_POR_DIA:-2000}
+      API_LIMITE_GLOBAL_POR_MINUTO: ${API_LIMITE_GLOBAL_POR_MINUTO:-300}
+      API_MAX_SIMULTANEAS: ${API_MAX_SIMULTANEAS:-4}
+      API_MAX_SIMULTANEAS_POR_CHAVE: ${API_MAX_SIMULTANEAS_POR_CHAVE:-2}
+      # única saída externa liberada: a busca de municípios do onboarding
+      # (consulta pública, leve). Fontes, e-mail, WhatsApp e IA seguem bloqueados.
+      SANDBOX_HOSTS_PERMITIDOS: ${SANDBOX_HOSTS_PERMITIDOS:-servicodados.ibge.gov.br}
+      # recriação diária dos dados de teste (06:00 UTC ≈ 03:00 em Brasília)
+      SANDBOX_RESET_HORA_UTC: ${SANDBOX_RESET_HORA_UTC:-6}
+      # o acesso demo de vendas não faz sentido aqui
+      DEMO_ATIVO: "off"
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=3).status==200 else 1)\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+    # SEM dokploy-network: a API do sandbox só é alcançada pela sbx-web
+    networks:
+      - sbx
+    restart: unless-stopped
+
+  sbx-web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ""
+        # nome único — nunca "api", que na dokploy-network é a produção
+        API_INTERNAL_URL: http://sbx-api:8000
+    container_name: hubcapture-sbx-web
+    depends_on:
+      - sbx-api
+    environment:
+      API_INTERNAL_URL: http://sbx-api:8000
+    expose:
+      - "3000"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"require('http').get('http://localhost:3000/', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))\"",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 384M
+    networks:
+      - sbx
+      - dokploy-network
+    restart: unless-stopped
+
+volumes:
+  sbx_pgdata:
+
+networks:
+  sbx:
+  dokploy-network:
+    external: true

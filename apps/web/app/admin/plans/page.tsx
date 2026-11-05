@@ -10,6 +10,8 @@ interface Opcao {
   chave: string;
   label: string;
   descricao?: string | null;
+  /** estado quando o plano não diz nada (a API de integração nasce desligada) */
+  padrao?: boolean;
 }
 
 interface Opcoes {
@@ -33,6 +35,10 @@ interface Plano {
 interface ConfigPlano {
   municipios_max: number | null;
   membros_max: number | null;
+  /** cota da API de integração (§67); null = padrão do servidor */
+  api_req_min: number | null;
+  api_req_dia: number | null;
+  api_chaves_max: number | null;
   modulos: string[] | null;
   fontes: string[] | null;
   features: Record<string, boolean>;
@@ -60,11 +66,16 @@ function configDoPlano(p: Plano, opcoes: Opcoes): ConfigPlano {
   const features: Record<string, boolean> = {};
   const brutas = (lim.features ?? {}) as Record<string, unknown>;
   for (const f of opcoes.features)
-    features[f.chave] = brutas[f.chave] !== false; // ausente = liberada
+    // ausente = o padrão da feature (quase todas liberadas; a API, não)
+    features[f.chave] =
+      typeof brutas[f.chave] === "boolean" ? (brutas[f.chave] as boolean) : f.padrao !== false;
 
   return {
     municipios_max: int(lim.municipios_max ?? lim.municipios),
     membros_max: int(lim.membros_max ?? lim.membros),
+    api_req_min: int(lim.api_req_min),
+    api_req_dia: int(lim.api_req_dia),
+    api_chaves_max: int(lim.api_chaves_max),
     modulos,
     fontes: Array.isArray(lim.fontes) ? (lim.fontes as string[]) : null,
     features,
@@ -222,6 +233,9 @@ function PlanoCard({
         limites: {
           municipios_max: cfg.municipios_max,
           membros_max: cfg.membros_max,
+          api_req_min: cfg.api_req_min,
+          api_req_dia: cfg.api_req_dia,
+          api_chaves_max: cfg.api_chaves_max,
           modulos: cfg.modulos,
           fontes: cfg.fontes,
           features: cfg.features,
@@ -318,6 +332,38 @@ function PlanoCard({
                 className="input w-28"
               />
             </label>
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="field-label">
+              API de integração — vale quando a feature &quot;API de integração&quot;
+              está ligada (vazio = padrão do servidor)
+            </p>
+            <div className="flex flex-wrap items-end gap-4">
+              {(
+                [
+                  ["api_req_min", "Requisições/minuto por chave"],
+                  ["api_req_dia", "Requisições/dia por chave"],
+                  ["api_chaves_max", "Chaves ativas (máx.)"],
+                ] as const
+              ).map(([campo, rotulo]) => (
+                <label key={campo} className="flex flex-col gap-1.5">
+                  <span className="field-label">{rotulo}</span>
+                  <input
+                    type="number"
+                    min={campo === "api_chaves_max" ? 0 : 1}
+                    value={cfg[campo] ?? ""}
+                    placeholder="padrão"
+                    onChange={(e) =>
+                      setCfg((c) => ({
+                        ...c,
+                        [campo]: e.target.value === "" ? null : Number(e.target.value),
+                      }))
+                    }
+                    className="input w-36"
+                  />
+                </label>
+              ))}
+            </div>
           </div>
 
           <fieldset>

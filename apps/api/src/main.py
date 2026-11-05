@@ -5,6 +5,8 @@ Os routers de auth/propostas/consulta-avulsa são adicionados nos blocos seguint
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -14,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .core.config import settings
 from .core.latencia import LatenciaMiddleware
+from .core.limite_api import LimiteApiMiddleware, laco_de_consumo
 
 
 @asynccontextmanager
@@ -23,6 +26,17 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     from .core.seguranca_boot import verificar_segredos
 
     verificar_segredos(settings)
+
+    # Sandbox de integração (§67): antes de qualquer coisa sair do processo,
+    # trava a saída HTTP — o sandbox nunca fala com fonte, e-mail ou IA reais.
+    tarefas: list[asyncio.Task] = []
+    if settings.sandbox:
+        from .core.sandbox import instalar_bloqueio
+
+        instalar_bloqueio()
+        logging.getLogger("hubcapture").warning(
+            "MODO SANDBOX: só chaves hub_test_, sem chamadas externas, dados fictícios"
+        )
 
     # Bootstrap do superadmin inicial (ADMIN_EMAIL/ADMIN_PASSWORD). Best-effort:
     # falha aqui (ex.: banco ainda subindo) não impede a API de servir.
@@ -39,7 +53,21 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     from .services import demo as demo_service
 
     await demo_service.bootstrap()
-    yield
+
+    # consumo da API de parceiros: gravado em lote, nunca por requisição
+    tarefas.append(asyncio.create_task(laco_de_consumo()))
+    if settings.sandbox:
+        from .services import sandbox as sandbox_service
+
+        tarefas.append(asyncio.create_task(sandbox_service.laco_reset_diario()))
+    try:
+        yield
+    finally:
+        for tarefa in tarefas:
+            tarefa.cancel()
+        for tarefa in tarefas:
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await tarefa
 
 
 app = FastAPI(
@@ -50,6 +78,11 @@ app = FastAPI(
     docs_url="/api/v1/docs",
     lifespan=lifespan,
 )
+
+# Limite de requisições e política de rotas de quem entra por CHAVE DE API
+# (§67). Fica DENTRO do CORS (adicionado antes): o 429 também leva os
+# cabeçalhos de CORS, e o preflight nunca chega aqui.
+app.add_middleware(LimiteApiMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -94,6 +127,7 @@ def register_routers() -> None:
         admin_siconv,
         alertas,
         andamento,
+        api_chaves,
         assessoria,
         auth,
         conformidade,
@@ -141,6 +175,7 @@ def register_routers() -> None:
         favoritos,
         pastas,
         conta,
+        api_chaves,
         # ANTES de `contatos`: /contacts/institutional precisa casar antes
         # de /contacts/{contato_id}, senão "institutional" viraria um UUID
         contatos_institucionais,

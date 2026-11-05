@@ -31,6 +31,76 @@
         "title": "AceitarConvite",
         "type": "object"
       },
+      "AdminApiChaveCreate": {
+        "properties": {
+          "escopo": {
+            "default": "leitura",
+            "description": "'leitura' só faz GET; 'escrita' também altera dados",
+            "enum": [
+              "leitura",
+              "escrita"
+            ],
+            "title": "Escopo",
+            "type": "string"
+          },
+          "expira_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expira Em"
+          },
+          "limite_por_dia": {
+            "anyOf": [
+              {
+                "maximum": 10000000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limite Por Dia"
+          },
+          "limite_por_minuto": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limite Por Minuto"
+          },
+          "nome": {
+            "description": "Para que serve a chave",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Nome",
+            "type": "string"
+          },
+          "usuario_id": {
+            "format": "uuid",
+            "title": "Usuario Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nome",
+          "usuario_id"
+        ],
+        "title": "AdminApiChaveCreate",
+        "type": "object"
+      },
       "AdminUsuarioCreate": {
         "properties": {
           "email": {
@@ -365,6 +435,308 @@
           "ano"
         ],
         "title": "AnoDisponivel",
+        "type": "object"
+      },
+      "ApiChaveCreate": {
+        "properties": {
+          "escopo": {
+            "default": "leitura",
+            "description": "'leitura' só faz GET; 'escrita' também altera dados",
+            "enum": [
+              "leitura",
+              "escrita"
+            ],
+            "title": "Escopo",
+            "type": "string"
+          },
+          "expira_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expira Em"
+          },
+          "nome": {
+            "description": "Para que serve a chave",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Nome",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nome"
+        ],
+        "title": "ApiChaveCreate",
+        "type": "object"
+      },
+      "ApiChaveCriada": {
+        "properties": {
+          "ambiente": {
+            "title": "Ambiente",
+            "type": "string"
+          },
+          "ativa": {
+            "title": "Ativa",
+            "type": "boolean"
+          },
+          "bloqueadas_hoje": {
+            "default": 0,
+            "title": "Bloqueadas Hoje",
+            "type": "integer"
+          },
+          "chave": {
+            "description": "A chave completa. Aparece UMA vez — guarde agora.",
+            "title": "Chave",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "escopo": {
+            "title": "Escopo",
+            "type": "string"
+          },
+          "expira_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expira Em"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "limite_por_dia": {
+            "title": "Limite Por Dia",
+            "type": "integer"
+          },
+          "limite_por_minuto": {
+            "title": "Limite Por Minuto",
+            "type": "integer"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "prefixo": {
+            "title": "Prefixo",
+            "type": "string"
+          },
+          "revogada_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revogada Em"
+          },
+          "ultimo_uso_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ultimo Uso Em"
+          },
+          "uso_30_dias": {
+            "default": 0,
+            "title": "Uso 30 Dias",
+            "type": "integer"
+          },
+          "uso_hoje": {
+            "default": 0,
+            "title": "Uso Hoje",
+            "type": "integer"
+          },
+          "usuario_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usuario Email"
+          },
+          "usuario_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usuario Id"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "prefixo",
+          "ambiente",
+          "escopo",
+          "ativa",
+          "limite_por_minuto",
+          "limite_por_dia",
+          "created_at",
+          "chave"
+        ],
+        "title": "ApiChaveCriada",
+        "type": "object"
+      },
+      "ApiChaveRead": {
+        "properties": {
+          "ambiente": {
+            "title": "Ambiente",
+            "type": "string"
+          },
+          "ativa": {
+            "title": "Ativa",
+            "type": "boolean"
+          },
+          "bloqueadas_hoje": {
+            "default": 0,
+            "title": "Bloqueadas Hoje",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "escopo": {
+            "title": "Escopo",
+            "type": "string"
+          },
+          "expira_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expira Em"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "limite_por_dia": {
+            "title": "Limite Por Dia",
+            "type": "integer"
+          },
+          "limite_por_minuto": {
+            "title": "Limite Por Minuto",
+            "type": "integer"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "prefixo": {
+            "title": "Prefixo",
+            "type": "string"
+          },
+          "revogada_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revogada Em"
+          },
+          "ultimo_uso_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ultimo Uso Em"
+          },
+          "uso_30_dias": {
+            "default": 0,
+            "title": "Uso 30 Dias",
+            "type": "integer"
+          },
+          "uso_hoje": {
+            "default": 0,
+            "title": "Uso Hoje",
+            "type": "integer"
+          },
+          "usuario_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usuario Email"
+          },
+          "usuario_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usuario Id"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "prefixo",
+          "ambiente",
+          "escopo",
+          "ativa",
+          "limite_por_minuto",
+          "limite_por_dia",
+          "created_at"
+        ],
+        "title": "ApiChaveRead",
         "type": "object"
       },
       "ArquivoSiconv": {
@@ -748,6 +1120,21 @@
         "title": "CallbackOAuth",
         "type": "object"
       },
+      "CancelarPush": {
+        "properties": {
+          "endpoint": {
+            "maxLength": 2048,
+            "minLength": 10,
+            "title": "Endpoint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpoint"
+        ],
+        "title": "CancelarPush",
+        "type": "object"
+      },
       "CargaIniciada": {
         "properties": {
           "detalhe": {
@@ -828,6 +1215,31 @@
         "title": "CargaSiconv",
         "type": "object"
       },
+      "CatalogoEstado": {
+        "properties": {
+          "atualizado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atualizado Em"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total"
+        ],
+        "title": "CatalogoEstado",
+        "type": "object"
+      },
       "CatalogoSiconv": {
         "properties": {
           "arquivos": {
@@ -894,6 +1306,24 @@
         "title": "CategoriaInstitucional",
         "type": "object"
       },
+      "CategoriaRead": {
+        "properties": {
+          "rotulo": {
+            "title": "Rotulo",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "rotulo"
+        ],
+        "title": "CategoriaRead",
+        "type": "object"
+      },
       "CategoriaTag": {
         "description": "Pílula de categoria: o slug (filtrável) e o rótulo (exibível).",
         "properties": {
@@ -929,6 +1359,109 @@
           "pergunta"
         ],
         "title": "ChatRequest",
+        "type": "object"
+      },
+      "ChaveAtual": {
+        "properties": {
+          "escopo": {
+            "title": "Escopo",
+            "type": "string"
+          },
+          "limite_por_dia": {
+            "title": "Limite Por Dia",
+            "type": "integer"
+          },
+          "limite_por_minuto": {
+            "title": "Limite Por Minuto",
+            "type": "integer"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "prefixo": {
+            "title": "Prefixo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "prefixo",
+          "nome",
+          "escopo",
+          "limite_por_minuto",
+          "limite_por_dia"
+        ],
+        "title": "ChaveAtual",
+        "type": "object"
+      },
+      "ChavesDaConta": {
+        "description": "O que a tela \"Integração via API\" de Minha conta precisa.",
+        "properties": {
+          "ambiente": {
+            "title": "Ambiente",
+            "type": "string"
+          },
+          "chaves": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ApiChaveRead"
+            },
+            "title": "Chaves",
+            "type": "array"
+          },
+          "disponivel": {
+            "title": "Disponivel",
+            "type": "boolean"
+          },
+          "maximo": {
+            "title": "Maximo",
+            "type": "integer"
+          },
+          "motivo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Motivo"
+          },
+          "sandbox": {
+            "title": "Sandbox",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "disponivel",
+          "ambiente",
+          "sandbox",
+          "maximo"
+        ],
+        "title": "ChavesDaConta",
+        "type": "object"
+      },
+      "ChavesInscricao": {
+        "properties": {
+          "auth": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Auth",
+            "type": "string"
+          },
+          "p256dh": {
+            "maxLength": 200,
+            "minLength": 20,
+            "title": "P256Dh",
+            "type": "string"
+          }
+        },
+        "required": [
+          "p256dh",
+          "auth"
+        ],
+        "title": "ChavesInscricao",
         "type": "object"
       },
       "ClassModuloCreate": {
@@ -2988,6 +3521,78 @@
         "title": "DemandaRead",
         "type": "object"
       },
+      "DeveloperMe": {
+        "properties": {
+          "ambiente": {
+            "title": "Ambiente",
+            "type": "string"
+          },
+          "autenticacao": {
+            "enum": [
+              "api_key",
+              "jwt"
+            ],
+            "title": "Autenticacao",
+            "type": "string"
+          },
+          "chave": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChaveAtual"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "documentacao": {
+            "default": "/api/v1/docs",
+            "title": "Documentacao",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "municipios": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Municipios",
+            "type": "array"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "sandbox": {
+            "title": "Sandbox",
+            "type": "boolean"
+          },
+          "usuario_id": {
+            "format": "uuid",
+            "title": "Usuario Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ambiente",
+          "sandbox",
+          "autenticacao",
+          "usuario_id",
+          "email"
+        ],
+        "title": "DeveloperMe",
+        "type": "object"
+      },
       "DiagnosticoFontes": {
         "description": "Estado real da ingestão: fontes ao vivo + providers de scraping/IA.",
         "properties": {
@@ -4428,30 +5033,6 @@
         "title": "EvidenciaPublicacao",
         "type": "object"
       },
-      "FacetaOpcao": {
-        "description": "Uma opção de filtro com o número de propostas no recorte atual.",
-        "properties": {
-          "rotulo": {
-            "title": "Rotulo",
-            "type": "string"
-          },
-          "total": {
-            "title": "Total",
-            "type": "integer"
-          },
-          "valor": {
-            "title": "Valor",
-            "type": "string"
-          }
-        },
-        "required": [
-          "valor",
-          "rotulo",
-          "total"
-        ],
-        "title": "FacetaOpcao",
-        "type": "object"
-      },
       "FavoritoCreate": {
         "properties": {
           "proposta_id": {
@@ -5875,6 +6456,26 @@
         "title": "ImportacaoVcard",
         "type": "object"
       },
+      "InscricaoPush": {
+        "description": "O `PushSubscription.toJSON()` do navegador, como ele vem.",
+        "properties": {
+          "endpoint": {
+            "maxLength": 2048,
+            "minLength": 10,
+            "title": "Endpoint",
+            "type": "string"
+          },
+          "keys": {
+            "$ref": "#/components/schemas/ChavesInscricao"
+          }
+        },
+        "required": [
+          "endpoint",
+          "keys"
+        ],
+        "title": "InscricaoPush",
+        "type": "object"
+      },
       "IntegracaoRead": {
         "properties": {
           "ativo": {
@@ -5995,6 +6596,69 @@
           "pergunta"
         ],
         "title": "IslandRequest",
+        "type": "object"
+      },
+      "JanelaRead": {
+        "properties": {
+          "como": {
+            "title": "Como",
+            "type": "string"
+          },
+          "dias_restantes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dias Restantes"
+          },
+          "fim": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fim"
+          },
+          "inicio": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inicio"
+          },
+          "rotulo": {
+            "title": "Rotulo",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tipo",
+          "rotulo",
+          "como",
+          "status"
+        ],
+        "title": "JanelaRead",
         "type": "object"
       },
       "LiveSearchRequest": {
@@ -6850,6 +7514,24 @@
         "title": "MonitoramentoRead",
         "type": "object"
       },
+      "MotivoRead": {
+        "properties": {
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "texto": {
+            "title": "Texto",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chave",
+          "texto"
+        ],
+        "title": "MotivoRead",
+        "type": "object"
+      },
       "MunicipioBusca": {
         "description": "Resultado da busca IBGE (nome → código) usada no onboarding conversacional.",
         "properties": {
@@ -6878,6 +7560,51 @@
           "nome"
         ],
         "title": "MunicipioBusca",
+        "type": "object"
+      },
+      "MunicipioElegivel": {
+        "properties": {
+          "conhece_orgao": {
+            "default": false,
+            "title": "Conhece Orgao",
+            "type": "boolean"
+          },
+          "historico": {
+            "default": false,
+            "title": "Historico",
+            "type": "boolean"
+          },
+          "ibge": {
+            "title": "Ibge",
+            "type": "string"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          }
+        },
+        "required": [
+          "ibge"
+        ],
+        "title": "MunicipioElegivel",
         "type": "object"
       },
       "MunicipioIn": {
@@ -6955,6 +7682,41 @@
           "modo"
         ],
         "title": "MunicipioPerfil",
+        "type": "object"
+      },
+      "MunicipioRecorte": {
+        "properties": {
+          "ibge": {
+            "title": "Ibge",
+            "type": "string"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          }
+        },
+        "required": [
+          "ibge"
+        ],
+        "title": "MunicipioRecorte",
         "type": "object"
       },
       "NoticiaRead": {
@@ -7585,6 +8347,11 @@
           "label": {
             "title": "Label",
             "type": "string"
+          },
+          "padrao": {
+            "default": true,
+            "title": "Padrao",
+            "type": "boolean"
           }
         },
         "required": [
@@ -7631,6 +8398,66 @@
           }
         },
         "title": "OpcoesEmendas",
+        "type": "object"
+      },
+      "OportunidadesResposta": {
+        "properties": {
+          "catalogo": {
+            "$ref": "#/components/schemas/CatalogoEstado"
+          },
+          "encerrando": {
+            "title": "Encerrando",
+            "type": "integer"
+          },
+          "facetas": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/src__schemas__oportunidades__FacetaOpcao"
+              },
+              "type": "array"
+            },
+            "title": "Facetas",
+            "type": "object"
+          },
+          "hoje": {
+            "format": "date",
+            "title": "Hoje",
+            "type": "string"
+          },
+          "municipios": {
+            "items": {
+              "$ref": "#/components/schemas/MunicipioRecorte"
+            },
+            "title": "Municipios",
+            "type": "array"
+          },
+          "programas": {
+            "items": {
+              "$ref": "#/components/schemas/ProgramaOportunidade"
+            },
+            "title": "Programas",
+            "type": "array"
+          },
+          "recomendados": {
+            "title": "Recomendados",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "programas",
+          "total",
+          "recomendados",
+          "encerrando",
+          "municipios",
+          "catalogo",
+          "facetas",
+          "hoje"
+        ],
+        "title": "OportunidadesResposta",
         "type": "object"
       },
       "OrigemFonte": {
@@ -8241,6 +9068,42 @@
         "additionalProperties": true,
         "description": "Config de gates do plano (§39). Chave AUSENTE = sem restrição.\n\n`modulos`/`fontes` são validados contra os registros (módulo/fonte que não\nexiste é erro de digitação, não gate); `fontes` aceita grupo\n(\"transferegov\") ou connector id. Chaves extras são preservadas (legado e\nflags futuras vivem no mesmo jsonb).",
         "properties": {
+          "api_chaves_max": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Chaves Max"
+          },
+          "api_req_dia": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Req Dia"
+          },
+          "api_req_min": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Req Min"
+          },
           "features": {
             "anyOf": [
               {
@@ -8555,6 +9418,237 @@
           }
         },
         "title": "PlanoUpdate",
+        "type": "object"
+      },
+      "PreferenciasNotificacao": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "boolean"
+          },
+          "email_no_plano": {
+            "default": true,
+            "title": "Email No Plano",
+            "type": "boolean"
+          },
+          "push_inscricoes": {
+            "title": "Push Inscricoes",
+            "type": "integer"
+          },
+          "telefone_wpp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefone Wpp"
+          },
+          "wpp": {
+            "title": "Wpp",
+            "type": "boolean"
+          },
+          "wpp_no_plano": {
+            "default": true,
+            "title": "Wpp No Plano",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "email",
+          "wpp",
+          "push_inscricoes"
+        ],
+        "title": "PreferenciasNotificacao",
+        "type": "object"
+      },
+      "PreferenciasUpdate": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "PreferenciasUpdate",
+        "type": "object"
+      },
+      "ProgramaOportunidade": {
+        "properties": {
+          "aceita_municipio": {
+            "default": true,
+            "title": "Aceita Municipio",
+            "type": "boolean"
+          },
+          "ano": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ano"
+          },
+          "categorias": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CategoriaRead"
+            },
+            "title": "Categorias",
+            "type": "array"
+          },
+          "codigo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Codigo"
+          },
+          "dias_restantes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dias Restantes"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "janelas": {
+            "items": {
+              "$ref": "#/components/schemas/JanelaRead"
+            },
+            "title": "Janelas",
+            "type": "array"
+          },
+          "modalidades": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Modalidades",
+            "type": "array"
+          },
+          "motivos": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MotivoRead"
+            },
+            "title": "Motivos",
+            "type": "array"
+          },
+          "municipios": {
+            "items": {
+              "$ref": "#/components/schemas/MunicipioElegivel"
+            },
+            "title": "Municipios",
+            "type": "array"
+          },
+          "naturezas": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Naturezas",
+            "type": "array"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "orgao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgao"
+          },
+          "orgao_superior": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgao Superior"
+          },
+          "prazo_final": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prazo Final"
+          },
+          "recomendado": {
+            "default": false,
+            "title": "Recomendado",
+            "type": "boolean"
+          },
+          "situacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Situacao"
+          },
+          "ufs": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Ufs",
+            "type": "array"
+          },
+          "url_consulta": {
+            "title": "Url Consulta",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "janelas",
+          "municipios",
+          "url_consulta"
+        ],
+        "title": "ProgramaOportunidade",
         "type": "object"
       },
       "PropostaPrazo": {
@@ -8993,7 +10087,7 @@
           "ano": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/FacetaOpcao"
+              "$ref": "#/components/schemas/src__schemas__proposta__FacetaOpcao"
             },
             "title": "Ano",
             "type": "array"
@@ -9001,7 +10095,7 @@
           "categoria": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/FacetaOpcao"
+              "$ref": "#/components/schemas/src__schemas__proposta__FacetaOpcao"
             },
             "title": "Categoria",
             "type": "array"
@@ -9009,7 +10103,7 @@
           "fonte": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/FacetaOpcao"
+              "$ref": "#/components/schemas/src__schemas__proposta__FacetaOpcao"
             },
             "title": "Fonte",
             "type": "array"
@@ -9017,7 +10111,7 @@
           "mes": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/FacetaOpcao"
+              "$ref": "#/components/schemas/src__schemas__proposta__FacetaOpcao"
             },
             "title": "Mes",
             "type": "array"
@@ -9025,7 +10119,7 @@
           "modalidade": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/FacetaOpcao"
+              "$ref": "#/components/schemas/src__schemas__proposta__FacetaOpcao"
             },
             "title": "Modalidade",
             "type": "array"
@@ -9033,7 +10127,7 @@
           "municipio": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/FacetaOpcao"
+              "$ref": "#/components/schemas/src__schemas__proposta__FacetaOpcao"
             },
             "title": "Municipio",
             "type": "array"
@@ -9041,7 +10135,7 @@
           "natureza_juridica": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/FacetaOpcao"
+              "$ref": "#/components/schemas/src__schemas__proposta__FacetaOpcao"
             },
             "title": "Natureza Juridica",
             "type": "array"
@@ -9049,7 +10143,7 @@
           "orgao": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/FacetaOpcao"
+              "$ref": "#/components/schemas/src__schemas__proposta__FacetaOpcao"
             },
             "title": "Orgao",
             "type": "array"
@@ -9057,7 +10151,7 @@
           "qualificacao": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/FacetaOpcao"
+              "$ref": "#/components/schemas/src__schemas__proposta__FacetaOpcao"
             },
             "title": "Qualificacao",
             "type": "array"
@@ -9065,7 +10159,7 @@
           "situacao": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/FacetaOpcao"
+              "$ref": "#/components/schemas/src__schemas__proposta__FacetaOpcao"
             },
             "title": "Situacao",
             "type": "array"
@@ -9073,7 +10167,7 @@
           "tipo": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/FacetaOpcao"
+              "$ref": "#/components/schemas/src__schemas__proposta__FacetaOpcao"
             },
             "title": "Tipo",
             "type": "array"
@@ -9081,7 +10175,7 @@
           "uf": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/FacetaOpcao"
+              "$ref": "#/components/schemas/src__schemas__proposta__FacetaOpcao"
             },
             "title": "Uf",
             "type": "array"
@@ -10010,6 +11104,24 @@
         "title": "ResumoMes",
         "type": "object"
       },
+      "SandboxReset": {
+        "properties": {
+          "mensagem": {
+            "title": "Mensagem",
+            "type": "string"
+          },
+          "municipios": {
+            "title": "Municipios",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "municipios",
+          "mensagem"
+        ],
+        "title": "SandboxReset",
+        "type": "object"
+      },
       "SecaoResumo": {
         "properties": {
           "a_comprovar": {
@@ -10319,6 +11431,11 @@
       },
       "UiRead": {
         "properties": {
+          "sandbox": {
+            "default": false,
+            "title": "Sandbox",
+            "type": "boolean"
+          },
           "versao": {
             "title": "Versao",
             "type": "string"
@@ -10872,9 +11989,62 @@
         },
         "title": "VisaoGeralPerfil",
         "type": "object"
+      },
+      "src__schemas__oportunidades__FacetaOpcao": {
+        "properties": {
+          "rotulo": {
+            "title": "Rotulo",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "valor": {
+            "title": "Valor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "valor",
+          "rotulo",
+          "total"
+        ],
+        "title": "FacetaOpcao",
+        "type": "object"
+      },
+      "src__schemas__proposta__FacetaOpcao": {
+        "description": "Uma opção de filtro com o número de propostas no recorte atual.",
+        "properties": {
+          "rotulo": {
+            "title": "Rotulo",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "valor": {
+            "title": "Valor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "valor",
+          "rotulo",
+          "total"
+        ],
+        "title": "FacetaOpcao",
+        "type": "object"
       }
     },
     "securitySchemes": {
+      "APIKeyHeader": {
+        "description": "Chave de API de integração (hub_live_… ou hub_test_…).",
+        "in": "header",
+        "name": "X-API-Key",
+        "type": "apiKey"
+      },
       "OAuth2PasswordBearer": {
         "flows": {
           "password": {
@@ -10893,6 +12063,126 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/account/api-keys": {
+      "get": {
+        "operationId": "minhas_chaves_api_v1_account_api_keys_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChavesDaConta"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Minhas Chaves",
+        "tags": [
+          "integracao"
+        ]
+      },
+      "post": {
+        "operationId": "criar_minha_chave_api_v1_account_api_keys_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiChaveCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiChaveCriada"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Criar Minha Chave",
+        "tags": [
+          "integracao"
+        ]
+      }
+    },
+    "/api/v1/account/api-keys/{chave_id}": {
+      "delete": {
+        "operationId": "revogar_minha_chave_api_v1_account_api_keys__chave_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chave_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Chave Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Revogar Minha Chave",
+        "tags": [
+          "integracao"
+        ]
+      }
+    },
     "/api/v1/account/members": {
       "get": {
         "operationId": "listar_membros_api_v1_account_members_get",
@@ -10915,6 +12205,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Membros",
@@ -10961,6 +12254,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Convidar Membro",
@@ -11002,6 +12298,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Revogar Convite",
@@ -11032,6 +12331,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Contatos",
@@ -11080,6 +12382,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Definir Contatos",
@@ -11140,6 +12445,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Fila",
@@ -11199,11 +12507,138 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Responder Demanda",
         "tags": [
           "admin-assessoria"
+        ]
+      }
+    },
+    "/api/v1/admin/api-keys": {
+      "get": {
+        "operationId": "admin_listar_chaves_api_v1_admin_api_keys_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ApiChaveRead"
+                  },
+                  "title": "Response Admin Listar Chaves Api V1 Admin Api Keys Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Admin Listar Chaves",
+        "tags": [
+          "integracao"
+        ]
+      },
+      "post": {
+        "operationId": "admin_criar_chave_api_v1_admin_api_keys_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminApiChaveCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiChaveCriada"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Admin Criar Chave",
+        "tags": [
+          "integracao"
+        ]
+      }
+    },
+    "/api/v1/admin/api-keys/{chave_id}": {
+      "delete": {
+        "operationId": "admin_revogar_chave_api_v1_admin_api_keys__chave_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chave_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Chave Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Admin Revogar Chave",
+        "tags": [
+          "integracao"
         ]
       }
     },
@@ -11230,6 +12665,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Artigos",
@@ -11274,6 +12712,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Criar Artigo",
@@ -11315,6 +12756,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Excluir Artigo",
@@ -11361,6 +12805,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Obter Artigo",
@@ -11417,6 +12864,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Editar Artigo",
@@ -11476,6 +12926,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Criar Midia Url",
@@ -11535,6 +12988,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Enviar Midia Arquivo",
@@ -11565,6 +13021,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Categorias",
@@ -11609,6 +13068,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Criar Categoria",
@@ -11650,6 +13112,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Excluir Categoria",
@@ -11706,6 +13171,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Editar Categoria",
@@ -11737,6 +13205,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Chaves De Hint",
@@ -11767,6 +13238,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Hints",
@@ -11816,6 +13290,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Definir Hint",
@@ -11856,6 +13333,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Remover Hint",
@@ -11897,6 +13377,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Excluir Midia",
@@ -11953,6 +13436,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Editar Midia",
@@ -11984,6 +13470,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Modulos",
@@ -12028,6 +13517,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Criar Modulo",
@@ -12069,6 +13561,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Excluir Modulo",
@@ -12116,6 +13611,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Obter Modulo",
@@ -12172,6 +13670,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Editar Modulo",
@@ -12202,6 +13703,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Config",
@@ -12250,6 +13754,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Definir Config",
@@ -12281,6 +13788,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Llm Providers",
@@ -12339,6 +13849,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Definir Llm Chave",
@@ -12387,6 +13900,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Llm Modelos",
@@ -12417,6 +13933,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Admin Listar",
@@ -12466,6 +13985,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Admin Definir",
@@ -12513,6 +14035,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Testar Email",
@@ -12543,6 +14068,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Admin Listar Convites",
@@ -12587,6 +14115,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Admin Criar Convite",
@@ -12629,6 +14160,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Admin Excluir Convite",
@@ -12678,6 +14212,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Admin Add Conhecimento",
@@ -12708,6 +14245,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Modulos",
@@ -12756,6 +14296,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Definir Modulo",
@@ -12783,6 +14326,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Zerar Propostas",
@@ -12810,6 +14356,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Restaurar Propostas",
@@ -12837,6 +14386,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Arquivos",
@@ -12891,9 +14443,44 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Disparar Carga",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/siconv/programs/refresh": {
+      "post": {
+        "description": "Roda AGORA a Consulta de Programas do TransfereGov (§64), em segundo plano.\n\nMesma disciplina da carga: `create_task` (nunca `BackgroundTasks`) e o\nadvisory lock do próprio `sweep` contra dois browsers na mesma consulta.\nO resultado sai em `sync_runs` (fonte `programas_webapp`).",
+        "operationId": "disparar_consulta_programas_api_v1_admin_siconv_programs_refresh_post",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Disparar Consulta Programas Api V1 Admin Siconv Programs Refresh Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Disparar Consulta Programas",
         "tags": [
           "admin"
         ]
@@ -12943,6 +14530,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Cargas",
@@ -12969,6 +14559,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Diagnostico Fontes",
@@ -13016,6 +14609,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Pausar Fonte",
@@ -13046,6 +14642,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Admin Listar Usuarios",
@@ -13090,6 +14689,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Admin Criar Usuario",
@@ -13132,6 +14734,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Admin Excluir Usuario",
@@ -13188,6 +14793,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Admin Atualizar Usuario",
@@ -13239,6 +14847,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Admin Atribuir Plano",
@@ -13269,6 +14880,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Contatos",
@@ -13341,6 +14955,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Demandas",
@@ -13385,6 +15002,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Criar Demanda",
@@ -13444,6 +15064,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Comentar Demanda",
@@ -13517,6 +15140,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Alertas",
@@ -13578,6 +15204,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Catalogo Criterios",
@@ -13607,6 +15236,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Varredura Alertas",
@@ -13648,6 +15280,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Marcar Lido",
@@ -14148,6 +15783,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Artigos",
@@ -14195,6 +15833,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Obter Artigo",
@@ -14225,6 +15866,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Categorias",
@@ -14256,6 +15900,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Hints",
@@ -14303,6 +15950,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Baixar Midia",
@@ -14334,6 +15984,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Modulos",
@@ -14382,6 +16035,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Obter Modulo",
@@ -14441,6 +16097,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Conformidade Resumo",
@@ -14489,6 +16148,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Conformidade Sync",
@@ -14611,6 +16273,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Contatos",
@@ -14655,6 +16320,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Criar Contato",
@@ -14680,6 +16348,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Exportar Contatos",
@@ -14726,6 +16397,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Importar Contatos",
@@ -14804,6 +16478,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Institucionais",
@@ -14834,6 +16511,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Categorias",
@@ -14875,6 +16555,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Remover Contato",
@@ -14921,6 +16604,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Obter Contato",
@@ -14977,6 +16663,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Atualizar Contato",
@@ -15021,6 +16710,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Copiloto Chat",
@@ -15066,11 +16758,74 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Copiloto Island",
         "tags": [
           "copiloto"
+        ]
+      }
+    },
+    "/api/v1/developer/me": {
+      "get": {
+        "description": "Com qual conta (e chave) esta integração está falando — o 1º teste.",
+        "operationId": "quem_sou_eu_api_v1_developer_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeveloperMe"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Quem Sou Eu",
+        "tags": [
+          "integracao"
+        ]
+      }
+    },
+    "/api/v1/developer/sandbox/reset": {
+      "post": {
+        "description": "Só no sandbox: apaga a curadoria da conta e recria os dados de teste.",
+        "operationId": "resetar_sandbox_api_v1_developer_sandbox_reset_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SandboxReset"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Resetar Sandbox",
+        "tags": [
+          "integracao"
         ]
       }
     },
@@ -15096,6 +16851,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Favoritos",
@@ -15142,6 +16900,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Adicionar Favorito",
@@ -15173,6 +16934,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Propostas Favoritas",
@@ -15214,6 +16978,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Remover Favorito",
@@ -15244,6 +17011,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Pastas",
@@ -15288,6 +17058,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Criar Pasta",
@@ -15346,6 +17119,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Atualizar Pasta",
@@ -15399,6 +17175,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Propostas Da Pasta",
@@ -15457,6 +17236,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Adicionar Proposta",
@@ -15508,6 +17290,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Remover Proposta",
@@ -15538,6 +17323,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Integracoes",
@@ -15585,6 +17373,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Concluir Oauth",
@@ -15616,6 +17407,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Provedores",
@@ -15646,6 +17440,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Sincronizar Todas",
@@ -15688,6 +17485,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Desconectar",
@@ -15744,6 +17544,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Atualizar Integracao",
@@ -15792,6 +17595,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Sincronizar",
@@ -15850,6 +17656,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Conectar Senha App",
@@ -15914,6 +17723,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Autorizar",
@@ -15940,6 +17752,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Me",
@@ -15971,6 +17786,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Monitoramentos",
@@ -16015,6 +17833,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Criar Monitoramento",
@@ -16045,6 +17866,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Buscas",
@@ -16089,6 +17913,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Criar Busca",
@@ -16130,6 +17957,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Remover Busca",
@@ -16171,6 +18001,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Remover Monitoramento",
@@ -16224,6 +18057,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Buscar Municipios",
@@ -16278,11 +18114,256 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Noticias",
         "tags": [
           "noticias"
+        ]
+      }
+    },
+    "/api/v1/notifications/preferences": {
+      "get": {
+        "operationId": "ler_preferencias_api_v1_notifications_preferences_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferenciasNotificacao"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Ler Preferencias",
+        "tags": [
+          "notificacoes"
+        ]
+      },
+      "put": {
+        "operationId": "salvar_preferencias_api_v1_notifications_preferences_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferenciasUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferenciasNotificacao"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Salvar Preferencias",
+        "tags": [
+          "notificacoes"
+        ]
+      }
+    },
+    "/api/v1/notifications/push/key": {
+      "get": {
+        "description": "A `applicationServerKey` que o navegador usa para se inscrever.",
+        "operationId": "chave_publica_api_v1_notifications_push_key_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Chave Publica Api V1 Notifications Push Key Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Chave Publica",
+        "tags": [
+          "notificacoes"
+        ]
+      }
+    },
+    "/api/v1/notifications/push/subscriptions": {
+      "post": {
+        "operationId": "inscrever_api_v1_notifications_push_subscriptions_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "user-agent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User-Agent"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InscricaoPush"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Inscrever",
+        "tags": [
+          "notificacoes"
+        ]
+      }
+    },
+    "/api/v1/notifications/push/test": {
+      "post": {
+        "description": "Manda uma notificação de teste a todos os navegadores inscritos.",
+        "operationId": "testar_api_v1_notifications_push_test_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Testar Api V1 Notifications Push Test Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Testar",
+        "tags": [
+          "notificacoes"
+        ]
+      }
+    },
+    "/api/v1/notifications/push/unsubscribe": {
+      "post": {
+        "operationId": "cancelar_api_v1_notifications_push_unsubscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelarPush"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Cancelar",
+        "tags": [
+          "notificacoes"
         ]
       }
     },
@@ -16324,6 +18405,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Onboarding",
@@ -16387,11 +18471,172 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Pareceres Por Plano",
         "tags": [
           "pareceres"
+        ]
+      }
+    },
+    "/api/v1/opportunities": {
+      "get": {
+        "operationId": "listar_oportunidades_api_v1_opportunities_get",
+        "parameters": [
+          {
+            "description": "códigos IBGE (repita o parâmetro para vários municípios)",
+            "in": "query",
+            "name": "municipio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "códigos IBGE (repita o parâmetro para vários municípios)",
+              "title": "Municipio"
+            }
+          },
+          {
+            "description": "nome, código ou órgão do programa",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "nome, código ou órgão do programa",
+              "title": "Q"
+            }
+          },
+          {
+            "description": "órgão superior concedente",
+            "in": "query",
+            "name": "orgao",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "órgão superior concedente",
+              "title": "Orgao"
+            }
+          },
+          {
+            "description": "slug de categoria (§32)",
+            "in": "query",
+            "name": "categoria",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "slug de categoria (§32)",
+              "title": "Categoria"
+            }
+          },
+          {
+            "description": "voluntaria | emenda | beneficiario",
+            "in": "query",
+            "name": "janela",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "voluntaria | emenda | beneficiario",
+              "title": "Janela"
+            }
+          },
+          {
+            "description": "só os que o perfil indica",
+            "in": "query",
+            "name": "recomendados",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "só os que o perfil indica",
+              "title": "Recomendados",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "inclui programas que não aceitam ente municipal como proponente",
+            "in": "query",
+            "name": "todas_naturezas",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "inclui programas que não aceitam ente municipal como proponente",
+              "title": "Todas Naturezas",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OportunidadesResposta"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Listar Oportunidades",
+        "tags": [
+          "oportunidades"
         ]
       }
     },
@@ -16441,6 +18686,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Planos",
@@ -16485,6 +18733,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Criar Plano",
@@ -16512,6 +18763,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Opcoes De Config",
@@ -16570,6 +18824,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Atualizar Plano",
@@ -16597,6 +18854,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Zerar Perfil",
@@ -16621,6 +18881,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Get Perfil",
@@ -16755,6 +19018,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Novidades Perfil",
@@ -16803,6 +19069,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Remover Municipio",
@@ -16904,6 +19173,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Visao Geral Perfil",
@@ -17317,6 +19589,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Propostas",
@@ -17393,6 +19668,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Propostas Por Prazo",
@@ -17754,6 +20032,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Facetas Propostas",
@@ -17800,6 +20081,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Live Search Endpoint",
@@ -18178,6 +20462,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Relatorio Propostas",
@@ -18539,6 +20826,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Resumo Propostas",
@@ -18570,6 +20860,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Consultas",
@@ -18614,6 +20907,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Criar Consulta",
@@ -18664,6 +20960,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Reordenar Consultas",
@@ -18705,6 +21004,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Remover Consulta",
@@ -18761,6 +21063,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Atualizar Consulta",
@@ -18809,6 +21114,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Obter Proposta",
@@ -18870,6 +21178,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Emendas Da Proposta",
@@ -18931,6 +21242,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Empenhos Da Proposta",
@@ -18992,6 +21306,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Documentos Da Proposta",
@@ -19061,6 +21378,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Arquivo Do Documento",
@@ -19122,6 +21442,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Pareceres Da Proposta",
@@ -19181,6 +21504,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Exportar Pdf",
@@ -19242,6 +21568,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Publicacao Da Proposta",
@@ -19301,6 +21630,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Pdf Da Publicacao",
@@ -19362,6 +21694,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Timeline Da Proposta",
@@ -19550,6 +21885,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Repasses",
@@ -19748,6 +22086,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Relatorio Emendas",
@@ -19948,6 +22289,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Resumo Emendas",
@@ -20062,6 +22406,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Visao Geral",
@@ -20110,6 +22457,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Sync Repasses",
@@ -20160,6 +22510,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Users:Current User",
@@ -20234,6 +22587,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Users:Patch Current User",
@@ -20283,6 +22639,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Users:Delete User",
@@ -20337,6 +22696,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Users:User",
@@ -20428,6 +22790,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Users:Patch User",
@@ -20566,6 +22931,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Listar Obras",
@@ -20625,6 +22993,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Obras Resumo",
@@ -20673,6 +23044,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Obras Sync",

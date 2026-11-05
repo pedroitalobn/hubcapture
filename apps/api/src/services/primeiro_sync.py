@@ -23,6 +23,7 @@ import asyncio
 import logging
 import uuid
 
+from ..core.config import settings
 from ..db.session import rls_session
 from ..jobs import curadoria as curadoria_job
 from . import conformidade as conformidade_service
@@ -84,6 +85,13 @@ async def executar(
     areas: list[str],
 ) -> None:
     """Sincroniza todas as dimensões para cada município do perfil."""
+    if settings.sandbox:
+        # sandbox (§67): nenhuma fonte é consultada — o "1º sync" é semear os
+        # dados de teste para o território que a conta acabou de escolher
+        from . import sandbox as sandbox_service
+
+        await sandbox_service.preparar_conta(usuario_id)
+        return
     # fonte fora do plano do usuário (§39) não entra na rodada — o mesmo recorte
     # que o live_search aplica, garantido também no 1º sync.
     try:

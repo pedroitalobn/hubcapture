@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import httpx
 
+from ..core.config import settings
 from ..services import config as config_service
 
 TIMEOUT = httpx.Timeout(30.0, connect=10.0)
@@ -19,6 +20,8 @@ async def habilitado() -> bool:
 
 async def enviar(telefone: str, mensagem: str) -> bool:
     """Envia uma mensagem WhatsApp. Retorna True se despachada, False se desabilitado."""
+    if settings.sandbox:  # §67: o sandbox nunca escreve para pessoas reais
+        return False
     api_key = await config_service.resolver("uniq_api_key")
     if not api_key:
         return False

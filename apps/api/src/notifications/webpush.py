@@ -32,6 +32,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
+from ..core.config import settings
 from ..db.session import SessionLocal
 from ..services import config as config_service
 
@@ -193,6 +194,8 @@ class InscricaoExpirada(Exception):
 
 async def enviar(endpoint: str, p256dh: str, auth: str, mensagem: dict) -> bool:
     """Entrega UMA notificação a UM navegador. `InscricaoExpirada` = apagar."""
+    if settings.sandbox:  # §67: o sandbox nunca notifica pessoas reais
+        return False
     if not endpoint_permitido(endpoint):  # inscrição gravada antes da trava
         raise InscricaoExpirada("endpoint fora dos serviços de push")
     chaves = await garantir_chaves()

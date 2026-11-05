@@ -17,8 +17,10 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
 from src.connectors import transferegov_disc as _disc
+from src.core import limite_api as _limite_api
 from src.core.config import settings
 from src.db.session import engine as _app_engine
+from src.services import api_chaves as _api_chaves
 from src.services import consulta_avulsa as _consulta_avulsa
 from src.services import modulos as _modulos
 from src.services import plano_gates as _plano_gates
@@ -30,6 +32,7 @@ from src.services import plano_gates as _plano_gates
 _owner_engine = create_async_engine(settings.database_migrator_url, poolclass=NullPool)
 
 _TABLES = (
+    "api_uso, api_chaves, "
     "alertas, monitoramentos, monitoramentos_busca, favoritos, pasta_propostas, pastas, "
     "consultas_propostas, audit_log, push_inscricoes, programas, "
     "demandas, "
@@ -52,6 +55,8 @@ async def _clean_db() -> AsyncIterator[None]:
     _modulos.limpar_cache()
     _plano_gates.limpar_cache()
     _disc.limpar_cache()
+    _api_chaves.limpar_cache()
+    _limite_api.reiniciar()
     yield
     # descarta pools presos ao loop deste teste
     await _app_engine.dispose()

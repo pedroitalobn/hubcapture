@@ -1,7 +1,7 @@
 import createOpenApiClient from "openapi-fetch";
 import type { paths } from "./schema";
 
-export type { paths } from "./schema";
+export type { components, paths } from "./schema";
 
 export interface HubClientOptions {
   /** Base URL da API v1, ex.: http://localhost:8000/api/v1 */

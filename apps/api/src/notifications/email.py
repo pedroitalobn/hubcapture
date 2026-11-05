@@ -117,6 +117,8 @@ async def enviar(
 
     Preferência: Maileroo (API) > SMTP. Remetente/chave: painel admin > env.
     """
+    if settings.sandbox:  # §67: o sandbox nunca escreve para pessoas reais
+        return False
     remetente = await _resolver("email_from", settings.email_from)
     if not remetente:
         return False

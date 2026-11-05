@@ -4,6 +4,41 @@
  */
 
 export interface paths {
+    "/api/v1/account/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Minhas Chaves */
+        get: operations["minhas_chaves_api_v1_account_api_keys_get"];
+        put?: never;
+        /** Criar Minha Chave */
+        post: operations["criar_minha_chave_api_v1_account_api_keys_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/api-keys/{chave_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revogar Minha Chave */
+        delete: operations["revogar_minha_chave_api_v1_account_api_keys__chave_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/account/members": {
         parameters: {
             query?: never;
@@ -105,6 +140,41 @@ export interface paths {
          */
         post: operations["responder_demanda_api_v1_admin_advisory_requests__demanda_id__reply_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Listar Chaves */
+        get: operations["admin_listar_chaves_api_v1_admin_api_keys_get"];
+        put?: never;
+        /** Admin Criar Chave */
+        post: operations["admin_criar_chave_api_v1_admin_api_keys_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/api-keys/{chave_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Admin Revogar Chave */
+        delete: operations["admin_revogar_chave_api_v1_admin_api_keys__chave_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -639,6 +709,30 @@ export interface paths {
          *     responde "ocupado" no log e sai.
          */
         post: operations["disparar_carga_api_v1_admin_siconv_load_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/siconv/programs/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disparar Consulta Programas
+         * @description Roda AGORA a Consulta de Programas do TransfereGov (§64), em segundo plano.
+         *
+         *     Mesma disciplina da carga: `create_task` (nunca `BackgroundTasks`) e o
+         *     advisory lock do próprio `sweep` contra dois browsers na mesma consulta.
+         *     O resultado sai em `sync_runs` (fonte `programas_webapp`).
+         */
+        post: operations["disparar_consulta_programas_api_v1_admin_siconv_programs_refresh_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1370,6 +1464,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/developer/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Quem Sou Eu
+         * @description Com qual conta (e chave) esta integração está falando — o 1º teste.
+         */
+        get: operations["quem_sou_eu_api_v1_developer_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/developer/sandbox/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resetar Sandbox
+         * @description Só no sandbox: apaga a curadoria da conta e recria os dados de teste.
+         */
+        post: operations["resetar_sandbox_api_v1_developer_sandbox_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/favorites": {
         parameters: {
             query?: never;
@@ -1768,6 +1902,98 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ler Preferencias */
+        get: operations["ler_preferencias_api_v1_notifications_preferences_get"];
+        /** Salvar Preferencias */
+        put: operations["salvar_preferencias_api_v1_notifications_preferences_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/push/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Chave Publica
+         * @description A `applicationServerKey` que o navegador usa para se inscrever.
+         */
+        get: operations["chave_publica_api_v1_notifications_push_key_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/push/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inscrever */
+        post: operations["inscrever_api_v1_notifications_push_subscriptions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/push/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Testar
+         * @description Manda uma notificação de teste a todos os navegadores inscritos.
+         */
+        post: operations["testar_api_v1_notifications_push_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/push/unsubscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancelar */
+        post: operations["cancelar_api_v1_notifications_push_unsubscribe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/onboarding": {
         parameters: {
             query?: never;
@@ -1797,6 +2023,23 @@ export interface paths {
          * @description Pareceres de um plano de trabalho — a consulta direta, sem passar pela proposta.
          */
         get: operations["pareceres_por_plano_api_v1_opinions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/opportunities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Oportunidades */
+        get: operations["listar_oportunidades_api_v1_opportunities_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2605,6 +2848,32 @@ export interface components {
             /** Token */
             token: string;
         };
+        /** AdminApiChaveCreate */
+        AdminApiChaveCreate: {
+            /**
+             * Escopo
+             * @description 'leitura' só faz GET; 'escrita' também altera dados
+             * @default leitura
+             * @enum {string}
+             */
+            escopo: "leitura" | "escrita";
+            /** Expira Em */
+            expira_em?: string | null;
+            /** Limite Por Dia */
+            limite_por_dia?: number | null;
+            /** Limite Por Minuto */
+            limite_por_minuto?: number | null;
+            /**
+             * Nome
+             * @description Para que serve a chave
+             */
+            nome: string;
+            /**
+             * Usuario Id
+             * Format: uuid
+             */
+            usuario_id: string;
+        };
         /** AdminUsuarioCreate */
         AdminUsuarioCreate: {
             /**
@@ -2724,6 +2993,132 @@ export interface components {
              * @default 0
              */
             total: number;
+        };
+        /** ApiChaveCreate */
+        ApiChaveCreate: {
+            /**
+             * Escopo
+             * @description 'leitura' só faz GET; 'escrita' também altera dados
+             * @default leitura
+             * @enum {string}
+             */
+            escopo: "leitura" | "escrita";
+            /** Expira Em */
+            expira_em?: string | null;
+            /**
+             * Nome
+             * @description Para que serve a chave
+             */
+            nome: string;
+        };
+        /** ApiChaveCriada */
+        ApiChaveCriada: {
+            /** Ambiente */
+            ambiente: string;
+            /** Ativa */
+            ativa: boolean;
+            /**
+             * Bloqueadas Hoje
+             * @default 0
+             */
+            bloqueadas_hoje: number;
+            /**
+             * Chave
+             * @description A chave completa. Aparece UMA vez — guarde agora.
+             */
+            chave: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Escopo */
+            escopo: string;
+            /** Expira Em */
+            expira_em?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Limite Por Dia */
+            limite_por_dia: number;
+            /** Limite Por Minuto */
+            limite_por_minuto: number;
+            /** Nome */
+            nome: string;
+            /** Prefixo */
+            prefixo: string;
+            /** Revogada Em */
+            revogada_em?: string | null;
+            /** Ultimo Uso Em */
+            ultimo_uso_em?: string | null;
+            /**
+             * Uso 30 Dias
+             * @default 0
+             */
+            uso_30_dias: number;
+            /**
+             * Uso Hoje
+             * @default 0
+             */
+            uso_hoje: number;
+            /** Usuario Email */
+            usuario_email?: string | null;
+            /** Usuario Id */
+            usuario_id?: string | null;
+        };
+        /** ApiChaveRead */
+        ApiChaveRead: {
+            /** Ambiente */
+            ambiente: string;
+            /** Ativa */
+            ativa: boolean;
+            /**
+             * Bloqueadas Hoje
+             * @default 0
+             */
+            bloqueadas_hoje: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Escopo */
+            escopo: string;
+            /** Expira Em */
+            expira_em?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Limite Por Dia */
+            limite_por_dia: number;
+            /** Limite Por Minuto */
+            limite_por_minuto: number;
+            /** Nome */
+            nome: string;
+            /** Prefixo */
+            prefixo: string;
+            /** Revogada Em */
+            revogada_em?: string | null;
+            /** Ultimo Uso Em */
+            ultimo_uso_em?: string | null;
+            /**
+             * Uso 30 Dias
+             * @default 0
+             */
+            uso_30_dias: number;
+            /**
+             * Uso Hoje
+             * @default 0
+             */
+            uso_hoje: number;
+            /** Usuario Email */
+            usuario_email?: string | null;
+            /** Usuario Id */
+            usuario_id?: string | null;
         };
         /**
          * ArquivoSiconv
@@ -2886,6 +3281,11 @@ export interface components {
             /** State */
             state?: string | null;
         };
+        /** CancelarPush */
+        CancelarPush: {
+            /** Endpoint */
+            endpoint: string;
+        };
         /** CargaIniciada */
         CargaIniciada: {
             /** Detalhe */
@@ -2914,6 +3314,13 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** CatalogoEstado */
+        CatalogoEstado: {
+            /** Atualizado Em */
+            atualizado_em?: string | null;
+            /** Total */
+            total: number;
+        };
         /** CatalogoSiconv */
         CatalogoSiconv: {
             /** Arquivos */
@@ -2939,6 +3346,13 @@ export interface components {
             /** Rotulo */
             rotulo: string;
         };
+        /** CategoriaRead */
+        CategoriaRead: {
+            /** Rotulo */
+            rotulo: string;
+            /** Slug */
+            slug: string;
+        };
         /**
          * CategoriaTag
          * @description Pílula de categoria: o slug (filtrável) e o rótulo (exibível).
@@ -2958,6 +3372,47 @@ export interface components {
             modo: string;
             /** Pergunta */
             pergunta: string;
+        };
+        /** ChaveAtual */
+        ChaveAtual: {
+            /** Escopo */
+            escopo: string;
+            /** Limite Por Dia */
+            limite_por_dia: number;
+            /** Limite Por Minuto */
+            limite_por_minuto: number;
+            /** Nome */
+            nome: string;
+            /** Prefixo */
+            prefixo: string;
+        };
+        /**
+         * ChavesDaConta
+         * @description O que a tela "Integração via API" de Minha conta precisa.
+         */
+        ChavesDaConta: {
+            /** Ambiente */
+            ambiente: string;
+            /**
+             * Chaves
+             * @default []
+             */
+            chaves: components["schemas"]["ApiChaveRead"][];
+            /** Disponivel */
+            disponivel: boolean;
+            /** Maximo */
+            maximo: number;
+            /** Motivo */
+            motivo?: string | null;
+            /** Sandbox */
+            sandbox: boolean;
+        };
+        /** ChavesInscricao */
+        ChavesInscricao: {
+            /** Auth */
+            auth: string;
+            /** P256Dh */
+            p256dh: string;
         };
         /** ClassModuloCreate */
         ClassModuloCreate: {
@@ -3620,6 +4075,38 @@ export interface components {
             /** Updated At */
             updated_at?: string | null;
         };
+        /** DeveloperMe */
+        DeveloperMe: {
+            /** Ambiente */
+            ambiente: string;
+            /**
+             * Autenticacao
+             * @enum {string}
+             */
+            autenticacao: "api_key" | "jwt";
+            chave?: components["schemas"]["ChaveAtual"] | null;
+            /**
+             * Documentacao
+             * @default /api/v1/docs
+             */
+            documentacao: string;
+            /** Email */
+            email: string;
+            /**
+             * Municipios
+             * @default []
+             */
+            municipios: string[];
+            /** Nome */
+            nome?: string | null;
+            /** Sandbox */
+            sandbox: boolean;
+            /**
+             * Usuario Id
+             * Format: uuid
+             */
+            usuario_id: string;
+        };
         /**
          * DiagnosticoFontes
          * @description Estado real da ingestão: fontes ao vivo + providers de scraping/IA.
@@ -4114,18 +4601,6 @@ export interface components {
             tipo: string;
             /** Url */
             url?: string | null;
-        };
-        /**
-         * FacetaOpcao
-         * @description Uma opção de filtro com o número de propostas no recorte atual.
-         */
-        FacetaOpcao: {
-            /** Rotulo */
-            rotulo: string;
-            /** Total */
-            total: number;
-            /** Valor */
-            valor: string;
         };
         /** FavoritoCreate */
         FavoritoCreate: {
@@ -4644,6 +5119,15 @@ export interface components {
              */
             conteudo: string;
         };
+        /**
+         * InscricaoPush
+         * @description O `PushSubscription.toJSON()` do navegador, como ele vem.
+         */
+        InscricaoPush: {
+            /** Endpoint */
+            endpoint: string;
+            keys: components["schemas"]["ChavesInscricao"];
+        };
         /** IntegracaoRead */
         IntegracaoRead: {
             /**
@@ -4687,6 +5171,23 @@ export interface components {
             municipios?: string[] | null;
             /** Pergunta */
             pergunta: string;
+        };
+        /** JanelaRead */
+        JanelaRead: {
+            /** Como */
+            como: string;
+            /** Dias Restantes */
+            dias_restantes?: number | null;
+            /** Fim */
+            fim?: string | null;
+            /** Inicio */
+            inicio?: string | null;
+            /** Rotulo */
+            rotulo: string;
+            /** Status */
+            status: string;
+            /** Tipo */
+            tipo: string;
         };
         /**
          * LiveSearchRequest
@@ -4993,6 +5494,13 @@ export interface components {
             /** Ultimo Alerta Em */
             ultimo_alerta_em?: string | null;
         };
+        /** MotivoRead */
+        MotivoRead: {
+            /** Chave */
+            chave: string;
+            /** Texto */
+            texto: string;
+        };
         /**
          * MunicipioBusca
          * @description Resultado da busca IBGE (nome → código) usada no onboarding conversacional.
@@ -5002,6 +5510,25 @@ export interface components {
             ibge: string;
             /** Nome */
             nome: string;
+            /** Uf */
+            uf?: string | null;
+        };
+        /** MunicipioElegivel */
+        MunicipioElegivel: {
+            /**
+             * Conhece Orgao
+             * @default false
+             */
+            conhece_orgao: boolean;
+            /**
+             * Historico
+             * @default false
+             */
+            historico: boolean;
+            /** Ibge */
+            ibge: string;
+            /** Nome */
+            nome?: string | null;
             /** Uf */
             uf?: string | null;
         };
@@ -5020,6 +5547,15 @@ export interface components {
             ibge: string;
             /** Modo */
             modo: string;
+            /** Nome */
+            nome?: string | null;
+            /** Uf */
+            uf?: string | null;
+        };
+        /** MunicipioRecorte */
+        MunicipioRecorte: {
+            /** Ibge */
+            ibge: string;
             /** Nome */
             nome?: string | null;
             /** Uf */
@@ -5219,6 +5755,11 @@ export interface components {
             descricao?: string | null;
             /** Label */
             label: string;
+            /**
+             * Padrao
+             * @default true
+             */
+            padrao: boolean;
         };
         /**
          * OpcoesEmendas
@@ -5245,6 +5786,29 @@ export interface components {
              * @default []
              */
             parlamentares: string[];
+        };
+        /** OportunidadesResposta */
+        OportunidadesResposta: {
+            catalogo: components["schemas"]["CatalogoEstado"];
+            /** Encerrando */
+            encerrando: number;
+            /** Facetas */
+            facetas: {
+                [key: string]: components["schemas"]["src__schemas__oportunidades__FacetaOpcao"][];
+            };
+            /**
+             * Hoje
+             * Format: date
+             */
+            hoje: string;
+            /** Municipios */
+            municipios: components["schemas"]["MunicipioRecorte"][];
+            /** Programas */
+            programas: components["schemas"]["ProgramaOportunidade"][];
+            /** Recomendados */
+            recomendados: number;
+            /** Total */
+            total: number;
         };
         /**
          * OrigemFonte
@@ -5473,6 +6037,12 @@ export interface components {
          *     flags futuras vivem no mesmo jsonb).
          */
         PlanoLimites: {
+            /** Api Chaves Max */
+            api_chaves_max?: number | null;
+            /** Api Req Dia */
+            api_req_dia?: number | null;
+            /** Api Req Min */
+            api_req_min?: number | null;
             /** Features */
             features?: {
                 [key: string]: boolean;
@@ -5567,6 +6137,97 @@ export interface components {
             nome?: string | null;
             /** Preco Mensal */
             preco_mensal?: number | string | null;
+        };
+        /** PreferenciasNotificacao */
+        PreferenciasNotificacao: {
+            /** Email */
+            email: boolean;
+            /**
+             * Email No Plano
+             * @default true
+             */
+            email_no_plano: boolean;
+            /** Push Inscricoes */
+            push_inscricoes: number;
+            /** Telefone Wpp */
+            telefone_wpp?: string | null;
+            /** Wpp */
+            wpp: boolean;
+            /**
+             * Wpp No Plano
+             * @default true
+             */
+            wpp_no_plano: boolean;
+        };
+        /** PreferenciasUpdate */
+        PreferenciasUpdate: {
+            /** Email */
+            email: boolean;
+        };
+        /** ProgramaOportunidade */
+        ProgramaOportunidade: {
+            /**
+             * Aceita Municipio
+             * @default true
+             */
+            aceita_municipio: boolean;
+            /** Ano */
+            ano?: number | null;
+            /**
+             * Categorias
+             * @default []
+             */
+            categorias: components["schemas"]["CategoriaRead"][];
+            /** Codigo */
+            codigo?: string | null;
+            /** Dias Restantes */
+            dias_restantes?: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Janelas */
+            janelas: components["schemas"]["JanelaRead"][];
+            /**
+             * Modalidades
+             * @default []
+             */
+            modalidades: string[];
+            /**
+             * Motivos
+             * @default []
+             */
+            motivos: components["schemas"]["MotivoRead"][];
+            /** Municipios */
+            municipios: components["schemas"]["MunicipioElegivel"][];
+            /**
+             * Naturezas
+             * @default []
+             */
+            naturezas: string[];
+            /** Nome */
+            nome?: string | null;
+            /** Orgao */
+            orgao?: string | null;
+            /** Orgao Superior */
+            orgao_superior?: string | null;
+            /** Prazo Final */
+            prazo_final?: string | null;
+            /**
+             * Recomendado
+             * @default false
+             */
+            recomendado: boolean;
+            /** Situacao */
+            situacao?: string | null;
+            /**
+             * Ufs
+             * @default []
+             */
+            ufs: string[];
+            /** Url Consulta */
+            url_consulta: string;
         };
         /**
          * PropostaPrazo
@@ -5708,62 +6369,62 @@ export interface components {
              * Ano
              * @default []
              */
-            ano: components["schemas"]["FacetaOpcao"][];
+            ano: components["schemas"]["src__schemas__proposta__FacetaOpcao"][];
             /**
              * Categoria
              * @default []
              */
-            categoria: components["schemas"]["FacetaOpcao"][];
+            categoria: components["schemas"]["src__schemas__proposta__FacetaOpcao"][];
             /**
              * Fonte
              * @default []
              */
-            fonte: components["schemas"]["FacetaOpcao"][];
+            fonte: components["schemas"]["src__schemas__proposta__FacetaOpcao"][];
             /**
              * Mes
              * @default []
              */
-            mes: components["schemas"]["FacetaOpcao"][];
+            mes: components["schemas"]["src__schemas__proposta__FacetaOpcao"][];
             /**
              * Modalidade
              * @default []
              */
-            modalidade: components["schemas"]["FacetaOpcao"][];
+            modalidade: components["schemas"]["src__schemas__proposta__FacetaOpcao"][];
             /**
              * Municipio
              * @default []
              */
-            municipio: components["schemas"]["FacetaOpcao"][];
+            municipio: components["schemas"]["src__schemas__proposta__FacetaOpcao"][];
             /**
              * Natureza Juridica
              * @default []
              */
-            natureza_juridica: components["schemas"]["FacetaOpcao"][];
+            natureza_juridica: components["schemas"]["src__schemas__proposta__FacetaOpcao"][];
             /**
              * Orgao
              * @default []
              */
-            orgao: components["schemas"]["FacetaOpcao"][];
+            orgao: components["schemas"]["src__schemas__proposta__FacetaOpcao"][];
             /**
              * Qualificacao
              * @default []
              */
-            qualificacao: components["schemas"]["FacetaOpcao"][];
+            qualificacao: components["schemas"]["src__schemas__proposta__FacetaOpcao"][];
             /**
              * Situacao
              * @default []
              */
-            situacao: components["schemas"]["FacetaOpcao"][];
+            situacao: components["schemas"]["src__schemas__proposta__FacetaOpcao"][];
             /**
              * Tipo
              * @default []
              */
-            tipo: components["schemas"]["FacetaOpcao"][];
+            tipo: components["schemas"]["src__schemas__proposta__FacetaOpcao"][];
             /**
              * Uf
              * @default []
              */
-            uf: components["schemas"]["FacetaOpcao"][];
+            uf: components["schemas"]["src__schemas__proposta__FacetaOpcao"][];
         };
         /**
          * PropostasPagina
@@ -6138,6 +6799,13 @@ export interface components {
             /** Rotulo */
             rotulo: string;
         };
+        /** SandboxReset */
+        SandboxReset: {
+            /** Mensagem */
+            mensagem: string;
+            /** Municipios */
+            municipios: number;
+        };
         /** SecaoResumo */
         SecaoResumo: {
             /** A Comprovar */
@@ -6273,6 +6941,11 @@ export interface components {
         };
         /** UiRead */
         UiRead: {
+            /**
+             * Sandbox
+             * @default false
+             */
+            sandbox: boolean;
             /** Versao */
             versao: string;
         };
@@ -6459,6 +7132,27 @@ export interface components {
             /** Papel */
             papel?: string | null;
         };
+        /** FacetaOpcao */
+        src__schemas__oportunidades__FacetaOpcao: {
+            /** Rotulo */
+            rotulo: string;
+            /** Total */
+            total: number;
+            /** Valor */
+            valor: string;
+        };
+        /**
+         * FacetaOpcao
+         * @description Uma opção de filtro com o número de propostas no recorte atual.
+         */
+        src__schemas__proposta__FacetaOpcao: {
+            /** Rotulo */
+            rotulo: string;
+            /** Total */
+            total: number;
+            /** Valor */
+            valor: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -6468,6 +7162,88 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    minhas_chaves_api_v1_account_api_keys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChavesDaConta"];
+                };
+            };
+        };
+    };
+    criar_minha_chave_api_v1_account_api_keys_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiChaveCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiChaveCriada"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revogar_minha_chave_api_v1_account_api_keys__chave_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chave_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listar_membros_api_v1_account_members_get: {
         parameters: {
             query?: never;
@@ -6658,6 +7434,88 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["DemandaFilaRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_listar_chaves_api_v1_admin_api_keys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiChaveRead"][];
+                };
+            };
+        };
+    };
+    admin_criar_chave_api_v1_admin_api_keys_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminApiChaveCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiChaveCriada"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_revogar_chave_api_v1_admin_api_keys__chave_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chave_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -7803,6 +8661,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    disparar_consulta_programas_api_v1_admin_siconv_programs_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -9183,6 +10063,46 @@ export interface operations {
             };
         };
     };
+    quem_sou_eu_api_v1_developer_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeveloperMe"];
+                };
+            };
+        };
+    };
+    resetar_sandbox_api_v1_developer_sandbox_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SandboxReset"];
+                };
+            };
+        };
+    };
     listar_favoritos_api_v1_favorites_get: {
         parameters: {
             query?: never;
@@ -9975,6 +10895,167 @@ export interface operations {
             };
         };
     };
+    ler_preferencias_api_v1_notifications_preferences_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferenciasNotificacao"];
+                };
+            };
+        };
+    };
+    salvar_preferencias_api_v1_notifications_preferences_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreferenciasUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferenciasNotificacao"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    chave_publica_api_v1_notifications_push_key_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    inscrever_api_v1_notifications_push_subscriptions_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "user-agent"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InscricaoPush"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    testar_api_v1_notifications_push_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    cancelar_api_v1_notifications_push_unsubscribe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelarPush"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     onboarding_api_v1_onboarding_post: {
         parameters: {
             query?: never;
@@ -10029,6 +11110,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ParecerPagina"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_oportunidades_api_v1_opportunities_get: {
+        parameters: {
+            query?: {
+                /** @description códigos IBGE (repita o parâmetro para vários municípios) */
+                municipio?: string[] | null;
+                /** @description nome, código ou órgão do programa */
+                q?: string | null;
+                /** @description órgão superior concedente */
+                orgao?: string | null;
+                /** @description slug de categoria (§32) */
+                categoria?: string | null;
+                /** @description voluntaria | emenda | beneficiario */
+                janela?: string | null;
+                /** @description só os que o perfil indica */
+                recomendados?: boolean;
+                /** @description inclui programas que não aceitam ente municipal como proponente */
+                todas_naturezas?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OportunidadesResposta"];
                 };
             };
             /** @description Validation Error */

@@ -176,6 +176,34 @@ class Settings(BaseSettings):
     # Em produção defina um valor forte e estável; vazio usa jwt_secret (dev).
     config_secret_key: str = ""
 
+    # ── API de integração (parceiros, §67) ──────────────────────────────────
+    # Tetos de quem entra por CHAVE DE API (`X-API-Key`). O tráfego do painel
+    # (login JWT) não passa por aqui. Os limites por chave podem vir do PLANO
+    # (`limites.api_req_min`/`api_req_dia`) ou da própria chave; estes são o
+    # padrão quando nenhum dos dois diz nada.
+    api_limite_por_minuto: int = 60
+    api_limite_por_dia: int = 10000
+    # Proteção da APLICAÇÃO INTEIRA, somando todos os parceiros: o painel dos
+    # gestores divide o mesmo processo e o mesmo pool de conexões (§38).
+    api_limite_global_por_minuto: int = 600
+    # requisições de parceiro EM ANDAMENTO ao mesmo tempo (o pool tem 10+20
+    # conexões e cada request segura até 2 — sobra espaço para o painel)
+    api_max_simultaneas: int = 8
+    api_max_simultaneas_por_chave: int = 3
+    # chaves ativas por conta quando o plano não define `api_chaves_max`
+    api_chaves_max_por_conta: int = 5
+
+    # ── Sandbox de integração (§67) ─────────────────────────────────────────
+    # Liga o MODO SANDBOX: só aceita chaves `hub_test_`, não fala com nenhum
+    # serviço externo (fontes do governo, e-mail, WhatsApp, push, IA) e semeia
+    # dados FICTÍCIOS no território das contas de teste. É um deploy separado
+    # (docker-compose.sandbox.yml), com banco próprio.
+    sandbox: bool = False
+    # Hosts externos que o sandbox ainda pode chamar (CSV). Vazio = nenhum.
+    sandbox_hosts_permitidos: str = ""
+    # Hora UTC da recriação diária dos dados de teste (-1 = desligada).
+    sandbox_reset_hora_utc: int = 6
+
     # ── Versão publicada ────────────────────────────────────────────────────
     # Carimbados na imagem em build (ARG GIT_SHA/GIT_REF no Dockerfile) e
     # devolvidos por /health. Sem isso não há como saber QUAL commit está no ar

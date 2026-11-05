@@ -320,6 +320,8 @@ async def live_search(
     a_coletar: list[tuple[str, str]] = []
     for ibge in alvos:
         await _garantir_municipio_avulso(session, usuario_id, ibge)
+    # sandbox (§67): não há fonte a consultar — os dados de teste já estão no cache
+    somente_cache = somente_cache or settings.sandbox
     for ibge, f in pares:
         session.add(AuditLog(usuario_id=usuario_id, acao="consulta_avulsa", entidade=f"{f}:{ibge}"))
         if somente_cache:

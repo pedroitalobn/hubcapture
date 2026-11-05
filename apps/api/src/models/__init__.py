@@ -2,6 +2,7 @@
 
 from ..db.base import Base
 from .alerta import Alerta
+from .api_chave import ApiChave, ApiUso
 from .audit_log import AuditLog
 from .base_conhecimento import BaseConhecimento
 from .configuracao import Configuracao
@@ -39,6 +40,8 @@ from .usuario import Usuario
 
 __all__ = [
     "Alerta",
+    "ApiChave",
+    "ApiUso",
     "AuditLog",
     "Base",
     "BaseConhecimento",
