@@ -11,6 +11,11 @@ e commita-se o arquivo:
 
 Sai com código 1 se o IBGE não responder ou devolver uma malha suspeita
 (menos de 5.500 municípios) — o arquivo atual fica intocado.
+
+A API do IBGE só fornece código, nome e UF. O código SIAFI e as coordenadas da
+sede são PRESERVADOS do arquivo atual; município novo entra com essas colunas
+vazias e é listado no fim, para completar à mão (SIAFI: Tesouro Nacional;
+coordenadas: IBGE, malha de sedes municipais).
 """
 
 from __future__ import annotations
@@ -22,7 +27,7 @@ import sys
 import httpx
 
 from ..core.config import settings
-from ..services.municipios import ARQUIVO_MALHA, ler_malha
+from ..services.municipios import ARQUIVO_MALHA, COLUNAS_MALHA, ler_malha
 
 _MINIMO_PLAUSIVEL = 5500
 
@@ -60,7 +65,9 @@ def main() -> int:
         print(f"malha suspeita: só {len(nova)} municípios — nada gravado", file=sys.stderr)
         return 1
 
-    atual = {(m["ibge"], m["nome"], m["uf"]) for m in ler_malha()}
+    malha_atual = ler_malha(ARQUIVO_MALHA)
+    atual = {(m["ibge"], m["nome"], m["uf"]) for m in malha_atual}
+    extras = {m["ibge"]: m for m in malha_atual}
     entram = sorted(set(nova) - atual)
     saem = sorted(atual - set(nova))
     print(f"IBGE: {len(nova)} municípios · arquivo: {len(atual)}")
@@ -72,11 +79,20 @@ def main() -> int:
         print("nada a gravar" if not (entram or saem) else "(--check: nada gravado)")
         return 0
 
+    sem_extras: list[str] = []
     with ARQUIVO_MALHA.open("w", encoding="utf-8") as f:
-        f.write("ibge;nome;uf\n")
+        f.write(";".join(COLUNAS_MALHA) + "\n")
         for ibge, nome, uf in nova:
-            f.write(f"{ibge};{nome};{uf}\n")
+            antigo = extras.get(ibge) or {}
+            siafi = antigo.get("siafi") or ""
+            lat, lon = antigo.get("latitude"), antigo.get("longitude")
+            if not siafi or lat is None or lon is None:
+                sem_extras.append(f"{ibge};{nome};{uf}")
+            coord = "" if lat is None else f"{lat:.5f}", "" if lon is None else f"{lon:.5f}"
+            f.write(f"{ibge};{nome};{uf};{siafi};{coord[0]};{coord[1]}\n")
     print(f"gravado: {ARQUIVO_MALHA}")
+    for linha in sem_extras:
+        print("  ! sem SIAFI/coordenadas — completar à mão:", linha)
     return 0
 
 

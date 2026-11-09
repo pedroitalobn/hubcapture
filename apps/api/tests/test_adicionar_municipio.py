@@ -247,3 +247,52 @@ def test_malha_interna_tem_todos_os_municipios() -> None:
     assert all(len(m["ibge"]) == 7 and m["ibge"].isdigit() and m["uf"] for m in malha)
     # o prefixo do código é a UF — a mesma tabela que a saída usa offline
     assert all(municipios_service.uf_do_ibge(m["ibge"]) == m["uf"] for m in malha)
+
+
+def test_dados_por_ibge_traz_os_identificadores_das_fontes() -> None:
+    """Código → tudo o que as fontes pedem, sem rede: UF, IBGE de 6 dígitos,
+    nome (Portal da Transparência), SIAFI (Tesouro) e a sede no mapa."""
+    d = municipios_service.dados_por_ibge("2300903")
+    assert d is not None
+    assert (d.nome, d.uf, d.ibge6, d.siafi) == ("Apuiarés", "CE", "230090", "1317")
+    assert d.latitude == pytest.approx(-3.94506) and d.longitude == pytest.approx(-39.4359)
+    # o zero à esquerda do SIAFI faz parte do código
+    assert municipios_service.dados_por_ibge("1100015").siafi == "0033"
+    assert municipios_service.dados_por_ibge("9999999") is None
+
+
+def test_malha_interna_tem_siafi_e_coordenadas_de_todos() -> None:
+    malha = municipios_service.ler_malha()
+    siafis = [m["siafi"] for m in malha]
+    assert all(s and len(s) == 4 and s.isdigit() for s in siafis)
+    assert len(set(siafis)) == len(malha)
+    # sede dentro do território nacional
+    assert all(-34 < m["latitude"] < 6 and -74 < m["longitude"] < -32 for m in malha)
+
+
+def test_atualizar_malha_preserva_siafi_e_coordenadas(tmp_path, monkeypatch, capsys) -> None:
+    """A API do IBGE não fornece SIAFI nem coordenadas: atualizar a malha não
+    pode apagá-los, e município novo é apontado para completar à mão."""
+    import shutil
+    import sys
+
+    from src.tools import atualizar_municipios as tool
+
+    arquivo = tmp_path / "malha.csv"
+    shutil.copy(municipios_service.ARQUIVO_MALHA, arquivo)
+    atual = [(m["ibge"], m["nome"], m["uf"]) for m in municipios_service.ler_malha()]
+
+    async def _ibge() -> list[tuple[str, str, str]]:
+        return sorted([*atual, ("2399999", "Município Novo", "CE")])
+
+    monkeypatch.setattr(tool, "ARQUIVO_MALHA", arquivo)
+    monkeypatch.setattr(tool, "baixar", _ibge)
+    monkeypatch.setattr(sys, "argv", ["atualizar_municipios"])
+    assert tool.main() == 0
+
+    nova = {m["ibge"]: m for m in municipios_service.ler_malha(arquivo)}
+    assert len(nova) == 5572
+    assert nova["2300903"]["siafi"] == "1317"
+    assert nova["2300903"]["latitude"] == pytest.approx(-3.94506)
+    assert nova["2399999"]["siafi"] is None and nova["2399999"]["latitude"] is None
+    assert "2399999;Município Novo;CE" in capsys.readouterr().out

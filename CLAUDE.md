@@ -3341,11 +3341,22 @@ Localidades do IBGE (`servicodados.ibge.gov.br/api/v1/localidades/municipios`) e
 gov.br recusava a conexão do servidor (o mesmo bloqueio de IP das outras fontes gov.br,
 §56c), engolia o erro SEM log e respondia `[]`: o gestor digitava o nome, nada aparecia e o
 onboarding parava ali. A malha agora mora no repositório — `src/data/municipios_ibge.csv`
-(`ibge;nome;uf`, 5.571 municípios, ~130 KB), lida uma vez por processo. Busca instantânea,
+(`ibge;nome;uf;siafi;latitude;longitude`, 5.571 municípios, ~270 KB), lida uma vez por
+processo. Busca instantânea,
 sem rede, e o nome exato vem primeiro ("fortaleza" → Fortaleza/CE antes de Fortaleza dos
 Valos). A lista muda raríssimo; quando o IBGE criar/renomear município, roda-se
 `python -m src.tools.atualizar_municipios` (`--check` só compara) numa máquina com acesso
 ao IBGE e commita-se o arquivo. A chave `ibge_localidades_url` saiu do painel admin.
+
+- **Identificadores das fontes, todos em casa** — `municipios.dados_por_ibge(ibge)` (síncrono,
+  sem rede) devolve `DadosMunicipio`: `uf`, `ibge6` (sem o dígito verificador —
+  TransfereGov, FNS, FNDE, Siconfi), `nome` (Portal da Transparência e DOU, que não filtram
+  por código), `siafi` (4 dígitos, TEXTO — o zero à esquerda faz parte: "0033"; sistemas do
+  Tesouro) e `latitude`/`longitude` da SEDE (mapa de obras). `nome_uf_por_ibge` passou a ler
+  daqui: antes ia ao IBGE ao vivo, e com o gov.br recusando a conexão as emendas, a
+  conferência no DOU (§56c) e o `transferegov_esp` perdiam o nome do município junto com a
+  busca. SIAFI e coordenadas NÃO vêm da API do IBGE: `atualizar_municipios` os preserva e
+  lista o município novo que chegar sem eles, para completar à mão.
 
 **Município só entrava pelo onboarding** — e refazê-lo REGRAVA áreas, fontes e canais.
 
