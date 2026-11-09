@@ -39,6 +39,14 @@ export interface Perfil {
   /** Catálogo do filtro "origem do recurso" — grupos, não connectors. */
   origens?: { chave: string; label: string; connectors?: string[] }[];
   modulos?: string[];
+  /** O que o plano deixa fazer com o território fora do onboarding. */
+  territorio?: {
+    pode_adicionar: boolean;
+    maximo?: number | null;
+    em_uso: number;
+    restantes?: number | null;
+    motivo?: string | null;
+  };
   /** Conta de demonstração (sandbox) — o painel mostra a faixa e esconde
    *  as ações que o backend bloqueia (zerar perfil, onboarding, senha). */
   demo?: boolean;

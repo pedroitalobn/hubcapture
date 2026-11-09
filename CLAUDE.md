@@ -553,9 +553,9 @@ território, o usuário cai em `/onboarding`, onde o Copiloto pergunta em chat g
 papel → município(s) (busca por nome via IBGE) → áreas de interesse → fontes (pré-marcadas
 pelas áreas) → confirmação. Nada de formulário em página; a conversa é o wizard.
 
-- **Busca de municípios** — `services/municipios.py` + `GET /municipalities?q=` (IBGE
-  Localidades, cache em memória 24h, chave `ibge_localidades_url` no painel). Degrada
-  para lista vazia; o front aceita código IBGE de 7 dígitos digitado direto.
+- **Busca de municípios** — `services/municipios.py` + `GET /municipalities?q=` sobre a
+  malha municipal INTERNA (`src/data/municipios_ibge.csv`, §68) — sem chamada ao IBGE em
+  runtime. O front também aceita código IBGE de 7 dígitos digitado direto.
 - **Primeiro sync (dados reais)** — ao confirmar, `POST /onboarding` grava o perfil e
   agenda `services/primeiro_sync.executar` cobrindo as 4 dimensões (captação via
   consulta-avulsa, recebidos por fonte, conformidade, obras por área), cada fonte
@@ -3331,3 +3331,52 @@ copiado da produção não desliga o modo nem aponta para o banco de produção)
 - Regressão: `tests/test_api_parceiros.py` (autenticação real, sem override: chave,
   RLS do dono, política de rotas, 429 + consumo gravado, plano/self-service,
   bloqueio de saída, sandbox ponta a ponta e o reset).
+
+## 68. Território editável pela interface + malha municipal interna (decisão travada)
+
+Relato: "não consigo adicionar município — nem pelo onboarding". Dois defeitos.
+
+**A busca de municípios devolvia lista vazia.** Ela baixava a malha ao vivo da API de
+Localidades do IBGE (`servicodados.ibge.gov.br/api/v1/localidades/municipios`) e, quando o
+gov.br recusava a conexão do servidor (o mesmo bloqueio de IP das outras fontes gov.br,
+§56c), engolia o erro SEM log e respondia `[]`: o gestor digitava o nome, nada aparecia e o
+onboarding parava ali. A malha agora mora no repositório — `src/data/municipios_ibge.csv`
+(`ibge;nome;uf;siafi;latitude;longitude`, 5.571 municípios, ~270 KB), lida uma vez por
+processo. Busca instantânea,
+sem rede, e o nome exato vem primeiro ("fortaleza" → Fortaleza/CE antes de Fortaleza dos
+Valos). A lista muda raríssimo; quando o IBGE criar/renomear município, roda-se
+`python -m src.tools.atualizar_municipios` (`--check` só compara) numa máquina com acesso
+ao IBGE e commita-se o arquivo. A chave `ibge_localidades_url` saiu do painel admin.
+
+- **Identificadores das fontes, todos em casa** — `municipios.dados_por_ibge(ibge)` (síncrono,
+  sem rede) devolve `DadosMunicipio`: `uf`, `ibge6` (sem o dígito verificador —
+  TransfereGov, FNS, FNDE, Siconfi), `nome` (Portal da Transparência e DOU, que não filtram
+  por código), `siafi` (4 dígitos, TEXTO — o zero à esquerda faz parte: "0033"; sistemas do
+  Tesouro) e `latitude`/`longitude` da SEDE (mapa de obras). `nome_uf_por_ibge` passou a ler
+  daqui: antes ia ao IBGE ao vivo, e com o gov.br recusando a conexão as emendas, a
+  conferência no DOU (§56c) e o `transferegov_esp` perdiam o nome do município junto com a
+  busca. SIAFI e coordenadas NÃO vêm da API do IBGE: `atualizar_municipios` os preserva e
+  lista o município novo que chegar sem eles, para completar à mão.
+
+**Município só entrava pelo onboarding** — e refazê-lo REGRAVA áreas, fontes e canais.
+
+- **`POST /profile/municipalities`** (`{municipios: [{ibge, nome?, uf?}]}`, 201) — par do
+  `DELETE /profile/municipalities/{ibge}`: insere no território (nome/UF resolvidos pela
+  malha quando não vêm), cria a busca monitorada se o perfil monitora, registra
+  `audit_log('adicionar_municipio')` e agenda `primeiro_sync` SÓ dos novos, com as fontes e
+  áreas do perfil (create_task, §19b). Município já no território é ignorado
+  (`ja_existiam`) e não conta no limite. Conta demo: bloqueado.
+- **Duas travas do PLANO (§39)**: o `municipios_max` (ausente/0 = ilimitado → 403
+  `LIMITE_PLANO_MUNICIPIOS`) e a feature nova **`municipios_adicionar`** ("Adicionar
+  municípios pelo painel", padrão LIGADA → 403 `FEATURE_NAO_INCLUIDA_PLANO`), que o admin
+  desliga por plano em `/admin/plans`. Superuser não é limitado. A regra de limite é UMA
+  (`onboarding.excede_limite`) para os dois caminhos não divergirem.
+- **`GET /profile` → `territorio`** (`pode_adicionar`, `maximo`, `em_uso`, `restantes`,
+  `motivo`: `plano_nao_permite|limite_atingido|demo`) — o front não recalcula a regra.
+- **Web**: "Meu território" em `panel/account` (`#territorio`) ganhou a busca com
+  "Adicionar" (ou explicação do plano quando não pode) e o contador "N de M municípios". O
+  onboarding mostra o limite já na etapa de municípios (contando o território existente)
+  e diz quando a busca não achou nada, em vez de a lista sumir calada.
+- Regressão: `tests/test_adicionar_municipio.py` (ilimitado, limite, feature desligada,
+  router + agendamento, busca SEM rede e a integridade da malha).
+

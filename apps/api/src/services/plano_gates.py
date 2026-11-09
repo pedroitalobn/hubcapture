@@ -70,6 +70,14 @@ FEATURES: list[dict] = [
         "descricao": "Despacho de alertas pelo canal WhatsApp (Uniq)",
     },
     {
+        "chave": "municipios_adicionar",
+        "label": "Adicionar municípios pelo painel",
+        "descricao": (
+            "O usuário amplia o território em Minha conta, sem refazer o onboarding "
+            "(até o limite de municípios do plano; sem limite = ilimitado)"
+        ),
+    },
+    {
         "chave": "api",
         "label": "API de integração",
         "descricao": "A conta gera as próprias chaves de API (Minha conta → Integração)",

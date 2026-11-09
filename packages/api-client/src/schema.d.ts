@@ -2157,6 +2157,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/profile/municipalities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adicionar Municipios
+         * @description Amplia o território pela interface (Minha conta), sem refazer o onboarding.
+         *
+         *     Vale o que o PLANO libera (§39): a feature `municipios_adicionar` e o
+         *     `municipios_max` (sem limite = ilimitado). Município que já está no
+         *     território é ignorado. A 1ª coleta dos novos é agendada em background,
+         *     com as fontes e áreas que o perfil já tem.
+         */
+        post: operations["adicionar_municipios_api_v1_profile_municipalities_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/profile/municipalities/{ibge}": {
         parameters: {
             query?: never;
@@ -2847,6 +2872,36 @@ export interface components {
             senha: string;
             /** Token */
             token: string;
+        };
+        /**
+         * AdicionarMunicipiosRequest
+         * @description Ampliar o território fora do onboarding (Minha conta).
+         */
+        AdicionarMunicipiosRequest: {
+            /** Municipios */
+            municipios: components["schemas"]["MunicipioIn"][];
+        };
+        /**
+         * AdicionarMunicipiosResultado
+         * @description Resultado de `POST /profile/municipalities`.
+         */
+        AdicionarMunicipiosResultado: {
+            /**
+             * Adicionados
+             * @default []
+             */
+            adicionados: components["schemas"]["MunicipioPerfil"][];
+            /**
+             * Ja Existiam
+             * @default []
+             */
+            ja_existiam: string[];
+            /**
+             * Sync Disparado
+             * @default false
+             */
+            sync_disparado: boolean;
+            territorio: components["schemas"]["TerritorioEdicao"];
         };
         /** AdminApiChaveCreate */
         AdminApiChaveCreate: {
@@ -5997,6 +6052,13 @@ export interface components {
             /** Papel */
             papel?: string | null;
             plano?: components["schemas"]["PlanoPerfil"] | null;
+            /**
+             * @default {
+             *       "em_uso": 0,
+             *       "pode_adicionar": true
+             *     }
+             */
+            territorio: components["schemas"]["TerritorioEdicao"];
         };
         /**
          * PipelineItem
@@ -6926,6 +6988,31 @@ export interface components {
             registros?: number | null;
             /** Status */
             status?: string | null;
+        };
+        /**
+         * TerritorioEdicao
+         * @description O que o plano deixa fazer com o território FORA do onboarding.
+         *
+         *     O front não recalcula a regra (limite do plano, feature, conta demo): lê
+         *     daqui se o campo "adicionar município" aparece e por que não, quando não.
+         */
+        TerritorioEdicao: {
+            /**
+             * Em Uso
+             * @default 0
+             */
+            em_uso: number;
+            /** Maximo */
+            maximo?: number | null;
+            /** Motivo */
+            motivo?: string | null;
+            /**
+             * Pode Adicionar
+             * @default true
+             */
+            pode_adicionar: boolean;
+            /** Restantes */
+            restantes?: number | null;
         };
         /** TokenPair */
         TokenPair: {
@@ -11354,6 +11441,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NovidadesPerfil"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    adicionar_municipios_api_v1_profile_municipalities_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdicionarMunicipiosRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdicionarMunicipiosResultado"];
                 };
             };
             /** @description Validation Error */

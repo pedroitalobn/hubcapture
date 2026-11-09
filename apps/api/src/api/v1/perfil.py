@@ -12,7 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.users import current_active_user
 from ...models.usuario import Usuario
+from ...schemas.curadoria import AdicionarMunicipiosRequest
 from ...schemas.perfil import (
+    AdicionarMunicipiosResultado,
     NovidadesPerfil,
     PerfilRead,
     RemocaoMunicipioResultado,
@@ -21,6 +23,8 @@ from ...schemas.perfil import (
 )
 from ...services import demo as demo_service
 from ...services import perfil as service
+from ...services import primeiro_sync
+from ...services.onboarding import LimitePlanoExcedido
 from ..deps import get_rls_db
 
 router = APIRouter(tags=["perfil"])
@@ -48,6 +52,45 @@ async def zerar_perfil(
     """
     demo_service.bloquear_escrita(user)  # sandbox compartilhado: nunca zerar
     return await service.zerar(session, user)
+
+
+@router.post(
+    "/profile/municipalities",
+    response_model=AdicionarMunicipiosResultado,
+    status_code=status.HTTP_201_CREATED,
+)
+async def adicionar_municipios(
+    body: AdicionarMunicipiosRequest,
+    user: Usuario = Depends(current_active_user),
+    session: AsyncSession = Depends(get_rls_db),
+) -> AdicionarMunicipiosResultado:
+    """Amplia o território pela interface (Minha conta), sem refazer o onboarding.
+
+    Vale o que o PLANO libera (§39): a feature `municipios_adicionar` e o
+    `municipios_max` (sem limite = ilimitado). Município que já está no
+    território é ignorado. A 1ª coleta dos novos é agendada em background,
+    com as fontes e áreas que o perfil já tem.
+    """
+    demo_service.bloquear_escrita(user)  # o território demo é o palco da venda
+    try:
+        resultado = await service.adicionar_municipios(session, user, body.municipios)
+    except service.AdicaoNaoPermitida:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="FEATURE_NAO_INCLUIDA_PLANO: municipios_adicionar",
+        ) from None
+    except LimitePlanoExcedido as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"LIMITE_PLANO_MUNICIPIOS: máximo de {exc.maximo} município(s) no seu plano",
+        ) from exc
+    if resultado.adicionados:
+        fontes, areas = await service.preferencias_de_coleta(session, user.id)
+        # create_task, nunca BackgroundTasks: o request commita o território
+        # na hora e a coleta corre solta (mesmo desenho do onboarding — §19b)
+        primeiro_sync.agendar(user.id, [m.ibge for m in resultado.adicionados], fontes, areas)
+        resultado.sync_disparado = True
+    return resultado
 
 
 @router.delete("/profile/municipalities/{ibge}", response_model=RemocaoMunicipioResultado)

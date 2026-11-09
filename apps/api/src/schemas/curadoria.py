@@ -32,6 +32,21 @@ class OnboardingRequest(BaseModel):
     _papel = field_validator("papel", mode="before")(papel_ou_none)
 
 
+class AdicionarMunicipiosRequest(BaseModel):
+    """Ampliar o território fora do onboarding (Minha conta)."""
+
+    municipios: list[MunicipioIn] = Field(min_length=1, max_length=50)
+
+    @field_validator("municipios")
+    @classmethod
+    def _ibge_numerico(cls, municipios: list[MunicipioIn]) -> list[MunicipioIn]:
+        # o IBGE é a chave canônica do território (§4): 7 dígitos, nada mais
+        for m in municipios:
+            if not m.ibge.isdigit():
+                raise ValueError(f"código IBGE inválido: {m.ibge!r} (7 dígitos)")
+        return municipios
+
+
 class OnboardingResponse(BaseModel):
     municipios: int
     sync_disparado: bool

@@ -239,6 +239,52 @@ export async function removerMunicipio(
   return resp.json();
 }
 
+export interface EdicaoTerritorio {
+  pode_adicionar: boolean;
+  /** null = ilimitado */
+  maximo: number | null;
+  em_uso: number;
+  /** null = ilimitado; 0 = limite atingido */
+  restantes: number | null;
+  /** plano_nao_permite | limite_atingido | demo */
+  motivo: string | null;
+}
+
+/** Amplia o território pela interface (Minha conta), sem refazer o
+ *  onboarding. O plano decide: limite de municípios e a feature
+ *  `municipios_adicionar`. A 1ª coleta dos novos roda em segundo plano. */
+export async function adicionarMunicipios(
+  municipios: { ibge: string; nome?: string | null; uf?: string | null }[],
+): Promise<{
+  adicionados: { ibge: string; nome?: string | null; uf?: string | null }[];
+  ja_existiam: string[];
+  sync_disparado: boolean;
+  territorio: EdicaoTerritorio;
+}> {
+  const resp = await fetch(`${API_ORIGIN}/api/v1/profile/municipalities`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${(await garantirSessao()) ?? ""}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ municipios }),
+  });
+  if (!resp.ok) {
+    const corpo = (await resp.json().catch(() => null)) as { detail?: unknown } | null;
+    const detail = typeof corpo?.detail === "string" ? corpo.detail : "";
+    if (detail.startsWith("LIMITE_PLANO_MUNICIPIOS")) {
+      throw new Error(
+        "Seu plano não permite mais municípios — fale com a administração para mudar de plano.",
+      );
+    }
+    if (detail.startsWith("FEATURE_NAO_INCLUIDA_PLANO")) {
+      throw new Error("Seu plano não inclui adicionar municípios pelo painel.");
+    }
+    throw new Error(mensagemDaFalha(corpo, `Falha ao adicionar o município (HTTP ${resp.status})`));
+  }
+  return resp.json();
+}
+
 /** Exclui um convite (admin). Rota fora do client tipado → fetch cru. */
 export async function excluirConvite(id: string): Promise<void> {
   const resp = await fetch(`${API_ORIGIN}/api/v1/admin/invites/${id}`, {

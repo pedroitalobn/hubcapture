@@ -87,6 +87,12 @@ export default function OnboardingPage() {
 
   const [busca, setBusca] = useState("");
   const [sugestoes, setSugestoes] = useState<MunicipioBusca[]>([]);
+  // a busca terminou sem nada — dizer isso, em vez de a lista sumir calada
+  const [semResultado, setSemResultado] = useState(false);
+  // limite de municípios do plano e o território que já existe (refazer o
+  // onboarding SOMA ao que está lá; o backend conta os dois)
+  const [maxMunicipios, setMaxMunicipios] = useState<number | null>(null);
+  const [jaNoTerritorio, setJaNoTerritorio] = useState<string[]>([]);
   const [erro, setErro] = useState<string | null>(null);
 
   // passo "ativar avisos": canais + WhatsApp opcional
@@ -112,9 +118,17 @@ export default function OnboardingPage() {
     }
     void (async () => {
       const { data } = await api.GET("/api/v1/profile");
-      const plano = (data as { plano?: { fontes?: string[] | null } | null } | undefined)
-        ?.plano;
+      const perfil = data as
+        | {
+            plano?: { fontes?: string[] | null } | null;
+            municipios?: { ibge: string }[];
+            territorio?: { maximo?: number | null } | null;
+          }
+        | undefined;
+      const plano = perfil?.plano;
       if (plano?.fontes != null) setFontesDoPlano(plano.fontes);
+      setMaxMunicipios(perfil?.territorio?.maximo ?? null);
+      setJaNoTerritorio((perfil?.municipios ?? []).map((m) => m.ibge));
     })();
     falar([
       "Olá! Eu sou o Copiloto do Hub Capture. Vou montar seu painel em menos de um minuto.",
@@ -160,6 +174,7 @@ export default function OnboardingPage() {
 
   // ── Etapa 2: municípios (busca por nome via IBGE) ─────────────────────────
   useEffect(() => {
+    setSemResultado(false);
     if (etapa !== "municipios" || busca.trim().length < 2) {
       setSugestoes([]);
       return;
@@ -168,13 +183,28 @@ export default function OnboardingPage() {
       const { data } = await api.GET("/api/v1/municipalities", {
         params: { query: { q: busca.trim() } },
       });
-      setSugestoes(((data ?? []) as MunicipioBusca[]).slice(0, 6));
+      const lista = ((data ?? []) as MunicipioBusca[]).slice(0, 6);
+      setSugestoes(lista);
+      setSemResultado(lista.length === 0);
     }, 300);
     return () => clearTimeout(t);
   }, [busca, etapa]);
 
+  // total que o plano vai contar: o que já está no território + o escolhido agora
+  const totalTerritorio = new Set([...jaNoTerritorio, ...municipios.map((m) => m.ibge)]).size;
+  const limiteAtingido = maxMunicipios != null && totalTerritorio >= maxMunicipios;
+
   function adicionarMunicipio(m: MunicipioBusca) {
     if (municipios.some((x) => x.ibge === m.ibge)) return;
+    if (limiteAtingido && !jaNoTerritorio.includes(m.ibge)) {
+      setErro(
+        `Seu plano permite até ${maxMunicipios} município(s)` +
+          (jaNoTerritorio.length ? ", contando os que você já acompanha" : "") +
+          ". Para acompanhar mais, fale com o suporte para mudar de plano.",
+      );
+      return;
+    }
+    setErro(null);
     setMunicipios((lista) => [...lista, m]);
     setBusca("");
     setSugestoes([]);
@@ -193,6 +223,7 @@ export default function OnboardingPage() {
 
   function concluirMunicipios() {
     if (municipios.length === 0) return;
+    setErro(null);
     responder("Pode seguir!");
     setEtapa("areas");
     falar([
@@ -395,6 +426,12 @@ export default function OnboardingPage() {
               className="input w-full"
               autoFocus
             />
+            {semResultado && sugestoes.length === 0 && (
+              <p className="mt-1 text-xs text-ink-3">
+                Nenhum município encontrado com esse nome. Confira a grafia ou
+                digite o código IBGE (7 dígitos) e tecle Enter.
+              </p>
+            )}
             {sugestoes.length > 0 && (
               <div className="card anim-pop absolute inset-x-0 top-full z-10 mt-1 flex flex-col overflow-hidden p-1">
                 {sugestoes.map((s) => (
@@ -413,6 +450,12 @@ export default function OnboardingPage() {
               </div>
             )}
           </div>
+          {maxMunicipios != null && (
+            <p className="text-xs text-ink-3">
+              Seu plano permite até {maxMunicipios} município(s) — {totalTerritorio} em uso.
+            </p>
+          )}
+          {erro && <p className="text-sm text-danger">{erro}</p>}
           {municipios.length > 0 && (
             <button onClick={concluirMunicipios} className="btn btn-primary self-end">
               Continuar

@@ -5,6 +5,7 @@ import { ChavesApiConta } from "@/components/ChavesApi";
 import { NotificacoesConta } from "@/components/NotificacoesConta";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
+  adicionarMunicipios,
   api,
   atualizarPerfil,
   meProfile,
@@ -266,22 +267,29 @@ export default function ContaPage() {
   );
 }
 
-/** Território do perfil — adicionar é o onboarding; REMOVER é aqui.
+/** Território do perfil — ADICIONAR e REMOVER município moram aqui.
  *
  * Até o ponto 01 do feedback, o onboarding só inseria município: quem errava a
- * cidade (ou deixava de acompanhá-la) só tinha a zeragem do perfil inteiro. A
- * remoção fica junto da conta, e não no filtro da barra do painel, porque lá o
- * "×" significa tirar do RECORTE da tela — misturar os dois gestos apagaria
- * perfil de quem só queria filtrar.
+ * cidade (ou deixava de acompanhá-la) só tinha a zeragem do perfil inteiro. E
+ * ampliar o território exigia refazer o onboarding, que regrava áreas, fontes
+ * e canais. As duas ações ficam junto da conta, e não no filtro da barra do
+ * painel, porque lá o "×" significa tirar do RECORTE da tela — misturar os
+ * gestos apagaria perfil de quem só queria filtrar.
+ *
+ * Adicionar obedece ao PLANO (§39): limite de municípios (sem limite =
+ * ilimitado) e a feature `municipios_adicionar`. A regra vem pronta do
+ * `/profile` (`territorio`); a tela só a apresenta.
  */
 function MeuTerritorio() {
-  const { municipios, recarregar } = useTerritorio();
+  const { perfil, municipios, recarregar } = useTerritorio();
   const [removendo, setRemovendo] = useState<string | null>(null);
   const [confirmar, setConfirmar] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   async function remover(ibge: string) {
     setErro(null);
+    setAviso(null);
     setRemovendo(ibge);
     try {
       await removerMunicipio(ibge);
@@ -300,12 +308,23 @@ function MeuTerritorio() {
     }
   }
 
+  const edicao = perfil?.territorio;
+  const maximo = edicao?.maximo ?? null;
+
   return (
-    <section className="card flex max-w-md flex-col gap-4 p-6">
-      <h2 className="label-mono">Meu território</h2>
+    <section id="territorio" className="card flex max-w-md flex-col gap-4 p-6">
+      <div className="flex flex-col gap-1">
+        <h2 className="label-mono">Meu território</h2>
+        <p className="text-[12px] text-ink-3">
+          {maximo == null
+            ? `${municipios.length} município(s) — seu plano não limita a quantidade.`
+            : `${municipios.length} de ${maximo} município(s) do seu plano.`}
+        </p>
+      </div>
       {municipios.length === 0 ? (
         <p className="text-sm text-ink-2">
-          Você ainda não acompanha nenhum município — configure no onboarding.
+          Você ainda não acompanha nenhum município — adicione abaixo ou
+          configure no onboarding.
         </p>
       ) : (
         <ul className="flex flex-col divide-y divide-hairline">
@@ -352,6 +371,21 @@ function MeuTerritorio() {
           ))}
         </ul>
       )}
+
+      <AdicionarMunicipio
+        edicao={edicao}
+        jaNoTerritorio={municipios.map((m) => m.ibge)}
+        aoAdicionar={async (nomes) => {
+          setErro(null);
+          await recarregar();
+          setAviso(
+            `${nomes.join(", ")} ${nomes.length > 1 ? "entraram" : "entrou"} no seu território. ` +
+              "A primeira coleta já começou — os dados aparecem no painel em alguns minutos.",
+          );
+        }}
+      />
+
+      {aviso && <p className="text-sm text-ink-2">{aviso}</p>}
       {erro && <p className="text-sm text-danger">{erro}</p>}
       <p className="text-[12px] text-ink-3">
         Remover tira a cidade do seu painel e para os avisos dela. As propostas
@@ -359,6 +393,152 @@ function MeuTerritorio() {
         município; se você voltar a acompanhá-lo, tudo reaparece.
       </p>
     </section>
+  );
+}
+
+interface MunicipioSugerido {
+  ibge: string;
+  nome: string;
+  uf?: string | null;
+}
+
+/** Campo "adicionar município": busca por nome (IBGE, tolerante a erro de
+ *  digitação) ou código de 7 dígitos. Some com uma explicação quando o plano
+ *  não deixa — nunca um campo que só devolveria 403. */
+function AdicionarMunicipio({
+  edicao,
+  jaNoTerritorio,
+  aoAdicionar,
+}: {
+  edicao: NonNullable<ReturnType<typeof useTerritorio>["perfil"]>["territorio"];
+  jaNoTerritorio: string[];
+  aoAdicionar: (nomes: string[]) => Promise<void>;
+}) {
+  const [busca, setBusca] = useState("");
+  const [sugestoes, setSugestoes] = useState<MunicipioSugerido[]>([]);
+  const [semResultado, setSemResultado] = useState(false);
+  const [enviando, setEnviando] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSemResultado(false);
+    const termo = busca.trim();
+    if (termo.length < 2) {
+      setSugestoes([]);
+      return;
+    }
+    let vivo = true;
+    const t = setTimeout(async () => {
+      const { data } = await api.GET("/api/v1/municipalities", {
+        params: { query: { q: termo } },
+      });
+      if (!vivo) return; // resposta de uma tecla antiga
+      const lista = ((data ?? []) as MunicipioSugerido[]).slice(0, 8);
+      setSugestoes(lista);
+      setSemResultado(lista.length === 0);
+    }, 300);
+    return () => {
+      vivo = false;
+      clearTimeout(t);
+    };
+  }, [busca]);
+
+  async function adicionar(m: MunicipioSugerido) {
+    setErro(null);
+    setEnviando(m.ibge);
+    try {
+      const r = await adicionarMunicipios([
+        { ibge: m.ibge, nome: m.nome.startsWith("IBGE ") ? null : m.nome, uf: m.uf ?? null },
+      ]);
+      setBusca("");
+      setSugestoes([]);
+      await aoAdicionar(r.adicionados.map((a) => rotuloMunicipio(a)));
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : "Não foi possível adicionar agora.");
+    } finally {
+      setEnviando(null);
+    }
+  }
+
+  function adicionarPorCodigo() {
+    const codigo = busca.trim();
+    if (/^\d{7}$/.test(codigo)) {
+      const sugerido = sugestoes.find((s) => s.ibge === codigo);
+      void adicionar(sugerido ?? { ibge: codigo, nome: `IBGE ${codigo}` });
+    }
+  }
+
+  if (edicao && !edicao.pode_adicionar) {
+    const texto =
+      edicao.motivo === "limite_atingido"
+        ? `Você já acompanha o máximo de ${edicao.maximo} município(s) do seu plano. Remova um acima ou fale com a administração para mudar de plano.`
+        : edicao.motivo === "plano_nao_permite"
+          ? "Seu plano não inclui adicionar municípios pelo painel — fale com a administração para mudar de plano."
+          : null;
+    return texto ? (
+      <p className="rounded-lg border border-hairline p-3 text-[13px] text-ink-2">{texto}</p>
+    ) : null;
+  }
+
+  return (
+    <div className="flex flex-col gap-2 border-t border-hairline pt-4">
+      <label className="flex flex-col gap-1.5">
+        <span className="field-label">Adicionar município</span>
+        <input
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              adicionarPorCodigo();
+            }
+          }}
+          placeholder="Nome do município ou código IBGE…"
+          className="input"
+          disabled={enviando != null}
+        />
+      </label>
+      {edicao?.restantes != null && (
+        <p className="text-[12px] text-ink-3">
+          Cabem mais {edicao.restantes} município(s) no seu plano.
+        </p>
+      )}
+      {semResultado && (
+        <p className="text-[12px] text-ink-3">
+          Nenhum município encontrado com esse nome. Confira a grafia ou digite
+          o código IBGE (7 dígitos) e tecle Enter.
+        </p>
+      )}
+      {sugestoes.length > 0 && (
+        <ul className="flex flex-col divide-y divide-hairline rounded-lg border border-hairline">
+          {sugestoes.map((s) => {
+            const jaTem = jaNoTerritorio.includes(s.ibge);
+            return (
+              <li key={s.ibge} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                <span className="min-w-0">
+                  {s.nome}
+                  {s.uf ? `/${s.uf}` : ""}
+                  <span className="ml-2 font-mono text-[11px] text-ink-3">{s.ibge}</span>
+                </span>
+                {jaTem ? (
+                  <span className="text-[12px] text-ink-3">já acompanha</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void adicionar(s)}
+                    disabled={enviando != null}
+                    className="btn btn-primary btn-sm"
+                  >
+                    {enviando === s.ibge ? "Adicionando…" : "Adicionar"}
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {erro && <p className="text-sm text-danger">{erro}</p>}
+    </div>
   );
 }
 
