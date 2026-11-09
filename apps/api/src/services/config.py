@@ -244,7 +244,6 @@ CATALOGO: list[dict] = [
     _c("sismob_base_url", "SISMOB base URL (obras saúde)", "fonte", False),
     _c("simec_base_url", "SIMEC base URL (obras educação)", "fonte", False),
     _c("caixa_obras_base_url", "CAIXA/SIORB base URL (obras infra)", "fonte", False),
-    _c("ibge_localidades_url", "IBGE Localidades base URL (busca de municípios)", "fonte", False),
     # Agenda de contatos — OAuth de aplicação (Google/Microsoft) e CardDAV (Apple)
     _c("google_client_id", "Google OAuth Client ID (contatos)", "integracoes", False, "google"),
     _c("google_client_secret", "Google OAuth Client Secret", "integracoes", True, "google"),

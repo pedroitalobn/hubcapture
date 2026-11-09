@@ -43,6 +43,34 @@ class PlanoPerfil(BaseModel):
     modulos: list[str] | None = None  # módulos incluídos no plano; None = todos
 
 
+class TerritorioEdicao(BaseModel):
+    """O que o plano deixa fazer com o território FORA do onboarding.
+
+    O front não recalcula a regra (limite do plano, feature, conta demo): lê
+    daqui se o campo "adicionar município" aparece e por que não, quando não.
+    """
+
+    pode_adicionar: bool = True
+    # None = ilimitado; senão, quantos municípios o plano permite
+    maximo: int | None = None
+    em_uso: int = 0
+    # None = ilimitado; 0 = limite atingido
+    restantes: int | None = None
+    # por que não pode: plano_nao_permite | limite_atingido | demo
+    motivo: str | None = None
+
+
+class AdicionarMunicipiosResultado(BaseModel):
+    """Resultado de `POST /profile/municipalities`."""
+
+    adicionados: list[MunicipioPerfil] = []
+    # já estavam no território — não contam no limite nem disparam coleta
+    ja_existiam: list[str] = []
+    # a coleta do(s) município(s) novo(s) foi agendada em background
+    sync_disparado: bool = False
+    territorio: TerritorioEdicao
+
+
 class OrigemFonte(BaseModel):
     """Uma origem de recurso que o usuário pode filtrar no painel.
 
@@ -74,6 +102,8 @@ class PerfilRead(BaseModel):
     # módulos EFETIVOS: ativos na plataforma (§29) ∩ incluídos no plano (§39)
     modulos: list[str] = []
     plano: PlanoPerfil | None = None  # None = sem plano atribuído (sem restrição)
+    # pode adicionar município pela interface? (limite + feature do plano, §39)
+    territorio: TerritorioEdicao = TerritorioEdicao()
     # conta de DEMONSTRAÇÃO: o painel mostra a faixa de sandbox e esconde as
     # ações bloqueadas (zerar perfil, refazer onboarding, trocar senha)
     demo: bool = False

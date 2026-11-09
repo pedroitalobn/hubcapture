@@ -31,6 +31,59 @@
         "title": "AceitarConvite",
         "type": "object"
       },
+      "AdicionarMunicipiosRequest": {
+        "description": "Ampliar o território fora do onboarding (Minha conta).",
+        "properties": {
+          "municipios": {
+            "items": {
+              "$ref": "#/components/schemas/MunicipioIn"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Municipios",
+            "type": "array"
+          }
+        },
+        "required": [
+          "municipios"
+        ],
+        "title": "AdicionarMunicipiosRequest",
+        "type": "object"
+      },
+      "AdicionarMunicipiosResultado": {
+        "description": "Resultado de `POST /profile/municipalities`.",
+        "properties": {
+          "adicionados": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MunicipioPerfil"
+            },
+            "title": "Adicionados",
+            "type": "array"
+          },
+          "ja_existiam": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Ja Existiam",
+            "type": "array"
+          },
+          "sync_disparado": {
+            "default": false,
+            "title": "Sync Disparado",
+            "type": "boolean"
+          },
+          "territorio": {
+            "$ref": "#/components/schemas/TerritorioEdicao"
+          }
+        },
+        "required": [
+          "territorio"
+        ],
+        "title": "AdicionarMunicipiosResultado",
+        "type": "object"
+      },
       "AdminApiChaveCreate": {
         "properties": {
           "escopo": {
@@ -8971,6 +9024,13 @@
                 "type": "null"
               }
             ]
+          },
+          "territorio": {
+            "$ref": "#/components/schemas/TerritorioEdicao",
+            "default": {
+              "em_uso": 0,
+              "pode_adicionar": true
+            }
           }
         },
         "title": "PerfilRead",
@@ -11404,6 +11464,56 @@
           }
         },
         "title": "SyncRunStatus",
+        "type": "object"
+      },
+      "TerritorioEdicao": {
+        "description": "O que o plano deixa fazer com o território FORA do onboarding.\n\nO front não recalcula a regra (limite do plano, feature, conta demo): lê\ndaqui se o campo \"adicionar município\" aparece e por que não, quando não.",
+        "properties": {
+          "em_uso": {
+            "default": 0,
+            "title": "Em Uso",
+            "type": "integer"
+          },
+          "maximo": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maximo"
+          },
+          "motivo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Motivo"
+          },
+          "pode_adicionar": {
+            "default": true,
+            "title": "Pode Adicionar",
+            "type": "boolean"
+          },
+          "restantes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restantes"
+          }
+        },
+        "title": "TerritorioEdicao",
         "type": "object"
       },
       "TokenPair": {
@@ -19024,6 +19134,56 @@
           }
         ],
         "summary": "Novidades Perfil",
+        "tags": [
+          "perfil"
+        ]
+      }
+    },
+    "/api/v1/profile/municipalities": {
+      "post": {
+        "description": "Amplia o território pela interface (Minha conta), sem refazer o onboarding.\n\nVale o que o PLANO libera (§39): a feature `municipios_adicionar` e o\n`municipios_max` (sem limite = ilimitado). Município que já está no\nterritório é ignorado. A 1ª coleta dos novos é agendada em background,\ncom as fontes e áreas que o perfil já tem.",
+        "operationId": "adicionar_municipios_api_v1_profile_municipalities_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdicionarMunicipiosRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdicionarMunicipiosResultado"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Adicionar Municipios",
         "tags": [
           "perfil"
         ]

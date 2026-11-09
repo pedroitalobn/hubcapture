@@ -30,18 +30,21 @@ class LimitePlanoExcedido(Exception):
         super().__init__(f"limite de {maximo} município(s) do plano excedido")
 
 
-async def _validar_limite_municipios(
-    session: AsyncSession,
-    usuario_id: uuid.UUID,
-    req: OnboardingRequest,
-    cfg: plano_gates.PlanoConfig,
-) -> None:
-    """3 tiers × quantidade de municípios (fluxograma): o plano limita quantos
-    municípios o usuário monitora. Sem plano/limite → ilimitado."""
+def excede_limite(cfg: plano_gates.PlanoConfig, existentes: set[str], novos: set[str]) -> bool:
+    """O território resultante passa do `municipios_max` do plano? Sem limite → nunca.
+
+    Regra ÚNICA do limite de municípios: vale para o onboarding e para o
+    "adicionar município" de Minha conta — os dois caminhos não podem divergir.
+    Município que já está no território não conta duas vezes.
+    """
     maximo = cfg.municipios_max
-    if not maximo:
-        return
-    existentes = set(
+    if not maximo:  # None/0 = ilimitado (mesma leitura de sempre do onboarding)
+        return False
+    return len(existentes | novos) > int(maximo)
+
+
+async def ibges_do_territorio(session: AsyncSession, usuario_id: uuid.UUID) -> set[str]:
+    return set(
         (
             await session.execute(
                 select(MunicipioInteresse.ibge).where(MunicipioInteresse.usuario_id == usuario_id)
@@ -50,9 +53,21 @@ async def _validar_limite_municipios(
         .scalars()
         .all()
     )
-    total = len(existentes | {m.ibge for m in req.municipios})
-    if total > int(maximo):
-        raise LimitePlanoExcedido(int(maximo))
+
+
+async def _validar_limite_municipios(
+    session: AsyncSession,
+    usuario_id: uuid.UUID,
+    req: OnboardingRequest,
+    cfg: plano_gates.PlanoConfig,
+) -> None:
+    """3 tiers × quantidade de municípios (fluxograma): o plano limita quantos
+    municípios o usuário monitora. Sem plano/limite → ilimitado."""
+    if not cfg.municipios_max:
+        return
+    existentes = await ibges_do_territorio(session, usuario_id)
+    if excede_limite(cfg, existentes, {m.ibge for m in req.municipios}):
+        raise LimitePlanoExcedido(int(cfg.municipios_max))
 
 
 async def onboarding(

@@ -5,9 +5,13 @@ de 7 dígitos é a chave canônica de território (ver CLAUDE.md), não a identi
 que se mostra a gente.
 
 1. ENTRADA (onboarding conversacional): o usuário digita o NOME e resolvemos
-   para o código. A malha (~5,5k municípios) vem da API pública de Localidades
-   do IBGE, cacheada em memória do processo (TTL longo — muda raramente). Se o
-   IBGE não responder, a busca devolve vazio e o front aceita o código digitado.
+   para o código. A malha municipal oficial (5.571 municípios: código IBGE,
+   nome, UF) mora NO REPOSITÓRIO (`data/municipios_ibge.csv`) e é lida uma vez
+   por processo. Antes ela vinha ao vivo da API de Localidades do IBGE — e
+   quando o gov.br recusava a conexão do servidor, a busca devolvia lista vazia
+   em silêncio: o gestor digitava o nome e o onboarding travava ali. A lista
+   muda raríssimo (o município mais novo é de 2023); quando o IBGE criar um,
+   atualiza-se o arquivo (`python -m src.tools.atualizar_municipios`).
 
 2. SAÍDA (`rotulo`/`enriquecer`): todo registro se apresenta pelo nome do
    município, com o código como dado secundário. Como o cache multi-fonte nem
@@ -19,27 +23,23 @@ que se mostra a gente.
 
 from __future__ import annotations
 
-import time
+import csv
 import unicodedata
 from collections.abc import Sequence
+from pathlib import Path
 from typing import TypeVar
 
-import httpx
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..core.config import settings
 from ..models.municipio_interesse import MunicipioInteresse
 from . import busca_nome
-from . import config as config_service
 
-ENDPOINT = "municipios"
-_TTL_SEGUNDOS = 24 * 3600
-_TIMEOUT = httpx.Timeout(30.0, connect=10.0)
+# A malha municipal oficial (código IBGE;nome;UF). Ver a docstring do módulo.
+ARQUIVO_MALHA = Path(__file__).resolve().parent.parent / "data" / "municipios_ibge.csv"
 
 _cache: list[dict] | None = None
-_cache_em: float = 0.0
 
 
 def _normalizar(texto: str) -> str:
@@ -47,35 +47,32 @@ def _normalizar(texto: str) -> str:
     return "".join(c for c in sem_acento if unicodedata.category(c) != "Mn").lower()
 
 
+def _registro(ibge: str, nome: str, uf: str) -> dict:
+    return {
+        "ibge": ibge,
+        "nome": nome,
+        "uf": uf,
+        "busca": _normalizar(nome),
+        "termos": busca_nome.preparar(nome),
+    }
+
+
+def ler_malha(arquivo: Path = ARQUIVO_MALHA) -> list[dict]:
+    """Lê a malha do CSV e materializa o índice de busca."""
+    with arquivo.open(encoding="utf-8") as f:
+        return [
+            _registro(r["ibge"], r["nome"], r["uf"])
+            for r in csv.DictReader(f, delimiter=";")
+            if len(r.get("ibge") or "") == 7 and r.get("nome")
+        ]
+
+
 async def _carregar() -> list[dict]:
-    """Baixa a malha municipal (view nivelada) e materializa o índice de busca."""
-    global _cache, _cache_em
-    if _cache is not None and (time.monotonic() - _cache_em) < _TTL_SEGUNDOS:
-        return _cache
-
-    base = await config_service.resolver("ibge_localidades_url") or (settings.ibge_localidades_url)
-    async with httpx.AsyncClient(base_url=base, timeout=_TIMEOUT) as client:
-        resp = await client.get(ENDPOINT, params={"view": "nivelado"})
-        resp.raise_for_status()
-        linhas = resp.json()
-
-    municipios = []
-    for row in linhas:
-        ibge = str(row.get("municipio-id") or "")
-        nome = row.get("municipio-nome") or ""
-        uf = row.get("UF-sigla") or ""
-        if len(ibge) == 7 and nome:
-            municipios.append(
-                {
-                    "ibge": ibge,
-                    "nome": nome,
-                    "uf": uf,
-                    "busca": _normalizar(nome),
-                    "termos": busca_nome.preparar(nome),
-                }
-            )
-    _cache, _cache_em = municipios, time.monotonic()
-    return municipios
+    """Malha municipal indexada para busca (lida uma vez por processo)."""
+    global _cache
+    if _cache is None:
+        _cache = ler_malha()
+    return _cache
 
 
 async def buscar(q: str, *, limite: int = 8) -> list[dict]:
@@ -91,7 +88,7 @@ async def buscar(q: str, *, limite: int = 8) -> list[dict]:
         return []
     try:
         municipios = await _carregar()
-    except Exception:  # IBGE fora do ar → degrada; front aceita código direto
+    except Exception:  # arquivo ilegível → degrada; o front aceita o código
         return []
 
     if q.isdigit():
@@ -100,7 +97,11 @@ async def buscar(q: str, *, limite: int = 8) -> list[dict]:
         ][:limite]
 
     alvo = _normalizar(q)
-    prefixo = [m for m in municipios if m["busca"].startswith(alvo)]
+    # nome exato primeiro ("fortaleza" → Fortaleza/CE antes de Fortaleza dos Valos)
+    prefixo = sorted(
+        (m for m in municipios if m["busca"].startswith(alvo)),
+        key=lambda m: (m["busca"] != alvo, len(m["busca"])),
+    )
     contem = [m for m in municipios if alvo in m["busca"] and not m["busca"].startswith(alvo)]
     achados = prefixo + contem
     if not achados:

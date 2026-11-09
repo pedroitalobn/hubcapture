@@ -13,10 +13,11 @@ from collections import Counter
 from collections.abc import Sequence
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from urllib.parse import urlencode
 from typing import Any
+from urllib.parse import urlencode
 
 from sqlalchemy import ColumnElement, Select, and_, delete, func, or_, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.alerta import Alerta
@@ -32,7 +33,9 @@ from ..models.proposta import Proposta
 from ..models.repasse import Repasse
 from ..models.sync_run import SyncRun
 from ..models.usuario import Usuario
+from ..schemas.curadoria import MunicipioIn
 from ..schemas.perfil import (
+    AdicionarMunicipiosResultado,
     AnoDisponivel,
     DimensaoResumo,
     MunicipioPerfil,
@@ -45,11 +48,14 @@ from ..schemas.perfil import (
     RemocaoMunicipioResultado,
     ResetPerfilResultado,
     SyncRunStatus,
+    TerritorioEdicao,
     VisaoGeralPerfil,
 )
 from . import fontes as fontes_service
 from . import modulos as modulos_service
+from . import monitoramentos as monitoramentos_service
 from . import municipios as municipios_service
+from . import onboarding as onboarding_service
 from . import plano_gates
 from . import propostas as propostas_service
 from ._territorio import Municipios
@@ -162,10 +168,11 @@ async def get_perfil(session: AsyncSession, usuario: Usuario) -> PerfilRead:
     das_areas = sorted({f for a in areas for f in AREA_FONTES.get(a, set())})
     fontes_pref = fontes_service.expandir(escolhidas) or []
     fontes_pref += [f for f in das_areas if f not in fontes_pref]
+    municipios = await _municipios(session)
     return PerfilRead(
         nome=usuario.nome,
         papel=usuario.papel,
-        municipios=await _municipios(session),
+        municipios=municipios,
         areas=areas,
         # fonte escolhida no onboarding que o plano deixou de incluir some da
         # navegação (o dado gravado fica; um upgrade a traz de volta)
@@ -180,8 +187,134 @@ async def get_perfil(session: AsyncSession, usuario: Usuario) -> PerfilRead:
             chave for chave, on in ativos.items() if on and plano_gates.modulo_liberado(cfg, chave)
         ],
         plano=plano,
+        territorio=edicao_territorio(cfg, usuario, len(municipios)),
         demo=bool(getattr(usuario, "is_demo", False)),
     )
+
+
+# ── Território: adicionar fora do onboarding ────────────────────────────────
+
+
+def edicao_territorio(
+    cfg: plano_gates.PlanoConfig, usuario: Usuario, em_uso: int
+) -> TerritorioEdicao:
+    """Pode adicionar município pela interface? E quantos ainda cabem?
+
+    Duas travas do PLANO (§39): a feature `municipios_adicionar` (o admin
+    desliga por plano) e o `municipios_max` — sem limite, o território é
+    ilimitado. Superuser já chega aqui com `SEM_RESTRICAO`. A conta demo é
+    compartilhada: o território dela é o palco da apresentação.
+    """
+    maximo = cfg.municipios_max or None  # 0 = ilimitado, como no onboarding
+    restantes = None if maximo is None else max(int(maximo) - em_uso, 0)
+    motivo: str | None = None
+    if getattr(usuario, "is_demo", False):
+        motivo = "demo"
+    elif not plano_gates.feature_liberada(cfg, "municipios_adicionar"):
+        motivo = "plano_nao_permite"
+    elif restantes == 0:
+        motivo = "limite_atingido"
+    return TerritorioEdicao(
+        pode_adicionar=motivo is None,
+        maximo=maximo,
+        em_uso=em_uso,
+        restantes=restantes,
+        motivo=motivo,
+    )
+
+
+class AdicaoNaoPermitida(Exception):
+    """O plano não deixa ampliar o território pela interface."""
+
+
+async def adicionar_municipios(
+    session: AsyncSession, usuario: Usuario, municipios: Sequence[MunicipioIn]
+) -> AdicionarMunicipiosResultado:
+    """Amplia o território sem refazer o onboarding.
+
+    Até aqui município só entrava pelo onboarding — e refazê-lo REGRAVA áreas,
+    fontes e canais. Esta é a porta cirúrgica, par do `remover_municipio`:
+    insere a linha do território (com o nome/UF resolvidos), cria a busca
+    monitorada quando o usuário monitora o território e devolve os novos para
+    o router agendar a 1ª coleta deles. Preferências não são tocadas.
+
+    Levanta `AdicaoNaoPermitida` (feature desligada no plano) e
+    `onboarding.LimitePlanoExcedido` (passaria do `municipios_max`) — a mesma
+    regra de limite do onboarding, para os dois caminhos não divergirem.
+    """
+    cfg, _ = await _config_plano(session, usuario)
+    if not plano_gates.feature_liberada(cfg, "municipios_adicionar"):
+        raise AdicaoNaoPermitida()
+
+    existentes = await onboarding_service.ibges_do_territorio(session, usuario.id)
+    # dedup preservando a ordem do pedido
+    pedidos: dict[str, MunicipioIn] = {}
+    for m in municipios:
+        pedidos.setdefault(m.ibge, m)
+    novos = [m for ibge, m in pedidos.items() if ibge not in existentes]
+    ja_existiam = [ibge for ibge in pedidos if ibge in existentes]
+
+    if onboarding_service.excede_limite(cfg, existentes, {m.ibge for m in novos}):
+        raise onboarding_service.LimitePlanoExcedido(int(cfg.municipios_max or 0))
+
+    pref = await _preferencias(session, usuario.id)
+    monitorar = bool(pref.monitorar_ativo) if pref else True
+
+    for m in novos:
+        nome, uf = (m.nome or "").strip() or None, (m.uf or "").strip().upper() or None
+        if not nome:
+            # o front manda o nome da busca do IBGE; código digitado direto
+            # resolve aqui (best-effort — sem rede, o rótulo degrada para o código)
+            achado = await municipios_service.nome_uf_por_ibge(m.ibge)
+            if achado:
+                nome, uf = achado[0], uf or achado[1]
+        await session.execute(
+            pg_insert(MunicipioInteresse)
+            .values(
+                usuario_id=usuario.id,
+                ibge=m.ibge,
+                nome=nome,
+                uf=uf or municipios_service.uf_do_ibge(m.ibge),
+                modo="monitorado",
+            )
+            .on_conflict_do_nothing(constraint="uq_municipios_usuario_ibge")
+        )
+        if monitorar:
+            # mesma regra do onboarding: território monitorado → busca de
+            # FUTURAS propostas. Os canais da conta somam na hora do despacho (§63).
+            await monitoramentos_service.criar_busca(
+                session,
+                usuario.id,
+                municipio_ibge=m.ibge,
+                area=None,
+                fonte=None,
+                canais=["painel"],
+            )
+        session.add(
+            AuditLog(
+                usuario_id=usuario.id,
+                acao="adicionar_municipio",
+                entidade=f"municipio:{m.ibge}",
+            )
+        )
+
+    adicionados = await _municipios(session, [m.ibge for m in novos]) if novos else []
+    return AdicionarMunicipiosResultado(
+        adicionados=adicionados,
+        ja_existiam=ja_existiam,
+        sync_disparado=False,  # quem agenda é o router, depois do commit
+        territorio=edicao_territorio(cfg, usuario, len(existentes) + len(novos)),
+    )
+
+
+async def preferencias_de_coleta(
+    session: AsyncSession, usuario_id
+) -> tuple[list[str], list[str]]:
+    """(fontes, áreas) do perfil para a 1ª coleta de um município novo."""
+    pref = await _preferencias(session, usuario_id)
+    if not pref:
+        return [], []
+    return list(pref.fontes or []), list(pref.areas or [])
 
 
 # Caches GLOBAIS recortados por município (§4): não pertencem ao usuário, são
