@@ -21,6 +21,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { AdicionarMunicipio } from "@/components/AdicionarMunicipio";
 import { ChipFiltro, ItemMenu, Seletor } from "@/components/kit";
 import { filtrarPorBusca } from "@/lib/busca";
 import { useOrigem } from "@/lib/origem";
@@ -41,8 +42,11 @@ const FILTROS_DA_ROTA: {
   municipio: boolean;
   origem: boolean;
   ano?: boolean;
+  /** O seletor de Município também ADICIONA ao território (§68) — só no Meu
+   *  painel, que é a visão do território inteiro. */
+  adicionar?: boolean;
 }[] = [
-  { rota: /^\/panel$/, municipio: true, origem: true, ano: true },
+  { rota: /^\/panel$/, municipio: true, origem: true, ano: true, adicionar: true },
   // `/panel/funding` e o resumo dele FICAM DE FORA de propósito (§61): a tela
   // de Propostas é o construtor de consultas e cada ABA carrega o próprio
   // município e a própria origem. Mantê-los também aqui seria o mesmo filtro
@@ -61,19 +65,29 @@ export function filtrosDaRota(pathname: string) {
       municipio: false,
       origem: false,
       ano: false,
+      adicionar: false,
     }
   );
 }
 
 export function FiltrosPainel({ pathname }: { pathname: string }) {
   const regra = filtrosDaRota(pathname);
-  const { municipios } = useTerritorio();
+  const { perfil, municipios } = useTerritorio();
   const { origens } = useOrigem();
   const { opcoes: anosDoTerritorio } = useAno();
 
+  // Adicionar município pelo seletor: nunca na conta demo (o território dela
+  // é o palco compartilhado) e só quando o perfil já diz o que o plano deixa.
+  const adicionar = Boolean(regra.adicionar) && !perfil?.demo && Boolean(perfil?.territorio);
+
   // Recorte com uma opção só não recorta nada: cada seletor some sozinho, e
-  // a barra inteira sai da tela quando não sobra nenhum.
-  const mostraMunicipio = regra.municipio && municipios.length > 1;
+  // a barra inteira sai da tela quando não sobra nenhum. A exceção é quem
+  // acompanha UM município e pode adicionar outro — aí o seletor é a porta
+  // para ampliar o território, não um filtro morto.
+  const mostraMunicipio =
+    regra.municipio &&
+    (municipios.length > 1 ||
+      (adicionar && municipios.length > 0 && Boolean(perfil?.territorio?.pode_adicionar)));
   const mostraOrigem = regra.origem && origens.length > 1;
   const mostraAno = Boolean(regra.ano) && anosDoTerritorio.length > 1;
   if (!mostraMunicipio && !mostraOrigem && !mostraAno) return null;
@@ -81,7 +95,7 @@ export function FiltrosPainel({ pathname }: { pathname: string }) {
   return (
     <div className="toolbar mb-5">
       <span className="toolbar-label">Recorte</span>
-      {mostraMunicipio && <SeletorMunicipio />}
+      {mostraMunicipio && <SeletorMunicipio adicionar={adicionar} />}
       {mostraOrigem && <SeletorOrigem />}
       {/* O ano fecha a linha dos recortes globais — ele morava sozinho no
           canto do cabeçalho da página, longe dos irmãos de mesmo alcance. */}
@@ -97,10 +111,13 @@ export function FiltrosPainel({ pathname }: { pathname: string }) {
 
 /* ─────────────────────────────────────────────────────── Município ────── */
 
-function SeletorMunicipio() {
-  const { perfil, municipios, selecionados, ativos, alternar, apenas, todos } =
+function SeletorMunicipio({ adicionar }: { adicionar: boolean }) {
+  const { perfil, municipios, selecionados, ativos, alternar, apenas, todos, recarregar } =
     useTerritorio();
   const [busca, setBusca] = useState("");
+  // o MESMO menu tem dois modos: recortar o painel e ampliar o território
+  const [modo, setModo] = useState<"filtrar" | "adicionar">("filtrar");
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const tudo = selecionados.length === 0;
   const [unico] = ativos;
@@ -121,10 +138,52 @@ function SeletorMunicipio() {
       ativo={!tudo}
       largura="17rem"
       titulo="Quais municípios do seu território entram no painel agora"
-      aoFechar={() => setBusca("")}
+      aoFechar={() => {
+        setBusca("");
+        setModo("filtrar");
+        setAviso(null);
+      }}
     >
-      {(fechar) => (
+      {(fechar) =>
+        modo === "adicionar" ? (
+          <>
+            <div className="menu-head">
+              <button
+                type="button"
+                onClick={() => setModo("filtrar")}
+                className="link-soft shrink-0 text-[12px]"
+              >
+                ← Municípios
+              </button>
+              <span className="ml-auto truncate text-[12px] text-ink-3">
+                Adicionar ao território
+              </span>
+            </div>
+            <div className="px-2 pb-2">
+              <AdicionarMunicipio
+                compacto
+                autoFocus
+                edicao={perfil?.territorio}
+                jaNoTerritorio={municipios.map((m) => m.ibge)}
+                aoAdicionar={async (nomes) => {
+                  await recarregar();
+                  setAviso(
+                    `${nomes.join(", ")} ${nomes.length > 1 ? "entraram" : "entrou"} no seu ` +
+                      "território. A primeira coleta já começou — os dados chegam ao painel " +
+                      "em alguns minutos.",
+                  );
+                  setModo("filtrar");
+                }}
+              />
+            </div>
+          </>
+        ) : (
         <>
+          {aviso && (
+            <p className="mx-2 mb-1 rounded-lg bg-surface-2 px-2.5 py-2 text-[12.5px] leading-snug text-ink-2">
+              {aviso}
+            </p>
+          )}
           {municipios.length >= COM_BUSCA && (
             <div className="menu-head">
               <input
@@ -180,6 +239,32 @@ function SeletorMunicipio() {
             )}
           </div>
 
+          {adicionar && (
+            <>
+              <div className="menu-sep" />
+              <button
+                type="button"
+                onClick={() => setModo("adicionar")}
+                className="menu-item font-medium text-ink"
+                title={
+                  perfil?.territorio?.maximo != null
+                    ? `${perfil.territorio.em_uso} de ${perfil.territorio.maximo} municípios do seu plano`
+                    : "Seu plano não limita a quantidade de municípios"
+                }
+              >
+                <span aria-hidden className="w-4 text-center text-base leading-none">
+                  +
+                </span>
+                <span className="min-w-0 flex-1 truncate">Adicionar município</span>
+                {perfil?.territorio?.maximo != null && (
+                  <span className="shrink-0 tabular-nums text-[11.5px] text-ink-3">
+                    {perfil.territorio.em_uso}/{perfil.territorio.maximo}
+                  </span>
+                )}
+              </button>
+            </>
+          )}
+
           <div className="menu-foot">
             {(perfil?.areas ?? []).length > 0 && (
               <span className="min-w-0 truncate" title={perfil!.areas.join(", ")}>
@@ -195,7 +280,8 @@ function SeletorMunicipio() {
             )}
           </div>
         </>
-      )}
+        )
+      }
     </Seletor>
   );
 }

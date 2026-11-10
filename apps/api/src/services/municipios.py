@@ -190,6 +190,9 @@ async def buscar(q: str, *, limite: int = 8) -> list[dict]:
         achados = busca_nome.filtrar(
             municipios, q, lambda m: m.get("termos") or busca_nome.preparar(m["nome"])
         )
+        # com erro de digitação, o nome de tamanho mais próximo do digitado vem
+        # primeiro: "fortalesa" → Fortaleza/CE antes de Fortaleza do Tabocão
+        achados = sorted(achados, key=lambda m: abs(len(m["busca"]) - len(alvo)))
     return [{k: m[k] for k in ("ibge", "nome", "uf")} for m in achados[:limite]]
 
 

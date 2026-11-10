@@ -236,6 +236,8 @@ async def test_busca_usa_a_malha_interna_sem_rede(monkeypatch) -> None:
     achados = await municipios_service.buscar("fortaleza")
     assert achados[0] == {"ibge": "2304400", "nome": "Fortaleza", "uf": "CE"}  # exato 1º
     assert (await municipios_service.buscar("apuiarez"))[0]["ibge"] == "2300903"
+    # com erro de digitação, o nome mais próximo do digitado lidera
+    assert (await municipios_service.buscar("fortalesa"))[0]["ibge"] == "2304400"
     assert (await municipios_service.buscar("2300903"))[0]["nome"] == "Apuiarés"
     assert await municipios_service.nome_uf_por_ibge("3550308") == ("São Paulo", "SP")
 
