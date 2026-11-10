@@ -3344,7 +3344,7 @@ onboarding parava ali. A malha agora mora no repositório — `src/data/municipi
 (`ibge;nome;uf;siafi;latitude;longitude`, 5.571 municípios, ~270 KB), lida uma vez por
 processo. Busca instantânea,
 sem rede, e o nome exato vem primeiro ("fortaleza" → Fortaleza/CE antes de Fortaleza dos
-Valos). A lista muda raríssimo; quando o IBGE criar/renomear município, roda-se
+Valos; com erro de digitação, o nome de tamanho mais próximo do digitado). A lista muda raríssimo; quando o IBGE criar/renomear município, roda-se
 `python -m src.tools.atualizar_municipios` (`--check` só compara) numa máquina com acesso
 ao IBGE e commita-se o arquivo. A chave `ibge_localidades_url` saiu do painel admin.
 
@@ -3373,8 +3373,14 @@ ao IBGE e commita-se o arquivo. A chave `ibge_localidades_url` saiu do painel ad
   (`onboarding.excede_limite`) para os dois caminhos não divergirem.
 - **`GET /profile` → `territorio`** (`pode_adicionar`, `maximo`, `em_uso`, `restantes`,
   `motivo`: `plano_nao_permite|limite_atingido|demo`) — o front não recalcula a regra.
-- **Web**: "Meu território" em `panel/account` (`#territorio`) ganhou a busca com
-  "Adicionar" (ou explicação do plano quando não pode) e o contador "N de M municípios". O
+- **Web**: a peça é UMA — `components/AdicionarMunicipio.tsx` (busca + "Adicionar", ou a
+  explicação do plano quando não pode; `compacto` para menu suspenso) — usada em dois
+  lugares. (1) **Meu painel**: o seletor de Município da barra de recorte (§58) ganhou o
+  modo "+ Adicionar município" (com o contador `em_uso/maximo`) e volta à lista com o aviso
+  de que a 1ª coleta começou; só no `/panel` (`FILTROS_DA_ROTA.adicionar`), nunca na conta
+  demo, e com UM município só o seletor aparece mesmo assim quando o plano deixa adicionar
+  — ali ele é a porta para ampliar o território, não um filtro morto. (2) **Minha conta**:
+  "Meu território" (`#territorio`), com o contador "N de M municípios". O
   onboarding mostra o limite já na etapa de municípios (contando o território existente)
   e diz quando a busca não achou nada, em vez de a lista sumir calada.
 - Regressão: `tests/test_adicionar_municipio.py` (ilimitado, limite, feature desligada,
