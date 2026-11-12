@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -37,7 +38,14 @@ class SaidaBloqueadaSandbox(httpx.ConnectError):
 
 def hosts_permitidos() -> set[str]:
     extras = {h.strip().lower() for h in settings.sandbox_hosts_permitidos.split(",")}
-    return _LOCAIS | {h for h in extras if h}
+    hosts = _LOCAIS | {h for h in extras if h}
+    if settings.sandbox_email:
+        # o e-mail de conta sai pela API do Maileroo (httpx); SMTP não passa
+        # por aqui (smtplib), então não precisa de liberação
+        maileroo = urlsplit(settings.maileroo_api_url).hostname
+        if maileroo:
+            hosts.add(maileroo.lower())
+    return hosts
 
 
 def host_permitido(host: str | None) -> bool:

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "plyr/dist/plyr.css";
 import "./globals.css";
 import { UiVersionSync } from "@/components/UiVersionSync";
@@ -7,14 +7,22 @@ import { UiVersionSync } from "@/components/UiVersionSync";
 // Design system v1 (/previews/guia.html §3): Inter no corpo e na UI;
 // Archivo nos títulos H1–H3 (caixa alta) e nos números. A Roboto Mono saiu
 // do sistema — `--font-mono` no globals.css passa a apontar para a Inter.
-const sans = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+//
+// Fontes NO REPOSITÓRIO (app/fonts, subset latin do Google Fonts, licença
+// OFL), não `next/font/google`: o Google baixava as fontes durante o BUILD,
+// e o build quebrava quando a rede do servidor recebia uma resposta
+// diferente ("Cannot read properties of null (reading '1')" no loader).
+// Arquivo variável: um arquivo por família cobre todos os pesos.
+const sans = localFont({
+  src: "./fonts/inter-latin.woff2",
+  weight: "100 900",
+  display: "swap",
   variable: "--font-sans-src",
 });
-const display = Archivo({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+const display = localFont({
+  src: "./fonts/archivo-latin.woff2",
+  weight: "100 900",
+  display: "swap",
   variable: "--font-display-src",
 });
 

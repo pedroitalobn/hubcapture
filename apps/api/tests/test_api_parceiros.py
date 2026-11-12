@@ -343,12 +343,61 @@ async def test_sandbox_bloqueia_saida_externa(monkeypatch) -> None:
         desfazer()
 
 
-async def test_sandbox_nao_envia_email_whatsapp_nem_push(modo_sandbox) -> None:
+async def test_sandbox_nao_envia_alerta_whatsapp_nem_push(modo_sandbox, monkeypatch) -> None:
     from src.notifications import email, uniq, webpush
 
-    assert await email.enviar("a@b.com", "x", "y") is False
+    monkeypatch.setattr(settings, "email_from", "Hub <nao-responda@hub.com.br>")
+    monkeypatch.setattr(settings, "maileroo_api_key", "chave-de-teste")
+    enviados: list[str] = []
+
+    async def _falso(_chave, _rem, _dest, assunto, _txt, _html):  # noqa: ANN001
+        enviados.append(assunto)
+
+    monkeypatch.setattr(email, "_enviar_maileroo", _falso)
+    # alerta fala de dado fictício: nunca sai do sandbox
+    assert await email.enviar("a@b.com", "Novo empenho", "y", alerta=True) is False
     assert await uniq.enviar("+5585999999999", "oi") is False
     assert await webpush.enviar("https://fcm.googleapis.com/x", "k", "a", {}) is False
+    assert enviados == []
+
+
+async def test_sandbox_envia_email_de_conta_marcado(modo_sandbox, monkeypatch) -> None:
+    """Convite/senha saem pelo serviço da produção, com [Sandbox] no assunto —
+    sem isso o parceiro nunca recebe o convite do ambiente de testes."""
+    from src.core.sandbox import hosts_permitidos
+    from src.notifications import email
+
+    monkeypatch.setattr(settings, "email_from", "Hub <nao-responda@hub.com.br>")
+    monkeypatch.setattr(settings, "maileroo_api_key", "chave-de-teste")
+    enviados: list[str] = []
+
+    async def _falso(_chave, _rem, _dest, assunto, _txt, _html):  # noqa: ANN001
+        enviados.append(assunto)
+
+    monkeypatch.setattr(email, "_enviar_maileroo", _falso)
+    assert await email.enviar("parceiro@x.com", "Você foi convidado", "link") is True
+    assert enviados == ["[Sandbox] Você foi convidado"]
+    # a saída HTTP do sandbox libera o Maileroo (e só por causa do e-mail)
+    assert "smtp.maileroo.com" in hosts_permitidos()
+
+    monkeypatch.setattr(settings, "sandbox_email", False)
+    assert await email.enviar("parceiro@x.com", "Você foi convidado", "link") is False
+    assert "smtp.maileroo.com" not in hosts_permitidos()
+
+
+async def test_producao_nao_marca_o_assunto(monkeypatch) -> None:
+    from src.notifications import email
+
+    monkeypatch.setattr(settings, "email_from", "Hub <nao-responda@hub.com.br>")
+    monkeypatch.setattr(settings, "maileroo_api_key", "chave-de-teste")
+    enviados: list[str] = []
+
+    async def _falso(_chave, _rem, _dest, assunto, _txt, _html):  # noqa: ANN001
+        enviados.append(assunto)
+
+    monkeypatch.setattr(email, "_enviar_maileroo", _falso)
+    assert await email.enviar("a@b.com", "Alertas", "y", alerta=True) is True
+    assert enviados == ["Alertas"]
 
 
 def test_dados_ficticios_deterministicos_e_relativos_a_hoje() -> None:

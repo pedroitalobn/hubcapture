@@ -43,7 +43,7 @@ export function UiVersionSync() {
       role="status"
       className="fixed inset-x-0 top-0 z-[120] bg-warn px-4 py-1 text-center text-xs font-medium text-[#1F2A27]"
     >
-      Ambiente de testes (sandbox) — dados fictícios, nada é enviado para fora.
+      Ambiente de testes (sandbox) — dados fictícios; alertas não são enviados.
     </div>
   );
 }
