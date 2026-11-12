@@ -112,13 +112,21 @@ async def enviar(
     assunto: str,
     corpo_txt: str,
     corpo_html: str | None = None,
+    *,
+    alerta: bool = False,
 ) -> bool:
     """Envia um e-mail. Retorna True se despachado, False se desabilitado.
 
     Preferência: Maileroo (API) > SMTP. Remetente/chave: painel admin > env.
+
+    `alerta=True` marca o aviso de MUDANÇA EM DADO (varredura de alertas), que
+    no sandbox nunca sai: o dado é fictício. E-mail de CONTA (convite, senha,
+    verificação) sai no sandbox com "[Sandbox]" no assunto (§67).
     """
-    if settings.sandbox:  # §67: o sandbox nunca escreve para pessoas reais
-        return False
+    if settings.sandbox:
+        if alerta or not settings.sandbox_email:
+            return False
+        assunto = f"[Sandbox] {assunto}"
     remetente = await _resolver("email_from", settings.email_from)
     if not remetente:
         return False

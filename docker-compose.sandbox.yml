@@ -86,6 +86,10 @@ services:
       # única saída externa liberada: a busca de municípios do onboarding
       # (consulta pública, leve). Fontes, e-mail, WhatsApp e IA seguem bloqueados.
       SANDBOX_HOSTS_PERMITIDOS: ${SANDBOX_HOSTS_PERMITIDOS:-servicodados.ibge.gov.br}
+      # e-mails de conta (convite, senha) saem pelo serviço da produção, com
+      # "[Sandbox]" no assunto; alertas não. EMAIL_FROM + MAILEROO_API_KEY vêm
+      # do .env do projeto. false = nenhum e-mail sai.
+      SANDBOX_EMAIL: ${SANDBOX_EMAIL:-true}
       # recriação diária dos dados de teste (06:00 UTC ≈ 03:00 em Brasília)
       SANDBOX_RESET_HORA_UTC: ${SANDBOX_RESET_HORA_UTC:-6}
       # o acesso demo de vendas não faz sentido aqui

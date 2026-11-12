@@ -182,7 +182,7 @@ export function ChavesApiConta() {
         Conecte outro sistema (ERP, CRM, planilha) aos dados do seu território.
         Cada chave entra como a sua conta e só enxerga os seus municípios.
         {dados.sandbox
-          ? " Aqui no sandbox os dados são fictícios e nada é enviado para fora."
+          ? " Aqui no sandbox os dados são fictícios e os alertas não são enviados."
           : ""}{" "}
         {ativas} de {dados.maximo} chave(s) ativa(s).
       </p>

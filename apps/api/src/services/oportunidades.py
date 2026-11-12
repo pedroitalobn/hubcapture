@@ -256,7 +256,7 @@ async def _despachar(
             base = await config_service.resolver("app_base_url")
             url = f"{base.rstrip('/')}/panel/alerts" if base else None
             assunto, txt, html = alertas_resumo(linhas, url)
-            await email_notif.enviar(usuario.email, assunto, txt, html)
+            await email_notif.enviar(usuario.email, assunto, txt, html, alerta=True)
         except Exception:  # noqa: BLE001 — canal best-effort
             log.warning("alertas: e-mail falhou para %s", usuario.id, exc_info=True)
     if "wpp" in canais and usuario.optin_wpp and usuario.telefone_wpp:

@@ -204,6 +204,11 @@ class Settings(BaseSettings):
     sandbox_hosts_permitidos: str = ""
     # Hora UTC da recriação diária dos dados de teste (-1 = desligada).
     sandbox_reset_hora_utc: int = 6
+    # E-mails de CONTA no sandbox (convite, redefinir senha, verificação,
+    # boas-vindas) saem pelo mesmo serviço da produção, com "[Sandbox]" no
+    # assunto — sem eles o parceiro não recebe o convite. Alertas seguem
+    # desligados: falam de dados fictícios. false = nenhum e-mail sai.
+    sandbox_email: bool = True
 
     # ── Versão publicada ────────────────────────────────────────────────────
     # Carimbados na imagem em build (ARG GIT_SHA/GIT_REF no Dockerfile) e

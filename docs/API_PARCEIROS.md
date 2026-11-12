@@ -124,7 +124,9 @@ coisa a cada minuto só gasta cota.
 - Os dados são **fictícios**: títulos começam com `[SANDBOX]`, o nº da proposta
   com `SBX`, e o registro bruto traz `"sandbox": true`. O território padrão é
   São Paulo/SP, Fortaleza/CE e Recife/PE.
-- Nada sai do sandbox: não há e-mail, WhatsApp, push nem consulta às fontes.
+- O sandbox não consulta as fontes do governo nem envia WhatsApp, push ou
+  e-mail de alerta. Os e-mails de conta (convite, redefinir senha, verificação)
+  saem normalmente, com `[Sandbox]` no assunto.
 - **Todo dia às 03:00 (Brasília)** os dados voltam ao estado original e o que a
   conta criou (favoritos, pastas, monitoramentos, alertas) é apagado.
 - Para recomeçar na hora: `POST /developer/sandbox/reset` (chave com escopo
@@ -155,7 +157,17 @@ total, no pior caso).
    ADMIN_EMAIL=admin@seudominio.com.br
    ADMIN_PASSWORD=<senha>
    APP_BASE_URL=https://sandbox.seudominio.com.br
+   CORS_ORIGINS=https://sandbox.seudominio.com.br
+   # e-mail: o MESMO serviço da produção (copie os valores de lá)
+   EMAIL_FROM=Hub Capture <nao-responda@seudominio.com.br>
+   MAILEROO_API_KEY=<a mesma chave da produção>
    ```
+   O banco do sandbox é outro: se na produção o e-mail foi configurado pelo
+   painel (Admin → Providers & Config → E-mail), configure de novo no painel
+   do sandbox, ou use as duas variáveis acima. Convite, redefinir senha e
+   verificação saem com `[Sandbox]` no assunto; e-mail de alerta não sai
+   (os dados são fictícios). Para desligar todo e-mail do sandbox:
+   `SANDBOX_EMAIL=false`.
    **Não reaproveite os segredos da produção.** Um token emitido num ambiente
    não pode valer no outro. `SANDBOX=true` e o banco já vêm fixos no compose: um
    `.env` copiado da produção não desliga o modo sandbox nem aponta para o banco

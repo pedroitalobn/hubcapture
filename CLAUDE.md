@@ -3305,9 +3305,18 @@ copiado da produção não desliga o modo nem aponta para o banco de produção)
   `send` do httpx é interceptado na CLASSE — há dezenas de clientes espalhados e
   nenhuma borda única. Host fora de `SANDBOX_HOSTS_PERMITIDOS` levanta
   `SaidaBloqueadaSandbox`, uma `httpx.ConnectError`, então todo tratamento de "fonte
-  fora do ar" já a absorve. Transportes em memória (testes) passam. E-mail (SMTP não
-  é httpx), WhatsApp e push também checam `settings.sandbox`; `live_search` vira
-  `somente_cache`.
+  fora do ar" já a absorve. Transportes em memória (testes) passam. WhatsApp e push
+  também checam `settings.sandbox`; `live_search` vira `somente_cache`.
+- **E-mail no sandbox: CONTA sim, ALERTA não** (`notifications/email.enviar(...,
+  alerta=)`). Convite, redefinir senha, verificação e boas-vindas saem pelo MESMO
+  serviço da produção (credenciais no `.env` do projeto do sandbox, ou no painel
+  dele — o banco é outro), com `[Sandbox]` no assunto: sem isso o parceiro nunca
+  recebe o convite do ambiente de testes. O e-mail da varredura de alertas
+  (`oportunidades._despachar`) passa `alerta=True` e não sai — fala de dado
+  fictício. O host da API do Maileroo entra sozinho na lista de saída do sandbox
+  (`core/sandbox.hosts_permitidos`); SMTP é `smtplib`, não passa pelo bloqueio.
+  `SANDBOX_EMAIL=false` desliga todo e-mail. Chamada nova de `email.enviar` que
+  avisa sobre DADO (não sobre a conta) passa `alerta=True`.
 - **Dados fictícios** (`services/sandbox.py`): determinísticos por município, datas
   relativas a HOJE (prazos e novidades continuam fazendo sentido), marcados
   `[SANDBOX]`/`SBX`/`{"sandbox": true}`. Gravados pelos MESMOS `propostas.upsert` e
@@ -3386,3 +3395,17 @@ ao IBGE e commita-se o arquivo. A chave `ibge_localidades_url` saiu do painel ad
 - Regressão: `tests/test_adicionar_municipio.py` (ilimitado, limite, feature desligada,
   router + agendamento, busca SEM rede e a integridade da malha).
 
+### 67b. Fontes do site no repositório (o build não baixa nada do Google)
+
+O build do site quebrou no deploy do sandbox com `An error occurred in
+next/font … Cannot read properties of null (reading '1')`: o `next/font/google`
+BAIXA as fontes durante o build, e a resposta que o Google deu à rede do servidor
+não trazia a extensão do arquivo que o loader do Next espera. O mesmo Dockerfile
+monta a web da produção — o próximo deploy dela estava sujeito à mesma falha.
+
+- `app/layout.tsx` usa `next/font/local` com `app/fonts/inter-latin.woff2` e
+  `app/fonts/archivo-latin.woff2`: o subset **latin** do Google Fonts (cobre o
+  português inteiro, U+0000–00FF), arquivo **variável** (`weight: "100 900"` — um
+  arquivo por família serve todos os pesos). Licença OFL, pode ir no repositório.
+- Fonte nova no design system = mais um `.woff2` em `app/fonts` + `localFont`.
+  Nunca `next/font/google`: build não pode depender de rede externa.
