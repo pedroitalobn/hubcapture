@@ -132,6 +132,20 @@ class Settings(BaseSettings):
 
     # ── E-mail transacional ────────────────────────────────────────────────
     app_base_url: str = "http://localhost:3000"  # base dos links de e-mail
+
+    # ── White label (§69) ────────────────────────────────────────────────────
+    # Domínio-base dos subdomínios das marcas (marca.<base>). Sobrescrito pelo
+    # painel admin (`whitelabel_dominio_base`).
+    whitelabel_dominio_base: str = "hubcapture.com.br"
+    # Como o host novo ganha rota + HTTPS: manual | traefik_arquivo | dokploy
+    whitelabel_provisionador: str = "manual"
+    # traefik_arquivo: pasta do provider de arquivos do Traefik montada na API
+    # (no Dokploy: /etc/dokploy/traefik/dynamic) e o destino interno da web
+    whitelabel_traefik_dir: str = ""
+    whitelabel_traefik_servico: str = "http://web:3000"
+    # dokploy: API do painel (a chave fica no painel admin, cifrada)
+    dokploy_url: str = ""
+    dokploy_compose_id: str = ""
     # Remetente (ex.: "Hub Capture <no-reply@hubcapture.com.br>"). Env EMAIL_FROM.
     email_from: str = ""
     # Maileroo (provedor de envio via API HTTP). Env MAILEROO_API_KEY. Se setado,

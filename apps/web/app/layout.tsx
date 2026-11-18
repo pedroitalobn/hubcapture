@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { MarcaProvider } from "@/lib/marca";
+import { marcaDoHost } from "@/lib/marca-servidor";
 import localFont from "next/font/local";
 import "plyr/dist/plyr.css";
 import "./globals.css";
@@ -26,23 +28,36 @@ const display = localFont({
   variable: "--font-display-src",
 });
 
-export const metadata: Metadata = {
-  title: "Hub Capture",
-  description: "Concentrador de propostas e repasses do governo brasileiro",
-};
+// White label (§69): título, ícone e cor da barra do navegador vêm da marca
+// do HOST. A chamada é a mesma do layout (fetch deduplicado pelo Next).
+export async function generateMetadata(): Promise<Metadata> {
+  const marca = await marcaDoHost();
+  return {
+    title: marca.nome,
+    description: marca.personalizada
+      ? `${marca.nome} — propostas, repasses e oportunidades do seu município`
+      : "Concentrador de propostas e repasses do governo brasileiro",
+    icons: marca.icone_url ? { icon: marca.icone_url, apple: marca.icone_url } : undefined,
+    applicationName: marca.nome,
+  };
+}
 
-export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f3f7f5" },
-    { media: "(prefers-color-scheme: dark)", color: "#08201e" },
-  ],
-};
+export async function generateViewport(): Promise<Viewport> {
+  const marca = await marcaDoHost();
+  return {
+    themeColor: [
+      { media: "(prefers-color-scheme: light)", color: marca.cor_tema_claro },
+      { media: "(prefers-color-scheme: dark)", color: marca.cor_tema_escuro },
+    ],
+  };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const marca = await marcaDoHost();
   return (
     // suppressHydrationWarning: o script abaixo põe `data-theme` no <html>
     // antes da hidratação — sem isso o React acusaria mismatch do atributo.
@@ -51,6 +66,19 @@ export default function RootLayout({
       className={`${sans.variable} ${display.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        {/* Fontes do catálogo da marca (Google Fonts, em runtime — o build
+            continua sem rede, §67b). Só existe quando a marca escolheu uma. */}
+        {marca.fontes_urls?.map((href) => (
+          <link key={href} rel="stylesheet" href={href} />
+        ))}
+        {/* Tokens da marca: CSS montado no SERVIDOR a partir do tema validado
+            (hex, catálogo, números) — nada digitado pelo dono vira código. Fica
+            depois do globals.css e fora de @layer, então vence os padrões. */}
+        {marca.css ? (
+          <style id="marca-css" dangerouslySetInnerHTML={{ __html: marca.css }} />
+        ) : null}
+      </head>
       <body>
         {/* Aplica o tema salvo (ThemeToggle → localStorage `hub_tema`) e a
             versão de UI da plataforma (UiVersionSync → localStorage `hub_ui`)
@@ -63,7 +91,7 @@ export default function RootLayout({
           }}
         />
         <UiVersionSync />
-        {children}
+        <MarcaProvider marca={marca}>{children}</MarcaProvider>
       </body>
     </html>
   );

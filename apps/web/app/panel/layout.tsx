@@ -6,9 +6,11 @@ import { useCallback, useEffect, useState } from "react";
 import DynamicIsland from "@/components/DynamicIsland";
 import { FiltrosPainel, filtrosDaRota } from "@/components/FiltrosPainel";
 import { MenuConta } from "@/components/MenuConta";
+import { BrandMark } from "@/components/AuthShell";
 import { IconeNav, type NomeIcone } from "@/components/icons";
 import { api, clearTokens, getToken } from "@/lib/api/client";
 import { HelpProvider } from "@/lib/help";
+import { useMarca } from "@/lib/marca";
 import {
   rotuloMunicipio,
   TerritorioProvider,
@@ -156,6 +158,9 @@ function PainelShell({ children }: { children: React.ReactNode }) {
   const { perfil, municipios, ativos: municipiosAtivos } = useTerritorio();
   const [admin, setAdmin] = useState(false);
   const [naoLidos, setNaoLidos] = useState(0);
+  // dono de marca white label (§69) ganha "Minha marca" no menu da conta
+  const [marcaGerida, setMarcaGerida] = useState(false);
+  const marca = useMarca();
   // Sidebar vira gaveta abaixo de 1024px; fecha a cada navegação.
   const [gaveta, setGaveta] = useState(false);
 
@@ -169,6 +174,8 @@ function PainelShell({ children }: { children: React.ReactNode }) {
       setAdmin(
         Boolean((me.data as { is_superuser?: boolean } | undefined)?.is_superuser),
       );
+      const minhas = await api.GET("/api/v1/brands/mine");
+      setMarcaGerida(Array.isArray(minhas.data) && minhas.data.length > 0);
     })();
   }, [router]);
 
@@ -233,9 +240,8 @@ function PainelShell({ children }: { children: React.ReactNode }) {
       )}
 
       <aside className="sidebar">
-        <Link href="/panel" className="sidebar-brand px-2 py-1">
-          <span className="brand-dot" aria-hidden />
-          Hub Capture
+        <Link href="/panel" className="px-2 py-1">
+          <BrandMark />
         </Link>
 
         <nav className="flex flex-col gap-0.5" aria-label="Seções do painel">
@@ -277,6 +283,7 @@ function PainelShell({ children }: { children: React.ReactNode }) {
             papel={perfil?.papel}
             municipios={municipios.length}
             admin={admin}
+            marca={marcaGerida}
             demo={perfil?.demo}
             onSair={sair}
           />
@@ -304,7 +311,7 @@ function PainelShell({ children }: { children: React.ReactNode }) {
             <span className="hidden min-w-0 shrink truncate sm:inline">
               {territorioNaTrilha && rotuloTerritorio
                 ? rotuloTerritorio
-                : "Hub Capture"}
+                : marca.nome}
             </span>
             <span
               aria-hidden

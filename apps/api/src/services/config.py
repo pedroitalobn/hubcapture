@@ -300,6 +300,44 @@ CATALOGO: list[dict] = [
     _c("app_base_url", "URL pública do app (links de e-mail)", "email", False),
     # Plataforma — aparência do app. A flag permite portar a UI v2 → v1 sem
     # deploy: o web lê a versão ativa em GET /ui (público) e aplica `data-ui`.
+    # ── White label (§69): domínios das marcas ──
+    _c("whitelabel_dominio_base", "Domínio-base dos subdomínios (marca.<base>)", "whitelabel", False, "wl_dominios"),
+    _c(
+        "whitelabel_cname_alvo",
+        "Alvo fixo do CNAME dos domínios próprios (vazio = subdomínio da marca)",
+        "whitelabel",
+        False,
+        "wl_dominios",
+    ),
+    _c(
+        "whitelabel_subdominio_wildcard",
+        "Subdomínios cobertos por wildcard no proxy (on|off — on não provisiona)",
+        "whitelabel",
+        False,
+        "wl_dominios",
+    ),
+    _c(
+        "whitelabel_provisionador",
+        "Provisionamento de HTTPS (manual|traefik_arquivo|dokploy)",
+        "whitelabel",
+        False,
+        "wl_provisionamento",
+    ),
+    _c("whitelabel_traefik_dir", "Traefik: pasta do provider de arquivos", "whitelabel", False, "wl_traefik"),
+    _c("whitelabel_traefik_servico", "Traefik: URL interna da web", "whitelabel", False, "wl_traefik"),
+    _c("whitelabel_traefik_certresolver", "Traefik: certResolver (padrão letsencrypt)", "whitelabel", False, "wl_traefik"),
+    _c("whitelabel_traefik_entrypoints", "Traefik: entrypoints http,https (padrão web,websecure)", "whitelabel", False, "wl_traefik"),
+    _c("dokploy_url", "Dokploy: URL do painel (https://…)", "whitelabel", False, "wl_dokploy"),
+    _c("dokploy_api_key", "Dokploy: API key", "whitelabel", True, "wl_dokploy"),
+    _c("dokploy_compose_id", "Dokploy: composeId do projeto", "whitelabel", False, "wl_dokploy"),
+    _c("dokploy_servico", "Dokploy: serviço do compose (padrão web)", "whitelabel", False, "wl_dokploy"),
+    _c(
+        "dokploy_redeploy",
+        "Dokploy: redeploy do compose após criar domínio (on|off)",
+        "whitelabel",
+        False,
+        "wl_dokploy",
+    ),
     _c("ui_versao", "Versão da UI do app (v2 atual · v1 clássica)", "plataforma", False),
     # Acesso demo (apresentação/vendas) — sandbox com dados reais do cache.
     _c(

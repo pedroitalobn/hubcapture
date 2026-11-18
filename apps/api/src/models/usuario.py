@@ -41,6 +41,11 @@ class Usuario(SQLAlchemyBaseUserTableUUID, Base):
     # Conta de DEMONSTRAÇÃO (apresentação/vendas): sandbox somente-leitura no
     # que é destrutivo/identidade, coleta sempre cache-only (services/demo.py).
     is_demo: Mapped[bool] = mapped_column(default=False, server_default="false")
+    # marca (white label, §69) pela qual a conta entrou — assina e-mail, PDF,
+    # push e Copiloto dela. Sem marca = Hub Capture.
+    marca_id: Mapped[uuid.UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("marcas.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime | None] = updated_at_col()

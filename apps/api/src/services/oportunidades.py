@@ -37,10 +37,11 @@ from ..models.usuario import Usuario
 from ..notifications import email as email_notif
 from ..notifications import uniq
 from ..notifications.email_templates import alertas_resumo
-from . import canais_alerta, criterios_alerta, detect_changes, plano_gates
+from . import canais_alerta, criterios_alerta, detect_changes, identidade, plano_gates
 from . import config as config_service
 from . import emendas_proposta as emendas_service
 from . import empenhos_proposta as empenhos_service
+from . import marcas as marcas_service
 from . import monitoramentos as monitoramentos_service
 from . import pareceres as pareceres_service
 from .perfil import AREA_FONTES
@@ -227,10 +228,15 @@ def mensagem_push(alertas: list[Alerta]) -> dict:
         a = alertas[0]
         url = f"/panel/funding/{a.proposta_id}?de=alerts" if a.proposta_id else "/panel/alerts"
         titulo = criterios_alerta.rotulo(a.tipo) if a.tipo else "Atualização"
-        return {"title": f"Hub Capture · {titulo}", "body": linhas[0], "url": url, "tag": "alertas"}
+        return {
+            "title": f"{identidade.atual().assinatura} · {titulo}",
+            "body": linhas[0],
+            "url": url,
+            "tag": "alertas",
+        }
     corpo = "\n".join(linhas[:3]) + (f"\n+{len(linhas) - 3} outras" if len(linhas) > 3 else "")
     return {
-        "title": f"Hub Capture · {len(alertas)} atualizações",
+        "title": f"{identidade.atual().assinatura} · {len(alertas)} atualizações",
         "body": corpo,
         "url": "/panel/alerts",
         "tag": "alertas",
@@ -250,10 +256,22 @@ async def _despachar(
     """
     if not alertas:
         return
+    # cada canal sai assinado pela marca da CONTA (white label, §69)
+    try:
+        ident = await marcas_service.identidade_do_usuario(session, usuario)
+    except Exception:  # noqa: BLE001 — a marca nunca impede o alerta
+        ident = identidade.PADRAO
+    with identidade.usar(ident):
+        await _despachar_canais(session, usuario, alertas, canais)
+
+
+async def _despachar_canais(
+    session: AsyncSession, usuario: Usuario, alertas: list[Alerta], canais: set[str]
+) -> None:
     linhas = [_linha(a) for a in alertas]
     if "email" in canais and usuario.email:
         try:
-            base = await config_service.resolver("app_base_url")
+            base = identidade.atual().url_base or await config_service.resolver("app_base_url")
             url = f"{base.rstrip('/')}/panel/alerts" if base else None
             assunto, txt, html = alertas_resumo(linhas, url)
             await email_notif.enviar(usuario.email, assunto, txt, html, alerta=True)
@@ -261,7 +279,9 @@ async def _despachar(
             log.warning("alertas: e-mail falhou para %s", usuario.id, exc_info=True)
     if "wpp" in canais and usuario.optin_wpp and usuario.telefone_wpp:
         try:
-            msg = "🔔 Hub Capture — novidades:\n" + "\n".join(f"• {li}" for li in linhas)
+            msg = f"🔔 {identidade.atual().assinatura} — novidades:\n" + "\n".join(
+                f"• {li}" for li in linhas
+            )
             await uniq.enviar(usuario.telefone_wpp, msg)
         except Exception:  # noqa: BLE001
             log.warning("alertas: WhatsApp falhou para %s", usuario.id, exc_info=True)

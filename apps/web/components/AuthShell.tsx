@@ -1,14 +1,72 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useMarca } from "@/lib/marca";
 
-/** Marca: dot lime 6px + nome em peso único. */
+/**
+ * Logo da marca (white label, §69) nas duas versões: a de fundo CLARO e, se a
+ * marca enviou, a de fundo ESCURO — o CSS troca uma pela outra junto com o
+ * tema (globals.css, `.logo-claro`/`.logo-escuro`). `sobreEscuro` força a
+ * versão escura (banda/imagem escura em qualquer tema).
+ */
+export function LogoMarca({
+  altura = 28,
+  sobreEscuro = false,
+}: {
+  altura?: number;
+  sobreEscuro?: boolean;
+}) {
+  const marca = useMarca();
+  const claro = marca.logo_url;
+  const escuro = marca.logo_escuro_url;
+  if (!claro && !escuro) return null;
+  if (sobreEscuro) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- asset da API, tamanho livre
+      <img src={(escuro ?? claro)!} alt={marca.nome} style={{ height: altura, width: "auto" }} />
+    );
+  }
+  return (
+    <>
+      {claro && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={claro}
+          alt={marca.nome}
+          className={`logo-claro ${escuro ? "tem-escuro" : ""}`}
+          style={{ height: altura, width: "auto" }}
+        />
+      )}
+      {escuro && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={escuro}
+          alt={claro ? "" : marca.nome}
+          aria-hidden={claro ? true : undefined}
+          className={claro ? "logo-escuro" : undefined}
+          style={{ height: altura, width: "auto" }}
+        />
+      )}
+    </>
+  );
+}
+
+/** Marca: logo (se houver) ou dot + nome. Com logo, o nome só aparece se a
+ *  marca pediu (`nome_com_logo`). */
 export function BrandMark({ size = "base" }: { size?: "base" | "lg" }) {
+  const marca = useMarca();
+  const temLogo = Boolean(marca.logo_url || marca.logo_escuro_url);
   return (
     <span
       className={`sidebar-brand ${size === "lg" ? "text-xl" : "text-base"}`}
     >
-      <span className="brand-dot" aria-hidden />
-      Hub Capture
+      {temLogo ? (
+        <LogoMarca altura={size === "lg" ? 34 : 26} />
+      ) : (
+        <span className="brand-dot" aria-hidden />
+      )}
+      {(!temLogo || marca.tema?.nome_com_logo) && marca.nome}
     </span>
   );
 }
@@ -20,22 +78,34 @@ export function BrandMark({ size = "base" }: { size?: "base" | "lg" }) {
  * regerar com o verde #43CF9B é item aberto do redesign.
  */
 function ImagePanel() {
+  const marca = useMarca();
+  const imagem = marca.login_imagem_url
+    ? `url('${marca.login_imagem_url}')`
+    : marca.personalizada
+      ? "none"
+      : "url('/login-hero.jpg'), url('/login-hero.svg')";
   return (
     <div
       className="anim-page-delayed relative hidden overflow-hidden rounded-[20px] border border-hairline bg-brand-dark bg-cover bg-center lg:block"
       style={{
         // tenta o asset gerado (Magnific); sem ele, cai no SVG topográfico
-        backgroundImage: "url('/login-hero.jpg'), url('/login-hero.svg')",
+        backgroundImage: imagem,
       }}
     >
       {/* rodapé da imagem: marca + assinatura em mono */}
       <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-abyss/80 to-transparent p-8">
         <span className="inline-flex items-center gap-2 font-mono text-[13px] tracking-[-0.02em] text-paper">
-          <span className="brand-dot" aria-hidden />
-          HUB CAPTURE
+          {marca.logo_escuro_url || marca.logo_url ? (
+            <LogoMarca altura={24} sobreEscuro />
+          ) : (
+            <>
+              <span className="brand-dot" aria-hidden />
+              {marca.nome.toUpperCase()}
+            </>
+          )}
         </span>
         <span className="font-mono text-[13px] tracking-[-0.02em] text-lichen/80">
-          PAINEL DO TERRITÓRIO
+          {(marca.tema?.login_slogan ?? "Painel do território").toUpperCase()}
         </span>
       </div>
     </div>
@@ -47,6 +117,7 @@ function ImagePanel() {
  * contador de seção, headline arquitetural e linhas de instrumentação.
  */
 function LabPanel() {
+  const marca = useMarca();
   return (
     <div className="anim-page-delayed relative hidden flex-col justify-between overflow-hidden rounded-[20px] bg-abyss p-10 lg:flex">
       <div className="flex items-center justify-between">
@@ -90,7 +161,8 @@ function LabPanel() {
         ))}
         <div className="flex items-center justify-between border-t border-graphite pt-5">
           <span className="font-mono text-[13px] tracking-[-0.02em] text-graphite">
-            HUBCAPTURE — PAINEL DO TERRITÓRIO
+            {marca.nome.toUpperCase()} —{" "}
+            {(marca.tema?.login_slogan ?? "Painel do território").toUpperCase()}
           </span>
           <span
             aria-hidden
@@ -122,6 +194,10 @@ export function AuthShell({
   footer?: ReactNode;
   image?: boolean;
 }) {
+  const marca = useMarca();
+  // a tela de login (image) é a vitrine da marca: título/subtítulo dela vencem
+  const titulo = (image && marca.tema?.login_titulo) || title;
+  const subtitulo = (image && marca.tema?.login_subtitulo) || subtitle;
   const form = (
     <div className="anim-page flex flex-col justify-between py-4 sm:px-6">
       <Link href="/" className="self-start">
@@ -130,9 +206,9 @@ export function AuthShell({
 
       <div className="mx-auto w-full max-w-sm py-10">
         <div className={image ? "card p-8" : ""}>
-          <h1 className="text-[36px] leading-[1.15] tracking-[-0.02em]">{title}</h1>
-          {subtitle && (
-            <p className="mt-3 text-sm leading-relaxed text-ink-2">{subtitle}</p>
+          <h1 className="text-[36px] leading-[1.15] tracking-[-0.02em]">{titulo}</h1>
+          {subtitulo && (
+            <p className="mt-3 text-sm leading-relaxed text-ink-2">{subtitulo}</p>
           )}
           <div className="mt-10">{children}</div>
           {footer && <div className="mt-10 text-sm text-ink-2">{footer}</div>}
@@ -140,7 +216,7 @@ export function AuthShell({
       </div>
 
       <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3">
-        © {new Date().getFullYear()} Hub Capture
+        {marca.tema?.rodape ?? `© ${new Date().getFullYear()} ${marca.nome}`}
       </p>
     </div>
   );

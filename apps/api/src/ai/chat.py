@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 
-from ..services import llm_providers
+from ..services import identidade, llm_providers
 
 SYSTEM = (
     "Você é o assistente do Hub Capture, especialista em transferências e repasses "
@@ -18,9 +18,17 @@ SYSTEM = (
 )
 
 
+def _system(papel: str) -> str:
+    texto = SYSTEM.format(papel=papel)
+    ident = identidade.atual()
+    if ident.padrao:
+        return texto
+    return texto.replace("assistente do Hub Capture", f"assistente do {ident.nome}", 1)
+
+
 def _mensagens(contexto: str, pergunta: str, papel: str) -> list[dict]:
     return [
-        {"role": "system", "content": SYSTEM.format(papel=papel)},
+        {"role": "system", "content": _system(papel)},
         {"role": "user", "content": f"Contexto:\n{contexto}\n\nPergunta: {pergunta}"},
     ]
 

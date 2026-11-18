@@ -248,6 +248,18 @@
             "title": "Is Verified",
             "type": "boolean"
           },
+          "marca_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marca Id"
+          },
           "nome": {
             "anyOf": [
               {
@@ -318,6 +330,18 @@
             ],
             "title": "Is Superuser"
           },
+          "marca_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marca Id"
+          },
           "papel": {
             "anyOf": [
               {
@@ -340,6 +364,17 @@
               }
             ],
             "title": "Plano Id"
+          },
+          "remover_marca": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remover Marca"
           }
         },
         "title": "AdminUsuarioUpdate",
@@ -881,6 +916,45 @@
         "title": "AssessoriaContatosSet",
         "type": "object"
       },
+      "AssetInfo": {
+        "properties": {
+          "content_type": {
+            "title": "Content Type",
+            "type": "string"
+          },
+          "nome_arquivo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome Arquivo"
+          },
+          "tamanho": {
+            "title": "Tamanho",
+            "type": "integer"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tipo",
+          "url",
+          "content_type",
+          "tamanho"
+        ],
+        "title": "AssetInfo",
+        "type": "object"
+      },
       "AtribuirPlano": {
         "properties": {
           "plano_id": {
@@ -971,6 +1045,20 @@
           "state"
         ],
         "title": "AutorizacaoOAuth",
+        "type": "object"
+      },
+      "Body_enviar_asset_api_v1_brands__marca_id__assets__tipo__put": {
+        "properties": {
+          "arquivo": {
+            "contentMediaType": "application/octet-stream",
+            "title": "Arquivo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "arquivo"
+        ],
+        "title": "Body_enviar_asset_api_v1_brands__marca_id__assets__tipo__put",
         "type": "object"
       },
       "Body_enviar_midia_arquivo_api_v1_admin_class_articles__artigo_id__media_upload_post": {
@@ -1126,6 +1214,129 @@
           "token"
         ],
         "title": "Body_verify_verify_api_v1_auth_verify_post",
+        "type": "object"
+      },
+      "BrandingRead": {
+        "description": "O que o SITE precisa para se vestir — público, resolvido pelo host.",
+        "properties": {
+          "assistente": {
+            "title": "Assistente",
+            "type": "string"
+          },
+          "cadastro_aberto": {
+            "default": true,
+            "title": "Cadastro Aberto",
+            "type": "boolean"
+          },
+          "cor_tema_claro": {
+            "title": "Cor Tema Claro",
+            "type": "string"
+          },
+          "cor_tema_escuro": {
+            "title": "Cor Tema Escuro",
+            "type": "string"
+          },
+          "css": {
+            "title": "Css",
+            "type": "string"
+          },
+          "fontes_urls": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Fontes Urls",
+            "type": "array"
+          },
+          "icone_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icone Url"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "login_imagem_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Login Imagem Url"
+          },
+          "logo_escuro_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Escuro Url"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "personalizada": {
+            "title": "Personalizada",
+            "type": "boolean"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          },
+          "tema": {
+            "$ref": "#/components/schemas/TemaMarca"
+          }
+        },
+        "required": [
+          "personalizada",
+          "nome",
+          "assistente",
+          "tema",
+          "css",
+          "cor_tema_claro",
+          "cor_tema_escuro"
+        ],
+        "title": "BrandingRead",
         "type": "object"
       },
       "CallbackOAuth": {
@@ -3133,6 +3344,18 @@
             "title": "Expires Em Dias",
             "type": "integer"
           },
+          "marca_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marca Id"
+          },
           "papel": {
             "anyOf": [
               {
@@ -3163,6 +3386,44 @@
         "title": "ConviteCreate",
         "type": "object"
       },
+      "ConviteMarcaCreate": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "expires_em_dias": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires Em Dias"
+          },
+          "papel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Papel"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "ConviteMarcaCreate",
+        "type": "object"
+      },
       "ConviteRead": {
         "properties": {
           "created_at": {
@@ -3190,6 +3451,18 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "marca_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marca Id"
           },
           "papel": {
             "anyOf": [
@@ -3231,6 +3504,46 @@
           "created_at"
         ],
         "title": "ConviteRead",
+        "type": "object"
+      },
+      "CoresMarca": {
+        "additionalProperties": false,
+        "properties": {
+          "acao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acao"
+          },
+          "acento": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acento"
+          },
+          "escuro": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Escuro"
+          }
+        },
+        "title": "CoresMarca",
         "type": "object"
       },
       "CriterioAlertaRead": {
@@ -3948,6 +4261,24 @@
           "nome"
         ],
         "title": "DocumentoRead",
+        "type": "object"
+      },
+      "DominioUpdate": {
+        "properties": {
+          "dominio": {
+            "anyOf": [
+              {
+                "maxLength": 253,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dominio"
+          }
+        },
+        "title": "DominioUpdate",
         "type": "object"
       },
       "EmailTesteIn": {
@@ -7100,6 +7431,340 @@
         "title": "LlmProviderOut",
         "type": "object"
       },
+      "MarcaCreate": {
+        "properties": {
+          "dono_email": {
+            "anyOf": [
+              {
+                "format": "email",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dono Email"
+          },
+          "nome": {
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Nome",
+            "type": "string"
+          },
+          "plano_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plano Id"
+          },
+          "slug": {
+            "maxLength": 63,
+            "minLength": 3,
+            "title": "Slug",
+            "type": "string"
+          },
+          "tema": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TemaMarca"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "slug",
+          "nome"
+        ],
+        "title": "MarcaCreate",
+        "type": "object"
+      },
+      "MarcaRead": {
+        "properties": {
+          "assets": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AssetInfo"
+            },
+            "title": "Assets",
+            "type": "array"
+          },
+          "ativo": {
+            "title": "Ativo",
+            "type": "boolean"
+          },
+          "cadastro_aberto": {
+            "title": "Cadastro Aberto",
+            "type": "boolean"
+          },
+          "cname_alvo": {
+            "title": "Cname Alvo",
+            "type": "string"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "dominio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dominio"
+          },
+          "dominio_detalhe": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dominio Detalhe"
+          },
+          "dominio_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dominio Status"
+          },
+          "dominio_verificado_em": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dominio Verificado Em"
+          },
+          "dono_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dono Email"
+          },
+          "dono_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dono Id"
+          },
+          "host_padrao": {
+            "title": "Host Padrao",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "membros": {
+            "default": 0,
+            "title": "Membros",
+            "type": "integer"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "plano_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plano Id"
+          },
+          "provisionamento": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ProvisionamentoHost"
+            },
+            "title": "Provisionamento",
+            "type": "array"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "tema": {
+            "$ref": "#/components/schemas/TemaMarca"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "nome",
+          "ativo",
+          "cadastro_aberto",
+          "tema",
+          "host_padrao",
+          "url",
+          "cname_alvo"
+        ],
+        "title": "MarcaRead",
+        "type": "object"
+      },
+      "MarcaUpdate": {
+        "additionalProperties": false,
+        "description": "Campos do DONO: nome, tema, cadastro aberto. Os de ADMIN (slug, ativo,\ndono, plano) são recusados com 403 para quem não é superuser.",
+        "properties": {
+          "ativo": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ativo"
+          },
+          "cadastro_aberto": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cadastro Aberto"
+          },
+          "dono_email": {
+            "anyOf": [
+              {
+                "format": "email",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dono Email"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "plano_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plano Id"
+          },
+          "remover_dono": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remover Dono"
+          },
+          "remover_plano": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remover Plano"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "maxLength": 63,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          },
+          "tema": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TemaMarca"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "MarcaUpdate",
+        "type": "object"
+      },
       "MembroConviteCreate": {
         "description": "Convite de MEMBRO: o usuário chama alguém para a própria conta/equipe.",
         "properties": {
@@ -7132,6 +7797,64 @@
           "email"
         ],
         "title": "MembroConviteCreate",
+        "type": "object"
+      },
+      "MembroMarca": {
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "default": true,
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "papel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Papel"
+          }
+        },
+        "required": [
+          "id",
+          "email"
+        ],
+        "title": "MembroMarca",
         "type": "object"
       },
       "MembroRead": {
@@ -8379,41 +9102,6 @@
         "title": "OnboardingResponse",
         "type": "object"
       },
-      "OpcaoCatalogo": {
-        "description": "Um item escolhível na config do plano (módulo, fonte ou feature).",
-        "properties": {
-          "chave": {
-            "title": "Chave",
-            "type": "string"
-          },
-          "descricao": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Descricao"
-          },
-          "label": {
-            "title": "Label",
-            "type": "string"
-          },
-          "padrao": {
-            "default": true,
-            "title": "Padrao",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "chave",
-          "label"
-        ],
-        "title": "OpcaoCatalogo",
-        "type": "object"
-      },
       "OpcoesEmendas": {
         "description": "Valores disponíveis para os filtros da tela (só o que existe).",
         "properties": {
@@ -8451,6 +9139,56 @@
           }
         },
         "title": "OpcoesEmendas",
+        "type": "object"
+      },
+      "OpcoesMarca": {
+        "properties": {
+          "dominio_base": {
+            "title": "Dominio Base",
+            "type": "string"
+          },
+          "fontes": {
+            "items": {
+              "$ref": "#/components/schemas/src__schemas__marcas__OpcaoCatalogo"
+            },
+            "title": "Fontes",
+            "type": "array"
+          },
+          "formas": {
+            "items": {
+              "$ref": "#/components/schemas/src__schemas__marcas__OpcaoCatalogo"
+            },
+            "title": "Formas",
+            "type": "array"
+          },
+          "icones": {
+            "items": {
+              "$ref": "#/components/schemas/src__schemas__marcas__OpcaoCatalogo"
+            },
+            "title": "Icones",
+            "type": "array"
+          },
+          "provisionador": {
+            "title": "Provisionador",
+            "type": "string"
+          },
+          "tipos_asset": {
+            "items": {
+              "$ref": "#/components/schemas/src__schemas__marcas__OpcaoCatalogo"
+            },
+            "title": "Tipos Asset",
+            "type": "array"
+          }
+        },
+        "required": [
+          "fontes",
+          "formas",
+          "icones",
+          "tipos_asset",
+          "dominio_base",
+          "provisionador"
+        ],
+        "title": "OpcoesMarca",
         "type": "object"
       },
       "OportunidadesResposta": {
@@ -9240,7 +9978,7 @@
           "features": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/OpcaoCatalogo"
+              "$ref": "#/components/schemas/src__schemas__planos__OpcaoCatalogo"
             },
             "title": "Features",
             "type": "array"
@@ -9248,7 +9986,7 @@
           "fontes": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/OpcaoCatalogo"
+              "$ref": "#/components/schemas/src__schemas__planos__OpcaoCatalogo"
             },
             "title": "Fontes",
             "type": "array"
@@ -9256,7 +9994,7 @@
           "modulos": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/OpcaoCatalogo"
+              "$ref": "#/components/schemas/src__schemas__planos__OpcaoCatalogo"
             },
             "title": "Modulos",
             "type": "array"
@@ -9535,6 +10273,59 @@
           "email"
         ],
         "title": "PreferenciasUpdate",
+        "type": "object"
+      },
+      "PreviewRead": {
+        "properties": {
+          "avisos": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Avisos",
+            "type": "array"
+          },
+          "css": {
+            "title": "Css",
+            "type": "string"
+          },
+          "fontes_urls": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Fontes Urls",
+            "type": "array"
+          }
+        },
+        "required": [
+          "css"
+        ],
+        "title": "PreviewRead",
+        "type": "object"
+      },
+      "PreviewRequest": {
+        "properties": {
+          "marca_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marca Id"
+          },
+          "tema": {
+            "$ref": "#/components/schemas/TemaMarca"
+          }
+        },
+        "required": [
+          "tema"
+        ],
+        "title": "PreviewRequest",
         "type": "object"
       },
       "ProgramaOportunidade": {
@@ -10438,6 +11229,46 @@
           "disponivel"
         ],
         "title": "ProvedorInfo",
+        "type": "object"
+      },
+      "ProvisionamentoHost": {
+        "properties": {
+          "detalhe": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detalhe"
+          },
+          "em": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Em"
+          },
+          "host": {
+            "title": "Host",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "host",
+          "status"
+        ],
+        "title": "ProvisionamentoHost",
         "type": "object"
       },
       "PublicacaoPagina": {
@@ -11466,6 +12297,140 @@
         "title": "SyncRunStatus",
         "type": "object"
       },
+      "TemaMarca": {
+        "additionalProperties": false,
+        "description": "Tudo que a marca personaliza. Ausente/None = o padrão do Hub Capture.",
+        "properties": {
+          "cores": {
+            "$ref": "#/components/schemas/CoresMarca"
+          },
+          "fonte_corpo": {
+            "default": "inter",
+            "title": "Fonte Corpo",
+            "type": "string"
+          },
+          "fonte_titulo": {
+            "default": "archivo",
+            "title": "Fonte Titulo",
+            "type": "string"
+          },
+          "forma": {
+            "default": "padrao",
+            "enum": [
+              "reta",
+              "padrao",
+              "suave",
+              "arredondada",
+              "pilula"
+            ],
+            "title": "Forma",
+            "type": "string"
+          },
+          "icones": {
+            "default": "regular",
+            "enum": [
+              "fino",
+              "regular",
+              "grosso"
+            ],
+            "title": "Icones",
+            "type": "string"
+          },
+          "icones_cantos": {
+            "default": "arredondado",
+            "enum": [
+              "arredondado",
+              "reto"
+            ],
+            "title": "Icones Cantos",
+            "type": "string"
+          },
+          "login_slogan": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Login Slogan"
+          },
+          "login_subtitulo": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Login Subtitulo"
+          },
+          "login_titulo": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Login Titulo"
+          },
+          "nome_assistente": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome Assistente"
+          },
+          "nome_com_logo": {
+            "default": false,
+            "title": "Nome Com Logo",
+            "type": "boolean"
+          },
+          "nome_exibicao": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome Exibicao"
+          },
+          "rodape": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rodape"
+          },
+          "titulos_caixa_alta": {
+            "default": true,
+            "title": "Titulos Caixa Alta",
+            "type": "boolean"
+          }
+        },
+        "title": "TemaMarca",
+        "type": "object"
+      },
       "TerritorioEdicao": {
         "description": "O que o plano deixa fazer com o território FORA do onboarding.\n\nO front não recalcula a regra (limite do plano, feature, conta demo): lê\ndaqui se o campo \"adicionar município\" aparece e por que não, quando não.",
         "properties": {
@@ -11771,6 +12736,18 @@
             "default": false,
             "title": "Is Verified",
             "type": "boolean"
+          },
+          "marca_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marca Id"
           },
           "nome": {
             "anyOf": [
@@ -12100,6 +13077,35 @@
         "title": "VisaoGeralPerfil",
         "type": "object"
       },
+      "src__schemas__marcas__OpcaoCatalogo": {
+        "properties": {
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "detalhe": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detalhe"
+          },
+          "rotulo": {
+            "title": "Rotulo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chave",
+          "rotulo"
+        ],
+        "title": "OpcaoCatalogo",
+        "type": "object"
+      },
       "src__schemas__oportunidades__FacetaOpcao": {
         "properties": {
           "rotulo": {
@@ -12121,6 +13127,41 @@
           "total"
         ],
         "title": "FacetaOpcao",
+        "type": "object"
+      },
+      "src__schemas__planos__OpcaoCatalogo": {
+        "description": "Um item escolhível na config do plano (módulo, fonte ou feature).",
+        "properties": {
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "padrao": {
+            "default": true,
+            "title": "Padrao",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chave",
+          "label"
+        ],
+        "title": "OpcaoCatalogo",
         "type": "object"
       },
       "src__schemas__proposta__FacetaOpcao": {
@@ -12749,6 +13790,235 @@
         "summary": "Admin Revogar Chave",
         "tags": [
           "integracao"
+        ]
+      }
+    },
+    "/api/v1/admin/brands": {
+      "get": {
+        "operationId": "admin_listar_api_v1_admin_brands_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MarcaRead"
+                  },
+                  "title": "Response Admin Listar Api V1 Admin Brands Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Admin Listar",
+        "tags": [
+          "white label"
+        ]
+      },
+      "post": {
+        "operationId": "admin_criar_api_v1_admin_brands_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarcaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarcaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Admin Criar",
+        "tags": [
+          "white label"
+        ]
+      }
+    },
+    "/api/v1/admin/brands/{marca_id}": {
+      "delete": {
+        "description": "Exclui a marca. As contas vinculadas NÃO são excluídas: voltam a ser\nHub Capture (FK SET NULL); as rotas dos hosts dela são removidas.",
+        "operationId": "admin_excluir_api_v1_admin_brands__marca_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "marca_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Marca Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Admin Excluir",
+        "tags": [
+          "white label"
+        ]
+      }
+    },
+    "/api/v1/admin/brands/{marca_id}/domain/activate": {
+      "post": {
+        "description": "Ativação MANUAL: a equipe confirmou rota + HTTPS no proxy.",
+        "operationId": "admin_ativar_dominio_api_v1_admin_brands__marca_id__domain_activate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "marca_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Marca Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarcaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Admin Ativar Dominio",
+        "tags": [
+          "white label"
+        ]
+      }
+    },
+    "/api/v1/admin/brands/{marca_id}/provision": {
+      "post": {
+        "description": "Refaz o provisionamento do subdomínio (e do domínio, se verificado).",
+        "operationId": "admin_reprovisionar_api_v1_admin_brands__marca_id__provision_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "marca_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Marca Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarcaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Admin Reprovisionar",
+        "tags": [
+          "white label"
         ]
       }
     },
@@ -15820,6 +17090,806 @@
         "summary": "Verify:Verify",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/branding": {
+      "get": {
+        "description": "Identidade visual do host. Sem marca (ou host da plataforma) = Hub Capture.",
+        "operationId": "branding_api_v1_branding_get",
+        "parameters": [
+          {
+            "description": "Host a resolver (padrão: o da requisição)",
+            "in": "query",
+            "name": "host",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Host a resolver (padrão: o da requisição)",
+              "title": "Host"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandingRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Branding",
+        "tags": [
+          "white label"
+        ]
+      }
+    },
+    "/api/v1/branding/assets/{marca_id}/{tipo}": {
+      "get": {
+        "operationId": "branding_asset_api_v1_branding_assets__marca_id___tipo__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "marca_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Marca Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tipo",
+            "required": true,
+            "schema": {
+              "title": "Tipo",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "v",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "V"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Branding Asset",
+        "tags": [
+          "white label"
+        ]
+      }
+    },
+    "/api/v1/branding/preview": {
+      "post": {
+        "description": "CSS do tema em edição, escopado em `.marca-preview` (o editor pinta só a\npré-visualização, não o próprio painel).",
+        "operationId": "branding_preview_api_v1_branding_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Branding Preview",
+        "tags": [
+          "white label"
+        ]
+      }
+    },
+    "/api/v1/brands/mine": {
+      "get": {
+        "operationId": "minhas_api_v1_brands_mine_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MarcaRead"
+                  },
+                  "title": "Response Minhas Api V1 Brands Mine Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Minhas",
+        "tags": [
+          "white label"
+        ]
+      }
+    },
+    "/api/v1/brands/options": {
+      "get": {
+        "operationId": "opcoes_api_v1_brands_options_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpcoesMarca"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Opcoes",
+        "tags": [
+          "white label"
+        ]
+      }
+    },
+    "/api/v1/brands/{marca_id}": {
+      "get": {
+        "operationId": "obter_api_v1_brands__marca_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "marca_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Marca Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarcaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Obter",
+        "tags": [
+          "white label"
+        ]
+      },
+      "patch": {
+        "operationId": "editar_api_v1_brands__marca_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "marca_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Marca Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarcaUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarcaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Editar",
+        "tags": [
+          "white label"
+        ]
+      }
+    },
+    "/api/v1/brands/{marca_id}/assets/{tipo}": {
+      "delete": {
+        "operationId": "remover_asset_api_v1_brands__marca_id__assets__tipo__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "marca_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Marca Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tipo",
+            "required": true,
+            "schema": {
+              "title": "Tipo",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Remover Asset",
+        "tags": [
+          "white label"
+        ]
+      },
+      "put": {
+        "operationId": "enviar_asset_api_v1_brands__marca_id__assets__tipo__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "marca_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Marca Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tipo",
+            "required": true,
+            "schema": {
+              "title": "Tipo",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_enviar_asset_api_v1_brands__marca_id__assets__tipo__put"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Enviar Asset",
+        "tags": [
+          "white label"
+        ]
+      }
+    },
+    "/api/v1/brands/{marca_id}/domain": {
+      "put": {
+        "description": "Grava (ou remove, com `null`) o domínio próprio. Fica `pendente` até a\nverificação do DNS; o host antigo perde a rota.",
+        "operationId": "definir_dominio_api_v1_brands__marca_id__domain_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "marca_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Marca Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DominioUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarcaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Definir Dominio",
+        "tags": [
+          "white label"
+        ]
+      }
+    },
+    "/api/v1/brands/{marca_id}/domain/verify": {
+      "post": {
+        "description": "Confere o DNS e, apontando para nós, provisiona rota + HTTPS.",
+        "operationId": "verificar_dominio_api_v1_brands__marca_id__domain_verify_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "marca_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Marca Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarcaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Verificar Dominio",
+        "tags": [
+          "white label"
+        ]
+      }
+    },
+    "/api/v1/brands/{marca_id}/invites": {
+      "get": {
+        "operationId": "convites_api_v1_brands__marca_id__invites_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "marca_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Marca Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ConviteRead"
+                  },
+                  "title": "Response Convites Api V1 Brands  Marca Id  Invites Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Convites",
+        "tags": [
+          "white label"
+        ]
+      },
+      "post": {
+        "description": "Convida alguém para a marca: quem aceita entra vinculado a ela, com o\nplano da marca, e o e-mail do convite já sai com a identidade dela.",
+        "operationId": "convidar_api_v1_brands__marca_id__invites_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "marca_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Marca Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConviteMarcaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConviteRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Convidar",
+        "tags": [
+          "white label"
+        ]
+      }
+    },
+    "/api/v1/brands/{marca_id}/members": {
+      "get": {
+        "operationId": "membros_api_v1_brands__marca_id__members_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "marca_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Marca Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MembroMarca"
+                  },
+                  "title": "Response Membros Api V1 Brands  Marca Id  Members Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Membros",
+        "tags": [
+          "white label"
+        ]
+      }
+    },
+    "/api/v1/brands/{marca_id}/members/{usuario_id}": {
+      "delete": {
+        "description": "Tira a conta da marca (ela volta a assinar como Hub Capture). Não exclui\na conta nem toca nos dados dela.",
+        "operationId": "desvincular_membro_api_v1_brands__marca_id__members__usuario_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "marca_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Marca Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "usuario_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Usuario Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Desvincular Membro",
+        "tags": [
+          "white label"
         ]
       }
     },

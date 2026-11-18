@@ -36,6 +36,20 @@ def _parse_remetente(remetente: str) -> tuple[str, str]:
     return remetente.strip(), ""
 
 
+def _remetente_da_marca(remetente: str) -> str:
+    """White label (§69): o NOME de exibição vira o da marca em uso; o
+    endereço continua o da plataforma (é ele que tem SPF/DKIM configurado —
+    trocar o domínio do remetente mandaria o e-mail para o spam)."""
+    from ..services import identidade
+
+    ident = identidade.atual()
+    if ident.padrao:
+        return remetente
+    addr, _nome = _parse_remetente(remetente)
+    nome = ident.nome.replace('"', "").replace("<", "").replace(">", "")
+    return f'"{nome}" <{addr}>' if addr else remetente
+
+
 async def _enviar_maileroo(
     api_key: str,
     remetente: str,
@@ -130,6 +144,7 @@ async def enviar(
     remetente = await _resolver("email_from", settings.email_from)
     if not remetente:
         return False
+    remetente = _remetente_da_marca(remetente)
 
     # 1) Maileroo (API HTTP) — caminho preferido
     maileroo = await _resolver("maileroo_api_key", settings.maileroo_api_key)

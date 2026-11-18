@@ -20,6 +20,7 @@ from .helpdesk import (
     HelpdeskModulo,
 )
 from .integracao_contatos import ContatoVinculo, IntegracaoContatos
+from .marca import Marca, MarcaAsset
 from .monitoramento import Monitoramento, MonitoramentoBusca
 from .municipio_interesse import MunicipioInteresse
 from .obra import Obra
@@ -58,6 +59,8 @@ __all__ = [
     "HelpdeskHint",
     "HelpdeskMidia",
     "HelpdeskModulo",
+    "Marca",
+    "MarcaAsset",
     "IntegracaoContatos",
     "Monitoramento",
     "MonitoramentoBusca",

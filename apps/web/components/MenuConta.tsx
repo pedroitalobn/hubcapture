@@ -37,6 +37,7 @@ export function MenuConta({
   papel,
   municipios,
   admin,
+  marca,
   demo,
   onSair,
 }: {
@@ -44,6 +45,8 @@ export function MenuConta({
   papel?: string | null;
   municipios: number;
   admin: boolean;
+  /** dono de uma marca white label (§69) */
+  marca?: boolean;
   demo?: boolean;
   onSair: () => void;
 }) {
@@ -123,6 +126,12 @@ export function MenuConta({
             <Link href="/onboarding" className="menu-item" onClick={fechar}>
               <IconeNav nome="painel" />
               Ajustar perfil
+            </Link>
+          )}
+          {marca && (
+            <Link href="/panel/brand" className="menu-item" onClick={fechar}>
+              <IconeNav nome="marca" />
+              Minha marca
             </Link>
           )}
           {admin && (

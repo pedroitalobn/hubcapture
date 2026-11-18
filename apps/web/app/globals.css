@@ -2986,3 +2986,29 @@ html[data-ui="v1"]::before {
 :where(button):not(:disabled) {
   cursor: pointer;
 }
+
+
+/* ============================================================
+   White label (§69) — logo da marca nas duas versões.
+   `.logo-claro` é o logo para fundo claro; com uma versão para
+   fundo escuro (`.logo-escuro`), as duas trocam junto com o tema
+   (o trilho e o canvas invertem no escuro, §59). Fora de @layer,
+   como os demais ajustes de ponta deste arquivo.
+   ============================================================ */
+.logo-escuro {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logo-claro.tem-escuro {
+    display: none;
+  }
+  :root:not([data-theme="light"]) .logo-escuro {
+    display: inline-block;
+  }
+}
+:root[data-theme="dark"] .logo-claro.tem-escuro {
+  display: none;
+}
+:root[data-theme="dark"] .logo-escuro {
+  display: inline-block;
+}

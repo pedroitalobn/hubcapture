@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BrandMark } from "@/components/AuthShell";
 import { IconeNav, type NomeIcone } from "@/components/icons";
 import { api, getToken } from "@/lib/api/client";
 
@@ -32,6 +33,7 @@ const NAV: { titulo: string; itens: { href: string; label: string; icone: NomeIc
     itens: [
       { href: "/admin/config", label: "Providers & Config", icone: "admin" },
       { href: "/admin/modules", label: "Módulos", icone: "painel" },
+      { href: "/admin/brands", label: "Marcas (white label)", icone: "marca" },
     ],
   },
   {
@@ -109,9 +111,8 @@ export default function AdminLayout({
       )}
 
       <aside className="sidebar">
-        <Link href="/panel" className="sidebar-brand px-2 py-1">
-          <span className="brand-dot" aria-hidden />
-          Hub Capture
+        <Link href="/panel" className="px-2 py-1">
+          <BrandMark />
         </Link>
         <p className="label-mono px-2 -mt-2">Administração</p>
 

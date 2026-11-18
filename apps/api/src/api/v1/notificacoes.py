@@ -121,11 +121,14 @@ async def testar(
     session: AsyncSession = Depends(get_rls_db),
 ) -> dict:
     """Manda uma notificação de teste a todos os navegadores inscritos."""
+    from ...services import marcas as marcas_service
+
+    nome = (await marcas_service.identidade_do_usuario(session, user)).nome
     resultado = await service.enviar_push(
         session,
         user.id,
         {
-            "title": "Hub Capture · notificações ativas",
+            "title": f"{nome} · notificações ativas",
             "body": "Você vai receber aqui os alertas das propostas que acompanha.",
             "url": "/panel/alerts",
             "tag": "teste",

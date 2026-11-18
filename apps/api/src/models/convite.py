@@ -33,6 +33,10 @@ class Convite(Base):
     convidado_por: Mapped[uuid.UUID | None] = mapped_column(
         PgUUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL"), nullable=True
     )
+    # marca (white label, §69): quem aceita entra vinculado a ela
+    marca_id: Mapped[uuid.UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("marcas.id", ondelete="SET NULL"), nullable=True
+    )
     status: Mapped[str] = mapped_column(String(16), default="pendente")
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = created_at_col()

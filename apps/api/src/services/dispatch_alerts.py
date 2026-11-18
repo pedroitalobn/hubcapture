@@ -13,7 +13,8 @@ from ..models.proposta import Proposta
 from ..models.usuario import Usuario
 from ..notifications import uniq
 from . import alertas as alertas_service
-from . import criterios_alerta
+from . import criterios_alerta, identidade
+from . import marcas as marcas_service
 from .municipios import rotulo
 
 
@@ -39,7 +40,7 @@ def _formatar(alertas: list, propostas: dict) -> str:
         detalhe = payload.get("resumo") if isinstance(payload, dict) else None
         motivo = criterios_alerta.rotulo(a.tipo) if a.tipo else "atualização"
         linhas.append(f"🔔 {municipio} · {objeto} — {motivo}" + (f": {detalhe}" if detalhe else ""))
-    return "Hub Capture — atualizações:\n" + "\n".join(linhas)
+    return f"{identidade.atual().assinatura} — atualizações:\n" + "\n".join(linhas)
 
 
 async def despachar_wpp(session: AsyncSession, usuario: Usuario) -> int:
@@ -51,7 +52,9 @@ async def despachar_wpp(session: AsyncSession, usuario: Usuario) -> int:
     if not pendentes:
         return 0
     propostas = await _propostas_dos_alertas(session, pendentes)
-    enviado = await uniq.enviar(usuario.telefone_wpp, _formatar(pendentes, propostas))
+    with identidade.usar(await marcas_service.identidade_do_usuario(session, usuario)):
+        texto = _formatar(pendentes, propostas)
+    enviado = await uniq.enviar(usuario.telefone_wpp, texto)
     return len(pendentes) if enviado else 0
 
 

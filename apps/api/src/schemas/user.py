@@ -19,6 +19,8 @@ class UserRead(schemas.BaseUser[uuid.UUID]):
     optin_wpp: bool = False
     # conta de demonstração (sandbox de apresentação) — services/demo.py
     is_demo: bool = False
+    # marca white label (§69) da conta — só leitura (nunca vem do cliente)
+    marca_id: uuid.UUID | None = None
 
 
 class UserCreate(schemas.BaseUserCreate):

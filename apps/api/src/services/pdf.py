@@ -39,6 +39,7 @@ from reportlab.lib.colors import Color, HexColor, white
 from reportlab.lib.enums import TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import (
     BaseDocTemplate,
@@ -53,6 +54,7 @@ from reportlab.platypus import (
 )
 
 from ..models.proposta import Proposta
+from . import identidade as identidade_marca
 from .municipios import rotulo as rotulo_municipio
 from .texto import humanizar_caixa
 
@@ -236,13 +238,24 @@ def _t(v: Any, vazio: str = "—", limite: int = _MAX_CAMPO) -> str:
 # ── Primitivas de desenho ───────────────────────────────────────────────────
 
 
+def _cores_marca() -> tuple:
+    """(banda, acento, acento-2) da identidade em uso (§69). O Hub Capture
+    mantém o gradiente lime→aqua; marca própria pinta com o acento sólido."""
+    ident = identidade_marca.atual()
+    if ident.padrao:
+        return ABYSS, LIME, AQUA
+    acento = HexColor(ident.acento)
+    return HexColor(ident.escuro), acento, acento
+
+
 def _gradiente_marca(c: Canvas, x: float, y: float, largura: float, altura: float) -> None:
     """Preenche um retângulo com o `--grad-brand` (lime → aqua)."""
     c.saveState()
     caminho = c.beginPath()
     caminho.rect(x, y, largura, altura)
     c.clipPath(caminho, stroke=0)
-    c.linearGradient(x, y, x + largura, y, (LIME, AQUA), extend=True)
+    _b, a1, a2 = _cores_marca()
+    c.linearGradient(x, y, x + largura, y, (a1, a2), extend=True)
     c.restoreState()
 
 
@@ -287,7 +300,8 @@ def _ponto_marca(c: Canvas, x: float, y: float, raio: float) -> None:
     caminho = c.beginPath()
     caminho.circle(x, y, raio)
     c.clipPath(caminho, stroke=0)
-    c.linearGradient(x - raio, y, x + raio, y, (LIME, AQUA), extend=True)
+    _b, a1, a2 = _cores_marca()
+    c.linearGradient(x - raio, y, x + raio, y, (a1, a2), extend=True)
     c.restoreState()
 
 
@@ -1111,24 +1125,39 @@ class _CanvasNumerado(Canvas):
 
 
 def _banda(c: Canvas, altura: float, subtitulo: str, capa: bool) -> None:
-    """Banda da marca no topo: o Hub Capture assina o documento em toda página."""
+    """Banda da marca no topo: a marca (Hub Capture ou a do white label, §69)
+    assina o documento em toda página."""
+    ident = identidade_marca.atual()
+    banda, acento, _a2 = _cores_marca()
     topo = ALTURA - altura
-    c.setFillColor(ABYSS)
+    c.setFillColor(banda)
     c.rect(0, topo, LARGURA, altura, stroke=0, fill=1)
     _gradiente_marca(c, 0, topo - 2.4, LARGURA, 2.4)
 
     y_marca = topo + altura / 2 + (6 if capa else 0)
-    _ponto_marca(c, MARGEM + 4, y_marca + 3.2, 4)
-    _texto_espacado(
-        c,
-        MARGEM + 13,
-        y_marca,
-        "HUB CAPTURE",
-        fonte=SANS_BOLD,
-        tamanho=12 if capa else 10,
-        cor=white,
-        espaco=1.7,
-    )
+    desenhou_logo = False
+    if ident.logo_bytes:
+        try:
+            img = ImageReader(BytesIO(ident.logo_bytes))
+            larg_img, alt_img = img.getSize()
+            alt = 22 if capa else 16
+            larg = min(alt * larg_img / max(alt_img, 1), LARGURA / 3)
+            c.drawImage(img, MARGEM, y_marca - alt / 2 + 3, width=larg, height=alt, mask="auto")
+            desenhou_logo = True
+        except Exception:  # noqa: BLE001 — logo ilegível cai para o nome
+            desenhou_logo = False
+    if not desenhou_logo:
+        _ponto_marca(c, MARGEM + 4, y_marca + 3.2, 4)
+        _texto_espacado(
+            c,
+            MARGEM + 13,
+            y_marca,
+            ident.nome.upper(),
+            fonte=SANS_BOLD,
+            tamanho=12 if capa else 10,
+            cor=white,
+            espaco=1.7,
+        )
     _texto_espacado(
         c,
         LARGURA - MARGEM,
@@ -1136,7 +1165,7 @@ def _banda(c: Canvas, altura: float, subtitulo: str, capa: bool) -> None:
         "ESPELHO DA PROPOSTA",
         fonte=SANS,
         tamanho=7.6 if capa else 7,
-        cor=LIME,
+        cor=acento,
         espaco=1.2,
         direita=True,
     )
@@ -1156,7 +1185,8 @@ def _rodape(c: Canvas, gerado_em: str) -> None:
     c.line(MARGEM, RODAPE - 12, LARGURA - MARGEM, RODAPE - 12)
     c.setFillColor(INK_3)
     c.setFont(SANS, 7.2)
-    c.drawString(MARGEM, RODAPE - 22, f"Hub Capture · espelho gerado em {gerado_em}")
+    nome = identidade_marca.atual().nome
+    c.drawString(MARGEM, RODAPE - 22, f"{nome} · espelho gerado em {gerado_em}")
 
 
 def _montar_documento(buffer: BytesIO, p: Proposta, gerado_em: str) -> BaseDocTemplate:
@@ -1181,9 +1211,9 @@ def _montar_documento(buffer: BytesIO, p: Proposta, gerado_em: str) -> BaseDocTe
         buffer,
         pagesize=A4,
         title=f"Espelho da proposta — {_titulo_proposta(p)}",
-        author="Hub Capture",
+        author=identidade_marca.atual().nome,
         subject=identidade,
-        creator="Hub Capture",
+        creator=identidade_marca.atual().nome,
         leftMargin=MARGEM,
         rightMargin=MARGEM,
         topMargin=BANDA_CAPA,
