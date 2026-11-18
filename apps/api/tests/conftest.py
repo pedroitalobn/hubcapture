@@ -22,6 +22,7 @@ from src.core.config import settings
 from src.db.session import engine as _app_engine
 from src.services import api_chaves as _api_chaves
 from src.services import consulta_avulsa as _consulta_avulsa
+from src.services import marcas as _marcas
 from src.services import modulos as _modulos
 from src.services import plano_gates as _plano_gates
 
@@ -40,7 +41,7 @@ _TABLES = (
     "proposta_documentos, pareceres, propostas, "
     "repasses, conformidades, obras, "
     "contato_vinculos, integracoes_contatos, contatos, "
-    "municipios_interesse, preferencias_usuario, convites, usuarios, planos, "
+    "municipios_interesse, preferencias_usuario, convites, marca_assets, marcas, usuarios, planos, "
     "configuracoes, base_conhecimento, "
     "helpdesk_hints, helpdesk_midias, helpdesk_artigos, helpdesk_modulos, helpdesk_categorias"
 )
@@ -56,6 +57,7 @@ async def _clean_db() -> AsyncIterator[None]:
     _plano_gates.limpar_cache()
     _disc.limpar_cache()
     _api_chaves.limpar_cache()
+    _marcas.limpar_cache()
     _limite_api.reiniciar()
     yield
     # descarta pools presos ao loop deste teste

@@ -10,7 +10,7 @@ import json
 import logging
 from collections.abc import AsyncIterator
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,8 +20,9 @@ from ...ai import chat as ai_chat
 from ...core.users import current_active_user
 from ...models.usuario import Usuario
 from ...services import copiloto as copiloto_service
+from ...services import identidade, rag
+from ...services import marcas as marcas_service
 from ...services import propostas as propostas_service
-from ...services import rag
 from ...services.modulos import require_modulo
 from ..deps import get_rls_db
 
@@ -62,6 +63,7 @@ class ChatRequest(BaseModel):
 @router.post("/copilot/chat")
 async def copiloto_chat(
     body: ChatRequest,
+    request: Request,
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> StreamingResponse:
@@ -75,6 +77,9 @@ async def copiloto_chat(
         contexto += await _contexto_prazos(session, body.pergunta)
 
     papel = user.papel or "executivo"
+    ident = await marcas_service.identidade_da_requisicao(
+        session, marcas_service.host_da_requisicao(request.headers), user
+    )
 
     async def gen() -> AsyncIterator[str]:
         # O corpo do SSE já começou quando a geração roda: um erro aqui não vira
@@ -82,8 +87,9 @@ async def copiloto_chat(
         # vazia para sempre ("não conseguimos usar, está funcionando?" do ponto
         # 20). Então a falha viaja como EVENTO, e o chat diz o que houve.
         try:
-            async for token in ai_chat.stream(contexto, body.pergunta, papel):
-                yield f"data: {json.dumps({'delta': token}, ensure_ascii=False)}\n\n"
+            with identidade.usar(ident):
+                async for token in ai_chat.stream(contexto, body.pergunta, papel):
+                    yield f"data: {json.dumps({'delta': token}, ensure_ascii=False)}\n\n"
         except Exception as exc:  # noqa: BLE001 — provedor de IA fora do ar
             logger.exception("copiloto: falha ao gerar resposta")
             aviso = (
@@ -106,6 +112,7 @@ class IslandRequest(BaseModel):
 @router.post("/copilot/island")
 async def copiloto_island(
     body: IslandRequest,
+    request: Request,
     user: Usuario = Depends(current_active_user),
     session: AsyncSession = Depends(get_rls_db),
 ) -> StreamingResponse:
@@ -113,9 +120,13 @@ async def copiloto_island(
     ferramentas roda AQUI, com a sessão RLS do request viva (mesma razão do
     RAG pré-stream acima); a resposta final é um gerador que NÃO toca no
     banco — flui token a token depois que a resposta HTTP já começou."""
-    eventos, final = await ai_agent.preparar(
-        session, user, body.pergunta, municipios=body.municipios
+    ident = await marcas_service.identidade_da_requisicao(
+        session, marcas_service.host_da_requisicao(request.headers), user
     )
+    with identidade.usar(ident):
+        eventos, final = await ai_agent.preparar(
+            session, user, body.pergunta, municipios=body.municipios
+        )
 
     async def gen() -> AsyncIterator[str]:
         for ev in eventos:

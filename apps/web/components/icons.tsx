@@ -24,9 +24,19 @@ export type NomeIcone =
   | "assessoria"
   | "class"
   | "conta"
+  | "marca"
   | "admin";
 
 const GLIFOS: Record<NomeIcone, React.ReactNode> = {
+  // Marca (white label, §69) — a paleta do pintor
+  marca: (
+    <>
+      <path d="M12 3a9 9 0 0 0 0 18c1.1 0 1.7-.9 1.7-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H16a5 5 0 0 0 5-5c0-3.9-4-7-9-7Z" />
+      <circle cx="7.5" cy="11" r="1" />
+      <circle cx="10.5" cy="7.5" r="1" />
+      <circle cx="15" cy="7.5" r="1" />
+    </>
+  ),
   // Meu painel — os quadrantes do dashboard
   painel: (
     <>
@@ -262,7 +272,7 @@ export function IconeAcao({
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={className}
+      className={className ? `icone ${className}` : "icone"}
       aria-hidden
     >
       {GLIFOS_ACAO[nome]}

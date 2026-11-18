@@ -15,7 +15,7 @@ import uuid
 from decimal import Decimal
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,9 +29,10 @@ from ...schemas.proposta import (
     ResumoCaptacao,
 )
 from ...services import andamento as andamento_service
+from ...services import identidade, plano_gates
+from ...services import marcas as marcas_service
 from ...services import municipios as municipios_service
 from ...services import pdf as pdf_service
-from ...services import plano_gates
 from ...services import propostas as propostas_service
 from ...services.modulos import require_modulo
 from ..deps import get_rls_db
@@ -251,6 +252,7 @@ async def _complementos(
 @router.get("/proposals/{proposta_id}/pdf")
 async def exportar_pdf(
     proposta_id: uuid.UUID,
+    request: Request,
     inline: bool = Query(
         default=False,
         description="abrir no visualizador em vez de baixar (pré-visualização)",
@@ -279,7 +281,12 @@ async def exportar_pdf(
     row.municipio_nome = row.municipio_nome or nome_municipio
     row.uf = row.uf or uf_municipio or municipios_service.uf_do_ibge(row.municipio_ibge)
 
-    conteudo = pdf_service.gerar_pdf_proposta(row, complementos=complementos)
+    # espelho assinado pela marca do HOST (o que o gestor vê na tela, §69)
+    ident = await marcas_service.identidade_da_requisicao(
+        session, marcas_service.host_da_requisicao(request.headers), user
+    )
+    with identidade.usar(ident):
+        conteudo = pdf_service.gerar_pdf_proposta(row, complementos=complementos)
     nome = pdf_service.nome_arquivo(row)
     return Response(
         content=conteudo,

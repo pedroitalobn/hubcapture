@@ -40,7 +40,7 @@ from ..models.usuario import Usuario
 from ..services import alertas as alertas_service
 from ..services import conformidade as conformidade_service
 from ..services import contatos as contatos_service
-from ..services import criterios_alerta, llm_providers, rag
+from ..services import criterios_alerta, identidade, llm_providers, rag
 from ..services import favoritos as favoritos_service
 from ..services import helpdesk as helpdesk_service
 from ..services import modulos as modulos_service
@@ -55,6 +55,17 @@ from ..services import perfil as perfil_service
 from ..services import propostas as propostas_service
 from ..services import repasses as repasses_service
 from ..services._territorio import ibges as territorio_ibges
+
+
+def system_prompt(papel: str) -> str:
+    """O prompt de sistema vestido com a marca em uso (§69): o assistente da
+    marca se apresenta pelo nome dela, nunca como "Copiloto do Hub Capture"."""
+    texto = SYSTEM.format(papel=papel)
+    ident = identidade.atual()
+    if ident.padrao:
+        return texto
+    return texto.replace("Copiloto do Hub Capture", f"{ident.assistente} do {ident.nome}", 1)
+
 
 MAX_RODADAS = 6
 # resposta já pronta é re-emitida em fatias deste tamanho (pintura progressiva)
@@ -1048,7 +1059,7 @@ async def preparar(
     mensagens: list[dict] = [
         {
             "role": "system",
-            "content": SYSTEM.format(papel=getattr(usuario, "papel", None) or "executivo")
+            "content": system_prompt(getattr(usuario, "papel", None) or "executivo")
             + f" Hoje é {hoje}."
             + await _contexto_territorio(session, territorio),
         },

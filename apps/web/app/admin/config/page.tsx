@@ -40,6 +40,11 @@ const CATEGORIAS: { id: string; label: string; desc: string }[] = [
   { id: "push", label: "Notificações push", desc: "Web Push no navegador (chaves VAPID)" },
   { id: "email", label: "E-mail", desc: "SMTP transacional" },
   { id: "plataforma", label: "Plataforma", desc: "Aparência e comportamento do app" },
+  {
+    id: "whitelabel",
+    label: "White label · domínios",
+    desc: "Subdomínios, domínio próprio (CNAME) e HTTPS das marcas",
+  },
 ];
 
 const ORIGEM_LABEL: Record<string, string> = {
@@ -171,6 +176,25 @@ const GRUPOS: { id: string; label: string; categoria: string; prefixos: string[]
     categoria: "ia",
     prefixos: ["llm_api_key"],
   },
+  {
+    id: "wl_dominios",
+    label: "Domínios das marcas",
+    categoria: "whitelabel",
+    prefixos: ["whitelabel_dominio", "whitelabel_cname", "whitelabel_subdominio"],
+  },
+  {
+    id: "wl_provisionamento",
+    label: "Provisionamento de HTTPS",
+    categoria: "whitelabel",
+    prefixos: ["whitelabel_provisionador"],
+  },
+  {
+    id: "wl_traefik",
+    label: "Traefik (provider de arquivos)",
+    categoria: "whitelabel",
+    prefixos: ["whitelabel_traefik_"],
+  },
+  { id: "wl_dokploy", label: "Dokploy (API)", categoria: "whitelabel", prefixos: ["dokploy_"] },
   {
     id: "ui",
     label: "Interface (UI) — versão do design system",

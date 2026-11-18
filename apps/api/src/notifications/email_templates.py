@@ -13,6 +13,10 @@ com stack de sistema — nada de webfont.
 
 from __future__ import annotations
 
+from html import escape
+
+from ..services import identidade
+
 # Tokens da paleta (globals.css, tema claro) — espelho de services/pdf.py
 _LIME = "#cef79e"  # acento primário da marca
 _AQUA = "#8be0d4"  # acento secundário (gradientes)
@@ -46,42 +50,75 @@ _DOC = (
     "</body></html>"
 )
 
-_TABELA = (
-    "<table role='presentation' width='100%' cellpadding='0' cellspacing='0' "
-    f"style='background:{_BONE};padding:32px 12px'><tr><td align='center'>"
-    "<table role='presentation' width='560' cellpadding='0' cellspacing='0' "
-    "style='width:100%;max-width:560px'>"
-    # ── banda da marca (header): abyss + brand-dot + wordmark ──
-    "<tr><td style='background:" + _ABYSS + ";border-radius:14px 14px 0 0;"
-    "padding:20px 28px'>"
-    "<table role='presentation' width='100%' cellpadding='0' cellspacing='0'><tr>"
-    "<td width='14' style='vertical-align:middle'>"
-    f"<div style='width:12px;height:12px;border-radius:50%;background:{_LIME};"
-    f"background:{_GRAD}'></div></td>"
-    f"<td style='vertical-align:middle;padding-left:10px;font-family:{_MONO};"
-    f"font-size:13px;letter-spacing:.14em;color:{_PAPER};text-transform:uppercase'>"
-    "Hub&nbsp;Capture</td>"
-    f"<td align='right' style='vertical-align:middle;font-family:{_MONO};"
-    f"font-size:10px;letter-spacing:.12em;color:{_LIME};text-transform:uppercase'>"
-    "{selo}</td>"
-    "</tr></table></td></tr>"
-    # ── fio de gradiente (o .hairline-rule da marca) ──
-    f"<tr><td style='height:3px;line-height:3px;font-size:0;background:{_LIME};"
-    f"background:{_GRAD}'>&nbsp;</td></tr>"
-    # ── card de conteúdo (tema claro) ──
-    f"<tr><td style='background:{_PAPER};border:1px solid {_HAIRLINE};"
-    "border-top:0;border-radius:0 0 14px 14px;padding:28px'>"
-    f"<h1 style='margin:0 0 14px;font-family:{_SANS};font-size:20px;"
-    f"line-height:1.3;font-weight:600;color:{_INK}'>{{titulo}}</h1>"
-    "{conteudo}"
-    "</td></tr>"
-    # ── rodapé (metadata) ──
-    f"<tr><td style='padding:18px 12px 0;text-align:center;font-family:{_SANS};"
-    f"font-size:12px;line-height:1.6;color:{_INK3}'>"
-    "Hub Capture — captação, repasses, conformidade e obras do seu território, "
-    "num só painel.<br>Se você não solicitou este e-mail, ignore-o.</td></tr>"
-    "</table></td></tr></table>"
-)
+def _cores() -> dict[str, str]:
+    """Banda/acento da identidade em uso (§69). O Hub Capture mantém a arte
+    original (gradiente lime→aqua); marca própria usa as cores sólidas dela —
+    gradiente de duas cores inventadas a partir de uma só ficaria sem dono."""
+    ident = identidade.atual()
+    if ident.padrao:
+        return {"banda": _ABYSS, "acento": _LIME, "grad": _GRAD}
+    return {"banda": ident.escuro, "acento": ident.acento, "grad": ident.acento}
+
+
+def _nome() -> str:
+    return identidade.atual().nome
+
+
+def _marca_html() -> str:
+    """Wordmark da banda: o logo (PNG/JPEG para fundo escuro) ou o nome."""
+    ident = identidade.atual()
+    if ident.logo_url:
+        return (
+            f"<img src='{escape(ident.logo_url, quote=True)}' "
+            f"alt='{escape(ident.nome, quote=True)}' "
+            "height='28' style='display:block;height:28px;width:auto;border:0'>"
+        )
+    return escape(ident.nome).replace(" ", "&nbsp;")
+
+
+def _tabela(selo: str, titulo: str, conteudo: str) -> str:
+    c = _cores()
+    ponto = (
+        "<td width='14' style='vertical-align:middle'>"
+        f"<div style='width:12px;height:12px;border-radius:50%;background:{c['acento']};"
+        f"background:{c['grad']}'></div></td>"
+        if not identidade.atual().logo_url
+        else ""
+    )
+    return (
+        "<table role='presentation' width='100%' cellpadding='0' cellspacing='0' "
+        f"style='background:{_BONE};padding:32px 12px'><tr><td align='center'>"
+        "<table role='presentation' width='560' cellpadding='0' cellspacing='0' "
+        "style='width:100%;max-width:560px'>"
+        # ── banda da marca (header): banda + brand-dot + wordmark ──
+        f"<tr><td style='background:{c['banda']};border-radius:14px 14px 0 0;"
+        "padding:20px 28px'>"
+        "<table role='presentation' width='100%' cellpadding='0' cellspacing='0'><tr>"
+        f"{ponto}"
+        f"<td style='vertical-align:middle;padding-left:{10 if ponto else 0}px;font-family:{_MONO};"
+        f"font-size:13px;letter-spacing:.14em;color:{_PAPER};text-transform:uppercase'>"
+        f"{_marca_html()}</td>"
+        f"<td align='right' style='vertical-align:middle;font-family:{_MONO};"
+        f"font-size:10px;letter-spacing:.12em;color:{c['acento']};text-transform:uppercase'>"
+        f"{selo}</td>"
+        "</tr></table></td></tr>"
+        # ── fio de gradiente (o .hairline-rule da marca) ──
+        f"<tr><td style='height:3px;line-height:3px;font-size:0;background:{c['acento']};"
+        f"background:{c['grad']}'>&nbsp;</td></tr>"
+        # ── card de conteúdo (tema claro) ──
+        f"<tr><td style='background:{_PAPER};border:1px solid {_HAIRLINE};"
+        "border-top:0;border-radius:0 0 14px 14px;padding:28px'>"
+        f"<h1 style='margin:0 0 14px;font-family:{_SANS};font-size:20px;"
+        f"line-height:1.3;font-weight:600;color:{_INK}'>{titulo}</h1>"
+        f"{conteudo}"
+        "</td></tr>"
+        # ── rodapé (metadata) ──
+        f"<tr><td style='padding:18px 12px 0;text-align:center;font-family:{_SANS};"
+        f"font-size:12px;line-height:1.6;color:{_INK3}'>"
+        f"{escape(_nome())} — captação, repasses, conformidade e obras do seu território, "
+        "num só painel.<br>Se você não solicitou este e-mail, ignore-o.</td></tr>"
+        "</table></td></tr></table>"
+    )
 
 
 def _paragrafo(texto: str) -> str:
@@ -105,7 +142,7 @@ def _botao(url: str, label: str) -> str:
     return (
         "<table role='presentation' cellpadding='0' cellspacing='0' "
         "style='margin:20px 0 6px'><tr>"
-        f"<td style='background:{_ABYSS};border-radius:10px'>"
+        f"<td style='background:{_cores()['banda']};border-radius:10px'>"
         f"<a href='{url}' style='display:inline-block;padding:12px 22px;"
         f"font-family:{_MONO};font-size:13px;letter-spacing:.06em;"
         f"color:{_PAPER};text-decoration:none'>{label}</a>"
@@ -118,14 +155,13 @@ def _botao(url: str, label: str) -> str:
 
 
 def _render(selo: str, titulo: str, conteudo: str, preheader: str) -> str:
-    tabela = _TABELA.format(selo=selo, titulo=titulo, conteudo=conteudo)
-    return _DOC.format(preheader=preheader, tabela=tabela)
+    return _DOC.format(preheader=preheader, tabela=_tabela(selo, titulo, conteudo))
 
 
 def boas_vindas(nome: str | None) -> tuple[str, str, str]:
     ola = f"Olá, {nome}!" if nome else "Bem-vindo(a)!"
     txt = (
-        f"{ola}\n\nSua conta no Hub Capture foi criada. "
+        f"{ola}\n\nSua conta no {_nome()} foi criada. "
         "Acompanhe captação, repasses, conformidade e obras do seu território "
         "num só painel."
     )
@@ -133,16 +169,16 @@ def boas_vindas(nome: str | None) -> tuple[str, str, str]:
         selo="Conta criada",
         titulo=ola,
         conteudo=_paragrafo(
-            "Sua conta no Hub Capture foi criada. Acompanhe captação, repasses, "
+            f"Sua conta no {_nome()} foi criada. Acompanhe captação, repasses, "
             "conformidade e obras do seu território num só painel."
         )
         + _paragrafo(
             "O primeiro passo é o onboarding: escolha seu município e as áreas "
             "de interesse — o painel se monta a partir do seu território."
         ),
-        preheader="Sua conta no Hub Capture foi criada.",
+        preheader=f"Sua conta no {_nome()} foi criada.",
     )
-    return "Bem-vindo(a) ao Hub Capture", txt, html
+    return f"Bem-vindo(a) ao {_nome()}", txt, html
 
 
 def redefinir_senha(url: str) -> tuple[str, str, str]:
@@ -162,7 +198,7 @@ def redefinir_senha(url: str) -> tuple[str, str, str]:
         + _apoio("O link expira em 1 hora."),
         preheader="Crie uma nova senha para a sua conta — o link expira em 1 hora.",
     )
-    return "Redefinir sua senha — Hub Capture", txt, html
+    return f"Redefinir sua senha — {_nome()}", txt, html
 
 
 def verificar_email(url: str) -> tuple[str, str, str]:
@@ -174,42 +210,42 @@ def verificar_email(url: str) -> tuple[str, str, str]:
         + _botao(url, "Confirmar e-mail"),
         preheader="Confirme seu e-mail para ativar a conta.",
     )
-    return "Confirme seu e-mail — Hub Capture", txt, html
+    return f"Confirme seu e-mail — {_nome()}", txt, html
 
 
 def convite(url: str, papel: str | None) -> tuple[str, str, str]:
     papel_txt = f" como <b style='color:{_INK}'>{papel}</b>" if papel else ""
     txt = (
-        f"Você foi convidado(a) para o Hub Capture{(' como ' + papel) if papel else ''}.\n\n"
+        f"Você foi convidado(a) para o {_nome()}{(' como ' + papel) if papel else ''}.\n\n"
         f"Aceite o convite e crie sua senha:\n{url}"
     )
     html = _render(
         selo="Convite",
         titulo="Você foi convidado(a)",
         conteudo=_paragrafo(
-            f"Você foi convidado(a) para o Hub Capture{papel_txt} — o painel que "
+            f"Você foi convidado(a) para o {_nome()}{papel_txt} — o painel que "
             "concentra captação, repasses, conformidade e obras do seu território."
         )
         + _botao(url, "Aceitar convite")
         + _apoio("Ao aceitar, você cria sua senha e já entra no painel."),
-        preheader="Aceite o convite e crie sua senha no Hub Capture.",
+        preheader=f"Aceite o convite e crie sua senha no {_nome()}.",
     )
-    return "Seu convite para o Hub Capture", txt, html
+    return f"Seu convite para o {_nome()}", txt, html
 
 
 def alertas_resumo(linhas: list[str], url_painel: str | None) -> tuple[str, str, str]:
     """Resumo dos alertas novos (nova proposta / oportunidade / mudança)."""
     corpo = "\n".join(f"• {li}" for li in linhas)
     txt = "Novidades no seu território:\n\n" f"{corpo}\n\n" + (
-        f"Veja no painel: {url_painel}" if url_painel else "Veja no painel do Hub Capture."
+        f"Veja no painel: {url_painel}" if url_painel else "Veja no painel do {_nome()}."
     )
     # Feed do painel: cada alerta é uma linha com o dot da marca e hairline
     # entre elas — o mesmo desenho da central de alertas.
     itens_html = "".join(
         "<tr>"
         "<td width='10' style='vertical-align:top;padding:10px 0'>"
-        f"<div style='width:7px;height:7px;border-radius:50%;background:{_LIME};"
-        f"background:{_GRAD};margin-top:6px'></div></td>"
+        f"<div style='width:7px;height:7px;border-radius:50%;background:{_cores()['acento']};"
+        f"background:{_cores()['grad']};margin-top:6px'></div></td>"
         f"<td style='padding:10px 0 10px 10px;font-family:{_SANS};font-size:14px;"
         f"line-height:1.55;color:{_INK2};"
         + (f"border-bottom:1px solid {_HAIRLINE}" if i < len(linhas) - 1 else "")
@@ -229,4 +265,4 @@ def alertas_resumo(linhas: list[str], url_painel: str | None) -> tuple[str, str,
         + botao,
         preheader=(linhas[0] if linhas else "Novidades no seu território."),
     )
-    return "Hub Capture — novidades no seu território", txt, html
+    return f"{_nome()} — novidades no seu território", txt, html

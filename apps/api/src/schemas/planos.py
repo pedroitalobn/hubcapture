@@ -116,6 +116,8 @@ class ConviteCreate(BaseModel):
     email: EmailStr
     papel: str | None = None
     plano_id: uuid.UUID | None = None
+    # white label (§69): quem aceita entra vinculado à marca
+    marca_id: uuid.UUID | None = None
     expires_em_dias: int = 7
 
     _papel = field_validator("papel", mode="before")(papel_ou_none)
@@ -128,6 +130,7 @@ class ConviteRead(BaseModel):
     token: str
     papel: str | None = None
     plano_id: uuid.UUID | None = None
+    marca_id: uuid.UUID | None = None
     status: str
     expires_at: datetime | None = None
     created_at: datetime
@@ -182,6 +185,9 @@ class AdminUsuarioUpdate(BaseModel):
     is_superuser: bool | None = None
     is_active: bool | None = None
     plano_id: uuid.UUID | None = None
+    # white label (§69): vincular a uma marca / `remover_marca` desvincula
+    marca_id: uuid.UUID | None = None
+    remover_marca: bool | None = None
 
     _papel = field_validator("papel", mode="before")(papel_ou_none)
 
@@ -193,6 +199,7 @@ class AdminUsuarioRead(BaseModel):
     nome: str | None = None
     papel: str | None = None
     plano_id: uuid.UUID | None = None
+    marca_id: uuid.UUID | None = None
     is_superuser: bool
     is_active: bool
     is_verified: bool

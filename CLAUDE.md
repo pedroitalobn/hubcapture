@@ -3409,3 +3409,106 @@ monta a web da produção — o próximo deploy dela estava sujeito à mesma fal
   arquivo por família serve todos os pesos). Licença OFL, pode ir no repositório.
 - Fonte nova no design system = mais um `.woff2` em `app/fonts` + `localFont`.
   Nunca `next/font/google`: build não pode depender de rede externa.
+
+## 69. White label — marcas com subdomínio, domínio próprio e identidade própria (decisão travada)
+
+Uma **marca** é uma ORGANIZAÇÃO (consultoria, gabinete, associação) que veste a
+plataforma com a identidade dela, num endereço dela: `<slug>.hubcapture.com.br`
+desde a criação e, opcionalmente, um domínio próprio via CNAME. O tenant de DADOS
+continua sendo o usuário (RLS por `usuario_id`, §0) — pertencer a uma marca não
+abre dado de ninguém; ela só decide a ROUPA.
+
+- **Tabelas** (migration `b9c0d1e2f3a4`, nível-plataforma SEM RLS como
+  `planos`/`convites`: a marca é lida pelo HOST antes de existir sessão):
+  `marcas` (slug único, nome, ativo, `dono_id`, `plano_id` de quem entra pela
+  marca, `cadastro_aberto`, `dominio` + `dominio_status`
+  pendente|verificado|ativo|erro + detalhe, `provisionamento` jsonb por host,
+  `tema` jsonb) · `marca_assets` (bytea, como as mídias do Class §37: logo,
+  logo_escuro, icone, login_imagem, fonte_corpo, fonte_titulo; `hash` versiona a
+  URL pública) · `usuarios.marca_id` e `convites.marca_id` (FK SET NULL —
+  excluir a marca nunca exclui conta).
+- **O tema NUNCA é CSS livre** (`schemas/marcas.TemaMarca`, `extra=forbid`): 3
+  cores hex (acento · tom escuro · ação), `forma` (reta|padrao|suave|arredondada|
+  pilula), fontes do catálogo fechado `services/marcas.FONTES` (Inter/Archivo da
+  casa, sistema, Google Fonts em RUNTIME, ou `arquivo` = .woff2 enviado),
+  títulos em caixa alta, traço/pontas dos ícones, nomes (exibição, assistente) e
+  textos do login. `montar_css()` (PURO, testado) deriva o resto — tons claros,
+  o tema escuro inteiro, a tinta por CONTRASTE (`tinta_sobre`), os raios do
+  Tailwind (`--radius-*`) — e `avisos_de_contraste()` alerta no editor sem
+  bloquear. Campo novo do tema = schema + `montar_css` + editor.
+- **Especificidade, não ordem**: no site o CSS sai em `html:root` (claro, 0,1,1)
+  e `html:root[data-theme=dark]`/`html:root:not([data-theme=light])` (0,2,1) —
+  um degrau acima de cada bloco do `globals.css`. O Next/React decide a ordem das
+  folhas no `<head>`; a marca não pode depender dela.
+- **Resolução por host** (`services/marcas.por_host`, cache 30s): `<slug>.<base>`
+  → marca pelo slug (subdomínio de 1 nível; `SLUGS_RESERVADOS` nunca viram
+  marca); outro host → `dominio` com status verificado|ativo; marca desativada
+  ou host da plataforma → Hub Capture. O host original vem de
+  `X-Forwarded-Host` (o rewrite do Next e o Traefik repassam), depois `Host`.
+- **Web**: o layout raiz (servidor, `lib/marca-servidor.marcaDoHost`) busca
+  `GET /branding?host=` pela rede interna (revalidate 60s, timeout 2,5s — API
+  fora do ar = Hub Capture), injeta `<style id="marca-css">` + as fontes ANTES da
+  1ª pintura (sem piscar o verde), e `generateMetadata`/`generateViewport`/
+  `manifest.ts` saem com nome, ícone e cores da marca (o app instalado leva o
+  nome dela). `lib/marca.tsx` (`useMarca`) alimenta `BrandMark`/`LogoMarca`
+  (logo claro/escuro trocados pelo tema via `.logo-claro`/`.logo-escuro`),
+  `AuthShell` (imagem, título, subtítulo, frase e rodapé do login), trilhos do
+  painel e do admin e o nome do assistente no `DynamicIsland`. O link "Criar
+  conta" some no host de marca com cadastro fechado.
+- **Fora do site, quem assina é a marca da CONTA** (`services/identidade.py`):
+  um `ContextVar` com a `Identidade` (nome, assistente, cores, url_base, logo)
+  que e-mail (`email_templates._tabela`, remetente com o NOME da marca e o
+  endereço da plataforma — SPF/DKIM), PDF (`pdf._banda`, logo PNG/JPEG sobre a
+  banda), push, WhatsApp e prompts do Copiloto leem. Sem nada ligado = Hub
+  Capture, idêntico ao de antes. Liga-se com `identidade.usar(...)` em volta do
+  envio; links de e-mail usam `url_base` da marca (domínio ativo ou subdomínio).
+  Dentro do site (PDF baixado, Copiloto) vale a marca do HOST, com a da conta de
+  retaguarda (`identidade_da_requisicao`).
+- **Entrada na marca**: cadastro feito no host dela com `cadastro_aberto`
+  (`core/users._vincular_marca_do_host`, ganha o plano da marca se a conta não
+  tem), convite da marca (`POST /brands/{id}/invites` → `convites.marca_id` →
+  aceite vincula), convite de membro da conta (§39) herda a marca do convidante,
+  admin vincula em `PATCH /admin/users/{id}` (`marca_id`/`remover_marca`).
+- **Domínio próprio**: `PUT /brands/{id}/domain` (pendente; host antigo perde a
+  rota) → `POST .../domain/verify` resolve os DOIS nomes no DNS (getaddrinfo em
+  thread, com teto) e exige que TODOS os IPs do domínio estejam entre os do alvo
+  (`comparar_dns`, cobre CNAME e A de apex; Cloudflare com proxy laranja falha —
+  a tela avisa). Alvo do CNAME = o subdomínio da marca, ou fixo em
+  `whitelabel_cname_alvo`. Domínio já ativo não volta a "erro" por uma consulta
+  ruim.
+- **HTTPS — `services/dominios.py`** (`whitelabel_provisionador`): `manual`
+  (padrão; fica "verificado · aguardando ativação" e o admin marca ativo em
+  `POST /admin/brands/{id}/domain/activate`) · `traefik_arquivo` (RECOMENDADO:
+  YAML por host na pasta do provider de arquivos do Traefik do Dokploy montada
+  na API — rota + Let's Encrypt em segundos, sem redeploy; escrita atômica; host
+  validado por regex antes de entrar na regra `Host()`) · `dokploy` (API
+  `domain.create`; **domínio de serviço de COMPOSE só vale no próximo deploy** —
+  com `dokploy_redeploy=on` o provisionamento dispara `compose.deploy`, que
+  rebuilda o stack). Subdomínio: provisionado na criação, a menos que
+  `whitelabel_subdominio_wildcard=on` (wildcard no proxy). Sandbox não provisiona.
+- **Arquivos**: tipo decidido pelos BYTES (assinatura), não pelo
+  Content-Type do navegador; SVG sanitizado (script, `on*`, `javascript:`,
+  foreignObject) e servido com CSP `sandbox` + `nosniff`; tetos 1 MB (4 MB a
+  imagem do login); URL `?v=<hash>` com cache imutável.
+- **Endpoints**: público `GET /branding`, `GET /branding/assets/{marca}/{tipo}`;
+  autenticado `POST /branding/preview` (CSS escopado em `.marca-preview` + avisos);
+  dono ou admin `GET /brands/options|mine`, `GET/PATCH /brands/{id}` (slug,
+  ativo, dono e plano → 403 para quem não é admin; marca alheia → 404),
+  `PUT/DELETE /brands/{id}/assets/{tipo}`, `PUT /brands/{id}/domain`,
+  `POST /brands/{id}/domain/verify`, `GET /brands/{id}/members`,
+  `DELETE /brands/{id}/members/{uid}` (desvincula; o dono não sai),
+  `GET/POST /brands/{id}/invites`; admin `GET/POST /admin/brands`,
+  `POST /admin/brands/{id}/provision`, `POST .../domain/activate`,
+  `DELETE /admin/brands/{id}`.
+- **Web (telas)**: `app/admin/brands` (lista + criar com slug sugerido do nome)
+  e `app/admin/brands/[id]`; o dono edita em `app/panel/brand` ("Minha marca" no
+  menu da conta). O MESMO `components/marca/EditorMarca.tsx` serve os dois
+  (`admin` acrescenta o bloco de operação) e pré-visualiza ao vivo pelo CSS do
+  servidor — o que se vê é o que vai ao ar.
+- **Config** (painel admin, categoria `whitelabel`): `whitelabel_dominio_base`,
+  `whitelabel_cname_alvo`, `whitelabel_subdominio_wildcard`,
+  `whitelabel_provisionador`, `whitelabel_traefik_*`, `dokploy_*`.
+- Regressão: `tests/test_white_label.py` (CSS puro, validação do tema, host/slug/
+  domínio, DNS, YAML do Traefik, SVG, identidade em e-mail/PDF/push/Copiloto e
+  ponta a ponta: criar marca, host veste o site, dono × admin, upload, domínio
+  com Traefik e manual, cadastro e convite pela marca, exclusão).

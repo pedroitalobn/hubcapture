@@ -780,3 +780,29 @@ export async function islandStream(
     }
   }
 }
+
+/** White label (§69): envia um arquivo da marca (logo, ícone, imagem do login,
+ *  fonte .woff2). Multipart direto — o client tipado não serializa arquivo. */
+export async function enviarArquivoMarca(
+  marcaId: string,
+  tipo: string,
+  arquivo: File,
+): Promise<void> {
+  const corpo = new FormData();
+  corpo.append("arquivo", arquivo);
+  const resp = await fetch(`${API_ORIGIN}/api/v1/brands/${marcaId}/assets/${tipo}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${(await garantirSessao()) ?? ""}` },
+    body: corpo,
+  });
+  if (!resp.ok) {
+    let detalhe = `HTTP ${resp.status}`;
+    try {
+      const j = (await resp.json()) as { detail?: unknown };
+      if (typeof j.detail === "string") detalhe = j.detail;
+    } catch {
+      /* corpo não-JSON */
+    }
+    throw new Error(detalhe);
+  }
+}

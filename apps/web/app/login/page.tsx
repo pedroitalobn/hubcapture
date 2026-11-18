@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AuthShell } from "@/components/AuthShell";
 import { api, login } from "@/lib/api/client";
+import { useMarca } from "@/lib/marca";
 
 export default function LoginPage() {
+  const marca = useMarca();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -39,12 +41,17 @@ export default function LoginPage() {
       subtitle="Entre para acompanhar o seu território."
       footer={
         <div className="flex items-center justify-between">
-          <span>
-            Novo por aqui?{" "}
-            <Link href="/signup" className="text-ink underline hover:no-underline">
-              Criar conta
-            </Link>
-          </span>
+          {/* marca com cadastro fechado entra só por convite (§69) */}
+          {!marca.personalizada || marca.cadastro_aberto ? (
+            <span>
+              Novo por aqui?{" "}
+              <Link href="/signup" className="text-ink underline hover:no-underline">
+                Criar conta
+              </Link>
+            </span>
+          ) : (
+            <span />
+          )}
           <Link href="/forgot-password" className="hover:text-ink">
             Esqueci a senha
           </Link>

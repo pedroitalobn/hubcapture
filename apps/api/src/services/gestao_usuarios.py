@@ -40,14 +40,19 @@ class LimiteMembrosExcedido(Exception):
 
 # ── Convites ────────────────────────────────────────────────────────────────
 async def criar_convite(
-    session: AsyncSession, dados: ConviteCreate, convidado_por: uuid.UUID
+    session: AsyncSession,
+    dados: ConviteCreate,
+    convidado_por: uuid.UUID,
+    marca_id: uuid.UUID | None = None,
 ) -> Convite:
+    marca_id = marca_id or dados.marca_id
     convite = Convite(
         email=str(dados.email),
         token=secrets.token_urlsafe(32),
         papel=dados.papel,
         plano_id=dados.plano_id,
         convidado_por=convidado_por,
+        marca_id=marca_id,
         status="pendente",
         expires_at=datetime.now(UTC) + timedelta(days=dados.expires_em_dias),
     )
@@ -59,11 +64,18 @@ async def criar_convite(
         from ..notifications import email as email_service
         from ..notifications import email_templates as templates
         from ..services import config as config_service
+        from ..services import identidade as identidade_ctx
+        from ..services import marcas as marcas_service
 
-        base = (await config_service.resolver("app_base_url")) or settings.app_base_url
+        # convite de marca sai com a identidade dela e o link para o host dela
+        ident = await marcas_service.identidade(session, marca_id)
+        base = ident.url_base or (
+            (await config_service.resolver("app_base_url")) or settings.app_base_url
+        )
         url = f"{base}/accept-invite?token={convite.token}"
-        assunto, txt, html = templates.convite(url, convite.papel)
-        await email_service.enviar(convite.email, assunto, txt, html)
+        with identidade_ctx.usar(ident):
+            assunto, txt, html = templates.convite(url, convite.papel)
+            await email_service.enviar(convite.email, assunto, txt, html)
     except Exception:  # noqa: BLE001 — falha de e-mail não invalida o convite
         pass
     return convite
@@ -103,6 +115,11 @@ async def aceitar_convite(
             update(Usuario).where(Usuario.id == user.id).values(plano_id=convite.plano_id)
         )
         user.plano_id = convite.plano_id  # reflete na resposta (objeto de outra sessão)
+    if convite.marca_id:
+        await session.execute(
+            update(Usuario).where(Usuario.id == user.id).values(marca_id=convite.marca_id)
+        )
+        user.marca_id = convite.marca_id
     convite.status = "aceito"
     await session.flush()
     return user
@@ -143,6 +160,8 @@ async def convidar_membro(
             expires_em_dias=dados.expires_em_dias,
         ),
         convidado_por=convidante.id,
+        # o membro entra na MESMA marca da conta que convidou (§69)
+        marca_id=convidante.marca_id,
     )
 
 
@@ -232,6 +251,8 @@ async def atualizar_usuario(
     session: AsyncSession, usuario_id: uuid.UUID, dados: AdminUsuarioUpdate
 ) -> Usuario:
     valores = dados.model_dump(exclude_unset=True)
+    if valores.pop("remover_marca", False):
+        valores["marca_id"] = None
     if valores:
         await session.execute(update(Usuario).where(Usuario.id == usuario_id).values(**valores))
     user = (

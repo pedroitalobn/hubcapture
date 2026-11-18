@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, islandStream } from "@/lib/api/client";
+import { useMarca } from "@/lib/marca";
 import { paramMunicipio, useTerritorio } from "@/lib/territorio";
 
 /**
@@ -157,6 +158,8 @@ function tituloDoAlerta(a: Alerta): string {
 }
 
 export default function DynamicIsland() {
+  // o assistente se apresenta pelo nome da marca (white label, §69)
+  const assistente = useMarca().assistente || "Copiloto";
   // o island flutua sobre o painel: pergunta sempre no recorte que está em tela
   const { selecionados } = useTerritorio();
   const [aberta, setAberta] = useState(false);
@@ -285,7 +288,7 @@ export default function DynamicIsland() {
           ...m,
           {
             autor: "copiloto",
-            texto: "Falha ao falar com o Copiloto. Tente de novo.",
+            texto: `Falha ao falar com o ${assistente}. Tente de novo.`,
           },
         ]);
       } finally {
@@ -420,8 +423,8 @@ export default function DynamicIsland() {
             className="island-entra flex items-center gap-2.5 px-4 py-2 text-sm"
             aria-label={
               temAtualizacao
-                ? `Abrir Copiloto — ${alertas.length} atualização(ões) de proposta`
-                : "Abrir Copiloto"
+                ? `Abrir ${assistente} — ${alertas.length} atualização(ões) de proposta`
+                : `Abrir ${assistente}`
             }
           >
             <span className="relative flex h-2 w-2">
@@ -436,7 +439,7 @@ export default function DynamicIsland() {
                 }`}
               />
             </span>
-            <span className="font-medium">Copiloto</span>
+            <span className="font-medium">{assistente}</span>
             {/* morph de ATUALIZAÇÃO: proposta mudou → a cápsula avisa */}
             {temAtualizacao && (
               <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-xs font-medium text-amber-300">
@@ -462,7 +465,7 @@ export default function DynamicIsland() {
                   />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-lime" />
                 </span>
-                <span className="text-sm font-medium">Copiloto</span>
+                <span className="text-sm font-medium">{assistente}</span>
                 <span className="font-mono text-[10px] uppercase tracking-wider text-white/40">
                   seu território, ao vivo
                 </span>
@@ -496,7 +499,7 @@ export default function DynamicIsland() {
                 <button
                   onClick={() => setAberta(false)}
                   className="pressable rounded-full px-2 py-0.5 text-white/60 hover:bg-white/10 hover:text-white"
-                  aria-label="Recolher Copiloto"
+                  aria-label={`Recolher ${assistente}`}
                 >
                   —
                 </button>
@@ -633,7 +636,7 @@ export default function DynamicIsland() {
               <input
                 value={pergunta}
                 onChange={(e) => setPergunta(e.target.value)}
-                placeholder={ouvindo ? "ouvindo…" : "Pergunte ao Copiloto…"}
+                placeholder={ouvindo ? "ouvindo…" : `Pergunte ao ${assistente}…`}
                 className="flex-1 rounded-full bg-white/[0.06] px-3 py-1.5 text-sm text-white placeholder-white/40 outline-none ring-1 ring-white/10 transition-all duration-200 focus:bg-white/[0.1] focus:ring-lime/40"
                 autoFocus
               />

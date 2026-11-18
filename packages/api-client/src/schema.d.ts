@@ -180,6 +180,85 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/brands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Listar */
+        get: operations["admin_listar_api_v1_admin_brands_get"];
+        put?: never;
+        /** Admin Criar */
+        post: operations["admin_criar_api_v1_admin_brands_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/brands/{marca_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Admin Excluir
+         * @description Exclui a marca. As contas vinculadas NÃO são excluídas: voltam a ser
+         *     Hub Capture (FK SET NULL); as rotas dos hosts dela são removidas.
+         */
+        delete: operations["admin_excluir_api_v1_admin_brands__marca_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/brands/{marca_id}/domain/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin Ativar Dominio
+         * @description Ativação MANUAL: a equipe confirmou rota + HTTPS no proxy.
+         */
+        post: operations["admin_ativar_dominio_api_v1_admin_brands__marca_id__domain_activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/brands/{marca_id}/provision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin Reprovisionar
+         * @description Refaz o provisionamento do subdomínio (e do domínio, se verificado).
+         */
+        post: operations["admin_reprovisionar_api_v1_admin_brands__marca_id__provision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/class/articles": {
         parameters: {
             query?: never;
@@ -1143,6 +1222,235 @@ export interface paths {
         /** Verify:Verify */
         post: operations["verify_verify_api_v1_auth_verify_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/branding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Branding
+         * @description Identidade visual do host. Sem marca (ou host da plataforma) = Hub Capture.
+         */
+        get: operations["branding_api_v1_branding_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/branding/assets/{marca_id}/{tipo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Branding Asset */
+        get: operations["branding_asset_api_v1_branding_assets__marca_id___tipo__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/branding/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Branding Preview
+         * @description CSS do tema em edição, escopado em `.marca-preview` (o editor pinta só a
+         *     pré-visualização, não o próprio painel).
+         */
+        post: operations["branding_preview_api_v1_branding_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/brands/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Minhas */
+        get: operations["minhas_api_v1_brands_mine_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/brands/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Opcoes */
+        get: operations["opcoes_api_v1_brands_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/brands/{marca_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obter */
+        get: operations["obter_api_v1_brands__marca_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Editar */
+        patch: operations["editar_api_v1_brands__marca_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/brands/{marca_id}/assets/{tipo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Enviar Asset */
+        put: operations["enviar_asset_api_v1_brands__marca_id__assets__tipo__put"];
+        post?: never;
+        /** Remover Asset */
+        delete: operations["remover_asset_api_v1_brands__marca_id__assets__tipo__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/brands/{marca_id}/domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Definir Dominio
+         * @description Grava (ou remove, com `null`) o domínio próprio. Fica `pendente` até a
+         *     verificação do DNS; o host antigo perde a rota.
+         */
+        put: operations["definir_dominio_api_v1_brands__marca_id__domain_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/brands/{marca_id}/domain/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verificar Dominio
+         * @description Confere o DNS e, apontando para nós, provisiona rota + HTTPS.
+         */
+        post: operations["verificar_dominio_api_v1_brands__marca_id__domain_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/brands/{marca_id}/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Convites */
+        get: operations["convites_api_v1_brands__marca_id__invites_get"];
+        put?: never;
+        /**
+         * Convidar
+         * @description Convida alguém para a marca: quem aceita entra vinculado a ela, com o
+         *     plano da marca, e o e-mail do convite já sai com a identidade dela.
+         */
+        post: operations["convidar_api_v1_brands__marca_id__invites_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/brands/{marca_id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Membros */
+        get: operations["membros_api_v1_brands__marca_id__members_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/brands/{marca_id}/members/{usuario_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Desvincular Membro
+         * @description Tira a conta da marca (ela volta a assinar como Hub Capture). Não exclui
+         *     a conta nem toca nos dados dela.
+         */
+        delete: operations["desvincular_membro_api_v1_brands__marca_id__members__usuario_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2967,6 +3275,8 @@ export interface components {
             is_superuser: boolean;
             /** Is Verified */
             is_verified: boolean;
+            /** Marca Id */
+            marca_id?: string | null;
             /** Nome */
             nome?: string | null;
             /** Papel */
@@ -2983,10 +3293,14 @@ export interface components {
             is_active?: boolean | null;
             /** Is Superuser */
             is_superuser?: boolean | null;
+            /** Marca Id */
+            marca_id?: string | null;
             /** Papel */
             papel?: string | null;
             /** Plano Id */
             plano_id?: string | null;
+            /** Remover Marca */
+            remover_marca?: boolean | null;
         };
         /** AlertaRead */
         AlertaRead: {
@@ -3205,6 +3519,19 @@ export interface components {
             /** Contatos */
             contatos: components["schemas"]["ContatoAssessoria"][];
         };
+        /** AssetInfo */
+        AssetInfo: {
+            /** Content Type */
+            content_type: string;
+            /** Nome Arquivo */
+            nome_arquivo?: string | null;
+            /** Tamanho */
+            tamanho: number;
+            /** Tipo */
+            tipo: string;
+            /** Url */
+            url: string;
+        };
         /** AtribuirPlano */
         AtribuirPlano: {
             /** Plano Id */
@@ -3250,6 +3577,11 @@ export interface components {
             state: string;
             /** Url */
             url: string;
+        };
+        /** Body_enviar_asset_api_v1_brands__marca_id__assets__tipo__put */
+        Body_enviar_asset_api_v1_brands__marca_id__assets__tipo__put: {
+            /** Arquivo */
+            arquivo: string;
         };
         /** Body_enviar_midia_arquivo_api_v1_admin_class_articles__artigo_id__media_upload_post */
         Body_enviar_midia_arquivo_api_v1_admin_class_articles__artigo_id__media_upload_post: {
@@ -3319,6 +3651,47 @@ export interface components {
         Body_verify_verify_api_v1_auth_verify_post: {
             /** Token */
             token: string;
+        };
+        /**
+         * BrandingRead
+         * @description O que o SITE precisa para se vestir — público, resolvido pelo host.
+         */
+        BrandingRead: {
+            /** Assistente */
+            assistente: string;
+            /**
+             * Cadastro Aberto
+             * @default true
+             */
+            cadastro_aberto: boolean;
+            /** Cor Tema Claro */
+            cor_tema_claro: string;
+            /** Cor Tema Escuro */
+            cor_tema_escuro: string;
+            /** Css */
+            css: string;
+            /**
+             * Fontes Urls
+             * @default []
+             */
+            fontes_urls: string[];
+            /** Icone Url */
+            icone_url?: string | null;
+            /** Id */
+            id?: string | null;
+            /** Login Imagem Url */
+            login_imagem_url?: string | null;
+            /** Logo Escuro Url */
+            logo_escuro_url?: string | null;
+            /** Logo Url */
+            logo_url?: string | null;
+            /** Nome */
+            nome: string;
+            /** Personalizada */
+            personalizada: boolean;
+            /** Slug */
+            slug?: string | null;
+            tema: components["schemas"]["TemaMarca"];
         };
         /** CallbackOAuth */
         CallbackOAuth: {
@@ -3991,10 +4364,24 @@ export interface components {
              * @default 7
              */
             expires_em_dias: number;
+            /** Marca Id */
+            marca_id?: string | null;
             /** Papel */
             papel?: string | null;
             /** Plano Id */
             plano_id?: string | null;
+        };
+        /** ConviteMarcaCreate */
+        ConviteMarcaCreate: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Expires Em Dias */
+            expires_em_dias?: number | null;
+            /** Papel */
+            papel?: string | null;
         };
         /** ConviteRead */
         ConviteRead: {
@@ -4012,6 +4399,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Marca Id */
+            marca_id?: string | null;
             /** Papel */
             papel?: string | null;
             /** Plano Id */
@@ -4020,6 +4409,15 @@ export interface components {
             status: string;
             /** Token */
             token: string;
+        };
+        /** CoresMarca */
+        CoresMarca: {
+            /** Acao */
+            acao?: string | null;
+            /** Acento */
+            acento?: string | null;
+            /** Escuro */
+            escuro?: string | null;
         };
         /**
          * CriterioAlertaRead
@@ -4308,6 +4706,11 @@ export interface components {
             uf?: string | null;
             /** Url */
             url?: string | null;
+        };
+        /** DominioUpdate */
+        DominioUpdate: {
+            /** Dominio */
+            dominio?: string | null;
         };
         /** EmailTesteIn */
         EmailTesteIn: {
@@ -5372,6 +5775,96 @@ export interface components {
              */
             modelo_resumo: boolean;
         };
+        /** MarcaCreate */
+        MarcaCreate: {
+            /** Dono Email */
+            dono_email?: string | null;
+            /** Nome */
+            nome: string;
+            /** Plano Id */
+            plano_id?: string | null;
+            /** Slug */
+            slug: string;
+            tema?: components["schemas"]["TemaMarca"] | null;
+        };
+        /** MarcaRead */
+        MarcaRead: {
+            /**
+             * Assets
+             * @default []
+             */
+            assets: components["schemas"]["AssetInfo"][];
+            /** Ativo */
+            ativo: boolean;
+            /** Cadastro Aberto */
+            cadastro_aberto: boolean;
+            /** Cname Alvo */
+            cname_alvo: string;
+            /** Created At */
+            created_at?: string | null;
+            /** Dominio */
+            dominio?: string | null;
+            /** Dominio Detalhe */
+            dominio_detalhe?: string | null;
+            /** Dominio Status */
+            dominio_status?: string | null;
+            /** Dominio Verificado Em */
+            dominio_verificado_em?: string | null;
+            /** Dono Email */
+            dono_email?: string | null;
+            /** Dono Id */
+            dono_id?: string | null;
+            /** Host Padrao */
+            host_padrao: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Membros
+             * @default 0
+             */
+            membros: number;
+            /** Nome */
+            nome: string;
+            /** Plano Id */
+            plano_id?: string | null;
+            /**
+             * Provisionamento
+             * @default []
+             */
+            provisionamento: components["schemas"]["ProvisionamentoHost"][];
+            /** Slug */
+            slug: string;
+            tema: components["schemas"]["TemaMarca"];
+            /** Url */
+            url: string;
+        };
+        /**
+         * MarcaUpdate
+         * @description Campos do DONO: nome, tema, cadastro aberto. Os de ADMIN (slug, ativo,
+         *     dono, plano) são recusados com 403 para quem não é superuser.
+         */
+        MarcaUpdate: {
+            /** Ativo */
+            ativo?: boolean | null;
+            /** Cadastro Aberto */
+            cadastro_aberto?: boolean | null;
+            /** Dono Email */
+            dono_email?: string | null;
+            /** Nome */
+            nome?: string | null;
+            /** Plano Id */
+            plano_id?: string | null;
+            /** Remover Dono */
+            remover_dono?: boolean | null;
+            /** Remover Plano */
+            remover_plano?: boolean | null;
+            /** Slug */
+            slug?: string | null;
+            tema?: components["schemas"]["TemaMarca"] | null;
+        };
         /**
          * MembroConviteCreate
          * @description Convite de MEMBRO: o usuário chama alguém para a própria conta/equipe.
@@ -5392,6 +5885,27 @@ export interface components {
              * @default equipe
              */
             papel: string | null;
+        };
+        /** MembroMarca */
+        MembroMarca: {
+            /** Created At */
+            created_at?: string | null;
+            /** Email */
+            email: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /** Nome */
+            nome?: string | null;
+            /** Papel */
+            papel?: string | null;
         };
         /**
          * MembroRead
@@ -5800,23 +6314,6 @@ export interface components {
             sync_disparado: boolean;
         };
         /**
-         * OpcaoCatalogo
-         * @description Um item escolhível na config do plano (módulo, fonte ou feature).
-         */
-        OpcaoCatalogo: {
-            /** Chave */
-            chave: string;
-            /** Descricao */
-            descricao?: string | null;
-            /** Label */
-            label: string;
-            /**
-             * Padrao
-             * @default true
-             */
-            padrao: boolean;
-        };
-        /**
          * OpcoesEmendas
          * @description Valores disponíveis para os filtros da tela (só o que existe).
          */
@@ -5841,6 +6338,21 @@ export interface components {
              * @default []
              */
             parlamentares: string[];
+        };
+        /** OpcoesMarca */
+        OpcoesMarca: {
+            /** Dominio Base */
+            dominio_base: string;
+            /** Fontes */
+            fontes: components["schemas"]["src__schemas__marcas__OpcaoCatalogo"][];
+            /** Formas */
+            formas: components["schemas"]["src__schemas__marcas__OpcaoCatalogo"][];
+            /** Icones */
+            icones: components["schemas"]["src__schemas__marcas__OpcaoCatalogo"][];
+            /** Provisionador */
+            provisionador: string;
+            /** Tipos Asset */
+            tipos_asset: components["schemas"]["src__schemas__marcas__OpcaoCatalogo"][];
         };
         /** OportunidadesResposta */
         OportunidadesResposta: {
@@ -6129,17 +6641,17 @@ export interface components {
              * Features
              * @default []
              */
-            features: components["schemas"]["OpcaoCatalogo"][];
+            features: components["schemas"]["src__schemas__planos__OpcaoCatalogo"][];
             /**
              * Fontes
              * @default []
              */
-            fontes: components["schemas"]["OpcaoCatalogo"][];
+            fontes: components["schemas"]["src__schemas__planos__OpcaoCatalogo"][];
             /**
              * Modulos
              * @default []
              */
-            modulos: components["schemas"]["OpcaoCatalogo"][];
+            modulos: components["schemas"]["src__schemas__planos__OpcaoCatalogo"][];
         };
         /**
          * PlanoPerfil
@@ -6225,6 +6737,27 @@ export interface components {
         PreferenciasUpdate: {
             /** Email */
             email: boolean;
+        };
+        /** PreviewRead */
+        PreviewRead: {
+            /**
+             * Avisos
+             * @default []
+             */
+            avisos: string[];
+            /** Css */
+            css: string;
+            /**
+             * Fontes Urls
+             * @default []
+             */
+            fontes_urls: string[];
+        };
+        /** PreviewRequest */
+        PreviewRequest: {
+            /** Marca Id */
+            marca_id?: string | null;
+            tema: components["schemas"]["TemaMarca"];
         };
         /** ProgramaOportunidade */
         ProgramaOportunidade: {
@@ -6549,6 +7082,17 @@ export interface components {
             rotulo: string;
             /** Tipo Auth */
             tipo_auth: string;
+        };
+        /** ProvisionamentoHost */
+        ProvisionamentoHost: {
+            /** Detalhe */
+            detalhe?: string | null;
+            /** Em */
+            em?: string | null;
+            /** Host */
+            host: string;
+            /** Status */
+            status: string;
         };
         /**
          * PublicacaoPagina
@@ -6990,6 +7534,63 @@ export interface components {
             status?: string | null;
         };
         /**
+         * TemaMarca
+         * @description Tudo que a marca personaliza. Ausente/None = o padrão do Hub Capture.
+         */
+        TemaMarca: {
+            cores?: components["schemas"]["CoresMarca"];
+            /**
+             * Fonte Corpo
+             * @default inter
+             */
+            fonte_corpo: string;
+            /**
+             * Fonte Titulo
+             * @default archivo
+             */
+            fonte_titulo: string;
+            /**
+             * Forma
+             * @default padrao
+             * @enum {string}
+             */
+            forma: "reta" | "padrao" | "suave" | "arredondada" | "pilula";
+            /**
+             * Icones
+             * @default regular
+             * @enum {string}
+             */
+            icones: "fino" | "regular" | "grosso";
+            /**
+             * Icones Cantos
+             * @default arredondado
+             * @enum {string}
+             */
+            icones_cantos: "arredondado" | "reto";
+            /** Login Slogan */
+            login_slogan?: string | null;
+            /** Login Subtitulo */
+            login_subtitulo?: string | null;
+            /** Login Titulo */
+            login_titulo?: string | null;
+            /** Nome Assistente */
+            nome_assistente?: string | null;
+            /**
+             * Nome Com Logo
+             * @default false
+             */
+            nome_com_logo: boolean;
+            /** Nome Exibicao */
+            nome_exibicao?: string | null;
+            /** Rodape */
+            rodape?: string | null;
+            /**
+             * Titulos Caixa Alta
+             * @default true
+             */
+            titulos_caixa_alta: boolean;
+        };
+        /**
          * TerritorioEdicao
          * @description O que o plano deixa fazer com o território FORA do onboarding.
          *
@@ -7126,6 +7727,8 @@ export interface components {
              * @default false
              */
             is_verified: boolean;
+            /** Marca Id */
+            marca_id?: string | null;
             /** Nome */
             nome?: string | null;
             /**
@@ -7219,6 +7822,15 @@ export interface components {
             /** Papel */
             papel?: string | null;
         };
+        /** OpcaoCatalogo */
+        src__schemas__marcas__OpcaoCatalogo: {
+            /** Chave */
+            chave: string;
+            /** Detalhe */
+            detalhe?: string | null;
+            /** Rotulo */
+            rotulo: string;
+        };
         /** FacetaOpcao */
         src__schemas__oportunidades__FacetaOpcao: {
             /** Rotulo */
@@ -7227,6 +7839,23 @@ export interface components {
             total: number;
             /** Valor */
             valor: string;
+        };
+        /**
+         * OpcaoCatalogo
+         * @description Um item escolhível na config do plano (módulo, fonte ou feature).
+         */
+        src__schemas__planos__OpcaoCatalogo: {
+            /** Chave */
+            chave: string;
+            /** Descricao */
+            descricao?: string | null;
+            /** Label */
+            label: string;
+            /**
+             * Padrao
+             * @default true
+             */
+            padrao: boolean;
         };
         /**
          * FacetaOpcao
@@ -7603,6 +8232,150 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_listar_api_v1_admin_brands_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarcaRead"][];
+                };
+            };
+        };
+    };
+    admin_criar_api_v1_admin_brands_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarcaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarcaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_excluir_api_v1_admin_brands__marca_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                marca_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_ativar_dominio_api_v1_admin_brands__marca_id__domain_activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                marca_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarcaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_reprovisionar_api_v1_admin_brands__marca_id__provision_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                marca_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarcaRead"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -9545,6 +10318,470 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorModel"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    branding_api_v1_branding_get: {
+        parameters: {
+            query?: {
+                /** @description Host a resolver (padrão: o da requisição) */
+                host?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandingRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    branding_asset_api_v1_branding_assets__marca_id___tipo__get: {
+        parameters: {
+            query?: {
+                v?: string | null;
+            };
+            header?: never;
+            path: {
+                marca_id: string;
+                tipo: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    branding_preview_api_v1_branding_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    minhas_api_v1_brands_mine_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarcaRead"][];
+                };
+            };
+        };
+    };
+    opcoes_api_v1_brands_options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpcoesMarca"];
+                };
+            };
+        };
+    };
+    obter_api_v1_brands__marca_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                marca_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarcaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    editar_api_v1_brands__marca_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                marca_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarcaUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarcaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    enviar_asset_api_v1_brands__marca_id__assets__tipo__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                marca_id: string;
+                tipo: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_enviar_asset_api_v1_brands__marca_id__assets__tipo__put"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_asset_api_v1_brands__marca_id__assets__tipo__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                marca_id: string;
+                tipo: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    definir_dominio_api_v1_brands__marca_id__domain_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                marca_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DominioUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarcaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verificar_dominio_api_v1_brands__marca_id__domain_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                marca_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarcaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    convites_api_v1_brands__marca_id__invites_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                marca_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    convidar_api_v1_brands__marca_id__invites_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                marca_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConviteMarcaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    membros_api_v1_brands__marca_id__members_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                marca_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MembroMarca"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    desvincular_membro_api_v1_brands__marca_id__members__usuario_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                marca_id: string;
+                usuario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
